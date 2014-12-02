@@ -1,0 +1,61 @@
+=head1 Swagger Petstore
+
+This API has no description.
+
+=head1 VERSION
+
+1.0.0
+
+=head1 BASEURL
+
+L<http://petstore.swagger.wordnik.com/api>
+
+=head1 RESOURCES
+
+=head2 listPets
+
+finds pets in the system
+
+=head3 Resource URL
+
+  GET http://petstore.swagger.wordnik.com/api/%2Fpets
+
+=head3 Parameters
+
+  .---------------------------------------------------------------------------.
+  | Name  | In    | Required | Description                                    |
+  |---------------------------------------------------------------------------|
+  | limit | query | No       | How many items to return at one time (max 100) |
+  '---------------------------------------------------------------------------'
+
+=head3 Responses
+
+=head3 200 - OK
+
+pet response
+
+[
+  {
+    "id": int64, // required
+    "name": string, // required
+    "tag": string, // No description.
+  },
+  ...
+]
+
+=head3 Default
+
+unexpected error
+
+{
+  "code": int32, // required
+  "message": string, // required
+},
+
+=head1 COPYRIGHT AND LICENSE
+
+wordnik api team - http://developer.wordnik.com
+
+Creative Commons 4.0 International - http://creativecommons.org/licenses/by/4.0/
+
+=cut

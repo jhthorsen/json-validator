@@ -2,5 +2,6 @@ Changelog for Swagger2
 
 0.01
        * Add load()
+       * Add pod() and Swagger2::POD
        * Started project
 

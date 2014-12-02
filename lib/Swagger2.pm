@@ -30,7 +30,11 @@ and L<YAML::Tiny>.
   use Swagger2;
   my $swagger = Sswagger2->new("file:///path/to/api-spec.yaml");
 
-  print $swagger->tree->get("/swagger"); # Should return 2.0
+  # Access the raw specificaiton values
+  print $swagger->tree->get("/swagger");
+
+  # Returns the specification as a POD document
+  print $swagger->pod->as_string;
 
 =cut
 
@@ -50,6 +54,12 @@ Mojo::Util::monkey_patch(__PACKAGE__, DumpYAML => eval "\&$YAML_MODULE\::Dump" |
 
 =head1 ATTRIBUTES
 
+=head2 base_url
+
+  $mojo_url = $self->base_url;
+
+L<Mojo::URL> object that holds the location to application.
+
 =head2 tree
 
   $pointer = $self->tree;
@@ -67,11 +77,25 @@ A L<Mojo::UserAgent> used to fetch remote documentation.
 
 =head2 url
 
-  $str = $self->url;
+  $mojo_url = $self->url;
 
-URL to documentation file.
+L<Mojo::URL> object that holds the location to the documentation file.
+Note: This might also just be a dummy URL to L<http://example.com/>.
 
 =cut
+
+has base_url => sub {
+  my $self = shift;
+  my $url = Mojo::URL->new;
+  my $schemes = $self->tree->get('/schemes');
+  my $v;
+
+  $url->host($self->tree->get('/host') || 'example.com');
+  $url->path($self->tree->get('/basePath') || '/');
+  $url->scheme($schemes->[0] || 'http');
+
+  return $url;
+};
 
 has tree => sub {
   my $self = shift;
@@ -140,6 +164,60 @@ sub new {
 
   $self->{url} = Mojo::URL->new($self->{url});
   $self;
+}
+
+=head2 pod
+
+  $pod_object = $self->pod;
+
+Returns a L<Swagger2::POD> object.
+
+=cut
+
+sub pod {
+  my $self = shift;
+  my $resolved = Mojo::JSON::Pointer->new({});
+  require Swagger2::POD;
+  $self->_resolve_refs($self->tree, $resolved);
+  Swagger2::POD->new(base_url => $self->base_url, tree => $resolved);
+}
+
+sub _get_definition {
+  my ($self, $path) = @_;
+  my $definition = $self->tree->get($path);
+
+  if (!$definition) {
+    die "Undefined definition at path: $path";
+  }
+
+  if (ref $definition->{required} eq 'ARRAY') {
+    for my $name (@{$definition->{required}}) {
+      $definition->{properties}{$name}{required} = Mojo::JSON->true;
+    }
+  }
+
+  return $definition->{properties};
+}
+
+sub _resolve_refs {
+  my ($self, $in, $out) = @_;
+
+  if (!ref $in eq 'HASH') {
+    return $in;
+  }
+
+  if (my $ref = $in->{'$ref'}) {
+    return $self->_get_definition("/$1") if $ref =~ m!^\#/(.*)!;
+    return $self->_get_definition("/definitions/$1") if $ref =~ m!^(\w+)$!;
+    die "Not yet supported ref: '$ref'";
+  }
+
+  for my $k (keys %$in) {
+    my $v = $in->{$k};
+    $out->{$k} = ref $v eq 'HASH' ? $self->_resolve_refs($v, {}) : $v;
+  }
+
+  return $out;
 }
 
 =head1 COPYRIGHT AND LICENSE
