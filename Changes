@@ -1,5 +1,6 @@
 Changelog for Swagger2
 
 0.01
+       * Add load()
        * Started project
 
