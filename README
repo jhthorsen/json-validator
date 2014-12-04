@@ -5,6 +5,8 @@ VERSION
     0.01
 
 DESCRIPTION
+    THIS MODULE IS EXPERIMENTAL! ANY CHANGES CAN HAPPEN!
+
     Swagger2 is a module for generating, parsing and transforming swagger
     <http://swagger.io/> API documentation.
 
