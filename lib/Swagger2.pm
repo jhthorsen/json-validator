@@ -47,10 +47,13 @@ use Mojo::Util ();
 our $VERSION = '0.01';
 
 my @YAML_MODULES = qw( YAML::Tiny YAML YAML::Syck YAML::XS );
-my $YAML_MODULE = $ENV{SWAGGER_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::__Missing__';
+my $YAML_MODULE
+  = $ENV{SWAGGER_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::__Missing__';
 
-Mojo::Util::monkey_patch(__PACKAGE__, LoadYAML => eval "\\\&$YAML_MODULE\::Load" || sub {die "Need to install a YAML module: @YAML_MODULES"});
-Mojo::Util::monkey_patch(__PACKAGE__, DumpYAML => eval "\\\&$YAML_MODULE\::Dump" || sub {die "Need to install a YAML module: @YAML_MODULES"});
+Mojo::Util::monkey_patch(__PACKAGE__,
+  LoadYAML => eval "\\\&$YAML_MODULE\::Load" || sub { die "Need to install a YAML module: @YAML_MODULES" });
+Mojo::Util::monkey_patch(__PACKAGE__,
+  DumpYAML => eval "\\\&$YAML_MODULE\::Dump" || sub { die "Need to install a YAML module: @YAML_MODULES" });
 
 =head1 ATTRIBUTES
 
@@ -86,14 +89,14 @@ Note: This might also just be a dummy URL to L<http://example.com/>.
 
 has base_url => sub {
   my $self = shift;
-  my $url = Mojo::URL->new;
+  my $url  = Mojo::URL->new;
   my ($schemes, $v);
 
-  $self->load if '' .$self->url;
+  $self->load if '' . $self->url;
   $schemes = $self->tree->get('/schemes') || [];
-  $url->host($self->tree->get('/host') || 'example.com');
+  $url->host($self->tree->get('/host')     || 'example.com');
   $url->path($self->tree->get('/basePath') || '/');
-  $url->scheme($schemes->[0] || 'http');
+  $url->scheme($schemes->[0]               || 'http');
 
   return $url;
 };
@@ -101,7 +104,7 @@ has base_url => sub {
 has tree => sub {
   my $self = shift;
 
-  $self->load if '' .$self->url;
+  $self->load if '' . $self->url;
   $self->{tree} || Mojo::JSON::Pointer->new({});
 };
 
@@ -162,8 +165,8 @@ Object constructor.
 
 sub new {
   my $class = shift;
-  my $url = @_ % 2 ? shift : '';
-  my $self = $class->SUPER::new(url => $url, @_);
+  my $url   = @_ % 2 ? shift : '';
+  my $self  = $class->SUPER::new(url => $url, @_);
 
   $self->{url} = Mojo::URL->new($self->{url});
   $self;
@@ -178,7 +181,7 @@ Returns a L<Swagger2::POD> object.
 =cut
 
 sub pod {
-  my $self = shift;
+  my $self     = shift;
   my $resolved = Mojo::JSON::Pointer->new({});
   require Swagger2::POD;
   $self->_resolve_refs($self->tree, $resolved);
@@ -232,7 +235,7 @@ sub _resolve_refs {
   }
 
   if (my $ref = $in->{'$ref'}) {
-    return $self->_get_definition("/$1") if $ref =~ m!^\#/(.*)!;
+    return $self->_get_definition("/$1")             if $ref =~ m!^\#/(.*)!;
     return $self->_get_definition("/definitions/$1") if $ref =~ m!^(\w+)$!;
     die "Not yet supported ref: '$ref'";
   }

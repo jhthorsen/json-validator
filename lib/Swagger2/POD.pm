@@ -38,22 +38,18 @@ Will convert swagger API spec to plain old documentation.
 sub to_string {
   my $self = shift;
 
-  join('',
-    $self->_header_to_string,
-    $self->_api_endpoint_to_string,
-    $self->_paths_to_string,
-    $self->_footer_to_string,
+  join('', $self->_header_to_string, $self->_api_endpoint_to_string, $self->_paths_to_string, $self->_footer_to_string,
   );
 }
 
 sub _api_endpoint_to_string {
-  my $self = shift;
+  my $self    = shift;
   my @schemes = @{$self->{tree}->get('/schemes') || []};
-  my $url = $self->{base_url}->clone;
-  my $str = "=head1 BASEURL\n\n";
+  my $url     = $self->{base_url}->clone;
+  my $str     = "=head1 BASEURL\n\n";
 
   unless (@schemes) {
-    return $str ."No default URL is defined to this application.\n\n";
+    return $str . "No default URL is defined to this application.\n\n";
   }
 
   while (my $scheme = shift @schemes) {
@@ -65,20 +61,20 @@ sub _api_endpoint_to_string {
 }
 
 sub _footer_to_string {
-  my $self = shift;
+  my $self    = shift;
   my $contact = $self->{tree}->get('/info/contact');
   my $license = $self->{tree}->get('/info/license');
-  my $str = '';
+  my $str     = '';
 
   unless ($license->{name}) {
     $license->{name} = 'BSD';
-    $license->{url} = 'http://www.linfo.org/bsdlicense.html';
+    $license->{url}  = 'http://www.linfo.org/bsdlicense.html';
   }
 
   $contact->{name} ||= 'Unknown author';
 
   $str .= sprintf "=head1 COPYRIGHT AND LICENSE\n\n%s", $contact->{name};
-  $str .= sprintf " - %s", $contact->{email} || $contact->{url} if $contact->{email} || $contact->{url};
+  $str .= sprintf " - %s",  $contact->{email} || $contact->{url} if $contact->{email} || $contact->{url};
   $str .= sprintf "\n\n%s", $license->{name};
   $str .= sprintf " - %s", $license->{url} if $license->{url};
   $str .= "\n\n=cut\n";
@@ -88,15 +84,15 @@ sub _footer_to_string {
 sub _header_to_string {
   my $self = shift;
   my $info = $self->{tree}->get('/info');
-  my $str = '';
+  my $str  = '';
 
-  $info->{title} ||= 'Noname API';
+  $info->{title}       ||= 'Noname API';
   $info->{description} ||= 'This API has no description.';
-  $info->{version} ||= '0.01';
+  $info->{version}     ||= '0.01';
 
-  $str .= sprintf "=head1 %s\n\n", $info->{title};
-  $str .= sprintf "%s\n\n", $info->{description};
-  $str .= sprintf "=head1 VERSION\n\n%s\n\n", $info->{version};
+  $str .= sprintf "=head1 %s\n\n",                     $info->{title};
+  $str .= sprintf "%s\n\n",                            $info->{description};
+  $str .= sprintf "=head1 VERSION\n\n%s\n\n",          $info->{version};
   $str .= sprintf "=head1 TERMS OF SERVICE\n\n%s\n\n", $info->{termsOfService} if $info->{termsOfService};
   $str;
 }
@@ -104,9 +100,9 @@ sub _header_to_string {
 sub _path_request_to_string {
   my ($self, $info) = @_;
   my @table = ([qw( Name In Required Description )]);
-  my $str = '';
+  my $str   = '';
 
-  for my $p (@{$info->{parameters}||[]}) {
+  for my $p (@{$info->{parameters} || []}) {
     $p->{description} ||= NO_DESCRIPTION;
     push @table, [@$p{qw( name in )}, $p->{required} ? 'Yes' : 'No', $p->{description}];
   }
@@ -134,19 +130,19 @@ sub _path_response_to_string {
 }
 
 sub _paths_to_string {
-  my $self = shift;
+  my $self  = shift;
   my $paths = $self->{tree}->get('/paths') || {};
-  my $str = "=head1 RESOURCES\n\n";
+  my $str   = "=head1 RESOURCES\n\n";
 
-  PATH:
+PATH:
   for my $path (sort keys %$paths) {
     my $url = $self->{base_url}->clone;
     push @{$url->path->parts}, $path;
 
-    METHOD:
+  METHOD:
     for my $method (sort keys %{$paths->{$path}}) {
       my $info = $paths->{$path}{$method};
-      my $ext = $info->{externalDocs};
+      my $ext  = $info->{externalDocs};
 
       $str .= sprintf "=head2 %s\n\n", $info->{operationId} || join(' ', uc $method, $path);
       $str .= "  THIS RESOURCE IS DEPRECATED!\n\n" if $info->{deprecated};
@@ -176,7 +172,7 @@ sub _schema_array_to_string {
   $str .= _sprintf($depth, "[%s\n", $description);
   $str .= $self->_schema_to_string_dispatch($schema->{items}, $depth + 1);
   $str .= _sprintf($depth + 1, "...\n");
-  $str .= _sprintf($depth, "]\n");
+  $str .= _sprintf($depth,     "]\n");
   $str;
 }
 
@@ -212,12 +208,13 @@ sub _schema_object_to_string {
 sub _schema_string_to_string {
   my ($self, $schema, $depth) = @_;
 
-  sprintf "%s, // %s\n", $schema->{format} || 'string', _type_description($schema, qw( minLength maxLength pattern default ));
+  sprintf "%s, // %s\n", $schema->{format} || 'string',
+    _type_description($schema, qw( minLength maxLength pattern default ));
 }
 
 sub _schema_to_string_dispatch {
   my $self = shift;
-  my $method = '_schema_' . ($_[0]->{type} || 'object') .'_to_string';
+  my $method = '_schema_' . ($_[0]->{type} || 'object') . '_to_string';
   $self->$method(@_);
 }
 
@@ -239,9 +236,9 @@ sub _ascii_table {
 
   my $format = sprintf '%s| %s |', $pad, join ' | ', map { $width += $_ + 3; "\%-${_}s" } @spec;
   @table = map { sprintf "$format\n", @$_ } @$rows;
-  unshift @table, "$pad." .('-' x ($width - 2)) .".\n";
-  splice @table, 2, 0, "$pad|" .('-' x ($width - 2)) ."|\n";
-  push @table, "$pad'" .('-' x ($width - 2)) ."'\n";
+  unshift @table, "$pad." . ('-' x ($width - 2)) . ".\n";
+  splice @table, 2, 0, "$pad|" . ('-' x ($width - 2)) . "|\n";
+  push @table, "$pad'" . ('-' x ($width - 2)) . "'\n";
   return join '', @table;
 }
 
@@ -261,8 +258,8 @@ sub _status_code_to_string {
 
 sub _stringify {
   my ($k, $obj) = @_;
-  return 'required' if $k eq 'required' and $obj->{$k};
-  return "$k=true" if blessed $obj->{$k} and $obj->{$k} eq Mojo::JSON->true;
+  return 'required' if $k eq 'required'   and $obj->{$k};
+  return "$k=true"  if blessed $obj->{$k} and $obj->{$k} eq Mojo::JSON->true;
   return "$k=false" if blessed $obj->{$k} and $obj->{$k} eq Mojo::JSON->false;
   return sprintf '%s=%s', $k, encode_json $obj->{$k} if ref $obj->{$k};
   return sprintf '%s=%s', $k, $obj->{$k};
