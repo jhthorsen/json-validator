@@ -246,7 +246,7 @@ sub _get_definition {
     }
   }
 
-  return $definition->{properties};
+  return $definition;
 }
 
 sub _resolve_refs {

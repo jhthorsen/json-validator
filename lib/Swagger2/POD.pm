@@ -123,7 +123,7 @@ sub _path_response_to_string {
     my $res = $responses->{$code};
     $str .= sprintf "=head3 %s\n\n", _status_code_to_string($code);
     $str .= sprintf "%s\n\n", $res->{description} || NO_DESCRIPTION;
-    $str .= $self->_schema_to_string_dispatch($responses->{$code}{schema}, 0) . "\n";
+    $str .= $self->_schema_to_string_dispatch($res->{schema}, 0) . "\n";
   }
 
   return $str;
@@ -213,9 +213,12 @@ sub _schema_string_to_string {
 }
 
 sub _schema_to_string_dispatch {
-  my $self = shift;
-  my $method = '_schema_' . ($_[0]->{type} || 'object') . '_to_string';
-  $self->$method(@_);
+  my ($self, $schema, $depth) = @_;
+  my $method;
+
+  $schema = $schema->{properties} if $schema->{properties};
+  $method = '_schema_' . ($schema->{type} || 'object') . '_to_string';
+  $self->$method($schema, $depth);
 }
 
 # FUNCTIONS
