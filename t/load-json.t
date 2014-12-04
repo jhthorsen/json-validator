@@ -18,7 +18,7 @@ like $swagger->to_string, qr{"summary":"finds pets in the system"}, 'to_string';
 like $swagger->to_string('json'), qr{"summary":"finds pets in the system"}, 'to_string json';
 
 use Mojolicious::Lite;
-get '/api-spec' => sub { shift->render(text => Mojo::Util::slurp($json_file)); };
+get '/api-spec' => sub { shift->render(format => 'json', text => Mojo::Util::slurp($json_file)); };
 my $t          = Test::Mojo->new;
 my $server_url = $t->ua->server->url('http');
 $swagger = Swagger2->new;

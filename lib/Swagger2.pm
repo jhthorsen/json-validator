@@ -122,26 +122,31 @@ sub url { shift->{url} }
   $self = $self->load;
   $self = $self->load($url);
 
-Used to load the content from C</url>. The content loaded can be either JSON
-or YAML. JSON is chosen, unless the content starts with "---".
+Used to load the content from C<$url> or C</url>. This method will try to
+guess the content type (JSON or YAML) by looking at the filename, URL path
+or content type - if served by a web server.
 
 =cut
 
 sub load {
   my $self = shift;
-  my ($data, $scheme, $tree);
+  my ($data, $scheme, $tree, $type);
 
   $self->{url} = Mojo::URL->new(shift) if @_;
   $scheme = $self->{url}->scheme || 'file';
 
   if ($scheme eq 'file') {
     $data = Mojo::Util::slurp($self->{url}->path);
+    $type = $self->{url}->path =~ /\.(yaml|json)$/i ? lc $1 : 'json';
   }
   else {
-    $data = $self->ua->get($self->{url})->res->body;
+    my $tx = $self->ua->get($self->{url});
+    $type ||= $1 if $self->{url}->path =~ /\.(\w+)$/;
+    $type ||= ($tx->res->headers->content_type // '') =~ /json/ ? 'json' : 'yaml';
+    $data = $tx->res->body;
   }
 
-  if ($data =~ /^---/) {
+  if ($type eq 'yaml' or $data =~ /^---/) {
     $tree = LoadYAML($data);
   }
   else {
