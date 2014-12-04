@@ -4,7 +4,7 @@ use Mojo::Base 'Mojolicious::Controller';
 our $RES = {};
 
 sub list_pets_get {
-  my ($c, $cb) = @_;
+  my ($c, $args, $cb) = @_;
   $c->$cb(200 => $RES);
 }
 

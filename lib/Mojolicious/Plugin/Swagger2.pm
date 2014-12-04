@@ -15,13 +15,32 @@ input/output validation to your L<Mojolicious> application.
 
 =item * Only JSON
 
-Currently this plugin can only exchange JSON data. Pull requests are
-more than welcome to fix this.
+Currently this plugin can only render JSON data.
+
+Pull requests and/or bug reports are more than welcome to fix/change this.
+
+=item * Fixed 400 response
+
+The server will respond with "400 Bad Request", on invalid input. The JSON
+response is also fixed:
+
+  {
+    "valid": false,
+    "errors": [
+      {
+        "message": "No handler defined.",
+        "property": null
+      },
+      ...
+    ]
+  }
+
+Pull requests and/or bug reports are more than welcome to fix/change this.
 
 =item * Fixed 501 response
 
 The server will respond with "501 Not Implemented", unless the L</controller>
-has defined the requested method. The JSON response is also fixed (for now):
+has defined the requested method. The JSON response is also fixed:
 
   {
     "valid": false,
@@ -33,7 +52,7 @@ has defined the requested method. The JSON response is also fixed (for now):
     ]
   }
 
-Note: The "message" might change.
+Pull requests and/or bug reports are more than welcome to fix/change this.
 
 =back
 
@@ -79,14 +98,15 @@ HTTP method at the end.
 
 The example L</Swagger specification> above, will result in
 C<list_pets_get()> in the controller below to be called. This method
-will receive the current L<Mojolicious::Controller> object and a callback.
-The callback should be called with a HTTP status code, and a data structure
-which will be validated and serialized back to the user agent.
+will receive the current L<Mojolicious::Controller> object, input arguments
+and a callback. The callback should be called with a HTTP status code, and
+a data structure which will be validated and serialized back to the user
+agent.
 
   package MyApp::Controller::Api;
 
   sub list_pets_get {
-    my ($c, $cb) = @_;
+    my ($c, $args, $cb) = @_;
     $c->$cb(200 => { foo => 123 });
   }
 
@@ -169,7 +189,7 @@ sub _generate_request_handler {
   my $controller = $self->controller;
 
   unless ($controller->can($method)) {
-    return sub { shift->render(json => _not_implemented(), status => 501) };
+    return sub { shift->render(json => $self->_not_implemented, status => 501) };
   }
 
   return sub {
@@ -179,7 +199,10 @@ sub _generate_request_handler {
     $c->delay(
       sub {
         my ($delay) = @_;
-        $c->$method($delay->begin);
+        my ($v, $input) = $self->_validate_input($c, $config);
+
+        return $c->render(json => $v, status => 400) unless $v->{valid};
+        return $c->$method($input, $delay->begin);
       },
       sub {
         my ($delay, $status, $data) = @_;
@@ -192,11 +215,8 @@ sub _generate_request_handler {
 
         $v = $self->_validator->validate($data, $format->{schema});
 
-        unless ($v->{valid}) {
-          return $c->render(json => $v, status => $self->default_code);
-        }
-
-        $c->render(json => $data, status => $status eq 'default' ? $self->default_code : $status);
+        return $c->render(json => $v, status => $self->default_code) unless $v->{valid};
+        return $c->render(json => $data, status => $status eq 'default' ? $self->default_code : $status);
       },
     );
   };
@@ -204,6 +224,42 @@ sub _generate_request_handler {
 
 sub _not_implemented {
   {valid => Mojo::JSON->false, errors => [{message => 'No handler defined.', property => undef}]};
+}
+
+sub _validate_input {
+  my ($self, $c, $config) = @_;
+  my $headers = $c->req->headers;
+  my $query   = $c->req->url->query;
+  my $body    = $c->req->json || $c->req->body_params->to_hash || {};
+  my %v       = (errors => []);
+  my %input;
+
+  for my $p (@{$config->{parameters} || []}) {
+    my @err;
+    my $in   = $p->{in};
+    my $name = $p->{name};
+    my $value
+      = $in eq 'query'  ? $query->param($name)
+      : $in eq 'path'   ? $c->stash($name)
+      : $in eq 'header' ? $headers->header($name)
+      :                   $body->{$name};
+
+    if ($p->{schema}) {
+      my $tmp = $self->_validator->validate($value, $p->{schema});
+      push @err, @{$tmp->{errors} || []};
+    }
+    else {
+      my $tmp = $self->_validator->validate($value, $p);
+      push @err, @{$tmp->{errors} || []};
+    }
+
+    push @{$v{errors}}, map { $_->{property} = "\$0.$name"; $_ } @err;
+    $input{$name} = $value unless @err;
+  }
+
+  $v{valid} = @{$v{errors}} ? Mojo::JSON->false : Mojo::JSON->true;
+
+  return \%v, \%input;
 }
 
 =head1 COPYRIGHT AND LICENSE

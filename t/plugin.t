@@ -22,4 +22,9 @@ $t->get_ok('/api/pets')->status_is(500)->json_is('/valid', Mojo::JSON->false)->j
 $t::Api::RES = [{id => 123, name => "kit-cat"}];
 $t->get_ok('/api/pets')->status_is(200)->json_is('/0/id', 123)->json_is('/0/name', 'kit-cat');
 
+$t::Api::RES = [{id => 123, name => "kit-cat"}];
+$t->get_ok('/api/pets?limit=foo')->status_is(400)->json_is('/valid', Mojo::JSON->false)
+  ->json_is('/errors/0/property', '$0.limit')
+  ->json_is('/errors/0/message', 'string value found, but a integer is required')->json_is('/errors/1', undef);
+
 done_testing;
