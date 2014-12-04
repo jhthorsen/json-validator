@@ -182,6 +182,28 @@ sub pod {
   Swagger2::POD->new(base_url => $self->base_url, tree => $resolved);
 }
 
+=head2 to_string
+
+  $json = $self->to_string;
+  $json = $self->to_string("json");
+  $yaml = $self->to_string("yaml");
+
+This method can transform this object into Swagger spec.
+
+=cut
+
+sub to_string {
+  my $self = shift;
+  my $format = shift || 'json';
+
+  if ($format eq 'yaml') {
+    return DumpYAML($self->tree->data);
+  }
+  else {
+    return Mojo::JSON::encode_json($self->tree->data);
+  }
+}
+
 sub _get_definition {
   my ($self, $path) = @_;
   my $definition = $self->tree->get($path);
