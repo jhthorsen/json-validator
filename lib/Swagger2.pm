@@ -61,15 +61,15 @@ Mojo::Util::monkey_patch(__PACKAGE__,
 
   $mojo_url = $self->base_url;
 
-L<Mojo::URL> object that holds the location to Swagger API endpoint.
+L<Mojo::URL> object that holds the location to the API endpoint.
+Note: This might also just be a dummy URL to L<http://example.com/>.
 
 =head2 tree
 
   $pointer = $self->tree;
   $self = $self->tree(Mojo::JSON::Pointer->new({}));
 
-Holds a L<Mojo::JSON::Pointer> object. This attribute will be built from
-L</load>, if L</url> is set.
+Holds a L<Mojo::JSON::Pointer> object containing the swagger specification.
 
 =head2 ua
 
@@ -83,7 +83,6 @@ A L<Mojo::UserAgent> used to fetch remote documentation.
   $mojo_url = $self->url;
 
 L<Mojo::URL> object that holds the location to the documentation file.
-Note: This might also just be a dummy URL to L<http://example.com/>.
 
 =cut
 
@@ -122,9 +121,9 @@ sub url { shift->{url} }
   $self = $self->load;
   $self = $self->load($url);
 
-Used to load the content from C<$url> or C</url>. This method will try to
+Used to load the content from C<$url> or L</url>. This method will try to
 guess the content type (JSON or YAML) by looking at the filename, URL path
-or content type - if served by a web server.
+or "Content-Type" header reported by a web server.
 
 =cut
 

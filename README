@@ -29,14 +29,14 @@ ATTRIBUTES
   base_url
       $mojo_url = $self->base_url;
 
-    Mojo::URL object that holds the location to Swagger API endpoint.
+    Mojo::URL object that holds the location to the API endpoint. Note: This
+    might also just be a dummy URL to <http://example.com/>.
 
   tree
       $pointer = $self->tree;
       $self = $self->tree(Mojo::JSON::Pointer->new({}));
 
-    Holds a Mojo::JSON::Pointer object. This attribute will be built from
-    "load", if "url" is set.
+    Holds a Mojo::JSON::Pointer object containing the swagger specification.
 
   ua
       $ua = $self->ua;
@@ -48,16 +48,15 @@ ATTRIBUTES
       $mojo_url = $self->url;
 
     Mojo::URL object that holds the location to the documentation file.
-    Note: This might also just be a dummy URL to <http://example.com/>.
 
 METHODS
   load
       $self = $self->load;
       $self = $self->load($url);
 
-    Used to load the content from $url or "/url". This method will try to
+    Used to load the content from $url or "url". This method will try to
     guess the content type (JSON or YAML) by looking at the filename, URL
-    path or content type - if served by a web server.
+    path or "Content-Type" header reported by a web server.
 
   new
       $self = Swagger2->new($url);
