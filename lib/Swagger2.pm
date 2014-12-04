@@ -118,6 +118,22 @@ sub url { shift->{url} }
 
 =head1 METHODS
 
+=head2 expand
+
+  $swagger = $self->expand;
+
+This method returns a new C<Swagger2> object, where all the references are
+resolved.
+
+=cut
+
+sub expand {
+  my $self  = shift;
+  my $class = Scalar::Util::blessed($self);
+
+  $class->new(%$self)->tree($self->_resolve_refs($self->tree, Mojo::JSON::Pointer->new({})));
+}
+
 =head2 load
 
   $self = $self->load;
