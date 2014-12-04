@@ -13,7 +13,9 @@ Swagger2 - Swagger RESTful API Documentation
 THIS MODULE IS EXPERIMENTAL! ANY CHANGES CAN HAPPEN!
 
 L<Swagger2> is a module for generating, parsing and transforming
-L<swagger|http://swagger.io/> API documentation.
+L<swagger|http://swagger.io/> API documentation. It has support for reading
+swagger specification in JSON notation and it can also read YAML files,
+if a L</YAML parser> is installed.
 
 This distribution comes with a L<Mojolicious> plugin,
 L<Mojolicious::Plugin::Swagger2>, which can set up routes and perform input
