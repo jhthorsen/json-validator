@@ -1,3 +1,4 @@
 # You can install this projct with curl -L http://cpanmin.us | perl - https://github.com/jhthorsen/swagger2/archive/master.tar.gz
-requires "perl" => "5.10.0";
+requires "Mojolicious" => "5.0";
+recommends "YAML" => 0;
 test_requires "Test::More" => "0.88";

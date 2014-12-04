@@ -1,0 +1,89 @@
+NAME
+    Swagger2 - Swagger RESTful API Documentation
+
+VERSION
+    0.01
+
+DESCRIPTION
+    Swagger2 is a module for generating, parsing and transforming swagger
+    <http://swagger.io/> API documentation.
+
+RECOMMENDED MODULES
+    *   YAML parser
+
+        A YAML parser is required if you want to read/write spec written in
+        the YAML format. Supported modules are YAML::XS, YAML::Syck, YAML
+        and YAML::Tiny.
+
+SYNOPSIS
+      use Swagger2;
+      my $swagger = Sswagger2->new("file:///path/to/api-spec.yaml");
+
+      # Access the raw specificaiton values
+      print $swagger->tree->get("/swagger");
+
+      # Returns the specification as a POD document
+      print $swagger->pod->as_string;
+
+ATTRIBUTES
+  base_url
+      $mojo_url = $self->base_url;
+
+    Mojo::URL object that holds the location to Swagger API endpoint.
+
+  tree
+      $pointer = $self->tree;
+      $self = $self->tree(Mojo::JSON::Pointer->new({}));
+
+    Holds a Mojo::JSON::Pointer object. This attribute will be built from
+    "load", if "url" is set.
+
+  ua
+      $ua = $self->ua;
+      $self = $self->ua(Mojo::UserAgent->new);
+
+    A Mojo::UserAgent used to fetch remote documentation.
+
+  url
+      $mojo_url = $self->url;
+
+    Mojo::URL object that holds the location to the documentation file.
+    Note: This might also just be a dummy URL to <http://example.com/>.
+
+METHODS
+  load
+      $self = $self->load;
+      $self = $self->load($url);
+
+    Used to load the content from $url or "/url". This method will try to
+    guess the content type (JSON or YAML) by looking at the filename, URL
+    path or content type - if served by a web server.
+
+  new
+      $self = Swagger2->new($url);
+      $self = Swagger2->new(%attributes);
+      $self = Swagger2->new(\%attributes);
+
+    Object constructor.
+
+  pod
+      $pod_object = $self->pod;
+
+    Returns a Swagger2::POD object.
+
+  to_string
+      $json = $self->to_string;
+      $json = $self->to_string("json");
+      $yaml = $self->to_string("yaml");
+
+    This method can transform this object into Swagger spec.
+
+COPYRIGHT AND LICENSE
+    Copyright (C) 2014, Jan Henning Thorsen
+
+    This program is free software, you can redistribute it and/or modify it
+    under the terms of the Artistic License version 2.0.
+
+AUTHOR
+    Jan Henning Thorsen - "jhthorsen@cpan.org"
+

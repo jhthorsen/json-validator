@@ -13,7 +13,7 @@ Swagger2 - Swagger RESTful API Documentation
 L<Swagger2> is a module for generating, parsing and transforming
 L<swagger|http://swagger.io/> API documentation.
 
-=head1 DEPENDENCIES
+=head1 RECOMMENDED MODULES
 
 =over 4
 
