@@ -117,10 +117,7 @@ Holds the URL to the swagger specification file.
 has controller   => '';
 has default_code => 500;
 has url          => '';
-
-has _validator => sub {
-  Swagger2::SchemaValidator->new;
-};
+has _validator   => sub { Swagger2::SchemaValidator->new; };
 
 =head1 METHODS
 
@@ -162,53 +159,51 @@ sub register {
       my $name = decamelize(ucfirst sprintf '%s_%s', $info->{operationId} || $route_path, $m);
       die "$name is not an unique route! ($method $path)" if $app->routes->lookup($name);
       warn "[Swagger2] Add route $method $route_path\n"   if DEBUG;
-      $r->$m($route_path => sub { $self->_handle_request($_[0], $name, $info); })->name($name);
+      $r->$m($route_path => $self->_generate_request_handler($name, $info))->name($name);
     }
   }
 }
 
-sub _handle_request {
-  my ($self, $c, $method, $config) = @_;
+sub _generate_request_handler {
+  my ($self, $method, $config) = @_;
+  my $controller = $self->controller;
 
-  # ugly hack?
-  bless $c, $self->controller;
-
-  unless ($c->can($method)) {
-    return $c->render(json => $self->_not_implemented, status => 501);
+  unless ($controller->can($method)) {
+    return sub { shift->render(json => _not_implemented(), status => 501) };
   }
 
-  $c->stash(swagger_config => $config);
-  $c->delay(
-    sub {
-      my $delay = shift;
-      $c->$method($delay->begin);
-    },
-    sub {
-      my $delay = shift;
-      $self->_render($c, @_);
-    },
-  );
+  return sub {
+    my $c = shift;
+    bless $c, $controller;    # ugly hack?
+
+    $c->delay(
+      sub {
+        my ($delay) = @_;
+        $c->$method($delay->begin);
+      },
+      sub {
+        my ($delay, $status, $data) = @_;
+        my $format = $config->{responses}{$status} || $config->{responses}{default};
+        my $v;
+
+        unless ($format) {
+          return $c->render_exception("Status code ($status) is not defined in API specification.");
+        }
+
+        $v = $self->_validator->validate($data, $format->{schema});
+
+        unless ($v->{valid}) {
+          return $c->render(json => $v, status => $self->default_code);
+        }
+
+        $c->render(json => $data, status => $status eq 'default' ? $self->default_code : $status);
+      },
+    );
+  };
 }
 
 sub _not_implemented {
   {valid => Mojo::JSON->false, errors => [{message => 'No handler defined.', property => undef}]};
-}
-
-sub _render {
-  my ($self, $c, $status, $data) = @_;
-  my $config = $c->stash('swagger_config');
-  my $format = $config->{responses}{$status} || $config->{responses}{default};
-  my $res;
-
-  unless ($format) {
-    return $c->render_exception("Status code ($status) is not defined in Swagger specification");
-  }
-
-  $res = $self->_validator->validate($data, $format->{schema});
-  $status = $self->default_code if $status eq 'default';
-
-  return $c->render(json => $res, status => 500) unless $res->{valid};
-  return $c->render(json => $data, status => $status);
 }
 
 =head1 COPYRIGHT AND LICENSE
