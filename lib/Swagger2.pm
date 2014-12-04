@@ -15,6 +15,10 @@ THIS MODULE IS EXPERIMENTAL! ANY CHANGES CAN HAPPEN!
 L<Swagger2> is a module for generating, parsing and transforming
 L<swagger|http://swagger.io/> API documentation.
 
+This distribution comes with a L<Mojolicious> plugin,
+L<Mojolicious::Plugin::Swagger2>, which can set up routes and perform input
+and output validation.
+
 =head1 RECOMMENDED MODULES
 
 =over 4
@@ -93,7 +97,7 @@ has base_url => sub {
   my $url  = Mojo::URL->new;
   my ($schemes, $v);
 
-  $self->load if '' . $self->url;
+  $self->load if !$self->{tree} and '' . $self->url;
   $schemes = $self->tree->get('/schemes') || [];
   $url->host($self->tree->get('/host')     || 'example.com');
   $url->path($self->tree->get('/basePath') || '/');
