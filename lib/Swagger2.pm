@@ -58,7 +58,7 @@ Mojo::Util::monkey_patch(__PACKAGE__, DumpYAML => eval "\\\&$YAML_MODULE\::Dump"
 
   $mojo_url = $self->base_url;
 
-L<Mojo::URL> object that holds the location to application.
+L<Mojo::URL> object that holds the location to Swagger API endpoint.
 
 =head2 tree
 
@@ -87,9 +87,10 @@ Note: This might also just be a dummy URL to L<http://example.com/>.
 has base_url => sub {
   my $self = shift;
   my $url = Mojo::URL->new;
-  my $schemes = $self->tree->get('/schemes');
-  my $v;
+  my ($schemes, $v);
 
+  $self->load if '' .$self->url;
+  $schemes = $self->tree->get('/schemes') || [];
   $url->host($self->tree->get('/host') || 'example.com');
   $url->path($self->tree->get('/basePath') || '/');
   $url->scheme($schemes->[0] || 'http');
@@ -100,7 +101,7 @@ has base_url => sub {
 has tree => sub {
   my $self = shift;
 
-  $self->load if $self->url;
+  $self->load if '' .$self->url;
   $self->{tree} || Mojo::JSON::Pointer->new({});
 };
 
@@ -116,18 +117,19 @@ sub url { shift->{url} }
 =head2 load
 
   $self = $self->load;
+  $self = $self->load($url);
 
-Used to load the content from C</url>.
+Used to load the content from C</url>. The content loaded can be either JSON
+or YAML. JSON is chosen, unless the content starts with "---".
 
 =cut
 
 sub load {
   my $self = shift;
-  my $scheme = $self->{url}->scheme || 'file';
-  my $tree = {};
-  my $data;
+  my ($data, $scheme, $tree);
 
   $self->{url} = Mojo::URL->new(shift) if @_;
+  $scheme = $self->{url}->scheme || 'file';
 
   if ($scheme eq 'file') {
     $data = Mojo::Util::slurp($self->{url}->path);
@@ -136,13 +138,14 @@ sub load {
     $data = $self->ua->get($self->{url})->res->body;
   }
 
-  if ($self->{url}->path =~ /\.yaml/) {
+  if ($data =~ /^---/) {
     $tree = LoadYAML($data);
   }
-  elsif ($self->{url}->path =~ /\.json/) {
+  else {
     $tree = Mojo::JSON::decode_json($data);
   }
 
+  delete $self->{base_url};
   $self->{tree} = Mojo::JSON::Pointer->new($tree);
   $self;
 }
