@@ -1,4 +1,4 @@
-package JSON::Schema::Helper;
+package Swagger2::SchemaValidator;
 
 ###
 # JSONSchema Validator - Validates JavaScript objects using JSON Schemas
@@ -18,25 +18,17 @@ package JSON::Schema::Helper;
 
 # TODO: {id}, {dependencies}
 
-use 5.010;
-use strict qw( vars subs );
-use constant FALSE => !1;
-use constant TRUE  => !!1;
+use Mojo::Base -strict;
+use Mojo::JSON;
+use constant FALSE => Mojo::JSON->false;
+use constant TRUE  => Mojo::JSON->true;
 no autovivification;
-
-use JSON qw[-convert_blessed_universally];
-use JSON::Hyper;
-use JSON::Schema::Null;
 use POSIX qw[modf];
 use Scalar::Util qw[blessed];
-use match::simple qw[match];
-
-our $AUTHORITY = 'cpan:TOBYINK';
-our $VERSION   = '0.016';
 
 sub new {
   my ($class, %args) = @_;
-  $args{hyper}  //= JSON::Hyper->new;
+  $args{hyper}  //= undef;    # TODO
   $args{errors} //= [];
   $args{format} //= {};
   return bless \%args, $class;
@@ -101,12 +93,6 @@ sub checkType {
   };
 
   if ($type) {
-
-#		if (ref $type ne 'HASH'
-#		and $type ne 'any'
-#		and ($type eq 'null' ? $self->jsIsNull($value) : $self->jsMatchType($type, $value))
-#		and !(ref $value eq 'ARRAY' and $type eq 'array')
-#		and !($type eq 'integer' and $value % 1 == 0))
     if (ref $type eq 'ARRAY') {
       my @unionErrors;
     TYPE: foreach my $t (@$type) {
@@ -178,15 +164,14 @@ sub checkProp {
     if (defined $schema->{'disallow'} and !$self->checkType($schema->{'disallow'}, $value, $path, $_changing)) {
       $addError->(" disallowed value was matched");
     }
-
-    if (!$self->jsIsNull($value)) {
+    else {
       if (ref $value eq 'ARRAY') {
         my $items = $schema->{items};
 
         if (ref $items eq 'ARRAY') {    # check each item in $schema->{items} vs corresponding array value
           my $i = 0;
           while ($i < @$items) {
-            my $x = defined $value->[$i] ? $value->[$i] : JSON::Schema::Null->new;
+            my $x = defined $value->[$i] ? $value->[$i] : undef;
             push @{$self->{errors}}, $self->checkProp($x, $items->[$i], $path, $i, $_changing);
             $i++;
           }
@@ -199,7 +184,7 @@ sub checkProp {
             }
             else {
               while ($i < @$value) {
-                my $x = defined $value->[$i] ? $value->[$i] : JSON::Schema::Null->new;
+                my $x = defined $value->[$i] ? $value->[$i] : undef;
                 push @{$self->{errors}}, $self->checkProp($x, $additional_items, $path, $i, $_changing);
                 $i++;
               }
@@ -208,7 +193,7 @@ sub checkProp {
         }
         elsif (ref $items eq 'HASH') {    # check single $schema->{items} hash vs all values in array
           for (my $i = 0; $i < @$value; $i++) {
-            my $x = defined $value->[$i] ? $value->[$i] : JSON::Schema::Null->new;
+            my $x = defined $value->[$i] ? $value->[$i] : undef;
             push @{$self->{errors}}, $self->checkProp($x, $items, $path, $i, $_changing);
           }
         }
@@ -245,7 +230,8 @@ sub checkProp {
       if ($schema->{'format'} and ($self->jsMatchType('string', $value) or $self->jsMatchType('number', $value))) {
         my $format_checker = exists $self->{format}{$schema->{format}} ? $self->{format}{$schema->{format}} : qr//;
 
-        $addError->("does not match format " . $schema->{format}) unless match($value, $format_checker);
+        no if $] >= 5.017011, warnings => 'experimental::smartmatch';
+        $addError->("does not match format " . $schema->{format}) unless $value ~~ $format_checker;
       }
       if ($schema->{'maxLength'} and $self->jsMatchType('string', $value) and length($value) > $schema->{'maxLength'}) {
         $addError->("may only be " . $schema->{'maxLength'} . " characters long");
@@ -257,11 +243,11 @@ sub checkProp {
         if ((defined $schema->{'minimumCanEqual'} and not $schema->{'minimumCanEqual'})
           or $schema->{'exclusiveMinimum'})
         {
-          $addError->("must be greater than minimum value '" . $schema->{'minimum'}) . "'"
+          $addError->("must be greater than minimum value '" . $schema->{'minimum'} . "'")
             if $value lt $schema->{'minimum'};
         }
         else {
-          $addError->("must be greater than or equal to minimum value '" . $schema->{'minimum'}) . "'"
+          $addError->("must be greater than or equal to minimum value '" . $schema->{'minimum'} . "'")
             if $value le $schema->{'minimum'};
         }
       }
@@ -281,11 +267,11 @@ sub checkProp {
         if ((defined $schema->{'maximumCanEqual'} and not $schema->{'maximumCanEqual'})
           or $schema->{'exclusiveMaximum'})
         {
-          $addError->("must be less than or equal to maximum value '" . $schema->{'maximum'}) . "'"
+          $addError->("must be less than or equal to maximum value '" . $schema->{'maximum'} . "'")
             if $value gt $schema->{'maximum'};
         }
         else {
-          $addError->("must be less than or equal to maximum value '" . $schema->{'maximum'}) . "'"
+          $addError->("must be less than or equal to maximum value '" . $schema->{'maximum'} . "'")
             if $value ge $schema->{'maximum'};
         }
       }
@@ -316,8 +302,8 @@ sub checkProp {
         my $regexp = "\\.[0-9]{" . ($schema->{'maxDecimal'} + 1) . ",}";
         $addError->("may only have " . $schema->{'maxDecimal'} . " digits of decimal places") if $value =~ /$regexp/;
       }
-    }    # END: if (!$self->jsIsNull()) { ... }
-  }    # END: if (!$defined $value) {} else {...}
+    }
+  }
   return;
 };    # END: sub checkProp
 
@@ -341,8 +327,7 @@ sub checkObj {
 
     foreach my $i (keys %$objTypeDef) {
       unless ($i =~ /^__/) {
-        my $value
-          = defined $instance->{$i} ? $instance->{$i} : exists $instance->{$i} ? JSON::Schema::Null->new : undef;
+        my $value = defined $instance->{$i} ? $instance->{$i} : undef;
         my $propDef = $objTypeDef->{$i};
         $self->checkProp($value, $propDef, $path, $i, $_changing);
       }
@@ -370,7 +355,7 @@ sub checkObj {
       # TODO
     }
 
-    my $value = defined $instance->{$i} ? $instance->{$i} : exists $instance->{$i} ? JSON::Schema::Null->new : undef;
+    my $value = defined $instance->{$i} ? $instance->{$i} : undef;
     if (defined $objTypeDef and ref $objTypeDef eq 'HASH' and !defined $objTypeDef->{$i}) {
       $self->checkProp($value, $additionalProp, $path, $i, $_changing);
     }
@@ -386,14 +371,6 @@ sub checkObj {
     }
   }
   return @errors;
-}
-
-sub jsIsNull {
-  my ($self, $value) = @_;
-
-  return TRUE if blessed($value) && $value->isa('JSON::Schema::Null');
-
-  return FALSE;
 }
 
 sub jsMatchType {
@@ -412,7 +389,7 @@ sub jsMatchType {
   }
 
   if (lc $type eq 'boolean') {
-    return FALSE if (ref $value eq 'JSON::Schema::Null');
+    return FALSE if (!defined $value);
     return TRUE  if (ref $value eq 'SCALAR' and $$value == 0 || $$value == 1);
     return TRUE  if ($value eq TRUE);
     return TRUE  if ($value eq FALSE);
@@ -430,7 +407,7 @@ sub jsMatchType {
   }
 
   if (lc $type eq 'null') {
-    return $self->jsIsNull($value);
+    return undef;
   }
 
   if (lc $type eq 'any') {
@@ -454,6 +431,8 @@ sub jsMatchType {
 sub jsGuessType {
   my ($self, $value) = @_;
 
+  return 'null' unless defined $value;
+
   return 'object' if ref $value eq 'HASH';
 
   return 'array' if ref $value eq 'ARRAY';
@@ -461,8 +440,6 @@ sub jsGuessType {
   return 'boolean' if (ref $value eq 'SCALAR' and $$value == 0 and $$value == 1);
 
   return 'boolean' if ref $value =~ /^JSON::(.*)::Boolean$/;
-
-  return 'null' if $self->jsIsNull($value);
 
   return ref $value if ref $value;
 
@@ -479,7 +456,29 @@ __END__
 
 =head1 NAME
 
-JSON::Schema::Helper - helper class for JSON::Schema
+Swagger2::SchemaValidator - JSON schema validator
+
+=head1 DESCRIPTION
+
+This module is mostly copy/paste from L<JSON::Schema::Helper>.
+
+=head1 METHODS
+
+=head2 checkObj
+
+=head2 checkProp
+
+=head2 checkPropertyChange
+
+=head2 checkType
+
+=head2 jsGuessType
+
+=head2 jsMatchType
+
+=head2 new
+
+=head2 validate
 
 =head1 SEE ALSO
 
