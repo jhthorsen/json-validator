@@ -56,7 +56,7 @@ our $VERSION = '0.02';
 
 my @YAML_MODULES = qw( YAML::Tiny YAML YAML::Syck YAML::XS );
 my $YAML_MODULE
-  = $ENV{SWAGGER_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::__Missing__';
+  = $ENV{SWAGGER2_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::__Missing__';
 
 Mojo::Util::monkey_patch(__PACKAGE__,
   LoadYAML => eval "\\\&$YAML_MODULE\::Load" || sub { die "Need to install a YAML module: @YAML_MODULES" });
