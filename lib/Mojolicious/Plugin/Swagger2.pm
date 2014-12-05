@@ -9,53 +9,6 @@ Mojolicious::Plugin::Swagger2 - Mojolicious plugin for Swagger2
 L<Mojolicious::Plugin::Swagger2> is L<Mojolicious::Plugin> that add routes and
 input/output validation to your L<Mojolicious> application.
 
-=head2 Limitations
-
-=over 4
-
-=item * Only JSON
-
-Currently this plugin can only render JSON data.
-
-Pull requests and/or bug reports are more than welcome to fix/change this.
-
-=item * Fixed 400 response
-
-The server will respond with "400 Bad Request", on invalid input. The JSON
-response is also fixed:
-
-  {
-    "valid": false,
-    "errors": [
-      {
-        "message": "No handler defined.",
-        "property": null
-      },
-      ...
-    ]
-  }
-
-Pull requests and/or bug reports are more than welcome to fix/change this.
-
-=item * Fixed 501 response
-
-The server will respond with "501 Not Implemented", unless the L</controller>
-has defined the requested method. The JSON response is also fixed:
-
-  {
-    "valid": false,
-    "errors": [
-      {
-        "message": "No handler defined.",
-        "property": null
-      }
-    ]
-  }
-
-Pull requests and/or bug reports are more than welcome to fix/change this.
-
-=back
-
 =head1 SYNOPSIS
 
 =head2 Swagger specification
@@ -107,7 +60,7 @@ agent.
 
   sub list_pets_get {
     my ($c, $args, $cb) = @_;
-    $c->$cb(200 => { foo => 123 });
+    $c->$cb({ foo => 123 }, 200);
   }
 
 =cut
@@ -124,20 +77,93 @@ use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
 Holds a class name, which is used to dispatch the request to.
 
-=head2 default_code
-
-The default HTTP code, if everything fails. This is set to 500 by default.
-
 =head2 url
 
 Holds the URL to the swagger specification file.
 
 =cut
 
-has controller   => '';
-has default_code => 500;
-has url          => '';
-has _validator   => sub { Swagger2::SchemaValidator->new; };
+has controller => '';
+has url        => '';
+has _validator => sub { Swagger2::SchemaValidator->new; };
+
+=head1 HELPERS
+
+=head2 render_swagger
+
+  $c->render_swagger(\%err, \%data, $status);
+
+This method is used to render C<%data> from the controller method. The C<%err>
+hash will be empty on success, but can contain input/output validation errors.
+C<$status> is the HTTP status code to use:
+
+=over 4
+
+=item * 200
+
+The default C<$status> is 200, unless the controller sent back any value.
+C<%err> will be empty in this case.
+
+=item * 400
+
+This module will set C<$status> to 400 on invalid input. C<%err> then contains
+a data structure describing the errors. The default is to render a JSON
+document, like this:
+
+  {
+    "valid": false,
+    "errors": [
+      {
+        "message": "string value found, but a integer is required",
+        "property": "$.limit"
+      },
+      ...
+    ]
+  }
+
+=item * 500
+
+This module will set C<$status> to 500 on invalid response from the controller.
+C<%err> then contains a data structure describing the errors. The default is
+to render a JSON document, like this:
+
+  {
+    "valid": false,
+    "errors": [
+      {
+        "message": "is missing and it is required",
+        "property": "$.foo"
+      },
+      ...
+    ]
+  }
+
+=item * 501
+
+This module will set C<$status> to 501 if the L</controller> has not implemented
+the required method. C<%err> then contains a data structure describing the
+errors. The default is to render a JSON document, like this:
+
+  {
+    "valid": false,
+    "errors": [
+      {
+        "message": "No handler defined.",
+        "property": null
+      }
+    ]
+  }
+
+=back
+
+=cut
+
+sub render_swagger {
+  my ($c, $err, $data, $status) = @_;
+
+  return $c->render(json => $err, status => $status) if %$err;
+  return $c->render(json => $data, status => $status);
+}
 
 =head1 METHODS
 
@@ -159,10 +185,8 @@ sub register {
     $config->{$k} or die "'$k' is required config parameter";
     $self->$k($config->{$k});
   }
-  for my $k (qw( default_code )) {
-    $config->{$k} or next;
-    $self->$k($config->{$k});
-  }
+
+  $app->helper(render_swagger => \&render_swagger);
 
   eval "require $self->{controller}; 1" or die "Could not load controller $self->{controller}: $@";
 
@@ -189,7 +213,7 @@ sub _generate_request_handler {
   my $controller = $self->controller;
 
   unless ($controller->can($method)) {
-    return sub { shift->render(json => $self->_not_implemented, status => 501) };
+    return sub { shift->render_swagger($self->_not_implemented, {}, 501) };
   }
 
   return sub {
@@ -201,22 +225,18 @@ sub _generate_request_handler {
         my ($delay) = @_;
         my ($v, $input) = $self->_validate_input($c, $config);
 
-        return $c->render(json => $v, status => 400) unless $v->{valid};
+        return $c->render_swagger($v, {}, 400) unless $v->{valid};
         return $c->$method($input, $delay->begin);
       },
       sub {
-        my ($delay, $status, $data) = @_;
+        my $delay  = shift;
+        my $data   = shift;
+        my $status = shift || 200;
         my $format = $config->{responses}{$status} || $config->{responses}{default};
-        my $v;
+        my $v      = $self->_validator->validate($data, $format->{schema});
 
-        unless ($format) {
-          return $c->render_exception("Status code ($status) is not defined in API specification.");
-        }
-
-        $v = $self->_validator->validate($data, $format->{schema});
-
-        return $c->render(json => $v, status => $self->default_code) unless $v->{valid};
-        return $c->render(json => $data, status => $status eq 'default' ? $self->default_code : $status);
+        return $c->render_swagger($v, $data, 500) unless $v->{valid};
+        return $c->render_swagger({}, $data, $status);
       },
     );
   };

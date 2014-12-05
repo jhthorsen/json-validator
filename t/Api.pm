@@ -5,7 +5,7 @@ our $RES = {};
 
 sub list_pets_get {
   my ($c, $args, $cb) = @_;
-  $c->$cb(200 => $RES);
+  $c->$cb($RES);
 }
 
 1;
