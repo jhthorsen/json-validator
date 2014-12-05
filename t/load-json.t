@@ -7,6 +7,8 @@ use Swagger2;
 my $json_file = catfile qw( t data petstore.json );
 my $swagger   = Swagger2->new;
 
+plan skip_all => "Cannot read $json_file" unless -r $json_file;
+
 is $swagger->url, '', 'no url set';
 is $swagger->base_url, 'http://example.com/', 'no base_url set';
 is $swagger->load($json_file), $swagger, 'load()';
