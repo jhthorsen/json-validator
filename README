@@ -2,13 +2,19 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.01
+    0.02
 
 DESCRIPTION
     THIS MODULE IS EXPERIMENTAL! ANY CHANGES CAN HAPPEN!
 
     Swagger2 is a module for generating, parsing and transforming swagger
-    <http://swagger.io/> API documentation.
+    <http://swagger.io/> API documentation. It has support for reading
+    swagger specification in JSON notation and it can also read YAML files,
+    if a "YAML parser" is installed.
+
+    This distribution comes with a Mojolicious plugin,
+    Mojolicious::Plugin::Swagger2, which can set up routes and perform input
+    and output validation.
 
 RECOMMENDED MODULES
     *   YAML parser
@@ -52,6 +58,12 @@ ATTRIBUTES
     Mojo::URL object that holds the location to the documentation file.
 
 METHODS
+  expand
+      $swagger = $self->expand;
+
+    This method returns a new "Swagger2" object, where all the references
+    are resolved.
+
   load
       $self = $self->load;
       $self = $self->load($url);

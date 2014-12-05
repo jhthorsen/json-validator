@@ -6,7 +6,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 =head1 VERSION
 
-0.01
+0.02
 
 =head1 DESCRIPTION
 
@@ -52,7 +52,7 @@ use Mojo::JSON::Pointer;
 use Mojo::URL;
 use Mojo::Util ();
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 my @YAML_MODULES = qw( YAML::Tiny YAML YAML::Syck YAML::XS );
 my $YAML_MODULE

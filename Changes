@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.02
+0.02     Fri Dec  5 10:01:34 2014
        * Add Swagger2::SchemaValidator
        * Add Mojolicious::Plugin::Swagger2
        * Add expand()
