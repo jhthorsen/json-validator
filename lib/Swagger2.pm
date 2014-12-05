@@ -36,13 +36,13 @@ and L<YAML::Tiny>.
 =head1 SYNOPSIS
 
   use Swagger2;
-  my $swagger = Sswagger2->new("file:///path/to/api-spec.yaml");
+  my $swagger = Swagger2->new("file:///path/to/api-spec.yaml");
 
   # Access the raw specificaiton values
   print $swagger->tree->get("/swagger");
 
   # Returns the specification as a POD document
-  print $swagger->pod->as_string;
+  print $swagger->pod->to_string;
 
 =cut
 
@@ -91,6 +91,8 @@ A L<Mojo::UserAgent> used to fetch remote documentation.
   $mojo_url = $self->url;
 
 L<Mojo::URL> object that holds the location to the documentation file.
+This can be both a location on disk or an URL to a server. A remote
+resource will be fetched using L<Mojo::UserAgent>.
 
 =cut
 
