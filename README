@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.02
+    0.03
 
 DESCRIPTION
     THIS MODULE IS EXPERIMENTAL! ANY CHANGES CAN HAPPEN!
@@ -25,13 +25,13 @@ RECOMMENDED MODULES
 
 SYNOPSIS
       use Swagger2;
-      my $swagger = Sswagger2->new("file:///path/to/api-spec.yaml");
+      my $swagger = Swagger2->new("file:///path/to/api-spec.yaml");
 
-      # Access the raw specificaiton values
+      # Access the raw specification values
       print $swagger->tree->get("/swagger");
 
       # Returns the specification as a POD document
-      print $swagger->pod->as_string;
+      print $swagger->pod->to_string;
 
 ATTRIBUTES
   base_url
@@ -40,11 +40,18 @@ ATTRIBUTES
     Mojo::URL object that holds the location to the API endpoint. Note: This
     might also just be a dummy URL to <http://example.com/>.
 
+  specification
+      $pointer = $self->specification;
+      $self = $self->specification(Mojo::JSON::Pointer->new({}));
+
+    Holds a Mojo::JSON::Pointer object containing the Swagger 2.0 schema
+    <https://github.com/swagger-api/swagger-spec>.
+
   tree
       $pointer = $self->tree;
       $self = $self->tree(Mojo::JSON::Pointer->new({}));
 
-    Holds a Mojo::JSON::Pointer object containing the swagger specification.
+    Holds a Mojo::JSON::Pointer object containing your API specification.
 
   ua
       $ua = $self->ua;
@@ -55,14 +62,17 @@ ATTRIBUTES
   url
       $mojo_url = $self->url;
 
-    Mojo::URL object that holds the location to the documentation file.
+    Mojo::URL object that holds the location to the documentation file. This
+    can be both a location on disk or an URL to a server. A remote resource
+    will be fetched using Mojo::UserAgent.
 
 METHODS
   expand
       $swagger = $self->expand;
 
     This method returns a new "Swagger2" object, where all the references
-    are resolved.
+    <https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28>: are
+    resolved.
 
   load
       $self = $self->load;
@@ -90,6 +100,13 @@ METHODS
       $yaml = $self->to_string("yaml");
 
     This method can transform this object into Swagger spec.
+
+  validate
+      @errors = $self->validate;
+
+    Will validate this object against the "specification", and return a list
+    with all the errors found. See also "validate" in
+    Swagger2::SchemaValidator.
 
 COPYRIGHT AND LICENSE
     Copyright (C) 2014, Jan Henning Thorsen

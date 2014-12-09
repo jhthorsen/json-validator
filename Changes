@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.03
+0.03     Tue Dec  9 15:36:04 2014
        * Add Swagger2::validate()
        * Add Swagger 2.0 schema
        * Fix circular $ref when expanding a document
