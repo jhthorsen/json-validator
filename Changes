@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.04
+       * Add "formats" to Swagger2::SchemaValidator
+
 0.03     Tue Dec  9 15:36:04 2014
        * Add Swagger2::validate()
        * Add Swagger 2.0 schema

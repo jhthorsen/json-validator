@@ -54,6 +54,10 @@ use Mojo::Util;
 use Scalar::Util;
 use B;
 
+use constant VALIDATE_HOSTNAME      => eval "require Data::Validate::Domain;1";
+use constant VALIDATE_IP            => eval "require Data::Validate::IP;1";
+use constant WARN_ON_MISSING_FORMAT => $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
+
 sub E {
   bless {path => $_[0] || '/', message => $_[1]}, 'Swagger2::SchemaValidator::Error';
 }
@@ -88,12 +92,96 @@ sub _guess {
   return $blessed || 'string';
 }
 
+sub _is_domain {
+  warn "Data::Validate::Domain is not installed";
+  return;
+}
+
+sub _is_ipv4 {
+  my (@octets) = $_[0] =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+  return 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ } @octets;
+}
+
+sub _is_ipv6 {
+  warn "Data::Validate::IP is not installed";
+  return;
+}
+
 sub _path {
   local $_ = $_[1];
   s!~!~0!g;
   s!/!~1!g;
   "$_[0]/$_";
 }
+
+my $DATE_TIME_RFC3339_RE = qr/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$/io;
+
+my $EMAIL_RFC5322_RE = do {
+  my $atom           = qr;[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+;o;
+  my $quoted_string  = qr/"(?:\\[^\r\n]|[^\\"])*"/o;
+  my $domain_literal = qr/\[(?:\\[\x01-\x09\x0B-\x0c\x0e-\x7f]|[\x21-\x5a\x5e-\x7e])*\]/o;
+  my $dot_atom       = qr/$atom(?:[.]$atom)*/o;
+  my $local_part     = qr/(?:$dot_atom|$quoted_string)/o;
+  my $domain         = qr/(?:$dot_atom|$domain_literal)/o;
+
+  qr/$local_part[@]$domain/o;
+};
+
+my $URI_RFC3986_RE = qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!o;
+
+=head1 ATTRIBUTES
+
+=head2 formats
+
+  $hash_ref = $self->formats;
+  $self = $self->formats(\%hash);
+
+Holds a hash-ref, where the keys are supported JSON type "formats", and
+the values holds a code block which can validate a given format.
+
+Note! The modules mentioned below are optional.
+
+=over 4
+
+=item * date-time
+
+Validated against the RFC3339 spec.
+
+=item * email
+
+Validated against the RFC5322 spec.
+
+=item * hostname
+
+Will be validated using L<Data::Validate::Domain> if installed.
+
+=item * ipv4
+
+Will be validated using L<Data::Validate::IP> if installed or
+fall back to a plain IPv4 IP regex.
+
+=item * ipv6
+
+Will be validated using L<Data::Validate::IP> if installed.
+
+=item * uri
+
+Validated against the RFC3986 spec.
+
+=back
+
+=cut
+
+has formats => sub {
+  +{
+    'date-time' => sub { $_[0] =~ $DATE_TIME_RFC3339_RE; },
+    'email'     => sub { $_[0] =~ $EMAIL_RFC5322_RE; },
+    'hostname' => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
+    'ipv4'     => VALIDATE_IP       ? \&Data::Validate::IP::is_ipv4       : \&_is_ipv4,
+    'ipv6'     => VALIDATE_IP       ? \&Data::Validate::IP::is_ipv6       : \&_is_ipv6,
+    'uri' => sub { $_[0] =~ $URI_RFC3986_RE; },
+  };
+};
 
 =head1 METHODS
 
@@ -218,6 +306,19 @@ sub _validate_enum {
 
   local $" = ', ';
   return E $path, "Not in enum list: @$enum.";
+}
+
+sub _validate_format {
+  my ($self, $value, $path, $schema) = @_;
+  my $code = $self->formats->{$schema->{format}};
+
+  unless ($code) {
+    warn "Format rule for '$schema->{format}' is missing" if WARN_ON_MISSING_FORMAT;
+    return;
+  }
+
+  return if $code->($value);
+  return E $path, "Does not match $schema->{format} format.";
 }
 
 sub _validate_pattern_properties {
@@ -417,6 +518,9 @@ sub _validate_type_string {
   }
   if (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
     return E $path, "Expected string - got number.";
+  }
+  if ($schema->{format}) {
+    push @errors, $self->_validate_format($value, $path, $schema);
   }
   if (defined $schema->{maxLength}) {
     if (length($value) > $schema->{maxLength}) {

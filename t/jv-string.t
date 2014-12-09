@@ -29,17 +29,4 @@ delete $schema->{properties}{nick}{pattern};
 @errors = $validator->validate({nick => 'Déjà vu'}, $schema);
 is "@errors", "", "unicode";
 
-local $TODO = 'format support is not implemented';
-$schema->{properties}{nick}{format} = 'email';
-@errors = $validator->validate({nick => 'foo'}, $schema);
-is "@errors", "/nick: invalid format", "unicode";
-
-#formats:
-#date-time: RFC 3339 / 5.6
-#email: RFC 5322 / 3.4.1
-#hostname: RFC 1034 / 3.1
-#ipv4: RFC 2673 / 3.2
-#ipv6: RFC 2373 / 2.2
-#uri: RFC3986
-
 done_testing;
