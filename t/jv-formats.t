@@ -30,7 +30,7 @@ if (Swagger2::SchemaValidator::VALIDATE_HOSTNAME) {
   is "@errors", "/v: Does not match hostname format.", "hostname invalid";
 }
 else {
-  skip "Data::Validate::Domain is not installed", 1;
+  diag "Data::Validate::Domain is not installed";
 }
 
 {
@@ -49,7 +49,7 @@ if (Swagger2::SchemaValidator::VALIDATE_IP) {
   is "@errors", "/v: Does not match ipv6 format.", "ipv6 invalid";
 }
 else {
-  skip "Data::Validate::IP is not installed", 1;
+  diag "Data::Validate::IP is not installed";
 }
 
 {
