@@ -38,7 +38,7 @@ and L<YAML::Tiny>.
   use Swagger2;
   my $swagger = Swagger2->new("file:///path/to/api-spec.yaml");
 
-  # Access the raw specificaiton values
+  # Access the raw specification values
   print $swagger->tree->get("/swagger");
 
   # Returns the specification as a POD document
@@ -47,12 +47,21 @@ and L<YAML::Tiny>.
 =cut
 
 use Mojo::Base -base;
-use Mojo::JSON;
+use Mojo::JSON qw( encode_json decode_json );
 use Mojo::JSON::Pointer;
 use Mojo::URL;
-use Mojo::Util ();
+use Mojo::Util 'md5_sum';
+use File::Spec;
+use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR} || '';
+use constant DEBUG     => $ENV{SWAGGER2_DEBUG}     || 0;
 
 our $VERSION = '0.02';
+
+# Should be considered internal
+our $SPEC_FILE = do {
+  use File::Basename 'dirname';
+  File::Spec->catfile(dirname(__FILE__), 'Swagger2', 'schema.json');
+};
 
 my @YAML_MODULES = qw( YAML::Tiny YAML YAML::Syck YAML::XS );
 my $YAML_MODULE
@@ -72,12 +81,20 @@ Mojo::Util::monkey_patch(__PACKAGE__,
 L<Mojo::URL> object that holds the location to the API endpoint.
 Note: This might also just be a dummy URL to L<http://example.com/>.
 
+=head2 specification
+
+  $pointer = $self->specification;
+  $self = $self->specification(Mojo::JSON::Pointer->new({}));
+
+Holds a L<Mojo::JSON::Pointer> object containing the
+L<Swagger 2.0 schema|https://github.com/swagger-api/swagger-spec>.
+
 =head2 tree
 
   $pointer = $self->tree;
   $self = $self->tree(Mojo::JSON::Pointer->new({}));
 
-Holds a L<Mojo::JSON::Pointer> object containing the swagger specification.
+Holds a L<Mojo::JSON::Pointer> object containing your API specification.
 
 =head2 ua
 
@@ -110,6 +127,10 @@ has base_url => sub {
   return $url;
 };
 
+has specification => sub {
+  shift->_load(Mojo::URL->new($SPEC_FILE));
+};
+
 has tree => sub {
   my $self = shift;
 
@@ -120,6 +141,11 @@ has tree => sub {
 has ua => sub {
   require Mojo::UserAgent;
   Mojo::UserAgent->new;
+};
+
+has _validator => sub {
+  require Swagger2::SchemaValidator;
+  Swagger2::SchemaValidator->new;
 };
 
 sub url { shift->{url} }
@@ -136,10 +162,11 @@ resolved.
 =cut
 
 sub expand {
-  my $self  = shift;
-  my $class = Scalar::Util::blessed($self);
+  my $self     = shift;
+  my $class    = Scalar::Util::blessed($self);
+  my $expanded = $self->_resolve($self->tree, $self->url->clone->fragment(undef));
 
-  $class->new(%$self)->tree($self->_resolve_refs($self->tree, Mojo::JSON::Pointer->new({})));
+  $class->new(%$self)->tree($expanded);
 }
 
 =head2 load
@@ -155,31 +182,9 @@ or "Content-Type" header reported by a web server.
 
 sub load {
   my $self = shift;
-  my ($data, $scheme, $tree, $type);
-
-  $self->{url} = Mojo::URL->new(shift) if @_;
-  $scheme = $self->{url}->scheme || 'file';
-
-  if ($scheme eq 'file') {
-    $data = Mojo::Util::slurp($self->{url}->path);
-    $type = $self->{url}->path =~ /\.(yaml|json)$/i ? lc $1 : 'json';
-  }
-  else {
-    my $tx = $self->ua->get($self->{url});
-    $type ||= $1 if $self->{url}->path =~ /\.(\w+)$/;
-    $type ||= ($tx->res->headers->content_type // '') =~ /json/ ? 'json' : 'yaml';
-    $data = $tx->res->body;
-  }
-
-  if ($type eq 'yaml' or $data =~ /^---/) {
-    $tree = LoadYAML($data);
-  }
-  else {
-    $tree = Mojo::JSON::decode_json($data);
-  }
-
   delete $self->{base_url};
-  $self->{tree} = Mojo::JSON::Pointer->new($tree);
+  $self->{url} = Mojo::URL->new(shift) if @_;
+  $self->{tree} = $self->_load($self->url);
   $self;
 }
 
@@ -211,10 +216,10 @@ Returns a L<Swagger2::POD> object.
 =cut
 
 sub pod {
-  my $self     = shift;
-  my $resolved = Mojo::JSON::Pointer->new({});
+  my $self = shift;
+  my $resolved = $self->_resolve($self->tree, $self->url->clone->fragment(undef));
+
   require Swagger2::POD;
-  $self->_resolve_refs($self->tree, $resolved);
   Swagger2::POD->new(base_url => $self->base_url, tree => $resolved);
 }
 
@@ -236,46 +241,147 @@ sub to_string {
     return DumpYAML($self->tree->data);
   }
   else {
-    return Mojo::JSON::encode_json($self->tree->data);
+    return encode_json $self->tree->data;
   }
 }
 
-sub _get_definition {
-  my ($self, $path) = @_;
-  my $definition = $self->tree->get($path);
+=head2 validate
 
-  if (!$definition) {
-    die "Undefined definition at path: $path";
+  @errors = $self->validate;
+
+Will validate this object against the L</specification>,
+and return a list with all the errors found. See also
+L<Swagger2::SchemaValidator/validate>.
+
+=cut
+
+sub validate {
+  my $self   = shift;
+  my $schema = $self->_resolve($self->specification);
+
+  return $self->_validator->validate($self->_resolve($self->tree)->data, $schema->data);
+}
+
+sub _load {
+  my ($self, $url) = @_;
+  my $namespace = $url->clone->fragment('');
+  my $scheme = $url->scheme || 'file';
+  my ($doc, $type);
+
+  # already loaded into memory
+  if ($self->{loaded}{$namespace}) {
+    return $self->{loaded}{$namespace};
   }
 
-  if (ref $definition->{required} eq 'ARRAY') {
-    for my $name (@{$definition->{required}}) {
-      $definition->{properties}{$name}{required} = Mojo::JSON->true;
+  # try to read processed spec from file cache
+  if (CACHE_DIR) {
+    my $file = File::Spec->catfile(CACHE_DIR, md5_sum $namespace);
+    if (-e $file) {
+      $doc  = Mojo::Util::slurp($file);
+      $type = 'json';
     }
   }
 
-  return $definition;
+  # load spec from disk or web
+  if (!CACHE_DIR or !$doc) {
+    if ($scheme eq 'file') {
+      $doc = Mojo::Util::slurp($url->path);
+      $type = lc $1 if $url->path =~ /\.(yaml|json)$/i;
+    }
+    else {
+      my $tx = $self->ua->get($url);
+      $doc  = $tx->res->body;
+      $type = lc $1 if $url->path =~ /\.(\w+)$/;
+      $type = lc $1 if +($tx->res->headers->content_type // '') =~ /(json|yaml)/i;
+      Mojo::Util::spurt($doc, File::Spec->catfile(CACHE_DIR, md5_sum $namespace)) if CACHE_DIR;
+    }
+
+    $type ||= $doc =~ /^---/ ? 'yaml' : 'json';
+  }
+
+  # parse the document
+  eval { $doc = $type eq 'yaml' ? LoadYAML($doc) : decode_json($doc); } or do {
+    die "Could not load document from $url: $@ ($doc)";
+  };
+
+  $doc                           = Mojo::JSON::Pointer->new($doc);
+  $self->{loaded}{$namespace}    = $doc;
+  $self->{namespace}{$namespace} = $namespace;
+
+  if (my $id = $doc->data->{id}) {
+    $self->{loaded}{$id} = $self->{loaded}{$namespace};
+    $self->{namespace}{id} = $namespace;
+  }
+  else {
+    $doc->data->{id} = "$namespace";
+  }
+
+  return $doc;
 }
 
-sub _resolve_refs {
-  my ($self, $in, $out) = @_;
+sub _resolve {
+  my ($self, $pointer, $namespace) = @_;
+  my @refs;
 
-  if (!ref $in eq 'HASH') {
-    return $in;
+  local $self->{refs} = \@refs;
+  local $self->{seen} = {};
+  $self->_resolve_deep($pointer, '');
+  $namespace = Mojo::URL->new($namespace || $pointer->get('/id'));
+
+  for (sort { length($b) <=> length($a) } @refs) {
+    my ($p, $path, $url) = @$_;
+    my $k    = $path =~ s!/([^/]+)$!! ? $1 : 'UNDEF';
+    my $node = $p->get($path);
+    my $doc  = $self->_load(($url->host or $url->path->to_string) ? $url : $namespace);
+
+    warn "[Swagger2::resolve] $pointer $path/$k => $url\n" if DEBUG;
+    $k =~ s!~1!/!g;
+    if (ref $node eq 'ARRAY') {
+      $node->[$k] = $doc->get($url->fragment);
+    }
+    else {
+      $node->{$k} = $doc->get($url->fragment);
+    }
   }
 
-  if (my $ref = $in->{'$ref'}) {
-    return $self->_get_definition("/$1")             if $ref =~ m!^\#/(.*)!;
-    return $self->_get_definition("/definitions/$1") if $ref =~ m!^(\w+)$!;
-    die "Not yet supported ref: '$ref'";
+  return $pointer;
+}
+
+sub _resolve_deep {
+  my ($self, $pointer, $path) = @_;
+  my $in = $pointer->get($path);
+
+  if (ref $in ne 'HASH') {
+    return;
+  }
+  if (ref $in and $self->{seen}{$in}++) {
+    return;
   }
 
-  for my $k (keys %$in) {
-    my $v = $in->{$k};
-    $out->{$k} = ref $v eq 'HASH' ? $self->_resolve_refs($v, {}) : $v;
-  }
+  if ($in->{'$ref'} and ref $in->{'$ref'} eq '') {
+    my $url = Mojo::URL->new($in->{'$ref'});
+    warn "[Swagger2::resolve] $pointer->{data}{id} \$ref: $path => $url\n" if DEBUG;
+    push @{$self->{refs}}, [$pointer, $path, $url];
 
-  return $out;
+    if ($url->scheme or $url->path->to_string) {
+      my $doc = $self->_load($url);
+      $self->_resolve_deep($doc, $url->fragment);
+    }
+  }
+  else {
+    for my $name (keys %$in) {
+      my $p = $name;
+      $p =~ s!/!~1!g;
+      if (ref $in->{$name} eq 'HASH') {
+        $self->_resolve_deep($pointer, "$path/$p");
+      }
+      elsif (ref $in->{$name} eq 'ARRAY') {
+        for my $i (0 .. @{$in->{$name}} - 1) {
+          $self->_resolve_deep($pointer, "$path/$p/$i");
+        }
+      }
+    }
+  }
 }
 
 =head1 COPYRIGHT AND LICENSE
