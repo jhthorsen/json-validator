@@ -53,7 +53,6 @@ use Mojo::URL;
 use Mojo::Util 'md5_sum';
 use File::Spec;
 use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR} || '';
-use constant DEBUG     => $ENV{SWAGGER2_DEBUG}     || 0;
 
 our $VERSION = '0.02';
 
@@ -156,8 +155,9 @@ sub url { shift->{url} }
 
   $swagger = $self->expand;
 
-This method returns a new C<Swagger2> object, where all the references are
-resolved.
+This method returns a new C<Swagger2> object, where all the
+L<references|https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28>:
+are resolved.
 
 =cut
 
@@ -321,34 +321,18 @@ sub _load {
 
 sub _resolve {
   my ($self, $pointer, $namespace) = @_;
-  my @refs;
+  my $out = {};
 
-  local $self->{refs} = \@refs;
+  local $self->{refs} = [];
   local $self->{seen} = {};
-  $self->_resolve_deep($pointer, '');
-  $namespace = Mojo::URL->new($namespace || $pointer->get('/id'));
+  $self->_resolve_deep($pointer, '', $out);
+  $self->_resolve_refs(Mojo::URL->new($namespace || $pointer->get('/id')));
 
-  for (sort { length($b) <=> length($a) } @refs) {
-    my ($p, $path, $url) = @$_;
-    my $k    = $path =~ s!/([^/]+)$!! ? $1 : 'UNDEF';
-    my $node = $p->get($path);
-    my $doc  = $self->_load(($url->host or $url->path->to_string) ? $url : $namespace);
-
-    warn "[Swagger2::resolve] $pointer $path/$k => $url\n" if DEBUG;
-    $k =~ s!~1!/!g;
-    if (ref $node eq 'ARRAY') {
-      $node->[$k] = $doc->get($url->fragment);
-    }
-    else {
-      $node->{$k} = $doc->get($url->fragment);
-    }
-  }
-
-  return $pointer;
+  return Mojo::JSON::Pointer->new($out);
 }
 
 sub _resolve_deep {
-  my ($self, $pointer, $path) = @_;
+  my ($self, $pointer, $path, $out) = @_;
   my $in = $pointer->get($path);
 
   if (ref $in ne 'HASH') {
@@ -358,30 +342,59 @@ sub _resolve_deep {
     return;
   }
 
-  if ($in->{'$ref'} and ref $in->{'$ref'} eq '') {
-    my $url = Mojo::URL->new($in->{'$ref'});
-    warn "[Swagger2::resolve] $pointer->{data}{id} \$ref: $path => $url\n" if DEBUG;
-    push @{$self->{refs}}, [$pointer, $path, $url];
+  for my $name (keys %$in) {
+    my $p = $name;
+    $p =~ s!/!~1!g;
+    if (ref $in->{$name} eq 'HASH') {
+      $out->{$name} = {%{$in->{$name}}};
+      $self->_track_ref($in->{$name}, $name, $out) and next;
+      $self->_resolve_deep($pointer, "$path/$p", $out->{$name});
+    }
+    elsif (ref $in->{$name} eq 'ARRAY') {
+      for my $i (0 .. @{$in->{$name}} - 1) {
+        $out->{$name}[$i] = $in->{$name}[$i];
+        $self->_resolve_deep($pointer, "$path/$p/$i", $out->{$name}[$i]);
+      }
+    }
+    else {
+      $out->{$name} = $in->{$name};
+    }
+  }
+}
 
-    if ($url->scheme or $url->path->to_string) {
-      my $doc = $self->_load($url);
-      $self->_resolve_deep($doc, $url->fragment);
+sub _resolve_refs {
+  my ($self, $namespace) = @_;
+  my $refs = $self->{refs};
+
+  for (sort { length($b) <=> length($a) } @$refs) {
+    my ($node, $key, $url) = @$_;
+    my $doc = $self->_load(($url->host or $url->path->to_string) ? $url : $namespace);
+
+    $key =~ s!~1!/!g;
+    if (ref $node eq 'ARRAY') {
+      $node->[$key] = $doc->get($url->fragment);
+    }
+    else {
+      $node->{$key} = $doc->get($url->fragment);
     }
   }
-  else {
-    for my $name (keys %$in) {
-      my $p = $name;
-      $p =~ s!/!~1!g;
-      if (ref $in->{$name} eq 'HASH') {
-        $self->_resolve_deep($pointer, "$path/$p");
-      }
-      elsif (ref $in->{$name} eq 'ARRAY') {
-        for my $i (0 .. @{$in->{$name}} - 1) {
-          $self->_resolve_deep($pointer, "$path/$p/$i");
-        }
-      }
-    }
+}
+
+sub _track_ref {
+  my ($self, $in, $key, $out) = @_;
+
+  return 0 if !$in->{'$ref'};
+  return 0 if ref $in->{'$ref'};
+
+  my $url = Mojo::URL->new($in->{'$ref'});
+  push @{$self->{refs}}, [$out, $key, $url];
+
+  if ($url->scheme or $url->path->to_string) {
+    my $doc = $self->_load($url);
+    $self->_resolve_deep($doc, $url->fragment, $out);
   }
+
+  return 1;
 }
 
 =head1 COPYRIGHT AND LICENSE
