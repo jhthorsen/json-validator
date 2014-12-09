@@ -1,521 +1,462 @@
 package Swagger2::SchemaValidator;
 
-###
-# JSONSchema Validator - Validates JavaScript objects using JSON Schemas
-#	(http://www.json.com/json-schema-proposal/)
-#
-# Copyright (c) 2007 Kris Zyp SitePen (www.sitepen.com)
-# Licensed under the MIT (MIT-LICENSE.txt) license.
-#To use the validator call JSONSchema.validate with an instance object and an optional schema object.
-#If a schema is provided, it will be used to validate. If the instance object refers to a schema (self-validating),
-#that schema will be used to validate and the schema parameter is not necessary (if both exist,
-#both validations will occur).
-#The validate method will return an array of validation errors. If there are no errors, then an
-#empty list will be returned. A validation error will have two properties:
-#"property" which indicates which property had the error
-#"message" which indicates what the error was
-##
-
-# TODO: {id}, {dependencies}
-
-use Mojo::Base -strict;
-use Mojo::JSON;
-use constant FALSE => Mojo::JSON->false;
-use constant TRUE  => Mojo::JSON->true;
-no autovivification;
-use POSIX qw[modf];
-use Scalar::Util qw[blessed];
-
-sub new {
-  my ($class, %args) = @_;
-  $args{hyper}  //= undef;    # TODO
-  $args{errors} //= [];
-  $args{format} //= {};
-  return bless \%args, $class;
-}
-
-sub validate {
-  my ($self, $instance, $schema) = @_;
-  ## Summary:
-  ##  	To use the validator call JSONSchema.validate with an instance object and an optional schema object.
-  ## 		If a schema is provided, it will be used to validate. If the instance object refers to a schema (self-validating),
-  ## 		that schema will be used to validate and the schema parameter is not necessary (if both exist,
-  ## 		both validations will occur).
-  ## 		The validate method will return an object with two properties:
-  ## 			valid: A boolean indicating if the instance is valid by the schema
-  ## 			errors: An array of validation errors. If there are no errors, then an
-  ## 					empty list will be returned. A validation error will have two properties:
-  ## 						property: which indicates which property had the error
-  ## 						message: which indicates what the error was
-  ##
-  return $self->_validate($instance, $schema, FALSE);
-}
-
-sub checkPropertyChange {
-  my ($self, $value, $schema, $property) = @_;
-  $property //= 'property';
-  ## Summary:
-  ## 		The checkPropertyChange method will check to see if an value can legally be in property with the given schema
-  ## 		This is slightly different than the validate method in that it will fail if the schema is readonly and it will
-  ## 		not check for self-validation, it is assumed that the passed in value is already internally valid.
-  ## 		The checkPropertyChange method will return the same object type as validate, see JSONSchema.validate for
-  ## 		information.
-  ##
-  return $self->_validate($value, $schema, $property);
-}
-
-sub _validate {
-  my ($self, $instance, $schema, $_changing) = @_;
-
-  $self->{errors} = [];
-
-  if ($schema) {
-    $self->checkProp($instance, $schema, '', ($_changing // ''), $_changing);
-  }
-  if (!$_changing and defined $instance and ref $instance eq 'HASH' and defined $instance->{'$schema'}) {
-    $self->checkProp($instance, $instance->{'$schema'}, '', '', $_changing);
-  }
-
-  return {valid => (@{$self->{errors}} ? FALSE : TRUE), errors => $self->{errors},};
-}
-
-sub checkType {
-  my ($self, $type, $value, $path, $_changing, $schema) = @_;
-
-  my @E;
-  my $addError = sub {
-    my ($message) = @_;
-    my $e = {property => $path, message => $message};
-    foreach (qw(title description)) {
-      $e->{$_} = $schema->{$_} if defined $schema->{$_};
-    }
-    push @E, $e;
-  };
-
-  if ($type) {
-    if (ref $type eq 'ARRAY') {
-      my @unionErrors;
-    TYPE: foreach my $t (@$type) {
-        @unionErrors = $self->checkType($t, $value, $path, $_changing, $schema);
-        last unless @unionErrors;
-      }
-      return @unionErrors if @unionErrors;
-    }
-    elsif (ref $type eq 'HASH') {
-      local $self->{errors} = [];
-      $self->checkProp($value, $type, $path, undef, $_changing);
-      return @{$self->{errors}};
-    }
-    elsif (!$self->jsMatchType($type, $value)) {
-      $addError->($self->jsGuessType($value) . " value found, but a $type is required");
-      return @E;
-    }
-  }
-  return;
-}
-
-# validate a value against a property definition
-sub checkProp {
-  my ($self, $value, $schema, $path, $i, $_changing) = @_;
-  my $l;
-  $path .= $path ? ".${i}" : "\$${i}";
-
-  my $addError = sub {
-    my ($message) = @_;
-    my $e = {property => $path, message => $message};
-    foreach (qw(title description)) {
-      $e->{$_} = $schema->{$_} if defined $schema->{$_};
-    }
-    push @{$self->{errors}}, $e;
-  };
-
-  if (ref $schema ne 'HASH' and ($path or ref $schema ne 'CODE')) {
-    if (ref $schema eq 'CODE') {
-
-      # ~TOBYINK: I don't think this makes any sense in Perl
-      $addError->("is not an instance of the class/constructor " . $schema);
-    }
-    elsif ($schema) {
-      $addError->("Invalid schema/property definition " . $schema);
-    }
-    return undef;
-  }
-
-  eval { $self->{'hyper'}->process_includes($schema, $self->{'base'}) };
-
-  if ($_changing and $schema->{'readonly'}) {
-    $addError->("is a readonly field, it can not be changed");
-  }
-  if ($schema->{'extends'}) {
-    $self->checkProp($value, $schema->{'extends'}, $path, $i, $_changing);
-  }
-
-  # validate a value against a type definition
-  if (!defined $value) {
-    my $required;
-    $required = !$schema->{'optional'} if exists $schema->{'optional'};
-    $required = $schema->{'required'}  if $schema->{'required'};
-
-    $addError->("is missing and it is required") if $required;
-  }
-  else {
-    push @{$self->{errors}}, $self->checkType($schema->{'type'}, $value, $path, $_changing, $schema);
-
-    if (defined $schema->{'disallow'} and !$self->checkType($schema->{'disallow'}, $value, $path, $_changing)) {
-      $addError->(" disallowed value was matched");
-    }
-    else {
-      if (ref $value eq 'ARRAY') {
-        my $items = $schema->{items};
-
-        if (ref $items eq 'ARRAY') {    # check each item in $schema->{items} vs corresponding array value
-          my $i = 0;
-          while ($i < @$items) {
-            my $x = defined $value->[$i] ? $value->[$i] : undef;
-            push @{$self->{errors}}, $self->checkProp($x, $items->[$i], $path, $i, $_changing);
-            $i++;
-          }
-          if (exists $schema->{additionalItems}) {
-            my $additional_items = $schema->{additionalItems};
-            if (!$additional_items) {
-              if (defined $value->[$i]) {
-                $addError->("has too many items");
-              }
-            }
-            else {
-              while ($i < @$value) {
-                my $x = defined $value->[$i] ? $value->[$i] : undef;
-                push @{$self->{errors}}, $self->checkProp($x, $additional_items, $path, $i, $_changing);
-                $i++;
-              }
-            }
-          }
-        }
-        elsif (ref $items eq 'HASH') {    # check single $schema->{items} hash vs all values in array
-          for (my $i = 0; $i < @$value; $i++) {
-            my $x = defined $value->[$i] ? $value->[$i] : undef;
-            push @{$self->{errors}}, $self->checkProp($x, $items, $path, $i, $_changing);
-          }
-        }
-        if ($schema->{'minItems'} and scalar @$value < $schema->{'minItems'}) {
-          $addError->("There must be a minimum of " . $schema->{'minItems'} . " in the array");
-        }
-        if ($schema->{'maxItems'} and scalar @$value > $schema->{'maxItems'}) {
-          $addError->("There must be a maximum of " . $schema->{'maxItems'} . " in the array");
-        }
-        if ($schema->{'uniqueItems'}) {
-          my %hash;
-          $hash{to_json([$_], {canonical => 1, convert_blessed => 1})}++ for @$value;
-          $addError->("Array must not contain duplicates.") unless scalar(keys %hash) == scalar(@$value);
-        }
-      }
-      elsif (defined $schema->{'properties'}
-        or defined $schema->{'additionalProperties'}
-        or defined $schema->{'patternProperties'}
-        or $schema->{'type'} eq 'object')
-      {
-        push @{$self->{errors}},
-          $self->checkObj(
-          $value, $path,
-          $schema->{'properties'},
-          $schema->{'additionalProperties'},
-          $schema->{'patternProperties'}, $_changing
-          );
-      }
-
-      if ($schema->{'pattern'} and $self->jsMatchType('string', $value)) {
-        my $x = $schema->{'pattern'};
-        $addError->("does not match the regex pattern $x") unless $value =~ /$x/;
-      }
-      if ($schema->{'format'} and ($self->jsMatchType('string', $value) or $self->jsMatchType('number', $value))) {
-        my $format_checker = exists $self->{format}{$schema->{format}} ? $self->{format}{$schema->{format}} : qr//;
-
-        no if $] >= 5.017011, warnings => 'experimental::smartmatch';
-        $addError->("does not match format " . $schema->{format}) unless $value ~~ $format_checker;
-      }
-      if ($schema->{'maxLength'} and $self->jsMatchType('string', $value) and length($value) > $schema->{'maxLength'}) {
-        $addError->("may only be " . $schema->{'maxLength'} . " characters long");
-      }
-      if ($schema->{'minLength'} and $self->jsMatchType('string', $value) and length($value) < $schema->{'minLength'}) {
-        $addError->("must be at least " . $schema->{'minLength'} . " characters long");
-      }
-      if (defined $schema->{'minimum'} and not $self->jsMatchType('number', $value)) {
-        if ((defined $schema->{'minimumCanEqual'} and not $schema->{'minimumCanEqual'})
-          or $schema->{'exclusiveMinimum'})
-        {
-          $addError->("must be greater than minimum value '" . $schema->{'minimum'} . "'")
-            if $value lt $schema->{'minimum'};
-        }
-        else {
-          $addError->("must be greater than or equal to minimum value '" . $schema->{'minimum'} . "'")
-            if $value le $schema->{'minimum'};
-        }
-      }
-      elsif (defined $schema->{'minimum'}) {
-        if ((defined $schema->{'minimumCanEqual'} and not $schema->{'minimumCanEqual'})
-          or $schema->{'exclusiveMinimum'})
-        {
-          $addError->("must be greater than minimum value " . $schema->{'minimum'})
-            unless $value > $schema->{'minimum'};
-        }
-        else {
-          $addError->("must be greater than or equal to minimum value " . $schema->{'minimum'})
-            unless $value >= $schema->{'minimum'};
-        }
-      }
-      if (defined $schema->{'maximum'} and not $self->jsMatchType('number', $value)) {
-        if ((defined $schema->{'maximumCanEqual'} and not $schema->{'maximumCanEqual'})
-          or $schema->{'exclusiveMaximum'})
-        {
-          $addError->("must be less than or equal to maximum value '" . $schema->{'maximum'} . "'")
-            if $value gt $schema->{'maximum'};
-        }
-        else {
-          $addError->("must be less than or equal to maximum value '" . $schema->{'maximum'} . "'")
-            if $value ge $schema->{'maximum'};
-        }
-      }
-      elsif (defined $schema->{'maximum'}) {
-        if ((defined $schema->{'maximumCanEqual'} and not $schema->{'maximumCanEqual'})
-          or $schema->{'exclusiveMaximum'})
-        {
-          $addError->("must be less than maximum value " . $schema->{'maximum'}) unless $value < $schema->{'maximum'};
-        }
-        else {
-          $addError->("must be less than or equal to maximum value " . $schema->{'maximum'})
-            unless $value <= $schema->{'maximum'};
-        }
-      }
-      if ($schema->{'enum'}) {
-        my %enum;
-        $enum{to_json([$_], {canonical => 1, convert_blessed => 1})}++ for @{$schema->{'enum'}};
-        my $this_value = to_json([$value], {canonical => 1, convert_blessed => 1});
-        $addError->("does not have a value in the enumeration {" . (join ",", @{$schema->{'enum'}}) . '}')
-          unless exists $enum{$this_value};
-      }
-      if ($schema->{'divisibleBy'} and $self->jsMatchType('number', $value)) {
-        my ($frac, $int) = modf($value / $schema->{'divisibleBy'});
-        $addError->("must be divisible by " . $schema->{'divisibleBy'}) if $frac;
-      }
-      elsif ($schema->{'maxDecimal'} and $self->jsMatchType('number', $value))    # ~TOBYINK: back-compat
-      {
-        my $regexp = "\\.[0-9]{" . ($schema->{'maxDecimal'} + 1) . ",}";
-        $addError->("may only have " . $schema->{'maxDecimal'} . " digits of decimal places") if $value =~ /$regexp/;
-      }
-    }
-  }
-  return;
-};    # END: sub checkProp
-
-
-sub checkObj {
-  my ($self, $instance, $path, $objTypeDef, $additionalProp, $patternProp, $_changing) = @_;
-  my @errors;
-
-  my $addError = sub {
-    my ($message) = @_;
-    my $e = {property => $path, message => $message};
-    push @{$self->{errors}}, $e;
-  };
-
-  eval { $self->{'hyper'}->process_includes($objTypeDef, $self->{'base'}) };
-
-  if (ref $objTypeDef eq 'HASH') {
-    if (ref $instance ne 'HASH') {
-      $addError->("an object is required");
-    }
-
-    foreach my $i (keys %$objTypeDef) {
-      unless ($i =~ /^__/) {
-        my $value = defined $instance->{$i} ? $instance->{$i} : undef;
-        my $propDef = $objTypeDef->{$i};
-        $self->checkProp($value, $propDef, $path, $i, $_changing);
-      }
-    }
-  }    # END: if (ref $objTypeDef eq 'HASH')
-
-  foreach my $i (keys %$instance) {
-    my $prop_is_hidden             = ($i =~ /^__/);
-    my $prop_is_explicitly_allowed = (defined $objTypeDef and defined $objTypeDef->{$i});
-    my $prop_is_implicitly_allowed = (!!$additionalProp or !!$patternProp or not defined $additionalProp);
-
-    unless ($prop_is_hidden or $prop_is_explicitly_allowed or $prop_is_implicitly_allowed) {
-      $addError->("The property $i is not defined in the schema and the schema does not allow additional properties");
-    }
-
-    # TOBY: back-compat
-    my $requires = $objTypeDef && $objTypeDef->{$i} && $objTypeDef->{$i}->{'requires'};
-    if (defined $requires and not defined $instance->{$requires}) {
-      $addError->("the presence of the property $i requires that $requires also be present");
-    }
-
-    my $deps = $objTypeDef && $objTypeDef->{$i} && $objTypeDef->{$i}->{'dependencies'};
-    if (defined $deps) {
-
-      # TODO
-    }
-
-    my $value = defined $instance->{$i} ? $instance->{$i} : undef;
-    if (defined $objTypeDef and ref $objTypeDef eq 'HASH' and !defined $objTypeDef->{$i}) {
-      $self->checkProp($value, $additionalProp, $path, $i, $_changing);
-    }
-
-    if (defined $patternProp) {
-      while (my ($pattern, $scm) = each %$patternProp) {
-        $self->checkProp($value, $scm, $path, $i, $_changing) if $i =~ /$pattern/;
-      }
-    }
-
-    if (!$_changing and defined $value and ref $value eq 'HASH' and defined $value->{'$schema'}) {
-      push @errors, $self->checkProp($value, $value->{'$schema'}, $path, $i, $_changing);
-    }
-  }
-  return @errors;
-}
-
-sub jsMatchType {
-  my ($self, $type, $value) = @_;
-
-  if (lc $type eq 'string') {
-    return (ref $value) ? FALSE : TRUE;
-  }
-
-  if (lc $type eq 'number') {
-    return ($value =~ /^\-?[0-9]*(\.[0-9]*)?$/ and length $value) ? TRUE : FALSE;
-  }
-
-  if (lc $type eq 'integer') {
-    return ($value =~ /^\-?[0-9]+$/) ? TRUE : FALSE;
-  }
-
-  if (lc $type eq 'boolean') {
-    return FALSE if (!defined $value);
-    return TRUE  if (ref $value eq 'SCALAR' and $$value == 0 || $$value == 1);
-    return TRUE  if ($value eq TRUE);
-    return TRUE  if ($value eq FALSE);
-    return TRUE  if (ref $value eq 'JSON::PP::Boolean');
-    return TRUE  if (ref $value eq 'JSON::XS::Boolean');
-    return FALSE;
-  }
-
-  if (lc $type eq 'object') {
-    return (ref $value eq 'HASH') ? TRUE : FALSE;
-  }
-
-  if (lc $type eq 'array') {
-    return (ref $value eq 'ARRAY') ? TRUE : FALSE;
-  }
-
-  if (lc $type eq 'null') {
-    return undef;
-  }
-
-  if (lc $type eq 'any') {
-    return TRUE;
-  }
-
-  if (lc $type eq 'none') {
-    return FALSE;
-  }
-
-  if (blessed($value) and $value->isa($type)) {
-    return TRUE;
-  }
-  elsif (ref($value) and ref($value) eq $type) {
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-sub jsGuessType {
-  my ($self, $value) = @_;
-
-  return 'null' unless defined $value;
-
-  return 'object' if ref $value eq 'HASH';
-
-  return 'array' if ref $value eq 'ARRAY';
-
-  return 'boolean' if (ref $value eq 'SCALAR' and $$value == 0 and $$value == 1);
-
-  return 'boolean' if ref $value =~ /^JSON::(.*)::Boolean$/;
-
-  return ref $value if ref $value;
-
-  return 'integer' if $value =~ /^\-?[0-9]+$/;
-
-  return 'number' if $value =~ /^\-?[0-9]*(\.[0-9]*)?$/;
-
-  return 'string';
-}
-
-1;
-
-__END__
-
 =head1 NAME
 
-Swagger2::SchemaValidator - JSON schema validator
+Swagger2::SchemaValidator - Validate JSON schemas
 
 =head1 DESCRIPTION
 
-This module is mostly copy/paste from L<JSON::Schema::Helper>.
+L<Swagger2::SchemaValidator> is a class for validating JSON schemas.
 
-=head1 METHODS
+The validation process is supposed to be compatible with
+L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
+of the JSON schema specification. Please submit a
+L<bug report|https://github.com/jhthorsen/swagger2/issues>
+if it is not.
 
-=head2 checkObj
+=head1 SYNOPSIS
 
-=head2 checkProp
+  use Swagger2::SchemaValidator;
+  my $validator = Swagger2::SchemaValidator->new;
 
-=head2 checkPropertyChange
+  @errors = $validator->validate($data, $schema);
 
-=head2 checkType
+Example:
 
-=head2 jsGuessType
-
-=head2 jsMatchType
-
-=head2 new
-
-=head2 validate
+  warn $validator->validate(
+    {
+      nick => "batman",
+    },
+    {
+      type => "object",
+      properties => {
+        nick => {type => "string", minLength => 3, maxLength => 10, pattern => qr{^\w+$} }
+      },
+    },
+  );
 
 =head1 SEE ALSO
 
-L<JSON::Schema>.
+=over 4
+
+=item * L<http://spacetelescope.github.io/understanding-json-schema/index.html>
+
+=item * L<http://jsonary.com/documentation/json-schema/>
+
+=item * L<https://github.com/json-schema/json-schema/>
+
+=back
+
+=cut
+
+use Mojo::Base -base;
+use Mojo::Util;
+use Scalar::Util;
+use B;
+
+sub E {
+  bless {path => $_[0] || '/', message => $_[1]}, 'Swagger2::SchemaValidator::Error';
+}
+
+sub S {
+  Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump);
+}
+
+sub _cmp {
+  return undef if !defined $_[0] or !defined $_[1];
+  return "$_[3]=" if $_[2] and $_[0] >= $_[1];
+  return $_[3] if $_[0] > $_[1];
+  return "";
+}
+
+sub _expected {
+  my $type = _guess($_[1]);
+  return "Expected $_[0] - got different $type." if $_[0] =~ /\b$type\b/;
+  return "Expected $_[0] - got $type.";
+}
+
+sub _guess {
+  local $_ = $_[0];
+  my $ref     = ref;
+  my $blessed = Scalar::Util::blessed($_[0]);
+  return 'object' if $ref eq 'HASH';
+  return lc $ref if $ref and !$blessed;
+  return 'null' if !defined;
+  return 'boolean' if $blessed and "$_" eq "1" or "$_" eq "0";
+  return 'integer' if /^\d+$/;
+  return 'number' if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $_ eq $_ and $_ * 0 == 0;
+  return $blessed || 'string';
+}
+
+sub _path {
+  local $_ = $_[1];
+  s!~!~0!g;
+  s!/!~1!g;
+  "$_[0]/$_";
+}
+
+=head1 METHODS
+
+=head2 validate
+
+  @errors = $self->validate($data, $schema);
+
+Validates C<$data> against a given JSON C<$schema>. C<@errors> will
+contain objects with containing the validation errors. It will be
+empty on success.
+
+Example error element:
+
+  bless {
+    message => "Some description",
+    path => "/json/path/to/node",
+  }, "Swagger2::SchemaValidator::Error"
+
+The error objects are always true in boolean context and will stringify. The
+stringification format is subject to change.
+
+=cut
+
+sub validate {
+  my ($self, $data, $schema) = @_;
+
+  return $self->_validate($data, '', $schema);
+}
+
+sub _validate {
+  my ($self, $data, $path, $schema) = @_;
+  my ($type) = (map { $schema->{$_} } grep { $schema->{$_} } qw( type allOf anyOf oneOf not ))[0] || 'any';
+  my $check_all = grep { $schema->{$_} } qw( allOf oneOf not );
+  my @errors;
+
+  if ($schema->{disallow}) {
+    die 'TODO: No support for disallow.';
+  }
+
+  #$SIG{__WARN__} = sub { Carp::confess(Data::Dumper::Dumper($schema)) };
+
+  for my $t (ref $type eq 'ARRAY' ? @$type : ($type)) {
+    $t //= 'null';
+    if (ref $t eq 'HASH') {
+      push @errors, [$self->_validate($data, $path, $t)];
+      return if !$check_all and !@{$errors[-1]};    # valid
+    }
+    elsif (my $code = $self->can(sprintf '_validate_type_%s', $t)) {
+      push @errors, [$self->$code($data, $path, $schema)];
+      return if !$check_all and !@{$errors[-1]};    # valid
+    }
+    else {
+      return E $path, "Cannot validate type '$t'";
+    }
+  }
+
+  if ($schema->{not}) {
+    return if grep {@$_} @errors;
+    return E $path, "Should not match.";
+  }
+  if ($schema->{oneOf}) {
+    my $n = grep { @$_ == 0 } @errors;
+    return if $n == 1;    # one match
+    return E $path, "Expected only one to match." if $n == @errors;
+  }
+
+  if (@errors > 1) {
+    my %err;
+    for my $i (0 .. @errors - 1) {
+      for my $e (@{$errors[$i]}) {
+        if ($e->{message} =~ m!Expected ([^\.]+)\ - got ([^\.]+)\.!) {
+          push @{$err{$e->{path}}}, [$i, $e->{message}, $1, $2];
+        }
+        else {
+          push @{$err{$e->{path}}}, [$i, $e->{message}];
+        }
+      }
+    }
+    unshift @errors, [];
+    for my $p (sort keys %err) {
+      my %uniq;
+      my @e = grep { !$uniq{$_->[1]}++ } @{$err{$p}};
+      if (@e == grep { defined $_->[2] } @e) {
+        push @{$errors[0]}, E $p, sprintf 'Expected %s - got %s.', join(', ', map { $_->[2] } @e), $e[0][3];
+      }
+      else {
+        push @{$errors[0]}, E $p, join ' ', map {"[$_->[0]] $_->[1]"} @e;
+      }
+    }
+  }
+
+  return @{$errors[0]};
+}
+
+sub _validate_additional_properties {
+  my ($self, $data, $path, $schema) = @_;
+  my $properties = $schema->{additionalProperties};
+  my @errors;
+
+  if (ref $properties eq 'HASH') {
+    push @errors, $self->_validate_properties($data, $path, $schema);
+  }
+  elsif (!$properties) {
+    my @keys = grep { $_ !~ /^(description|id|title)$/ } keys %$data;
+    if (@keys) {
+      local $" = ', ';
+      push @errors, E $path, "Properties not allowed: @keys.";
+    }
+  }
+
+  return @errors;
+}
+
+sub _validate_enum {
+  my ($self, $data, $path, $schema) = @_;
+  my $enum = $schema->{enum};
+  my $m    = S $data;
+
+  for my $i (@$enum) {
+    return if $m eq S $i;
+  }
+
+  local $" = ', ';
+  return E $path, "Not in enum list: @$enum.";
+}
+
+sub _validate_pattern_properties {
+  my ($self, $data, $path, $schema) = @_;
+  my $properties = $schema->{patternProperties};
+  my @errors;
+
+  for my $pattern (keys %$properties) {
+    my $v = $properties->{$pattern};
+    for my $tk (keys %$data) {
+      next unless $tk =~ /$pattern/;
+      push @errors, $self->_validate(delete $data->{$tk}, _path($path, $tk), $v);
+    }
+  }
+
+  return @errors;
+}
+
+sub _validate_properties {
+  my ($self, $data, $path, $schema) = @_;
+  my $properties = $schema->{properties};
+  my @errors;
+
+  for my $name (keys %$properties) {
+    my $p = $properties->{$name};
+    if (exists $data->{$name}) {
+      my $v = delete $data->{$name};
+      push @errors, $self->_validate_enum($v, $path, $p) if $p->{enum};
+      push @errors, $self->_validate($v, _path($path, $name), $p);
+    }
+    elsif ($p->{default}) {
+      $data->{$name} = $p->{default};
+    }
+    elsif ($p->{required} and ref $p->{required} eq '') {
+      push @errors, E _path($path, $name), "Missing property.";
+    }
+  }
+
+  return @errors;
+}
+
+sub _validate_required {
+  my ($self, $data, $path, $schema) = @_;
+  my $properties = $schema->{required};
+  my @errors;
+
+  for my $name (@$properties) {
+    next if defined $data->{$name};
+    push @errors, E _path($path, $name), "Missing property.";
+  }
+
+  return @errors;
+}
+
+sub _validate_type_any {
+  return;
+}
+
+sub _validate_type_array {
+  my ($self, $data, $path, $schema) = @_;
+  my @errors;
+
+  if (ref $data ne 'ARRAY') {
+    return E $path, _expected(array => $data);
+  }
+
+  $data = [@$data];
+
+  if (defined $schema->{minItems} and $schema->{minItems} > @$data) {
+    push @errors, E $path, sprintf 'Not enough items: %s/%s.', int @$data, $schema->{minItems};
+  }
+  if (defined $schema->{maxItems} and $schema->{maxItems} < @$data) {
+    push @errors, E $path, sprintf 'Too many items: %s/%s.', int @$data, $schema->{maxItems};
+  }
+  if ($schema->{uniqueItems}) {
+    my %uniq;
+    for (@$data) {
+      next if !$uniq{S($_)}++;
+      push @errors, E $path, 'Unique items required.';
+      last;
+    }
+  }
+  if (ref $schema->{items} eq 'ARRAY') {
+    my $additional_items = $schema->{additionalItems} // 1;
+    my @v = @{$schema->{items}};
+
+    if ($additional_items) {
+      push @v, $a while @v < @$data;
+    }
+
+    if (@v == @$data) {
+      for my $i (0 .. @v - 1) {
+        push @errors, $self->_validate($data->[$i], "$path/$i", $v[$i]);
+      }
+    }
+    elsif (!$additional_items) {
+      push @errors, E $path, sprintf "Invalid number of items: %s/%s.", int(@$data), int(@v);
+    }
+  }
+  elsif (ref $schema->{items} eq 'HASH') {
+    for my $i (0 .. @$data - 1) {
+      push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
+    }
+  }
+
+  return @errors;
+}
+
+sub _validate_type_boolean {
+  my ($self, $value, $path, $schema) = @_;
+
+  return if defined $value and ("$value" eq "1" or "$value" eq "0");
+  return E $path, _expected(boolean => $value);
+}
+
+sub _validate_type_integer {
+  my ($self, $value, $path, $schema) = @_;
+  my @errors = $self->_validate_type_number($value, $path, $schema, 'integer');
+
+  return @errors if @errors;
+  return if $value =~ /^\d+$/;
+  return E $path, "Expected integer - got number.";
+}
+
+sub _validate_type_null {
+  my ($self, $value, $path, $schema) = @_;
+
+  return E $path, 'Not null.' if defined $value;
+  return;
+}
+
+sub _validate_type_number {
+  my ($self, $value, $path, $schema, $expected) = @_;
+  my @errors;
+
+  $expected ||= 'number';
+
+  if (!defined $value or ref $value) {
+    return E $path, _expected($expected => $value);
+  }
+  unless (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
+    return E $path, "Expected $expected - got string.";
+  }
+
+  if (my $e = _cmp($schema->{minimum}, $value, $schema->{exclusiveMinimum}, '<')) {
+    push @errors, E $path, "$value $e minimum($schema->{minimum})";
+  }
+  if (my $e = _cmp($value, $schema->{maximum}, $schema->{exclusiveMaximum}, '>')) {
+    push @errors, E $path, "$value $e maximum($schema->{maximum})";
+  }
+  if (my $d = $schema->{multipleOf}) {
+    unless (int($value / $d) == $value / $d) {
+      push @errors, E $path, "Not multiple of $d.";
+    }
+  }
+
+  return @errors;
+}
+
+sub _validate_type_object {
+  my ($self, $data, $path, $schema) = @_;
+  my @errors;
+
+  if (ref $data ne 'HASH') {
+    return E $path, _expected(object => $data);
+  }
+
+  # make sure _validate_xxx() does not mess up original $data
+  $data = {%$data};
+
+  if (ref $schema->{required} eq 'ARRAY') {
+    push @errors, $self->_validate_required($data, $path, $schema);
+  }
+  if (defined $schema->{maxProperties} and $schema->{maxProperties} < keys %$data) {
+    push @errors, E $path, sprintf 'Too many properties: %s/%s.', int(keys %$data), $schema->{maxProperties};
+  }
+  if (defined $schema->{minProperties} and $schema->{minProperties} > keys %$data) {
+    push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int(keys %$data), $schema->{minProperties};
+  }
+  if ($schema->{properties}) {
+    push @errors, $self->_validate_properties($data, $path, $schema);
+  }
+  if ($schema->{patternProperties}) {
+    push @errors, $self->_validate_pattern_properties($data, $path, $schema);
+  }
+  if (exists $schema->{additionalProperties}) {
+    push @errors, $self->_validate_additional_properties($data, $path, $schema);
+  }
+
+  return @errors;
+}
+
+sub _validate_type_string {
+  my ($self, $value, $path, $schema) = @_;
+  my @errors;
+
+  if (!defined $value or ref $value) {
+    return E $path, _expected(string => $value);
+  }
+  if (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
+    return E $path, "Expected string - got number.";
+  }
+  if (defined $schema->{maxLength}) {
+    if (length($value) > $schema->{maxLength}) {
+      push @errors, E $path, sprintf "String is too long: %s/%s.", length($value), $schema->{maxLength};
+    }
+  }
+  if (defined $schema->{minLength}) {
+    if (length($value) < $schema->{minLength}) {
+      push @errors, E $path, sprintf "String is too short: %s/%s.", length($value), $schema->{minLength};
+    }
+  }
+  if (defined $schema->{pattern}) {
+    my $p = $schema->{pattern};
+    unless ($value =~ /$p/) {
+      push @errors, E $path, "String does not match '$p'";
+    }
+  }
+
+  return @errors;
+}
+
+package    # hide from
+  Swagger2::SchemaValidator::Error;
+
+use overload q("") => sub { sprintf '%s: %s', @{$_[0]}{qw( path message )} }, bool => sub {1}, fallback => 1;
+sub TO_JSON { {message => $_[0]->{message}, path => $_[0]->{path}} }
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2014, Jan Henning Thorsen
+
+This program is free software, you can redistribute it and/or modify it under
+the terms of the Artistic License version 2.0.
 
 =head1 AUTHOR
 
-Toby Inkster E<lt>tobyink@cpan.orgE<gt>.
-
-=head1 COPYRIGHT AND LICENCE
-
-Copyright 2007-2009 Kris Zyp.
-
-Copyright 2010-2012 Toby Inkster.
-
-This module is tri-licensed. It is available under the X11 (a.k.a. MIT)
-licence; you can also redistribute it and/or modify it under the same
-terms as Perl itself.
-
-=head2 a.k.a. "The MIT Licence"
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
+
+1;
