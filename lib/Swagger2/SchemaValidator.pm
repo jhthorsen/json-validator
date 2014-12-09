@@ -267,19 +267,6 @@ sub _validate_properties {
   return @errors;
 }
 
-sub _validate_required {
-  my ($self, $data, $path, $schema) = @_;
-  my $properties = $schema->{required};
-  my @errors;
-
-  for my $name (@$properties) {
-    next if defined $data->{$name};
-    push @errors, E _path($path, $name), "Missing property.";
-  }
-
-  return @errors;
-}
-
 sub _validate_type_any {
   return;
 }
