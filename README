@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.03
+    0.04
 
 DESCRIPTION
     THIS MODULE IS EXPERIMENTAL! ANY CHANGES CAN HAPPEN!
@@ -71,7 +71,7 @@ METHODS
       $swagger = $self->expand;
 
     This method returns a new "Swagger2" object, where all the references
-    <https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28>: are
+    <https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28> are
     resolved.
 
   load

@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.04
+0.04     Tue Dec  9 21:02:43 2014
        * Add "formats" to Swagger2::SchemaValidator
 
 0.03     Tue Dec  9 15:36:04 2014
