@@ -156,7 +156,7 @@ sub url { shift->{url} }
   $swagger = $self->expand;
 
 This method returns a new C<Swagger2> object, where all the
-L<references|https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28>:
+L<references|https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28>
 are resolved.
 
 =cut
