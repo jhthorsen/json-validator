@@ -34,23 +34,23 @@ finds pets in the system
 
 pet response
 
-[
-  {
-    "id": int64, // required
-    "name": string, // required
-    "tag": string, // No description.
-  },
-  ...
-]
+  [
+    {
+      "id": int64, // required
+      "name": string, // required
+      "tag": string, // No description.
+    },
+    ...
+  ]
 
 =head3 Default
 
 unexpected error
 
-{
-  "code": int32, // required
-  "message": string, // required
-},
+  {
+    "code": int32, // required
+    "message": string, // required
+  },
 
 =head1 COPYRIGHT AND LICENSE
 

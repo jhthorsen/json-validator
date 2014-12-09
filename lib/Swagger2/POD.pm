@@ -214,9 +214,16 @@ sub _schema_string_to_string {
 
 sub _schema_to_string_dispatch {
   my ($self, $schema, $depth) = @_;
+  my $required = $schema->{required};
   my $method;
 
-  $schema = $schema->{properties} if $schema->{properties};
+  if ($schema->{properties}) {
+    $schema = $schema->{properties};
+  }
+  if ($required and ref $required eq 'ARRAY') {
+    $schema->{$_}{required} = 1 for @$required;
+  }
+
   $method = '_schema_' . ($schema->{type} || 'object') . '_to_string';
   $self->$method($schema, $depth);
 }
@@ -248,7 +255,7 @@ sub _ascii_table {
 sub _sprintf {
   my ($level, $format, @args) = @_;
 
-  sprintf "%s$format", (" " x ($level * 2)), @args;
+  sprintf "%s$format", (" " x (($level + 1) * 2)), @args;
 }
 
 sub _status_code_to_string {
