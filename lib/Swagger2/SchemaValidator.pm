@@ -239,7 +239,12 @@ sub _validate_pattern_properties {
 sub _validate_properties {
   my ($self, $data, $path, $schema) = @_;
   my $properties = $schema->{properties};
-  my @errors;
+  my $required   = $schema->{required};
+  my (@errors, %required);
+
+  if ($required and ref $required eq 'ARRAY') {
+    $required{$_} = 1 for @$required;
+  }
 
   for my $name (keys %$properties) {
     my $p = $properties->{$name};
@@ -250,6 +255,9 @@ sub _validate_properties {
     }
     elsif ($p->{default}) {
       $data->{$name} = $p->{default};
+    }
+    elsif ($required{$name}) {
+      push @errors, E _path($path, $name), "Missing property.";
     }
     elsif ($p->{required} and ref $p->{required} eq '') {
       push @errors, E _path($path, $name), "Missing property.";
@@ -319,7 +327,13 @@ sub _validate_type_array {
   }
   elsif (ref $schema->{items} eq 'HASH') {
     for my $i (0 .. @$data - 1) {
-      push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
+      if ($schema->{items}{properties}) {
+        my $input = ref $data->[$i] eq 'HASH' ? {%{$data->[$i]}} : $data->[$i];
+        push @errors, $self->_validate_properties($input, "$path/$i", $schema->{items});
+      }
+      else {
+        push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
+      }
     }
   }
 
@@ -388,9 +402,6 @@ sub _validate_type_object {
   # make sure _validate_xxx() does not mess up original $data
   $data = {%$data};
 
-  if (ref $schema->{required} eq 'ARRAY') {
-    push @errors, $self->_validate_required($data, $path, $schema);
-  }
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < keys %$data) {
     push @errors, E $path, sprintf 'Too many properties: %s/%s.', int(keys %$data), $schema->{maxProperties};
   }
