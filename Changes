@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.05     Tue Dec  9 22:01:31 2014
+       * Fix "Not an ARRAY reference at lib/Swagger2.pm line 356."
+
 0.04     Tue Dec  9 21:02:43 2014
        * Add "formats" to Swagger2::SchemaValidator
 

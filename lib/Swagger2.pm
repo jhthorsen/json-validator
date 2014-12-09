@@ -6,7 +6,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 =head1 VERSION
 
-0.04
+0.05
 
 =head1 DESCRIPTION
 
@@ -54,7 +54,7 @@ use Mojo::Util 'md5_sum';
 use File::Spec;
 use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR} || '';
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 # Should be considered internal
 our $SPEC_FILE = do {
@@ -351,6 +351,7 @@ sub _resolve_deep {
       $self->_resolve_deep($pointer, "$path/$p", $out->{$name});
     }
     elsif (ref $in->{$name} eq 'ARRAY') {
+      $out->{$name} = [];    # Fix "Not an ARRAY reference at lib/Swagger2.pm line 356."
       for my $i (0 .. @{$in->{$name}} - 1) {
         $out->{$name}[$i] = $in->{$name}[$i];
         $self->_resolve_deep($pointer, "$path/$p/$i", $out->{$name}[$i]);
