@@ -66,6 +66,7 @@ agent.
 =cut
 
 use Mojo::Base 'Mojolicious::Plugin';
+use Mojo::JSON;
 use Mojo::Util 'decamelize';
 use Swagger2::SchemaValidator;
 use Swagger2;
@@ -233,9 +234,9 @@ sub _generate_request_handler {
         my $data   = shift;
         my $status = shift || 200;
         my $format = $config->{responses}{$status} || $config->{responses}{default};
-        my $v      = $self->_validator->validate($data, $format->{schema});
+        my @err    = $self->_validator->validate($data, $format->{schema});
 
-        return $c->render_swagger($v, $data, 500) unless $v->{valid};
+        return $c->render_swagger({errors => \@err, valid => Mojo::JSON->false}, $data, 500) if @err;
         return $c->render_swagger({}, $data, $status);
       },
     );
@@ -251,11 +252,10 @@ sub _validate_input {
   my $headers = $c->req->headers;
   my $query   = $c->req->url->query;
   my $body    = $c->req->json || $c->req->body_params->to_hash || {};
-  my %v       = (errors => []);
-  my %input;
+  my (%input, %v);
 
   for my $p (@{$config->{parameters} || []}) {
-    my @err;
+    my @e;
     my $in   = $p->{in};
     my $name = $p->{name};
     my $value
@@ -264,21 +264,17 @@ sub _validate_input {
       : $in eq 'header' ? $headers->header($name)
       :                   $body->{$name};
 
-    if ($p->{schema}) {
-      my $tmp = $self->_validator->validate($value, $p->{schema});
-      push @err, @{$tmp->{errors} || []};
-    }
-    else {
-      my $tmp = $self->_validator->validate($value, $p);
-      push @err, @{$tmp->{errors} || []};
+    $p = $p->{schema} if $p->{schema};
+
+    if (defined $value or $p->{required}) {
+      push @e, $self->_validator->validate({$name => $value}, {type => 'object', properties => {$name => $p}});
     }
 
-    push @{$v{errors}}, map { $_->{property} = "\$0.$name"; $_ } @err;
-    $input{$name} = $value unless @err;
+    $input{$name} = $value unless @e;
+    push @{$v{errors}}, @e;
   }
 
   $v{valid} = @{$v{errors}} ? Mojo::JSON->false : Mojo::JSON->true;
-
   return \%v, \%input;
 }
 
