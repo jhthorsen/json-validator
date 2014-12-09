@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.06
+       * Fix t/jv-formats.t: Label not found for "last SKIP"
+
 0.05     Tue Dec  9 22:01:31 2014
        * Fix "Not an ARRAY reference at lib/Swagger2.pm line 356."
 
