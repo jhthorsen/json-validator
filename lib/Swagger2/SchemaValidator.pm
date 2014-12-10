@@ -440,7 +440,7 @@ sub _validate_type_integer {
   my @errors = $self->_validate_type_number($value, $path, $schema, 'integer');
 
   return @errors if @errors;
-  return if $value =~ /^\d+$/;
+  return if $value =~ /^-?\d+$/;
   return E $path, "Expected integer - got number.";
 }
 

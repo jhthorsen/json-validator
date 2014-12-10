@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.07
+       * Fix test for negative integers
+
 0.06     Wed Dec 10 12:19:40 2014
        * Fix t/jv-formats.t: Label not found for "last SKIP"
 
