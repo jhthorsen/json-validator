@@ -7,6 +7,14 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 my @errors;
 
 {
+  $schema->{properties}{v}{format} = 'date';
+  @errors = $validator->validate({v => '2014-12-09'}, $schema);
+  is "@errors", "", "date valid";
+  @errors = $validator->validate({v => '2014-12-09T20:49:37Z'}, $schema);
+  is "@errors", "/v: Does not match date format.", "date invalid";
+}
+
+{
   $schema->{properties}{v}{format} = 'date-time';
   @errors = $validator->validate({v => '2014-12-09T20:49:37Z'}, $schema);
   is "@errors", "", "date-time valid";
@@ -15,11 +23,30 @@ my @errors;
 }
 
 {
+  local $schema->{properties}{v}{type}   = 'number';
+  local $schema->{properties}{v}{format} = 'double';
+  @errors = $validator->validate({v => 1.1000000238418599085576943252817727625370025634765626}, $schema);
+  local $TODO = "cannot test double, since input is already rounded";
+  is "@errors", "", "positive double valid";
+}
+
+{
   local $schema->{properties}{v}{format} = 'email';
   @errors = $validator->validate({v => 'jhthorsen@cpan.org'}, $schema);
   is "@errors", "", "email valid";
   @errors = $validator->validate({v => 'foo'}, $schema);
   is "@errors", "/v: Does not match email format.", "email invalid";
+}
+
+{
+  local $schema->{properties}{v}{type}   = 'number';
+  local $schema->{properties}{v}{format} = 'float';
+  @errors = $validator->validate({v => -1.10000002384186}, $schema);
+  is "@errors", "", "negative float valid";
+  @errors = $validator->validate({v => 1.10000002384186}, $schema);
+  is "@errors", "", "positive float valid";
+  @errors = $validator->validate({v => 0.10000000000000}, $schema);
+  is "@errors", "/v: Does not match float format.", "float invalid";
 }
 
 if (Swagger2::SchemaValidator::VALIDATE_HOSTNAME) {
@@ -50,6 +77,28 @@ if (Swagger2::SchemaValidator::VALIDATE_IP) {
 }
 else {
   diag "Data::Validate::IP is not installed";
+}
+
+{
+  local $schema->{properties}{v}{type}   = 'integer';
+  local $schema->{properties}{v}{format} = 'int32';
+  @errors = $validator->validate({v => -2147483648}, $schema);
+  is "@errors", "", "negative int32 valid";
+  @errors = $validator->validate({v => 2147483647}, $schema);
+  is "@errors", "", "positive int32 valid";
+  @errors = $validator->validate({v => 2147483648}, $schema);
+  is "@errors", "/v: Does not match int32 format.", "int32 invalid";
+}
+
+{
+  local $schema->{properties}{v}{type}   = 'integer';
+  local $schema->{properties}{v}{format} = 'int64';
+  @errors = $validator->validate({v => -9223372036854775808}, $schema);
+  is "@errors", "", "negative int64 valid";
+  @errors = $validator->validate({v => 9223372036854775807}, $schema);
+  is "@errors", "", "positive int64 valid";
+  @errors = $validator->validate({v => 9223372036854775808}, $schema);
+  is "@errors", "/v: Does not match int64 format.", "int64 invalid";
 }
 
 {

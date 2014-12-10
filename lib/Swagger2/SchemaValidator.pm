@@ -107,6 +107,11 @@ sub _is_ipv6 {
   return;
 }
 
+sub _is_number {
+  return unless $_[0] =~ /^-?\d+(\.\d+)?$/;
+  return $_[0] eq unpack $_[1], pack $_[1], $_[0];
+}
+
 sub _path {
   local $_ = $_[1];
   s!~!~0!g;
@@ -114,6 +119,7 @@ sub _path {
   "$_[0]/$_";
 }
 
+my $DATE_RFC3339_RE      = qr/^(\d+)-(\d+)-(\d+)$/io;
 my $DATE_TIME_RFC3339_RE = qr/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$/io;
 
 my $EMAIL_RFC5322_RE = do {
@@ -143,17 +149,42 @@ Note! The modules mentioned below are optional.
 
 =over 4
 
+=item * byte
+
+TODO
+
+=item * date
+
+Validated against the RFC3339 spec.
+
 =item * date-time
 
 Validated against the RFC3339 spec.
+
+=item * double
+
+Cannot test double values with higher precision then what
+the "number" type already provides.
 
 =item * email
 
 Validated against the RFC5322 spec.
 
+=item * float
+
+A number with float precision.
+
 =item * hostname
 
 Will be validated using L<Data::Validate::Domain> if installed.
+
+=item * int32
+
+A signed 32 bit integer.
+
+=item * int64
+
+A signed 64 bit integer.
 
 =item * ipv4
 
@@ -174,11 +205,16 @@ Validated against the RFC3986 spec.
 
 has formats => sub {
   +{
+    'date'      => sub { $_[0] =~ $DATE_RFC3339_RE; },
     'date-time' => sub { $_[0] =~ $DATE_TIME_RFC3339_RE; },
+    'double'    => sub {1},
+    'float'     => sub { _is_number($_[0], 'f'); },
     'email'     => sub { $_[0] =~ $EMAIL_RFC5322_RE; },
     'hostname' => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
-    'ipv4'     => VALIDATE_IP       ? \&Data::Validate::IP::is_ipv4       : \&_is_ipv4,
-    'ipv6'     => VALIDATE_IP       ? \&Data::Validate::IP::is_ipv6       : \&_is_ipv6,
+    'int32' => sub { _is_number($_[0], 'l'); },
+    'int64' => sub { _is_number($_[0], 'q'); },
+    'ipv4' => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
+    'ipv6' => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
     'uri' => sub { $_[0] =~ $URI_RFC3986_RE; },
   };
 };
@@ -464,6 +500,9 @@ sub _validate_type_number {
     return E $path, "Expected $expected - got string.";
   }
 
+  if ($schema->{format}) {
+    push @errors, $self->_validate_format($value, $path, $schema);
+  }
   if (my $e = _cmp($schema->{minimum}, $value, $schema->{exclusiveMinimum}, '<')) {
     push @errors, E $path, "$value $e minimum($schema->{minimum})";
   }
