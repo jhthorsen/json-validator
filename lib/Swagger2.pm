@@ -6,7 +6,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 =head1 VERSION
 
-0.06
+0.07
 
 =head1 DESCRIPTION
 
@@ -54,7 +54,7 @@ use Mojo::Util 'md5_sum';
 use File::Spec;
 use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR} || '';
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 # Should be considered internal
 our $SPEC_FILE = do {
