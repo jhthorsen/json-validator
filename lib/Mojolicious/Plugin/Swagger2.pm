@@ -264,9 +264,9 @@ sub _validate_input {
       = $in eq 'query'  ? $query->param($name)
       : $in eq 'path'   ? $c->stash($name)
       : $in eq 'header' ? $headers->header($name)
-      :                   $body->{$name};
+      :                   $body->{$name} || $body;
 
-    $p = $p->{schema} if $p->{schema};
+    $p = $p->{schema} if $p->{schema} and $in !~ m(body|form);
 
     if (defined $value or $p->{required}) {
       $value += 0 if $p->{type} and $p->{type} =~ /^(?:integer|number)/ and $value =~ /^\d/;
