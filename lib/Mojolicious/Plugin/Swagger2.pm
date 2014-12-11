@@ -198,6 +198,8 @@ sub register {
   for my $path (keys %$paths) {
     my $route_path = '/' . join '/', grep {$_} @$base_path, split '/', $path;
 
+    $route_path =~ s/{(.*)}/:$1/g;
+
     for my $method (keys %{$paths->{$path}}) {
       my $m    = lc $method;
       my $info = $paths->{$path}{$method};

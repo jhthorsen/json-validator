@@ -52,6 +52,43 @@ unexpected error
     "message": string, // required
   },
 
+=head2 showPetById
+
+Info for a specific pet
+
+=head3 Resource URL
+
+  GET http://petstore.swagger.wordnik.com/api/%2Fpets%2F%7BpetId%7D
+
+=head3 Parameters
+
+  .--------------------------------------------------------.
+  | Name  | In   | Required | Description                  |
+  |--------------------------------------------------------|
+  | petId | path | No       | The id of the pet to receive |
+  '--------------------------------------------------------'
+
+=head3 Responses
+
+=head3 200 - OK
+
+Expected response to a valid request
+
+  {
+    "id": int64, // required
+    "name": string, // required
+    "tag": string, // No description.
+  },
+
+=head3 Default
+
+unexpected error
+
+  {
+    "code": int32, // required
+    "message": string, // required
+  },
+
 =head1 COPYRIGHT AND LICENSE
 
 wordnik api team - http://developer.wordnik.com

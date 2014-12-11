@@ -8,4 +8,8 @@ sub list_pets_get {
   $c->$cb($RES);
 }
 
+sub show_pet_by_id_get {
+  shift->list_pets_get(@_);
+}
+
 1;
