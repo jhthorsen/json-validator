@@ -92,6 +92,10 @@ sub _guess {
   return $blessed || 'string';
 }
 
+sub _is_byte_string {
+  $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/;
+}
+
 sub _is_domain {
   warn "Data::Validate::Domain is not installed";
   return;
@@ -151,15 +155,17 @@ Note! The modules mentioned below are optional.
 
 =item * byte
 
-TODO
+A padded, base64-encoded string of bytes, encoded with a URL and filename safe
+alphabet. Defined by RFC4648.
 
 =item * date
 
-Validated against the RFC3339 spec.
+An RFC3339 date in the format YYYY-MM-DD
 
 =item * date-time
 
-Validated against the RFC3339 spec.
+An RFC3339 timestamp in UTC time. This is formatted as
+"YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is optional
 
 =item * double
 
@@ -206,16 +212,17 @@ Validated against the RFC3986 spec.
 
 has formats => sub {
   +{
+    'byte'      => \&_is_byte_string,
     'date'      => sub { $_[0] =~ $DATE_RFC3339_RE; },
     'date-time' => sub { $_[0] =~ $DATE_TIME_RFC3339_RE; },
     'double'    => sub {1},
     'float'     => sub {1},
     'email'     => sub { $_[0] =~ $EMAIL_RFC5322_RE; },
-    'hostname' => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
-    'int32' => sub { _is_number($_[0], 'l'); },
-    'int64' => sub { _is_number($_[0], 'q'); },
-    'ipv4' => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
-    'ipv6' => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
+    'hostname'  => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
+    'int32'     => sub { _is_number($_[0], 'l'); },
+    'int64'     => sub { _is_number($_[0], 'q'); },
+    'ipv4'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
+    'ipv6'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
     'uri' => sub { $_[0] =~ $URI_RFC3986_RE; },
   };
 };
