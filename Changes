@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.08
+0.08     Thu Dec 11 11:08:05 2014
        * Change "floats" and "double" formats are not tested.
        * Add support for "byte" format
 
