@@ -172,7 +172,8 @@ Validated against the RFC5322 spec.
 
 =item * float
 
-A number with float precision.
+Will always be true if the input is a number, meaning there is no difference
+between  L</float> and L</double>. Patches are welcome.
 
 =item * hostname
 
@@ -208,7 +209,7 @@ has formats => sub {
     'date'      => sub { $_[0] =~ $DATE_RFC3339_RE; },
     'date-time' => sub { $_[0] =~ $DATE_TIME_RFC3339_RE; },
     'double'    => sub {1},
-    'float'     => sub { _is_number($_[0], 'f'); },
+    'float'     => sub {1},
     'email'     => sub { $_[0] =~ $EMAIL_RFC5322_RE; },
     'hostname' => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
     'int32' => sub { _is_number($_[0], 'l'); },
