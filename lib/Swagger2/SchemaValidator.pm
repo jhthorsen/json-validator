@@ -51,11 +51,12 @@ Example:
 
 use Mojo::Base -base;
 use Mojo::Util;
-use Scalar::Util;
 use B;
+use Scalar::Util;
 
-use constant VALIDATE_HOSTNAME      => eval "require Data::Validate::Domain;1";
-use constant VALIDATE_IP            => eval "require Data::Validate::IP;1";
+use constant VALIDATE_HOSTNAME      => eval 'require Data::Validate::Domain;1';
+use constant VALIDATE_IP            => eval 'require Data::Validate::IP;1';
+use constant IV_SIZE                => eval 'require Config;$Config::Config{ivsize}';
 use constant WARN_ON_MISSING_FORMAT => $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
 
 sub E {
@@ -191,7 +192,8 @@ A signed 32 bit integer.
 
 =item * int64
 
-A signed 64 bit integer.
+A signed 64 bit integer. Note: This check is only available if Perl is
+compiled to use 64 bit integers.
 
 =item * ipv4
 
@@ -220,9 +222,9 @@ has formats => sub {
     'email'     => sub { $_[0] =~ $EMAIL_RFC5322_RE; },
     'hostname'  => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
     'int32'     => sub { _is_number($_[0], 'l'); },
-    'int64'     => sub { _is_number($_[0], 'q'); },
-    'ipv4'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
-    'ipv6'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
+    'int64'     => IV_SIZE >= 8 ? sub { _is_number($_[0], 'q'); } : sub {1},
+    'ipv4' => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
+    'ipv6' => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
     'uri' => sub { $_[0] =~ $URI_RFC3986_RE; },
   };
 };

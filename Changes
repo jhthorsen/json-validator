@@ -2,9 +2,10 @@ Changelog for Swagger2
 
 0.09
        * Fix load($file) on windows
+       * Disable "int64" format test if Perl does not support 64 bit
 
 0.08     Thu Dec 11 11:08:05 2014
-       * Change "floats" and "double" formats are not tested.
+       * Change "floats" and "double" formats are not tested
        * Add support for "byte" format
 
 0.07     Wed Dec 10 14:58:15 2014
