@@ -4,6 +4,7 @@ Changelog for Swagger2
        * Fix load($file) on windows
        * Fix adding parameter to route #1
        * Fix "Resource URL" in generated POD
+       * Add "Type" to "Parameters" POD table
        * Disable "int64" format test if Perl does not support 64 bit
 
 0.08     Thu Dec 11 11:08:05 2014
