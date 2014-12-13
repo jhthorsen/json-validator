@@ -285,7 +285,7 @@ sub _load {
   # load spec from disk or web
   if (!CACHE_DIR or !$doc) {
     if ($scheme eq 'file') {
-      $doc = Mojo::Util::slurp($url->path);
+      $doc = Mojo::Util::slurp(File::Spec->catfile(split '/', $url->path));
       $type = lc $1 if $url->path =~ /\.(yaml|json)$/i;
     }
     else {
