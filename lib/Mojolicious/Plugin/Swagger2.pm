@@ -198,7 +198,7 @@ sub register {
   for my $path (keys %$paths) {
     my $route_path = '/' . join '/', grep {$_} @$base_path, split '/', $path;
 
-    $route_path =~ s/{(.*)}/:$1/g;
+    $route_path =~ s/{([^}]+)}/:$1/g;
 
     for my $method (keys %{$paths->{$path}}) {
       my $m    = lc $method;
@@ -269,6 +269,7 @@ sub _validate_input {
     $p = $p->{schema} if $p->{schema};
 
     if (defined $value or $p->{required}) {
+      $value += 0 if $p->{type} and $p->{type} =~ /^(?:integer|number)/ and $value =~ /^\d/;
       push @e, $self->_validator->validate({$name => $value}, {type => 'object', properties => {$name => $p}});
     }
 

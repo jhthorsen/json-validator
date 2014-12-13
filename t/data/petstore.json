@@ -67,7 +67,7 @@
             "name": "petId",
             "in": "path",
             "description": "The id of the pet to receive",
-            "type": "string"
+            "type": "integer"
           }
         ],
         "responses": {

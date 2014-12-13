@@ -9,7 +9,9 @@ sub list_pets_get {
 }
 
 sub show_pet_by_id_get {
-  shift->list_pets_get(@_);
+  my $self = shift;
+  $RES->{id} = $self->param('petId');
+  $self->list_pets_get(@_);
 }
 
 1;
