@@ -18,7 +18,7 @@ finds pets in the system
 
 =head3 Resource URL
 
-  GET http://petstore.swagger.wordnik.com/api/%2Fpets
+  GET http://petstore.swagger.wordnik.com/api/pets
 
 =head3 Parameters
 
@@ -58,7 +58,7 @@ Info for a specific pet
 
 =head3 Resource URL
 
-  GET http://petstore.swagger.wordnik.com/api/%2Fpets%2F%7BpetId%7D
+  GET http://petstore.swagger.wordnik.com/api/pets/{petId}
 
 =head3 Parameters
 

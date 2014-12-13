@@ -137,7 +137,7 @@ sub _paths_to_string {
 PATH:
   for my $path (sort keys %$paths) {
     my $url = $self->{base_url}->clone;
-    push @{$url->path->parts}, $path;
+    push @{$url->path->parts}, grep { length $_ } split '/', $path;
 
   METHOD:
     for my $method (sort keys %{$paths->{$path}}) {
@@ -151,9 +151,11 @@ PATH:
 
       next METHOD if $info->{deprecated};
       $url->query(Mojo::Parameters->new);
+      $url = $url->to_abs;
+      $url =~ s!/%7B([^%]+)%7D!/{$1}!g;
 
       $str .= sprintf "=head3 Resource URL\n\n";
-      $str .= sprintf "  %s %s\n\n", uc $method, $url->to_abs;
+      $str .= sprintf "  %s %s\n\n", uc $method, $url;
       $str .= $self->_path_request_to_string($info);
       $str .= $self->_path_response_to_string($info);
     }
