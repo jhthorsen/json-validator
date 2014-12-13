@@ -63,13 +63,13 @@ our $SPEC_FILE = do {
 };
 
 my @YAML_MODULES = qw( YAML::Tiny YAML YAML::Syck YAML::XS );
-my $YAML_MODULE
-  = $ENV{SWAGGER2_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::__Missing__';
+my $YAML_MODULE = $ENV{SWAGGER2_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::FALLBACK';
 
-Mojo::Util::monkey_patch(__PACKAGE__,
-  LoadYAML => eval "\\\&$YAML_MODULE\::Load" || sub { die "Need to install a YAML module: @YAML_MODULES" });
-Mojo::Util::monkey_patch(__PACKAGE__,
-  DumpYAML => eval "\\\&$YAML_MODULE\::Dump" || sub { die "Need to install a YAML module: @YAML_MODULES" });
+sub Swagger2::FALLBACK::Dump { die "Need to install a YAML module: @YAML_MODULES"; }
+sub Swagger2::FALLBACK::Load { die "Need to install a YAML module: @YAML_MODULES"; }
+
+Mojo::Util::monkey_patch __PACKAGE__, LoadYAML => eval "\\\&$YAML_MODULE\::Load";
+Mojo::Util::monkey_patch __PACKAGE__, DumpYAML => eval "\\\&$YAML_MODULE\::Dump";
 
 =head1 ATTRIBUTES
 
