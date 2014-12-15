@@ -143,6 +143,7 @@ PATH:
     for my $method (sort keys %{$paths->{$path}}) {
       my $info = $paths->{$path}{$method};
       my $ext  = $info->{externalDocs};
+      my $resource_url;
 
       $str .= sprintf "=head2 %s\n\n", $info->{operationId} || join(' ', uc $method, $path);
       $str .= "  THIS RESOURCE IS DEPRECATED!\n\n" if $info->{deprecated};
@@ -151,11 +152,11 @@ PATH:
 
       next METHOD if $info->{deprecated};
       $url->query(Mojo::Parameters->new);
-      $url = $url->to_abs;
-      $url =~ s!/%7B([^%]+)%7D!/{$1}!g;
+      $resource_url = $url->to_abs;
+      $resource_url =~ s!/%7B([^%]+)%7D!/{$1}!g;
 
       $str .= sprintf "=head3 Resource URL\n\n";
-      $str .= sprintf "  %s %s\n\n", uc $method, $url;
+      $str .= sprintf "  %s %s\n\n", uc $method, $resource_url;
       $str .= $self->_path_request_to_string($info);
       $str .= $self->_path_response_to_string($info);
     }
