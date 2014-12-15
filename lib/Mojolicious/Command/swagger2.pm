@@ -11,6 +11,7 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 =head1 SYNOPSIS
 
   $ mojo swagger2 pod path/to/spec.json
+  $ mojo swagger2 perldoc path/to/spec.json
 
 =cut
 
@@ -33,7 +34,10 @@ has description => 'Interface with Swagger2.';
 has usage       => <<"HERE";
 Usage:
 
+  # Write POD to STDOUT
   @{[__PACKAGE__->_usage('pod')]}
+
+  # Run perldoc on the generated POD
   @{[__PACKAGE__->_usage('perldoc')]}
 
 HERE
@@ -43,6 +47,8 @@ has _swagger2 => sub { Swagger2->new };
 =head1 METHODS
 
 =head2 run
+
+See L</SYNOPSIS>.
 
 =cut
 
