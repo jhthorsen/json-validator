@@ -2,6 +2,8 @@ Changelog for Swagger2
 
 0.12
        * Add missing Swagger2::POD::_schema_boolean_to_string() method
+       * Add Swagger2::parse() method
+       * Add "mojo swagger2 edit" command
        * Fix printing "Resource URL" when generating POD
        * Fix parameter references
 
