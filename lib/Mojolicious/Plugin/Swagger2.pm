@@ -256,7 +256,8 @@ sub _validate_input {
   my $body    = $c->req->json || $c->req->body_params->to_hash || {};
   my (%input, %v);
 
-  for my $p (@{$config->{parameters} || []}) {
+  for (@{$config->{parameters} || []}) {
+    my $p = $_;
     my @e;
     my $in   = $p->{in};
     my $name = $p->{name};
@@ -266,7 +267,7 @@ sub _validate_input {
       : $in eq 'header' ? $headers->header($name)
       :                   $body->{$name} || $body;
 
-    $p = $p->{schema} if $p->{schema} and $in !~ m(body|form);
+    $p = $p->{schema} if $p->{schema};
 
     if (defined $value or $p->{required}) {
       $value += 0 if $p->{type} and $p->{type} =~ /^(?:integer|number)/ and $value =~ /^\d/;
