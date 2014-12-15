@@ -13,4 +13,10 @@ is $swagger->tree->get('/swagger'), '2.0', 'tree.swagger';
 like $swagger->to_string('json'), qr{"host":"petstore\.swagger\.wordnik\.com"}, 'to_string json';
 like $swagger->to_string('yaml'), qr{\s-\sapplication/json}, 'to_string yaml';
 
+is $swagger->tree->get('/paths/~1pets/post/responses/default/schema/$ref'), 'Error', 'Error ref';
+my $expanded = eval { $swagger->expand };
+ok $expanded, 'expanded plain $ref';
+is $expanded->tree->get('/paths/~1pets/post/responses/default/schema/properties/message/type'), 'string',
+  'expanded default response';
+
 done_testing;

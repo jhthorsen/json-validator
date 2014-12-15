@@ -430,9 +430,13 @@ sub _track_ref {
   my $url = Mojo::URL->new($in->{'$ref'});
   push @{$self->{refs}}, [$out, $key, $url];
 
-  if ($url->scheme or $url->path->to_string) {
+  if ($url->scheme or ($url->path->to_string and $url->fragment)) {
     my $doc = $self->_load($url);
     $self->_resolve_deep($doc, $url->fragment, $out);
+  }
+  elsif (!$url->fragment) {
+    $url->fragment(sprintf '/definitions/%s', $url->path);
+    $url->path('');
   }
 
   return 1;
