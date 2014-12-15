@@ -207,6 +207,44 @@ sub new {
   $self;
 }
 
+=head2 parse
+
+  $self = $self->parse($text);
+
+Used to parse C<$text> instead of L<loading|/load> data from L</url>.
+
+The type of input text can be either JSON or YAML. It will default to JSON,
+but parse the text as YAML if it starts with "---".
+
+=cut
+
+sub parse {
+  my ($self, $doc) = @_;
+  my $type = $doc =~ /^---/ ? 'yaml' : 'json';
+  my $namespace = 'http://127.0.0.1/#';
+
+  # parse the document
+  eval { $doc = $type eq 'yaml' ? LoadYAML($doc) : decode_json($doc); } or do {
+    die "Could not load document: $@ ($doc)";
+  };
+
+  $doc                           = Mojo::JSON::Pointer->new($doc);
+  $self->{url}                   = Mojo::URL->new($namespace);
+  $self->{tree}                  = $doc;
+  $self->{loaded}{$namespace}    = $doc;
+  $self->{namespace}{$namespace} = $namespace;
+
+  if (my $id = $doc->data->{id}) {
+    $self->{loaded}{$id} = $self->{loaded}{$namespace};
+    $self->{namespace}{id} = $namespace;
+  }
+  else {
+    $doc->data->{id} = "$namespace";
+  }
+
+  return $self;
+}
+
 =head2 pod
 
   $pod_object = $self->pod;
