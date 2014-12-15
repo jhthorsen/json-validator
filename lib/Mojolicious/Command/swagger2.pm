@@ -12,6 +12,7 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 
   $ mojo swagger2 pod path/to/spec.json
   $ mojo swagger2 perldoc path/to/spec.json
+  $ mojo swagger2 validate path/to/spec.json
 
 =cut
 
@@ -39,6 +40,9 @@ Usage:
 
   # Run perldoc on the generated POD
   @{[__PACKAGE__->_usage('perldoc')]}
+
+  # Validate an API file
+  @{[__PACKAGE__->_usage('validate')]}
 
 HERE
 
@@ -78,9 +82,27 @@ sub _action_pod {
   print $self->_swagger2->load($file)->pod->to_string;
 }
 
+sub _action_validate {
+  my ($self, $file) = @_;
+  my @errors;
+
+  die $self->_usage('validate'), "\n" unless $file;
+  @errors = $self->_swagger2->load($file)->validate;
+
+  unless (@errors) {
+    print "$file is valid.\n";
+    return;
+  }
+
+  for my $e (@errors) {
+    print "$e\n";
+  }
+}
+
 sub _usage {
-  return "Usage: mojo swagger2 perldoc path/to/spec.json" if $_[1] eq 'perldoc';
-  return "Usage: mojo swagger2 pod path/to/spec.json"     if $_[1] eq 'pod';
+  return "Usage: mojo swagger2 perldoc path/to/spec.json"  if $_[1] eq 'perldoc';
+  return "Usage: mojo swagger2 pod path/to/spec.json"      if $_[1] eq 'pod';
+  return "Usage: mojo swagger2 validate path/to/spec.json" if $_[1] eq 'validate';
   return "";
 }
 
