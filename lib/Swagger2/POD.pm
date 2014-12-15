@@ -178,6 +178,12 @@ sub _schema_array_to_string {
   $str;
 }
 
+sub _schema_boolean_to_string {
+  my ($self, $schema, $depth) = @_;
+
+  sprintf "%s, // %s\n", 'boolean', _type_description($schema);
+}
+
 sub _schema_enum_to_string {
   my ($self, $schema, $depth) = @_;
 
