@@ -171,7 +171,7 @@ if ($ENV{MOJO_APP_LOADER}) {
     }
   );
 
-  $app->defaults(module => $module, layout => 'default');
+  $app->defaults(module => $module, swagger => $swagger, layout => 'default');
   $app->plugin('PODRenderer');
   unshift @{$app->renderer->classes}, __PACKAGE__;
   unshift @{$app->static->paths}, File::Spec->catdir(File::Basename::dirname(__FILE__), 'swagger2-public');
@@ -181,7 +181,7 @@ $app;
 
 __DATA__
 @@ editor.html.ep
-<div id="editor" class="editor"><%= Mojo::Util::slurp($ENV{SWAGGER_API_FILE}) %></div>
+<div id="editor"><%= Mojo::Util::slurp($swagger->url) %></div>
 <div id="preview"><div class="pod-container"><%= $pod %></div></div>
 %= javascript 'ace.js'
 %= javascript begin
@@ -210,17 +210,17 @@ __DATA__
     xhr = new XMLHttpRequest();
     xhr.open("POST", "<%= url_for("/perldoc/$module") %>", true);
     xhr.onload = function() { preview.firstChild.innerHTML = xhr.responseText; loaded(); };
-    localStorage["editor"] = editor.getValue();
-    xhr.send(localStorage["editor"]);
+    localStorage["<%= $module %>"] = editor.getValue();
+    xhr.send(localStorage["<%= $module %>"]);
   };
 
-  if (localStorage["editor"]) {
-    editor.setValue(localStorage["editor"]);
+  if (localStorage["<%= $module %>"]) {
+    editor.setValue(localStorage["<%= $module %>"]);
     render();
   }
 
   editor.setTheme("ace/theme/solarized_dark");
-  editor.getSession().setMode("ace/mode/json");
+  editor.getSession().setMode("ace/mode/<%= $swagger->url->path =~ /\.json$/ ? 'json' : 'yaml' %>");
   editor.getSession().on("change", function(e) {
     if (tid) clearTimeout(tid);
     tid = setTimeout(render, 400);

@@ -1,7 +1,6 @@
 use Mojo::Base -strict;
 use Test::More;
 use Swagger2;
-use File::Spec::Functions 'catfile';
 
 plan skip_all => $@ unless eval { Swagger2::LoadYAML("---\nfoo: bar") };
 
