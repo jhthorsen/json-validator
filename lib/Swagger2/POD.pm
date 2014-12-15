@@ -90,8 +90,8 @@ sub _header_to_string {
   $info->{description} ||= 'This API has no description.';
   $info->{version}     ||= '0.01';
 
-  $str .= sprintf "=head1 %s\n\n",                     $info->{title};
-  $str .= sprintf "%s\n\n",                            $info->{description};
+  $str .= sprintf "=head1 NAME\n\n%s\n\n",             $info->{title};
+  $str .= sprintf "=head1 DESCRIPTION\n\n%s\n\n",      $info->{description};
   $str .= sprintf "=head1 VERSION\n\n%s\n\n",          $info->{version};
   $str .= sprintf "=head1 TERMS OF SERVICE\n\n%s\n\n", $info->{termsOfService} if $info->{termsOfService};
   $str;

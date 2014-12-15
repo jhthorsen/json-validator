@@ -1,4 +1,8 @@
-=head1 Swagger Petstore
+=head1 NAME
+
+Swagger Petstore
+
+=head1 DESCRIPTION
 
 This API has no description.
 
