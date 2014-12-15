@@ -53,6 +53,7 @@ use Mojo::URL;
 use Mojo::Util 'md5_sum';
 use File::Spec;
 use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR} || '';
+use constant DEBUG     => $ENV{SWAGGER2_DEBUG}     || 0;
 
 our $VERSION = '0.11';
 
@@ -223,26 +224,9 @@ sub parse {
   my $type = $doc =~ /^---/ ? 'yaml' : 'json';
   my $namespace = 'http://127.0.0.1/#';
 
-  # parse the document
-  eval { $doc = $type eq 'yaml' ? LoadYAML($doc) : decode_json($doc); } or do {
-    die "Could not load document: $@ ($doc)";
-  };
-
-  $doc                           = Mojo::JSON::Pointer->new($doc);
-  $self->{url}                   = Mojo::URL->new($namespace);
-  $self->{tree}                  = $doc;
-  $self->{loaded}{$namespace}    = $doc;
-  $self->{namespace}{$namespace} = $namespace;
-
-  if (my $id = $doc->data->{id}) {
-    $self->{loaded}{$id} = $self->{loaded}{$namespace};
-    $self->{namespace}{id} = $namespace;
-  }
-  else {
-    $doc->data->{id} = "$namespace";
-  }
-
-  return $self;
+  $self->{url} = Mojo::URL->new($namespace);
+  $self->_parse($doc, $type, $namespace);
+  $self;
 }
 
 =head2 pod
@@ -337,24 +321,24 @@ sub _load {
     $type ||= $doc =~ /^---/ ? 'yaml' : 'json';
   }
 
+  return $self->_parse($doc, $type, $namespace);
+}
+
+sub _parse {
+  my ($self, $doc, $type, $namespace) = @_;
+
+  warn "[Swagger2] Register $namespace ($type)\n" if DEBUG;
+
   # parse the document
   eval { $doc = $type eq 'yaml' ? LoadYAML($doc) : decode_json($doc); } or do {
-    die "Could not load document from $url: $@ ($doc)";
+    die "Could not load document from $namespace: $@ ($doc)";
   };
 
-  $doc                           = Mojo::JSON::Pointer->new($doc);
-  $self->{loaded}{$namespace}    = $doc;
-  $self->{namespace}{$namespace} = $namespace;
-
-  if (my $id = $doc->data->{id}) {
-    $self->{loaded}{$id} = $self->{loaded}{$namespace};
-    $self->{namespace}{id} = $namespace;
-  }
-  else {
-    $doc->data->{id} = "$namespace";
-  }
-
-  return $doc;
+  $doc                        = Mojo::JSON::Pointer->new($doc);
+  $self->{loaded}{$namespace} = $doc;
+  $namespace                  = $doc->data->{id};
+  $self->{loaded}{$namespace} = $doc if $namespace;
+  $doc;
 }
 
 sub _resolve {
