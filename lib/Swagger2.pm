@@ -354,6 +354,7 @@ sub _resolve_deep {
       $out->{$name} = [];    # Fix "Not an ARRAY reference at lib/Swagger2.pm line 356."
       for my $i (0 .. @{$in->{$name}} - 1) {
         $out->{$name}[$i] = $in->{$name}[$i];
+        $self->_track_ref($in->{$name}[$i], $i, $out->{$name}) and next;
         $self->_resolve_deep($pointer, "$path/$p/$i", $out->{$name}[$i]);
       }
     }
@@ -384,6 +385,7 @@ sub _resolve_refs {
 sub _track_ref {
   my ($self, $in, $key, $out) = @_;
 
+  return 0 if ref $in ne 'HASH';
   return 0 if !$in->{'$ref'};
   return 0 if ref $in->{'$ref'};
 

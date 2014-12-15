@@ -17,6 +17,16 @@
   "schemes": [
     "http"
   ],
+  "parameters": {
+    "limit": {
+      "name": "limit",
+      "in": "query",
+      "description": "How many items to return at one time (max 100)",
+      "required": false,
+      "type": "integer",
+      "format": "int32"
+    }
+  },
   "paths": {
     "/pets": {
       "get": {
@@ -24,14 +34,7 @@
         "summary": "finds pets in the system",
         "operationId": "listPets",
         "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "How many items to return at one time (max 100)",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
+          { "$ref": "#/parameters/limit" }
         ],
         "responses": {
           "200": {
