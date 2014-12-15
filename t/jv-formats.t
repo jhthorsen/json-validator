@@ -99,7 +99,7 @@ else {
   is "@errors", "/v: Does not match int32 format.", "int32 invalid";
 }
 
-{
+if (Swagger2::SchemaValidator::IV_SIZE >= 8) {
   local $schema->{properties}{v}{type}   = 'integer';
   local $schema->{properties}{v}{format} = 'int64';
   @errors = $validator->validate({v => -9223372036854775808}, $schema);
