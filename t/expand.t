@@ -1,16 +1,12 @@
 use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
-use File::Spec::Functions 'catfile';
 use Swagger2;
 
-my $json_file = catfile qw( t data petstore.json );
-my $original  = Swagger2->new;
+my $original = Swagger2->new;
 my $expanded;
 
-plan skip_all => "Cannot read $json_file" unless -r $json_file;
-
-$original->load($json_file);
+$original->load('t/data/petstore.json');
 $expanded = $original->expand;
 
 #diag Data::Dumper::Dumper($expanded->tree->data);

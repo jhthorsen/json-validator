@@ -2,6 +2,7 @@ Changelog for Swagger2
 
 0.10
        * Disable "int64" format test if Perl does not support 64 bit
+       * Fix load()ing files on windows
 
 0.09     Sat Dec 13 12:46:39 2014
        * Fix load($file) on windows

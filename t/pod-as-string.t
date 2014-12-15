@@ -8,7 +8,7 @@ my $pod_file = catfile qw( t data petstore.pod );
 plan skip_all => "Cannot read $pod_file" unless -r $pod_file;
 
 my @expected = split /\n/, slurp $pod_file;
-my $swagger  = Swagger2->new(catfile qw( t data petstore.json ));
+my $swagger  = Swagger2->new->load('t/data/petstore.json');
 my $pod      = $swagger->pod;
 
 isa_ok($pod, 'Swagger2::POD');

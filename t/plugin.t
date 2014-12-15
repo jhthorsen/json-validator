@@ -3,10 +3,8 @@ use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
 
-my $json_file = catfile qw( t data petstore.json );
-
 use Mojolicious::Lite;
-plugin Swagger2 => {controller => 't::Api', url => $json_file};
+plugin Swagger2 => {controller => 't::Api', url => 't/data/petstore.json'};
 
 my $t = Test::Mojo->new;
 ok $t->app->routes->lookup('list_pets_get'), 'add route list_pets_get';
