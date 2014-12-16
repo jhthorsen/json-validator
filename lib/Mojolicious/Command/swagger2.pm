@@ -166,8 +166,16 @@ if ($ENV{MOJO_APP_LOADER}) {
   $app->routes->post(
     "/perldoc/$module" => sub {
       my $c = shift;
-      my $swagger = Swagger2->new->parse($c->req->body || '{}');
-      $c->render(text => $c->pod_to_html($swagger->pod->to_string));
+      eval {
+        my $swagger = Swagger2->new->parse($c->req->body || '{}');
+        $c->render(text => $c->pod_to_html($swagger->pod->to_string));
+      } or do {
+        my $e = $@;
+        $c->app->log->error($e);
+        $e =~ s!^(Could not.*?:)\s+!$1\n\n!s;
+        $e =~ s!\s+at \S+\.pm line \d\S+!!g;
+        $c->render(template => 'error', error => $e);
+      };
     }
   );
 
@@ -180,6 +188,10 @@ if ($ENV{MOJO_APP_LOADER}) {
 $app;
 
 __DATA__
+@@ error.html.ep
+<h2>Error in specification</h2>
+<pre><%= $error %></pre>
+
 @@ editor.html.ep
 <div id="editor"><%= Mojo::Util::slurp($swagger->url) %></div>
 <div id="preview"><div class="pod-container"><%= $pod %></div></div>
