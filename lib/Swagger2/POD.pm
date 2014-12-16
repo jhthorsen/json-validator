@@ -108,7 +108,7 @@ sub _path_request_to_string {
   }
 
   $str .= sprintf "=head3 Parameters\n\n";
-  $str .= sprintf "%s\n", _ascii_table(\@table, '  ');
+  $str .= @table == 1 ? "This resource takes no parameters.\n\n" : sprintf "%s\n", _ascii_table(\@table, '  ');
   $str;
 }
 
