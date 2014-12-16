@@ -9,8 +9,6 @@ my $expanded;
 $original->load('t/data/petstore.json');
 $expanded = $original->expand;
 
-#diag Data::Dumper::Dumper($expanded->tree->data);
-
 is_deeply(
   $original->tree->get('/paths/~1pets/get/responses/200/schema/items'),
   {'$ref' => '#/definitions/Pet'},

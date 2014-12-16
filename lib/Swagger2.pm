@@ -165,7 +165,7 @@ are resolved.
 sub expand {
   my $self     = shift;
   my $class    = Scalar::Util::blessed($self);
-  my $expanded = $self->_resolve($self->tree, $self->url->clone->fragment(undef));
+  my $expanded = $self->_expand($self->tree);
 
   $class->new(%$self)->tree($expanded);
 }
@@ -238,8 +238,8 @@ Returns a L<Swagger2::POD> object.
 =cut
 
 sub pod {
-  my $self = shift;
-  my $resolved = $self->_resolve($self->tree, $self->url->clone->fragment(undef));
+  my $self     = shift;
+  my $resolved = $self->_expand($self->tree);
 
   require Swagger2::POD;
   Swagger2::POD->new(base_url => $self->base_url, tree => $resolved);
@@ -279,9 +279,60 @@ L<Swagger2::SchemaValidator/validate>.
 
 sub validate {
   my $self   = shift;
-  my $schema = $self->_resolve($self->specification);
+  my $schema = $self->_expand($self->specification);
 
-  return $self->_validator->validate($self->_resolve($self->tree)->data, $schema->data);
+  return $self->_validator->validate($self->_expand($self->tree)->data, $schema->data);
+}
+
+sub _clone {
+  my ($self, $obj, $namespace, $refs) = @_;
+  my $copy = ref $obj eq 'ARRAY' ? [] : {};
+  my $ref;
+
+  if (ref $obj eq 'HASH') {
+    $obj = $ref if $ref = $self->_find_ref($obj->{'$ref'}, $namespace, $refs);
+    $copy->{$_} = $self->_clone($obj->{$_}, $namespace, $refs) for keys %$obj;
+    delete $copy->{'$ref'};
+    return $copy;
+  }
+  elsif (ref $obj eq 'ARRAY') {
+    $copy->[$_] = $self->_clone($obj->[$_], $namespace, $refs) for 0 .. @$obj - 1;
+    return $copy;
+  }
+
+  return $obj;
+}
+
+sub _find_ref {
+  my ($self, $ref, $namespace, $refs) = @_;
+  my ($doc, $def);
+
+  if (!$ref or ref $ref) {
+    return;
+  }
+  if ($ref =~ /^\w+$/) {
+    $ref = "#/definitions/$ref";
+  }
+  if ($ref =~ s!^\#!!) {
+    $ref = Mojo::URL->new($namespace)->fragment($ref);
+  }
+  else {
+    $ref = Mojo::URL->new($ref);
+  }
+
+  return $refs->{$ref} if $refs->{$ref};
+  warn "[Swagger2] Resolve $ref\n" if DEBUG;
+  $refs->{$ref} = {};
+  $doc = $self->_load($ref);
+  $def = $self->_clone($doc->get($ref->fragment), $doc->data->{id}, $refs);
+  $refs->{$ref}{$_} = $def->{$_} for keys %$def;
+  $refs->{$ref};
+}
+
+sub _expand {
+  my ($self, $pointer) = @_;
+
+  Mojo::JSON::Pointer->new($self->_clone($pointer->data, $pointer->data->{id}, {}));
 }
 
 sub _load {
@@ -334,96 +385,11 @@ sub _parse {
     die "Could not load document from $namespace: $@ ($doc)";
   };
 
-  $doc                        = Mojo::JSON::Pointer->new($doc);
+  $doc = Mojo::JSON::Pointer->new($doc);
   $self->{loaded}{$namespace} = $doc;
-  $namespace                  = $doc->data->{id};
-  $self->{loaded}{$namespace} = $doc if $namespace;
+  $doc->data->{id} ||= "$namespace";
+  $self->{loaded}{$doc->data->{id}} = $doc;
   $doc;
-}
-
-sub _resolve {
-  my ($self, $pointer, $namespace) = @_;
-  my $out = {};
-
-  local $self->{refs} = [];
-  local $self->{seen} = {};
-  $self->_resolve_deep($pointer, '', $out);
-  $self->_resolve_refs(Mojo::URL->new($namespace || $pointer->get('/id')));
-
-  return Mojo::JSON::Pointer->new($out);
-}
-
-sub _resolve_deep {
-  my ($self, $pointer, $path, $out) = @_;
-  my $in = $pointer->get($path);
-
-  if (ref $in ne 'HASH') {
-    return;
-  }
-  if (ref $in and $self->{seen}{$in}++) {
-    return;
-  }
-
-  for my $name (keys %$in) {
-    my $p = $name;
-    $p =~ s!/!~1!g;
-    if (ref $in->{$name} eq 'HASH') {
-      $out->{$name} = {%{$in->{$name}}};
-      $self->_track_ref($in->{$name}, $name, $out) and next;
-      $self->_resolve_deep($pointer, "$path/$p", $out->{$name});
-    }
-    elsif (ref $in->{$name} eq 'ARRAY') {
-      $out->{$name} = [];    # Fix "Not an ARRAY reference at lib/Swagger2.pm line 356."
-      for my $i (0 .. @{$in->{$name}} - 1) {
-        $out->{$name}[$i] = $in->{$name}[$i];
-        $self->_track_ref($in->{$name}[$i], $i, $out->{$name}) and next;
-        $self->_resolve_deep($pointer, "$path/$p/$i", $out->{$name}[$i]);
-      }
-    }
-    else {
-      $out->{$name} = $in->{$name};
-    }
-  }
-}
-
-sub _resolve_refs {
-  my ($self, $namespace) = @_;
-  my $refs = $self->{refs};
-
-  for (sort { length($b) <=> length($a) } @$refs) {
-    my ($node, $key, $url) = @$_;
-    my $doc = $self->_load(($url->host or $url->path->to_string) ? $url : $namespace);
-
-    $key =~ s!~1!/!g;
-    if (ref $node eq 'ARRAY') {
-      $node->[$key] = $doc->get($url->fragment);
-    }
-    else {
-      $node->{$key} = $doc->get($url->fragment);
-    }
-  }
-}
-
-sub _track_ref {
-  my ($self, $in, $key, $out) = @_;
-
-  return 0 if ref $in ne 'HASH';
-  return 0 if !$in->{'$ref'};
-  return 0 if ref $in->{'$ref'};
-
-  my $url = Mojo::URL->new($in->{'$ref'});
-  push @{$self->{refs}}, [$out, $key, $url];
-
-  if ($url->scheme or ($url->path->to_string and $url->fragment)) {
-    my $doc = $self->_load($url);
-    $self->_resolve_deep($doc, $url->fragment, $out);
-  }
-  elsif (!$url->fragment) {
-    $url->fragment(sprintf '/definitions/%s', $url->path);
-    $url->path('');
-  }
-
-  return 1;
 }
 
 =head1 COPYRIGHT AND LICENSE

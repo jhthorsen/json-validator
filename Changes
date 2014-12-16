@@ -6,7 +6,7 @@ Changelog for Swagger2
        * Add "mojo swagger2 edit" command
        * Fix printing "Resource URL" when generating POD
        * Fix parameter references
-       * Fix expanding bare $refs
+       * Fix expanding bare $ref and $ref inside refs
 
 0.11     Mon Dec 15 09:29:27 2014
        * Add "mojo swagger2 pod" command
