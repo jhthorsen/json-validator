@@ -1,0 +1,58 @@
+swagger: "2.0"
+info:
+  description: Test API for body parameters
+basePath: /api
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /pets:
+    post:
+      tags:
+        - pet
+      summary: Add a new pet to the store
+      description: ""
+      operationId: addPet
+      parameters:
+        - name: pet
+          in: body
+          description: Pet object that needs to be added to the store
+          required: true
+          schema:
+            $ref: "#/definitions/Pet"
+      responses:
+        "405":
+          description: Invalid input
+    put:
+      tags:
+        - pet
+      summary: Update an existing pet
+      description: ""
+      operationId: updatePet
+      parameters:
+        - name: pet
+          in: body
+          description: Pet object that needs to be added to the store
+          required: true
+          schema:
+            $ref: "#/definitions/Pet"
+      responses:
+        "405":
+          description: Validation exception
+        "404":
+          description: Pet not found
+        "400":
+          description: Invalid ID
+definitions:
+  Pet:
+    required:
+      - name
+    properties:
+      id:
+        type: integer
+        format: int64
+      name:
+        type: string
