@@ -51,6 +51,7 @@ use Mojo::JSON qw( encode_json decode_json );
 use Mojo::JSON::Pointer;
 use Mojo::URL;
 use Mojo::Util 'md5_sum';
+use File::Basename ();
 use File::Spec;
 use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR} || '';
 use constant DEBUG     => $ENV{SWAGGER2_DEBUG}     || 0;
@@ -59,8 +60,7 @@ our $VERSION = '0.11';
 
 # Should be considered internal
 our $SPEC_FILE = do {
-  use File::Basename 'dirname';
-  File::Spec->catfile(dirname(__FILE__), 'Swagger2', 'schema.json');
+  join '/', File::Spec->splitdir(File::Basename::dirname(__FILE__)), 'Swagger2', 'schema.json';
 };
 
 my @YAML_MODULES = qw( YAML::Tiny YAML YAML::Syck YAML::XS );
