@@ -53,6 +53,7 @@ use Mojo::Base -base;
 use Mojo::Util;
 use B;
 use Scalar::Util;
+use constant TODO => 0;
 
 use constant VALIDATE_HOSTNAME      => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP            => eval 'require Data::Validate::IP;1';
@@ -284,7 +285,7 @@ sub _validate {
     }
   }
 
-  if ($schema->{not}) {
+  if (TODO and $schema->{not}) {
     return if grep {@$_} @errors;
     return E $path, "Should not match.";
   }

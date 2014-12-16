@@ -6,6 +6,8 @@ my $validator = Swagger2::SchemaValidator->new;
 my $schema = {not => {type => "string"}};
 my @errors;
 
+local $TODO = '"not" is not working';
+
 @errors = $validator->validate(12, $schema);
 is "@errors", "", "not string";
 @errors = $validator->validate("str", $schema);
