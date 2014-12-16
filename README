@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.11
+    0.12
 
 DESCRIPTION
     THIS MODULE IS EXPERIMENTAL! ANY CHANGES CAN HAPPEN!
@@ -88,6 +88,14 @@ METHODS
       $self = Swagger2->new(\%attributes);
 
     Object constructor.
+
+  parse
+      $self = $self->parse($text);
+
+    Used to parse $text instead of loading data from "url".
+
+    The type of input text can be either JSON or YAML. It will default to
+    YAML, but parse the text as JSON if it starts with "{".
 
   pod
       $pod_object = $self->pod;

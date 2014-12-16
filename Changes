@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.12
+0.12     Tue Dec 16 11:30:34 2014
        * Add missing Swagger2::POD::_schema_boolean_to_string() method
        * Add Swagger2::parse() method
        * Add "mojo swagger2 edit" command
