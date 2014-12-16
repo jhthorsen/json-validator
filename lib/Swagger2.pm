@@ -214,14 +214,14 @@ sub new {
 
 Used to parse C<$text> instead of L<loading|/load> data from L</url>.
 
-The type of input text can be either JSON or YAML. It will default to JSON,
-but parse the text as YAML if it starts with "---".
+The type of input text can be either JSON or YAML. It will default to YAML,
+but parse the text as JSON if it starts with "{".
 
 =cut
 
 sub parse {
   my ($self, $doc) = @_;
-  my $type = $doc =~ /^---/ ? 'yaml' : 'json';
+  my $type = $doc =~ /^\s*\{/s ? 'json' : 'yaml';
   my $namespace = 'http://127.0.0.1/#';
 
   $self->{url} = Mojo::URL->new($namespace);
@@ -369,7 +369,7 @@ sub _load {
       Mojo::Util::spurt($doc, File::Spec->catfile(CACHE_DIR, md5_sum $namespace)) if CACHE_DIR;
     }
 
-    $type ||= $doc =~ /^---/ ? 'yaml' : 'json';
+    $type ||= $doc =~ /^\s*{/s ? 'json' : 'yaml';
   }
 
   return $self->_parse($doc, $type, $namespace);
