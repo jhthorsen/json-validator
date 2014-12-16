@@ -4,3 +4,4 @@ recommends "Data::Validate::Domain" => "0.10";
 recommends "Data::Validate::IP" => "0.24";
 recommends "YAML" => 0;
 test_requires "Test::More" => "0.88";
+test_requires "Test::Warnings" => "0.016";
