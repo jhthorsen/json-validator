@@ -11,6 +11,7 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 =head1 SYNOPSIS
 
   $ mojo swagger2 edit path/to/spec.json
+  $ mojo swagger2 edit path/to/spec.json --listen http://*:5000
   $ mojo swagger2 pod path/to/spec.json
   $ mojo swagger2 perldoc path/to/spec.json
   $ mojo swagger2 validate path/to/spec.json
@@ -39,6 +40,7 @@ has usage       => <<"HERE";
 Usage:
 
   # Edit an API file in your browser
+  # This command also takes whatever option "morbo" takes
   @{[__PACKAGE__->_usage('edit')]}
 
   # Write POD to STDOUT
@@ -51,8 +53,6 @@ Usage:
   @{[__PACKAGE__->_usage('validate')]}
 
 HERE
-
-has _swagger2 => sub { Swagger2->new };
 
 =head1 METHODS
 
@@ -86,7 +86,7 @@ sub _action_perldoc {
   die $self->_usage('perldoc'), "\n" unless $file;
   require Mojo::Asset::File;
   my $asset = Mojo::Asset::File->new;
-  $asset->add_chunk($self->_swagger2->load($file)->pod->to_string);
+  $asset->add_chunk(Swagger2->new($file)->pod->to_string);
   system perldoc => $asset->path;
 }
 
@@ -94,7 +94,7 @@ sub _action_pod {
   my ($self, $file) = @_;
 
   die $self->_usage('pod'), "\n" unless $file;
-  print $self->_swagger2->load($file)->pod->to_string;
+  print Swagger2->new($file)->pod->to_string;
 }
 
 sub _action_validate {
@@ -102,7 +102,7 @@ sub _action_validate {
   my @errors;
 
   die $self->_usage('validate'), "\n" unless $file;
-  @errors = $self->_swagger2->load($file)->validate;
+  @errors = Swagger2->new($file)->validate;
 
   unless (@errors) {
     print "$file is valid.\n";
