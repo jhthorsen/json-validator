@@ -165,8 +165,8 @@ if ($ENV{MOJO_APP_LOADER}) {
   );
   $app->routes->post(
     "/perldoc/$module" => sub {
-      my $c       = shift;
-      my $swagger = Swagger2->new->parse($c->req->body);
+      my $c = shift;
+      my $swagger = Swagger2->new->parse($c->req->body || '{}');
       $c->render(text => $c->pod_to_html($swagger->pod->to_string));
     }
   );
@@ -210,12 +210,12 @@ __DATA__
     xhr = new XMLHttpRequest();
     xhr.open("POST", "<%= url_for("/perldoc/$module") %>", true);
     xhr.onload = function() { preview.firstChild.innerHTML = xhr.responseText; loaded(); };
-    localStorage["<%= $module %>"] = editor.getValue();
-    xhr.send(localStorage["<%= $module %>"]);
+    localStorage["swagger-spec"] = editor.getValue();
+    xhr.send(localStorage["swagger-spec"]);
   };
 
-  if (localStorage["<%= $module %>"]) {
-    editor.setValue(localStorage["<%= $module %>"]);
+  if (localStorage["swagger-spec"]) {
+    editor.setValue(localStorage["swagger-spec"]);
     render();
   }
 
