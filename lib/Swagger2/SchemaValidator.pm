@@ -53,7 +53,6 @@ use Mojo::Base -base;
 use Mojo::Util;
 use B;
 use Scalar::Util;
-use constant TODO => 0;
 
 use constant VALIDATE_HOSTNAME      => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP            => eval 'require Data::Validate::IP;1';
@@ -260,15 +259,16 @@ sub validate {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my ($type) = (map { $schema->{$_} } grep { $schema->{$_} } qw( type allOf anyOf oneOf not ))[0] || 'any';
-  my $check_all = grep { $schema->{$_} } qw( allOf oneOf not );
+  my ($type) = (map { $schema->{$_} } grep { $schema->{$_} } qw( type allOf anyOf oneOf ))[0] || 'any';
+  my $check_all = grep { $schema->{$_} } qw( allOf oneOf );
   my @errors;
 
-  if ($schema->{disallow}) {
-    die 'TODO: No support for disallow.';
-  }
-
   #$SIG{__WARN__} = sub { Carp::confess(Data::Dumper::Dumper($schema)) };
+
+  if ($schema->{not}) {
+    @errors = $self->_validate($data, $path, $schema->{not});
+    return E $path, "Should not match." unless @errors;
+  }
 
   for my $t (ref $type eq 'ARRAY' ? @$type : ($type)) {
     $t //= 'null';
@@ -285,13 +285,9 @@ sub _validate {
     }
   }
 
-  if (TODO and $schema->{not}) {
-    return if grep {@$_} @errors;
-    return E $path, "Should not match.";
-  }
   if ($schema->{oneOf}) {
     my $n = grep { @$_ == 0 } @errors;
-    return if $n == 1;    # one match
+    return if $n == 1;                              # one match
     return E $path, "Expected only one to match." if $n == @errors;
   }
 
@@ -596,6 +592,8 @@ package    # hide from
   Swagger2::SchemaValidator::Error;
 
 use overload q("") => sub { sprintf '%s: %s', @{$_[0]}{qw( path message )} }, bool => sub {1}, fallback => 1;
+sub message { shift->{message} }
+sub path    { shift->{path} }
 sub TO_JSON { {message => $_[0]->{message}, path => $_[0]->{path}} }
 
 =head1 COPYRIGHT AND LICENSE
