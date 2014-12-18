@@ -10,7 +10,7 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 
 =head1 SYNOPSIS
 
-  $ mojo swagger2 edit path/to/spec.json
+  $ mojo swagger2 edit
   $ mojo swagger2 edit path/to/spec.json --listen http://*:5000
   $ mojo swagger2 pod path/to/spec.json
   $ mojo swagger2 perldoc path/to/spec.json
@@ -74,10 +74,9 @@ sub run {
 sub _action_edit {
   my ($self, $file, @args) = @_;
 
-  die $self->_usage('edit'), "\n" unless $file;
-  die "Cannot read $file\n" unless -r $file;
-  $ENV{SWAGGER_API_FILE} = $file;
-  system morbo => -w => $file, @args, __FILE__;
+  $ENV{SWAGGER_API_FILE} = $file || '';
+  $file ||= __FILE__;
+  system 'morbo', -w => $file, @args, __FILE__;
 }
 
 sub _action_perldoc {
@@ -116,7 +115,7 @@ sub _action_validate {
 
 sub _usage {
   my $self = shift;
-  return "Usage: mojo swagger2 edit path/to/spec.json"     if $_[0] eq 'edit';
+  return "Usage: mojo swagger2 edit"                       if $_[0] eq 'edit';
   return "Usage: mojo swagger2 perldoc path/to/spec.json"  if $_[0] eq 'perldoc';
   return "Usage: mojo swagger2 pod path/to/spec.json"      if $_[0] eq 'pod';
   return "Usage: mojo swagger2 validate path/to/spec.json" if $_[0] eq 'validate';
@@ -141,34 +140,34 @@ if ($ENV{MOJO_APP_LOADER}) {
   require Mojolicious;
   require Mojolicious::Plugin::PODRenderer;
 
-  my $swagger     = Swagger2->new($ENV{SWAGGER_API_FILE});
-  my $module      = File::Basename::basename($swagger->url->path);
-  my $pod_to_html = Mojolicious::Plugin::PODRenderer->can('_html');
-  my $pod         = $swagger->pod->to_string;
-
+  my $swagger = Swagger2->new;
   $app = Mojolicious->new;
-  $module =~ s!\.\w+$!!;
+
+  if ($ENV{SWAGGER_API_FILE}) {
+    $app->defaults(raw => Mojo::Util::slurp($ENV{SWAGGER_API_FILE}));
+    $swagger->load($ENV{SWAGGER_API_FILE});
+  }
 
   $app->routes->get(
-    "/" => sub {
+    '/' => sub {
       my $c = shift;
-      $c->render(template => 'editor', pod => $c->pod_to_html($pod));
-    }
-  );
-  $app->routes->get(
-    "/perldoc/$module",
-    sub {
-      my $c = shift;
-      $c->stash(layout => undef) if $c->req->is_xhr;
-      $c->respond_to(txt => {data => $pod}, any => sub { $_[0]->render(text => $_[0]->pod_to_html($pod), pod => 1) });
+      $c->respond_to(
+        txt => {data => $swagger->pod->to_string},
+        any => sub {
+          my $c = shift;
+          $c->stash(layout => undef) if $c->req->is_xhr;
+          $c->render(template => 'editor');
+        }
+      );
     }
   );
   $app->routes->post(
-    "/perldoc/$module" => sub {
+    '/' => sub {
       my $c = shift;
       eval {
-        my $swagger = Swagger2->new->parse($c->req->body || '{}');
-        $c->render(text => $c->pod_to_html($swagger->pod->to_string));
+        my $s = Swagger2->new->parse($c->req->body || '{}');
+        $c->stash(layout => undef) if $c->req->is_xhr;
+        $c->render(text => $c->pod_to_html($s->pod->to_string));
       } or do {
         my $e = $@;
         $c->app->log->error($e);
@@ -179,7 +178,7 @@ if ($ENV{MOJO_APP_LOADER}) {
     }
   );
 
-  $app->defaults(module => $module, swagger => $swagger, layout => 'default');
+  $app->defaults(swagger => $swagger, layout => 'default');
   $app->plugin('PODRenderer');
   unshift @{$app->renderer->classes}, __PACKAGE__;
   unshift @{$app->static->paths}, File::Spec->catdir(File::Basename::dirname(__FILE__), 'swagger2-public');
@@ -189,18 +188,20 @@ $app;
 
 __DATA__
 @@ error.html.ep
+% title "Error in specification";
 <h2>Error in specification</h2>
 <pre><%= $error %></pre>
 
 @@ editor.html.ep
-<div id="editor"><%= Mojo::Util::slurp($swagger->url) %></div>
+% title "Editor";
+<div id="editor"><%= stash('raw') || '---' %></div>
 <div id="resizer">&nbsp;</div>
-<div id="preview"><div class="pod-container"><%= $pod %></div></div>
-%= javascript 'ace.js'
+<div id="preview"><div class="pod-container"><%= pod_to_html $swagger->pod->to_string %></div></div>
+%= javascript "ace.js"
 %= javascript begin
 (function(ace) {
   var localStorage = window.localStorage || {};
-  var draggable = document.getElementById('resizer');
+  var draggable = document.getElementById("resizer");
   var editor = document.getElementById("editor");
   var preview = document.getElementById("preview");
   var tid, xhr, i;
@@ -211,7 +212,7 @@ __DATA__
     var scrollTo = id ? document.getElementById(id) : false;
 
     for (i = 0; i < headings.length; i++) {
-      if (headings[i].tagName.toLowerCase().indexOf('h') != 0) continue;
+      if (headings[i].tagName.toLowerCase().indexOf("h") != 0) continue;
       var a = document.createElement("a");
       a.href = "#" + headings[i].id;
       while (headings[i].firstChild) a.appendChild(headings[i].removeChild(headings[i].firstChild));
@@ -224,7 +225,7 @@ __DATA__
 
   var render = function() {
     xhr = new XMLHttpRequest();
-    xhr.open("POST", "<%= url_for("/perldoc/$module") %>", true);
+    xhr.open("POST", "<%= url_for("/") %>", true);
     xhr.onload = function() { preview.firstChild.innerHTML = xhr.responseText; loaded(); };
     localStorage["swagger-spec"] = ace.getValue();
     xhr.send(localStorage["swagger-spec"]);
@@ -274,7 +275,7 @@ __DATA__
 @@ layouts/default.html.ep
 <html>
 <head>
-  <title>Edit <%= $module %></title>
+  <title>Swagger2 - <%= title %></title>
   %= stylesheet begin
   html, body {
     background: #eee;
@@ -306,7 +307,7 @@ __DATA__
   #preview .link:hover { color: #679; cursor: pointer; }
 
   @media print {
-    #editor { display: none; }
+    #editor, #resizer { display: none; }
     #preview { margin: 0; width: 100%; height: auto; }
     #preview .pod-container { padding: 0; }
   }
