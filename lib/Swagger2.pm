@@ -224,8 +224,9 @@ sub parse {
   my $type = $doc =~ /^\s*\{/s ? 'json' : 'yaml';
   my $namespace = 'http://127.0.0.1/#';
 
+  delete $self->{base_url};
   $self->{url} = Mojo::URL->new($namespace);
-  $self->_parse($doc, $type, $namespace);
+  $self->{tree} = $self->_parse($doc, $type, $namespace);
   $self;
 }
 
