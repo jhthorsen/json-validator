@@ -6,7 +6,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 =head1 VERSION
 
-0.12
+0.13
 
 =head1 DESCRIPTION
 
@@ -56,7 +56,7 @@ use File::Spec;
 use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR} || '';
 use constant DEBUG     => $ENV{SWAGGER2_DEBUG}     || 0;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 # Should be considered internal
 our $SPEC_FILE = do {

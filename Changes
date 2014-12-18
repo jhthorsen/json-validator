@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.13
+0.13     Thu Dec 18 14:06:26 2014
        * Fix "not" logic in SchemaValidator
 
 0.12     Tue Dec 16 11:30:34 2014
