@@ -122,7 +122,7 @@ sub _path_response_to_string {
   for my $code (sort keys %$responses) {
     my $res = $responses->{$code};
     $str .= sprintf "=head3 %s\n\n", _status_code_to_string($code);
-    $str .= sprintf "%s\n\n", $res->{description} || NO_DESCRIPTION;
+    $str .= $self->_summary_and_description($res);
     $str .= $self->_schema_to_string_dispatch($res->{schema}, 0) . "\n";
   }
 
@@ -147,7 +147,7 @@ PATH:
 
       $str .= sprintf "=head2 %s\n\n", $info->{operationId} || join(' ', uc $method, $path);
       $str .= "  THIS RESOURCE IS DEPRECATED!\n\n" if $info->{deprecated};
-      $str .= sprintf "%s\n\n", $info->{description} || $info->{summary} || NO_DESCRIPTION;
+      $str .= $self->_summary_and_description($info);
       $str .= sprintf "See also L<%s>\n\n", $ext->{url} if $ext;
 
       next METHOD if $info->{deprecated};
@@ -235,6 +235,16 @@ sub _schema_to_string_dispatch {
 
   $method = '_schema_' . ($schema->{type} || 'object') . '_to_string';
   $self->$method($schema, $depth);
+}
+
+sub _summary_and_description {
+  my ($self, $data) = @_;
+  my $str = '';
+
+  $str .= "$data->{summary}\n\n"     if $data->{summary};
+  $str .= "$data->{description}\n\n" if $data->{description};
+  $str .= NO_DESCRIPTION . "\n\n" unless $data->{summary} or $data->{description};
+  $str;
 }
 
 # FUNCTIONS
