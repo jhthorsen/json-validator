@@ -2,6 +2,7 @@ Changelog for Swagger2
 
 0.14
        * Add both "summary" and "description" to POD
+       * Add print styling for editor
        * Fix detecting yaml/json mode in editor
 
 0.13     Thu Dec 18 14:06:26 2014

@@ -272,6 +272,12 @@ __DATA__
   #preview { overflow: auto; margin-left: 620px; height: 100%; }
   #preview .pod-container { padding-left: 10px; padding-bottom: 100px; }
   #preview .link:hover { color: #679; cursor: pointer; }
+
+  @media print {
+    #editor { display: none; }
+    #preview { margin: 0; width: 100%; height: auto; }
+    #preview .pod-container { padding: 0; }
+  }
   % end
 </head>
 <body>
