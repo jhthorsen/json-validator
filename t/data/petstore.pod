@@ -2,13 +2,13 @@
 
 Swagger Petstore
 
-=head1 DESCRIPTION
-
-This API has no description.
-
 =head1 VERSION
 
 1.0.0
+
+=head1 DESCRIPTION
+
+This API has no description.
 
 =head1 BASEURL
 
