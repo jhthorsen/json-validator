@@ -194,11 +194,14 @@ __DATA__
 
 @@ editor.html.ep
 <div id="editor"><%= Mojo::Util::slurp($swagger->url) %></div>
+<div id="resizer">&nbsp;</div>
 <div id="preview"><div class="pod-container"><%= $pod %></div></div>
 %= javascript 'ace.js'
 %= javascript begin
-(function(editor) {
+(function(ace) {
   var localStorage = window.localStorage || {};
+  var draggable = document.getElementById('resizer');
+  var editor = document.getElementById("editor");
   var preview = document.getElementById("preview");
   var tid, xhr, i;
 
@@ -216,30 +219,55 @@ __DATA__
     }
 
     if (scrollTo) window.scroll(0, scrollTo.offsetTop);
-    editor.session.setMode("ace/mode/" + (editor.getValue().match(/^\s*\{/) ? "json" : "yaml"));
+    ace.session.setMode("ace/mode/" + (ace.getValue().match(/^\s*\{/) ? "json" : "yaml"));
   };
 
   var render = function() {
     xhr = new XMLHttpRequest();
     xhr.open("POST", "<%= url_for("/perldoc/$module") %>", true);
     xhr.onload = function() { preview.firstChild.innerHTML = xhr.responseText; loaded(); };
-    localStorage["swagger-spec"] = editor.getValue();
+    localStorage["swagger-spec"] = ace.getValue();
     xhr.send(localStorage["swagger-spec"]);
   };
 
-  editor.setTheme("ace/theme/solarized_dark");
-  editor.getSession().on("change", function(e) {
+  ace.setTheme("ace/theme/solarized_dark");
+  ace.getSession().on("change", function(e) {
     if (tid) clearTimeout(tid);
     tid = setTimeout(render, 400);
   });
 
   if (localStorage["swagger-spec"]) {
-    editor.setValue(localStorage["swagger-spec"]);
+    ace.setValue(localStorage["swagger-spec"]);
     render();
   }
   else {
     loaded();
   }
+
+  var resize = function(x) {
+    draggable.style.left = x + "px";
+    editor.style.width = x + "px";
+    preview.style.marginLeft = x + "px";
+  };
+
+  resize.x = false;
+  resize.w = localStorage["swagger-editor-width"];
+
+  if (resize.w) resize(resize.w);
+
+  draggable.addEventListener("mousedown", function(e) { resize.x = e.clientX; resize.w = editor.offsetWidth; });
+  window.addEventListener("resize", function(e) { if (resize.w > this.innerWidth) resize(this.innerWidth - 30); })
+  window.addEventListener("mouseup", function(e) {
+    if (resize.x === false) return;
+    resize.w = editor.offsetWidth;
+    resize.x = false;
+    localStorage["swagger-editor-width"] = resize.w;
+  });
+  window.addEventListener("mousemove", function(e) {
+    if (resize.x === false) return;
+    e.preventDefault();
+    resize(resize.w + e.clientX - resize.x);
+  });
 })(ace.edit("editor"));
 % end
 
@@ -261,13 +289,17 @@ __DATA__
   a { color: #222; }
   h1 a, h2 a, h3 a { text-decoration: none; }
   h1 a:hover, h2 a:hover, h3 a:hover { text-decoration: underline; }
+  #editor, #resizer { position: fixed; top: 0; bottom: 0; }
   #editor {
     font-size: 14px;
-    top: 0;
     left: 0;
-    bottom: 0;
     width: 620px;
-    position: fixed;
+  }
+  #resizer {
+    border-left: 4px solid rgba(25, 63, 73, 0.99);
+    left: 620px;
+    width: 4px;
+    cursor: ew-resize;
   }
   #preview { overflow: auto; margin-left: 620px; height: 100%; }
   #preview .pod-container { padding-left: 10px; padding-bottom: 100px; }
