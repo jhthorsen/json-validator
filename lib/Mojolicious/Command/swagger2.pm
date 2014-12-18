@@ -216,6 +216,7 @@ __DATA__
     }
 
     if (scrollTo) window.scroll(0, scrollTo.offsetTop);
+    editor.session.setMode("ace/mode/" + (editor.getValue().match(/^\s*\{/) ? "json" : "yaml"));
   };
 
   var render = function() {
@@ -226,19 +227,19 @@ __DATA__
     xhr.send(localStorage["swagger-spec"]);
   };
 
-  if (localStorage["swagger-spec"]) {
-    editor.setValue(localStorage["swagger-spec"]);
-    render();
-  }
-
   editor.setTheme("ace/theme/solarized_dark");
-  editor.getSession().setMode("ace/mode/<%= $swagger->url->path =~ /\.json$/ ? 'json' : 'yaml' %>");
   editor.getSession().on("change", function(e) {
     if (tid) clearTimeout(tid);
     tid = setTimeout(render, 400);
   });
 
-  loaded();
+  if (localStorage["swagger-spec"]) {
+    editor.setValue(localStorage["swagger-spec"]);
+    render();
+  }
+  else {
+    loaded();
+  }
 })(ace.edit("editor"));
 % end
 
