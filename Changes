@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.14
+0.14     Thu Dec 18 16:06:02 2014
        * Add both "summary" and "description" to POD
        * Add print styling for editor
        * Can resize editor area
