@@ -7,7 +7,7 @@ $ENV{MOJO_APP_LOADER}  = 1;
 $ENV{SWAGGER_API_FILE} = catfile qw( t data petstore.json );
 my $t = Test::Mojo->new(require Mojolicious::Command::swagger2);
 
-$t->get_ok('/')->status_is(200)->text_is('title', 'Swagger2 editor')->element_exists('#editor')
+$t->get_ok('/')->status_is(200)->text_is('title', 'Swagger2 - Editor')->element_exists('#editor')
   ->element_exists('#preview')->element_exists('#preview .pod-container')->element_exists('h2#showPetById')
   ->text_is('h2#showPetById', 'showPetById')->content_like(qr{xhr\.open\("POST", "/", true\);});
 

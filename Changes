@@ -2,6 +2,7 @@ Changelog for Swagger2
 
 0.15
        * Fix parse() will set tree() attribute
+       * Allow editor to start without file
 
 0.14     Thu Dec 18 16:06:02 2014
        * Add both "summary" and "description" to POD
