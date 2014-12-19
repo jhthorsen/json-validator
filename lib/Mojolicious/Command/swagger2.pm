@@ -245,21 +245,23 @@ __DATA__
     loaded();
   }
 
-  var resize = function(x) {
-    draggable.style.left = x + "px";
-    editor.style.width = x + "px";
-    preview.style.marginLeft = x + "px";
+  var resize = function(width, done) {
+    draggable.style.left = width + "px";
+    editor.style.width = width + "px";
+    preview.style.marginLeft = width + "px";
+    if(done) ace.resize();
   };
 
   resize.x = false;
   resize.w = localStorage["swagger-editor-width"];
 
-  if (resize.w) resize(resize.w);
+  if (resize.w) resize(resize.w, true);
 
   draggable.addEventListener("mousedown", function(e) { resize.x = e.clientX; resize.w = editor.offsetWidth; });
-  window.addEventListener("resize", function(e) { if (resize.w > this.innerWidth) resize(this.innerWidth - 30); })
+  window.addEventListener("resize", function(e) { if (resize.w > this.innerWidth) resize(this.innerWidth - 30, true); })
   window.addEventListener("mouseup", function(e) {
     if (resize.x === false) return;
+    resize(resize.w + e.clientX - resize.x, true);
     resize.w = editor.offsetWidth;
     resize.x = false;
     localStorage["swagger-editor-width"] = resize.w;
