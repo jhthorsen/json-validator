@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.15
+0.15     Fri Dec 19 13:26:24 2014
        * Fix parse() will set tree() attribute
        * Allow editor to start without file
 
