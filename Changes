@@ -1,5 +1,9 @@
 Changelog for Swagger2
 
+0.16
+       * Fix failing Windows test where c:\path\to\spec is converted into
+         a URL with scheme "c", #4
+
 0.15     Fri Dec 19 13:26:24 2014
        * Fix parse() will set tree() attribute
        * Allow editor to start without file
@@ -29,10 +33,8 @@ Changelog for Swagger2
 
 0.10     Mon Dec 15 07:27:51 2014
        * Disable "int64" format test if Perl does not support 64 bit
-       * Fix load()ing files on windows
 
 0.09     Sat Dec 13 12:46:39 2014
-       * Fix load($file) on windows
        * Fix adding parameter to route #1
        * Fix "Resource URL" in generated POD
        * Add "Type" to "Parameters" POD table
