@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.16
+0.16     Fri Jan  2 12:44:33 2015
        * Fix failing Windows test where c:\path\to\spec is converted into
          a URL with scheme "c", #4
 
