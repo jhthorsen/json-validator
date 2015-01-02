@@ -265,7 +265,7 @@ sub _validate_input {
       = $in eq 'query'  ? $query->param($name)
       : $in eq 'path'   ? $c->stash($name)
       : $in eq 'header' ? $headers->header($name)
-      :                   $body->{$name} || $body;
+      :                   $body->{$name};
 
     $p = $p->{schema} if $p->{schema};
 
