@@ -1,0 +1,86 @@
+{
+   "swagger" : "2.0",
+   "info" : {
+      "description" : "Test API for body parameters"
+   },
+   "produces" : [
+      "application/json"
+   ],
+   "schemes" : [ "http" ],
+   "consumes" : [ "application/json" ],
+   "basePath" : "/api",
+   "paths" : {
+      "/pets" : {
+         "post" : {
+            "responses" : {
+               "405" : {
+                  "description" : "Invalid input"
+               }
+            },
+            "tags" : [
+               "pet"
+            ],
+            "summary" : "Add a new pet to the store",
+            "parameters" : [
+               {
+                  "name" : "pet",
+                  "required" : "true",
+                  "schema" : {
+                     "$ref" : "#/definitions/Pet"
+                  },
+                  "in" : "body",
+                  "description" : "Pet object that needs to be added to the store"
+               }
+            ],
+            "description" : "",
+            "operationId" : "addPet"
+         },
+         "put" : {
+            "operationId" : "updatePet",
+            "description" : "",
+            "parameters" : [
+               {
+                  "description" : "Pet object that needs to be added to the store",
+                  "in" : "body",
+                  "name" : "pet",
+                  "schema" : {
+                     "$ref" : "#/definitions/Pet"
+                  },
+                  "required" : "true"
+               }
+            ],
+            "summary" : "Update an existing pet",
+            "tags" : [
+               "pet"
+            ],
+            "responses" : {
+               "405" : {
+                  "description" : "Validation exception"
+               },
+               "404" : {
+                  "description" : "Pet not found"
+               },
+               "400" : {
+                  "description" : "Invalid ID"
+               }
+            }
+         }
+      }
+   },
+   "definitions" : {
+      "Pet" : {
+         "required" : [
+            "name"
+         ],
+         "properties" : {
+            "id" : {
+               "format" : "int64",
+               "type" : "integer"
+            },
+            "name" : {
+               "type" : "string"
+            }
+         }
+      }
+   }
+}

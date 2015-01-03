@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.18
+       * Fix bodytest.t: YAML is not a required dependency
+
 0.17     Sat Jan  3 10:30:29 2015
        * Fix failing Windows test where the Mojo::URL path part is invalid
 

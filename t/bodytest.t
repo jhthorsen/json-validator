@@ -4,7 +4,7 @@ use Test::More;
 use Test::Warnings;
 use File::Spec::Functions;
 
-my $json_file = 't/data/bodytest.yaml';
+my $json_file = 't/data/bodytest.json';
 
 use Mojolicious::Lite;
 plugin Swagger2 => {controller => 't::Api', url => $json_file};
