@@ -8,9 +8,6 @@ use Test::Mojo;
 use Test::More;
 use Swagger2;
 
-plan skip_all => "Cannot read $Swagger2::SPEC_FILE" unless -r $Swagger2::SPEC_FILE;
-
-$SIG{__DIE__} = sub { Carp::confess($_[0]) };
 my ($swagger, @errors);
 
 {
@@ -30,6 +27,5 @@ my ($swagger, @errors);
   @errors = $swagger->validate;
   is_deeply \@errors, [], 'petstore.json with x-foo' or diag join "\n", @errors;
 }
-
 
 done_testing;

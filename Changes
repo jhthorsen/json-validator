@@ -1,8 +1,11 @@
 Changelog for Swagger2
 
+0.17
+       * Fix failing Windows test where the Mojo::URL path part is invalid
+
 0.16     Fri Jan  2 12:44:33 2015
-       * Fix failing Windows test where c:\path\to\spec is converted into
-         a URL with scheme "c", #4
+       * Tried to fix failing Windows test where c:\path\to\spec is converted
+         into a URL with scheme "c", #4
 
 0.15     Fri Dec 19 13:26:24 2014
        * Fix parse() will set tree() attribute

@@ -59,7 +59,7 @@ use constant DEBUG     => $ENV{SWAGGER2_DEBUG}     || 0;
 our $VERSION = '0.16';
 
 # Should be considered internal
-our $SPEC_FILE = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'schema.json');
+our @SPEC_FILE = (File::Spec->splitdir(File::Basename::dirname(__FILE__)), 'Swagger2', 'schema.json');
 
 my @YAML_MODULES = qw( YAML::Tiny YAML YAML::Syck YAML::XS );
 my $YAML_MODULE = $ENV{SWAGGER2_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::FALLBACK';
@@ -126,7 +126,10 @@ has base_url => sub {
 };
 
 has specification => sub {
-  shift->_load(Mojo::URL->new->path($SPEC_FILE));
+  my $self = shift;
+  my $url  = Mojo::URL->new;
+  $url->path->parts([@SPEC_FILE]);
+  $self->_load($url);
 };
 
 has tree => sub {
