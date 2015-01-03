@@ -68,8 +68,10 @@ sub startup {
   my $self = shift;
 
   if ($ENV{SWAGGER_API_FILE}) {
+    my $api_url = Mojo::URL->new;
+    $api_url->path->parts([File::Spec->splitdir($ENV{SWAGGER_API_FILE})]);
+    $self->_swagger->load($api_url);
     $self->defaults(raw => Mojo::Util::slurp($ENV{SWAGGER_API_FILE}));
-    $self->_swagger->load($ENV{SWAGGER_API_FILE});
   }
 
   unshift @{$self->renderer->classes}, __PACKAGE__;

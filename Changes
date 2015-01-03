@@ -1,5 +1,9 @@
 Changelog for Swagger2
 
+0.20
+       * Fix loading $SWAGGER_API_FILE on Windows in Swagger2::Editor #4
+         Contributor: Andreas Koenig
+
 0.19     Sat Jan  3 15:16:15 2015
        * Move editor code from Mojolicious::Command::swagger2 to Swagger2::Editor
 
