@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.19
+0.19     Sat Jan  3 15:16:15 2015
        * Move editor code from Mojolicious::Command::swagger2 to Swagger2::Editor
 
 0.18     Sat Jan  3 14:16:31 2015
