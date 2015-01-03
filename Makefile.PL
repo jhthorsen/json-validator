@@ -14,7 +14,7 @@ WriteMakefile(
       repository => 'https://github.com/jhthorsen/swagger2.git',
     },
   },
-  BUILD_REQUIRES => {'Test::More'  => '0.88'},
+  BUILD_REQUIRES => {'Test::More'  => '0.88', 'Test::Warnings' => '0.016'},
   PREREQ_PM      => {'Mojolicious' => '5.0'},
   test           => {TESTS         => 't/*.t'},
 );

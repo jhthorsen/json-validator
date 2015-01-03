@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.17
+0.17     Sat Jan  3 10:30:29 2015
        * Fix failing Windows test where the Mojo::URL path part is invalid
 
 0.16     Fri Jan  2 12:44:33 2015
