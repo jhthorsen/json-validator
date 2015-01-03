@@ -7,7 +7,7 @@ plan skip_all => 'http://www.cpantesters.org/cpan/report/bd54f97b-7e00-1014-8144
 
 $ENV{MOJO_APP_LOADER}  = 1;
 $ENV{SWAGGER_API_FILE} = catfile qw( t data petstore.json );
-my $t = Test::Mojo->new(require Mojolicious::Command::swagger2);
+my $t = Test::Mojo->new('Swagger2::Editor');
 
 $t->get_ok('/')->status_is(200)->text_is('title', 'Swagger2 - Editor')->element_exists('#editor')
   ->element_exists('#preview')->element_exists('#preview .pod-container')->element_exists('h2#showPetById')

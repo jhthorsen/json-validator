@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.19
+       * Move editor code from Mojolicious::Command::swagger2 to Swagger2::Editor
+
 0.18     Sat Jan  3 14:16:31 2015
        * Fix bodytest.t: YAML is not a required dependency
 
