@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.18
+0.18     Sat Jan  3 14:16:31 2015
        * Fix bodytest.t: YAML is not a required dependency
 
 0.17     Sat Jan  3 10:30:29 2015
