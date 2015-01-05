@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.21
+       * Fix order of headings in generated POD
+
 0.20     Sat Jan  3 17:11:06 2015
        * Fix loading $SWAGGER_API_FILE on Windows in Swagger2::Editor #4
          Contributor: Andreas Koenig

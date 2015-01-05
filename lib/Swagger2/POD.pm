@@ -133,33 +133,38 @@ sub _paths_to_string {
   my $self  = shift;
   my $paths = $self->{tree}->get('/paths') || {};
   my $str   = "=head1 RESOURCES\n\n";
+  my %info;
 
-PATH:
-  for my $path (sort keys %$paths) {
-    my $url = $self->{base_url}->clone;
-    push @{$url->path->parts}, grep { length $_ } split '/', $path;
-
-  METHOD:
+  for my $path (keys %$paths) {
     for my $method (sort keys %{$paths->{$path}}) {
-      my $info = $paths->{$path}{$method};
-      my $ext  = $info->{externalDocs};
-      my $resource_url;
-
-      $str .= sprintf "=head2 %s\n\n", $info->{operationId} || join(' ', uc $method, $path);
-      $str .= "  THIS RESOURCE IS DEPRECATED!\n\n" if $info->{deprecated};
-      $str .= $self->_summary_and_description($info);
-      $str .= sprintf "See also L<%s>\n\n", $ext->{url} if $ext;
-
-      next METHOD if $info->{deprecated};
-      $url->query(Mojo::Parameters->new);
-      $resource_url = $url->to_abs;
-      $resource_url =~ s!/%7B([^%]+)%7D!/{$1}!g;
-
-      $str .= sprintf "=head3 Resource URL\n\n";
-      $str .= sprintf "  %s %s\n\n", uc $method, $resource_url;
-      $str .= $self->_path_request_to_string($info);
-      $str .= $self->_path_response_to_string($info);
+      my $operationId = $paths->{$path}{$method}{operationId} || join ' ', uc $method, $path;
+      $info{$operationId} and die "Overlapping operationId in swagger specification: $operationId";
+      $info{$operationId} = {%{$paths->{$path}{$method}}, _path => $path, _method => $method,};
     }
+  }
+
+  for my $operationId (sort keys %info) {
+    my $url  = $self->{base_url}->clone;
+    my $info = $info{$operationId};
+    push @{$url->path->parts}, grep { length $_ } split '/', $info->{_path};
+
+    my $ext = $info->{externalDocs};
+    my $resource_url;
+
+    $str .= sprintf "=head2 %s\n\n", $operationId;
+    $str .= "  THIS RESOURCE IS DEPRECATED!\n\n" if $info->{deprecated};
+    $str .= $self->_summary_and_description($info);
+    $str .= sprintf "See also L<%s>\n\n", $ext->{url} if $ext;
+
+    next METHOD if $info->{deprecated};
+    $url->query(Mojo::Parameters->new);
+    $resource_url = $url->to_abs;
+    $resource_url =~ s!/%7B([^%]+)%7D!/{$1}!g;
+
+    $str .= sprintf "=head3 Resource URL\n\n";
+    $str .= sprintf "  %s %s\n\n", uc $info->{_method}, $resource_url;
+    $str .= $self->_path_request_to_string($info);
+    $str .= $self->_path_response_to_string($info);
   }
 
   return $str;
