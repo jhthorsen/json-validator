@@ -34,7 +34,7 @@ finds pets in the system
 
 =head3 Responses
 
-=head3 200 - OK
+=head4 200 - OK
 
 pet response
 
@@ -47,7 +47,7 @@ pet response
     ...
   ]
 
-=head3 Default
+=head4 Default
 
 unexpected error
 
@@ -74,7 +74,7 @@ Info for a specific pet
 
 =head3 Responses
 
-=head3 200 - OK
+=head4 200 - OK
 
 Expected response to a valid request
 
@@ -84,7 +84,7 @@ Expected response to a valid request
     "tag": string, // No description.
   },
 
-=head3 Default
+=head4 Default
 
 unexpected error
 

@@ -121,7 +121,7 @@ sub _path_response_to_string {
 
   for my $code (sort keys %$responses) {
     my $res = $responses->{$code};
-    $str .= sprintf "=head3 %s\n\n", _status_code_to_string($code);
+    $str .= sprintf "=head4 %s\n\n", _status_code_to_string($code);
     $str .= $self->_summary_and_description($res);
     $str .= $self->_schema_to_string_dispatch($res->{schema}, 0) . "\n";
   }

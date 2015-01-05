@@ -192,7 +192,7 @@ __DATA__
   <title>Swagger2 - <%= title %></title>
   %= stylesheet begin
   html, body {
-    background: #eee;
+    background: #f5f5f5;
     font-family: sans-serif;
     font-size: 14px;
     color: #111;
@@ -202,8 +202,14 @@ __DATA__
     width: 100%;
   }
   a { color: #222; }
-  h1 a, h2 a, h3 a { text-decoration: none; }
-  h1 a:hover, h2 a:hover, h3 a:hover { text-decoration: underline; }
+  p { margin: 0.5em 0; }
+  h1, h2, h3 { padding: 0; margin: 1em 0 0 0; }
+  h1 { font-size: 2em; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid #bbb; }
+  h3 { font-size: 1.2em; }
+  h4 { font-size: 1em; }
+  h1 a, h2 a, h3 a, h4 a { text-decoration: none; }
+  h1 a:hover, h2 a:hover, h3 a:hover, h4 a:hover { text-decoration: underline; }
   #editor, #resizer { position: fixed; top: 0; bottom: 0; }
   #editor {
     font-size: 14px;
