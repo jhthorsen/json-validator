@@ -309,10 +309,11 @@ sub _stringify {
 
 sub _type_description {
   my ($schema) = (shift, shift);
+  return $schema->{description} if $schema->{description};
   my @keys = grep { defined $schema->{$_} } 'required', @_;
   my @description = map { _stringify($_, $schema) } @keys;
 
-  return $schema->{title} || $schema->{description} || NO_DESCRIPTION unless @description;
+  return $schema->{title} || NO_DESCRIPTION unless @description;
   return join ', ', @description;
 }
 
