@@ -156,13 +156,15 @@ __DATA__
   var draggable = document.getElementById("resizer");
   var editor = document.getElementById("editor");
   var preview = document.getElementById("preview");
+  var initializing = true;
   var tid, xhr, i;
 
   var loaded = function() {
     var id = location.href.split("#")[1];
     var scrollTo = id ? document.getElementById(id) : false;
-    if (scrollTo) window.scroll(0, scrollTo.offsetTop);
+    initializing = false;
     ace.session.setMode("ace/mode/" + (ace.getValue().match(/^\s*\{/) ? "json" : "yaml"));
+    if (scrollTo) preview.scrollTop = scrollTo.offsetTop;
   };
 
   var render = function() {
@@ -175,8 +177,9 @@ __DATA__
 
   ace.setTheme("ace/theme/solarized_dark");
   ace.getSession().on("change", function(e) {
+    if (initializing) return;
     if (tid) clearTimeout(tid);
-    tid = setTimeout(render, 400);
+    tid = setTimeout(render, 600);
   });
 
   if (localStorage["swagger-spec"]) {
