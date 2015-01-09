@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.22
+       * Allow "number" type when generating POD
+
 0.21     Mon Jan  5 12:26:46 2015
        * Fix order of headings in generated POD
        * Fix response codes are rendered with "=head4"

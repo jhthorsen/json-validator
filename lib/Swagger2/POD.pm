@@ -202,6 +202,12 @@ sub _schema_integer_to_string {
   sprintf "%s, // %s\n", $schema->{format} || 'integer', _type_description($schema, qw( default ));
 }
 
+sub _schema_number_to_string {
+  my ($self, $schema, $depth) = @_;
+
+  sprintf "%s, // %s\n", $schema->{format} || 'number', _type_description($schema, qw( default ));
+}
+
 sub _schema_object_to_string {
   my ($self, $schema, $depth) = @_;
   my $description = _type_description($schema, qw( minProperties maxProperties ));
@@ -239,7 +245,8 @@ sub _schema_to_string_dispatch {
   }
 
   $method = '_schema_' . ($schema->{type} || 'object') . '_to_string';
-  $self->$method($schema, $depth);
+  return "Cannot translate '$schema->{type}' into POD." unless $self->can($method);
+  return $self->$method($schema, $depth);
 }
 
 sub _summary_and_description {
