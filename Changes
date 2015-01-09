@@ -2,6 +2,7 @@ Changelog for Swagger2
 
 0.22
        * Allow "number" type when generating POD
+       * Editor will also render "Table of contents"
 
 0.21     Mon Jan  5 12:26:46 2015
        * Fix order of headings in generated POD

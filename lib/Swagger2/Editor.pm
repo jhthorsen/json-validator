@@ -19,9 +19,15 @@ use Mojo::Util;
 use File::Basename;
 use Swagger2;
 
+has _swagger => sub { Swagger2->new };
+
 =head1 ROUTES
 
 =head2 GET /
+
+Will render the editor and any Swagger specification given as input.
+
+Can also just render the POD if requested as C</.txt> instead.
 
 =cut
 
@@ -29,7 +35,7 @@ sub _get {
   my $c = shift;
 
   $c->respond_to(
-    txt => {data => $c->app->_swagger->pod->to_string},
+    txt => {data => $c->app->_swagger->pod->to_string, layout => undef},
     any => sub {
       my $c = shift;
       $c->stash(layout => undef) if $c->req->is_xhr;
@@ -38,13 +44,18 @@ sub _get {
   );
 }
 
+=head2 POST /
+
+Will L<parse|Swagger/parse> the JSON/YAML in the HTTP body and render it as POD.
+
+=cut
+
 sub _post {
   my $c = shift;
 
   eval {
     my $s = Swagger2->new->parse($c->req->body || '{}');
-    $c->stash(layout => undef) if $c->req->is_xhr;
-    $c->render(text => $c->pod_to_html($s->pod->to_string));
+    $c->render(text => $c->podify($s->pod), layout => undef);
   } or do {
     my $e = $@;
     $c->app->log->error($e);
@@ -53,8 +64,6 @@ sub _post {
     $c->render(template => 'error', error => $e);
   };
 }
-
-has _swagger => sub { Swagger2->new };
 
 =head1 METHODS
 
@@ -81,6 +90,37 @@ sub startup {
   $self->routes->post('/' => \&_post);
   $self->defaults(swagger => $self->_swagger, layout => 'default');
   $self->plugin('PODRenderer');
+  $self->helper(podify => \&_podify);
+}
+
+sub _podify {
+  my ($c, $pod) = @_;
+  my $dom = Mojo::DOM->new($c->pod_to_html($pod->to_string));
+  my $ul  = '<ul>';
+  my ($sub, @parts);
+
+  for my $e ($dom->find('h1, h2')->each) {
+    my $id     = $e->{id};
+    my $text   = $e->all_text;
+    my $anchor = $c->tag(a => href => "#$id", sub {$text});
+
+    if ($e->type eq 'h1') {
+      $ul .= '</ul>' if $sub;
+      $sub = 0;
+    }
+    else {
+      $ul .= '<ul>' unless $sub;
+      $sub = 1;
+    }
+
+    $ul .= "<li>$anchor</li>";
+
+    $e->content($c->link_to($text => Mojo::URL->new->fragment('toc'), id => $id));
+  }
+
+  $ul .= '</ul>' if $ul;
+
+  return $c->b(qq(<div class="pod-container"><h1 id="toc">TABLE OF CONTENTS</h1>$ul$dom</div>));
 }
 
 =head1 COPYRIGHT AND LICENSE
@@ -108,7 +148,7 @@ __DATA__
 % title "Editor";
 <div id="editor"><%= stash('raw') || '---' %></div>
 <div id="resizer">&nbsp;</div>
-<div id="preview"><div class="pod-container"><%= pod_to_html $swagger->pod->to_string %></div></div>
+<div id="preview"><%= podify $swagger->pod %></div>
 %= javascript "ace.js"
 %= javascript begin
 (function(ace) {
@@ -119,18 +159,8 @@ __DATA__
   var tid, xhr, i;
 
   var loaded = function() {
-    var headings = preview.querySelectorAll("[id]");
     var id = location.href.split("#")[1];
     var scrollTo = id ? document.getElementById(id) : false;
-
-    for (i = 0; i < headings.length; i++) {
-      if (headings[i].tagName.toLowerCase().indexOf("h") != 0) continue;
-      var a = document.createElement("a");
-      a.href = "#" + headings[i].id;
-      while (headings[i].firstChild) a.appendChild(headings[i].removeChild(headings[i].firstChild));
-      headings[i].appendChild(a);
-    }
-
     if (scrollTo) window.scroll(0, scrollTo.offsetTop);
     ace.session.setMode("ace/mode/" + (ace.getValue().match(/^\s*\{/) ? "json" : "yaml"));
   };
