@@ -186,6 +186,12 @@ __DATA__
     return last || scrollSave.last;
   };
 
+  ace.commands.addCommand({ bindKey: { win: "Ctrl-L", mac: "Command-L" }, command: "passKeysToBrowser" });
+  ace.commands.addCommand({
+    name: "find",
+    bindKey: { win: "Ctrl-F", mac: "Command-F" },
+    exec: function(editor) { editor.find(prompt("Find:", editor.getCopyText())); }
+  });
   ace.setTheme("ace/theme/solarized_dark");
   ace.getSession().on("change", function(e) {
     if (initializing) return;
@@ -227,6 +233,9 @@ __DATA__
     e.preventDefault();
     resize(resize.w + e.clientX - resize.x);
   });
+
+  ace.focus();
+  ace.gotoLine(2);
 })(ace.edit("editor"));
 % end
 
