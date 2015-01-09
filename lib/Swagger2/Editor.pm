@@ -159,6 +159,10 @@ __DATA__
   var initializing = true;
   var tid, xhr, i;
 
+  if (location.href.indexOf("#") < 0) {
+    location.href = location.href + "#toc";
+  }
+
   var loaded = function() {
     var id = location.href.split("#")[1];
     var scrollTo = id ? document.getElementById(id) : false;
