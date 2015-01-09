@@ -164,19 +164,26 @@ __DATA__
   }
 
   var loaded = function() {
-    var id = location.href.split("#")[1];
-    var scrollTo = id ? document.getElementById(id) : false;
     initializing = false;
     ace.session.setMode("ace/mode/" + (ace.getValue().match(/^\s*\{/) ? "json" : "yaml"));
-    if (scrollTo) preview.scrollTop = scrollTo.offsetTop;
+    preview.scrollTop = scrollSave();
   };
 
   var render = function() {
+    scrollSave();
     xhr = new XMLHttpRequest();
     xhr.open("POST", "<%= url_for("/") %>", true);
     xhr.onload = function() { preview.firstChild.innerHTML = xhr.responseText; loaded(); };
     localStorage["swagger-spec"] = ace.getValue();
     xhr.send(localStorage["swagger-spec"]);
+  };
+
+  var scrollSave = function() {
+    var elem = document.getElementById(location.href.split("#")[1] || "toc");
+    if (!elem) return 0;
+    var last = scrollSave.last;
+    scrollSave.last = preview.scrollTop || elem.offsetTop;
+    return last || scrollSave.last;
   };
 
   ace.setTheme("ace/theme/solarized_dark");

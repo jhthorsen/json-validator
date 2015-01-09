@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.23
+       * Fix scrolling to the right position after rendering POD
+
 0.22     Fri Jan  9 19:37:46 2015
        * Allow "number" type when generating POD
        * Editor will also render "Table of contents"
