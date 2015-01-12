@@ -149,7 +149,9 @@ __DATA__
 <div id="editor"><%= stash('raw') || '---' %></div>
 <div id="resizer">&nbsp;</div>
 <div id="preview"><%= podify $swagger->pod %></div>
-%= javascript "ace.js"
+% my $ace_url = $c->req->url->base->path->clone;
+% push @{$ace_url->parts}, 'ace.js';
+<script src="<%= $ace_url %>"></script>
 %= javascript begin
 (function(ace) {
   var localStorage = window.localStorage || {};
