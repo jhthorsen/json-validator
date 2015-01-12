@@ -6,6 +6,7 @@ Changelog for Swagger2
        * Will include description in POD, instead of just "required"
        * Remove editor shortcut CTRL+L
        * Add editor shortcut CTRL+F (find)
+       * Can load API from same domain, using "#/path/to/api.json" fragment
 
 0.22     Fri Jan  9 19:37:46 2015
        * Allow "number" type when generating POD

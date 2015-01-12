@@ -158,14 +158,15 @@ __DATA__
   var draggable = document.getElementById("resizer");
   var editor = document.getElementById("editor");
   var preview = document.getElementById("preview");
+  var focusId = location.href.split("#")[1] || "";
   var initializing = true;
   var tid, xhr, i;
 
-  if (location.href.indexOf("#") < 0) {
-    location.href = location.href + "#toc";
-  }
-
   var loaded = function() {
+    if (initializing) {
+      ace.focus();
+      ace.gotoLine(2);
+    }
     initializing = false;
     ace.session.setMode("ace/mode/" + (ace.getValue().match(/^\s*\{/) ? "json" : "yaml"));
     preview.scrollTop = scrollSave();
@@ -201,7 +202,22 @@ __DATA__
     tid = setTimeout(render, 600);
   });
 
-  if (localStorage["swagger-spec"]) {
+  if (!focusId) {
+    location.href = location.href + "#toc";
+  }
+
+  if (focusId.indexOf("/") == 0) {
+    xhr = new XMLHttpRequest();
+    xhr.open("GET", focusId, true);
+    xhr.onload = function() {
+      if (!xhr.responseText.match(/^\s*(---|{)/)) return alert("Could not load specification from " + focusId);
+      ace.setValue(xhr.responseText);
+      render();
+    };
+    xhr.send(false);
+    location.href = location.href.replace(/\#.*/, "#toc");
+  }
+  else if (localStorage["swagger-spec"]) {
     ace.setValue(localStorage["swagger-spec"]);
     render();
   }
@@ -235,9 +251,6 @@ __DATA__
     e.preventDefault();
     resize(resize.w + e.clientX - resize.x);
   });
-
-  ace.focus();
-  ace.gotoLine(2);
 })(ace.edit("editor"));
 % end
 
