@@ -8,7 +8,7 @@ use t::Api;
 plugin Swagger2 => {controller => 't::Api', url => 't/data/petstore.json'};
 
 my $t = Test::Mojo->new;
-ok $t->app->routes->lookup('list_pets_get'), 'add route list_pets_get';
+ok $t->app->routes->lookup('list_pets'), 'add route list_pets';
 
 $t::Api::RES = [{foo => 123, name => "kit-cat"}];
 $t->get_ok('/api/pets')->status_is(500)->json_is('/errors/0/path', '/0/id')

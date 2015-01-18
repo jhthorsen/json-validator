@@ -11,8 +11,8 @@ use Mojolicious::Lite;
 plugin Swagger2 => {controller => 't::Api', url => $json_file};
 
 my $t = Test::Mojo->new;
-ok $t->app->routes->lookup('add_pet_post'),   'add route add_pet_post';
-ok $t->app->routes->lookup('update_pet_put'), 'add route update_pet_put';
+ok $t->app->routes->lookup('add_pet'),    'add route add_pet';
+ok $t->app->routes->lookup('update_pet'), 'add route update_pet';
 
 $t::Api::RES = {id => "123", name => "kit-cat"};
 $t->post_ok('/api/pets' => json => $t::Api::RES)->status_is(200)->json_is('/id', '123')->json_is('/name', 'kit-cat');

@@ -46,11 +46,10 @@ defined in the L</Swagger specification>.
 =head2 Controller
 
 The method names defined in the controller will be a
-L<decamelized|Mojo::Util::decamelize> version of C<operationId> with the
-HTTP method at the end.
+L<decamelized|Mojo::Util::decamelize> version of C<operationId>.
 
 The example L</Swagger specification> above, will result in
-C<list_pets_get()> in the controller below to be called. This method
+C<list_pets()> in the controller below to be called. This method
 will receive the current L<Mojolicious::Controller> object, input arguments
 and a callback. The callback should be called with a HTTP status code, and
 a data structure which will be validated and serialized back to the user
@@ -58,7 +57,7 @@ agent.
 
   package MyApp::Controller::Api;
 
-  sub list_pets_get {
+  sub list_pets {
     my ($c, $args, $cb) = @_;
     $c->$cb({ foo => 123 }, 200);
   }
@@ -190,13 +189,12 @@ sub register {
 
     $route_path =~ s/{([^}]+)}/:$1/g;
 
-    for my $method (keys %{$paths->{$path}}) {
-      my $m    = lc $method;
-      my $info = $paths->{$path}{$method};
-      my $name = decamelize(ucfirst sprintf '%s_%s', $info->{operationId} || $route_path, $m);
-      die "$name is not a unique route! ($method $path)" if $app->routes->lookup($name);
-      warn "[Swagger2] Add route $method $route_path\n"  if DEBUG;
-      $r->$m($route_path => $self->_generate_request_handler($name, $info))->name($name);
+    for my $http_method (keys %{$paths->{$path}}) {
+      my $info = $paths->{$path}{$http_method};
+      my $name = decamelize(ucfirst $info->{operationId} || $route_path);
+      die "$name is not a unique route! ($http_method $path)" if $app->routes->lookup($name);
+      warn "[Swagger2] Add route $http_method $route_path\n"  if DEBUG;
+      $r->$http_method($route_path => $self->_generate_request_handler($name, $info))->name($name);
     }
   }
 }
@@ -207,12 +205,17 @@ sub _generate_request_handler {
 
   return sub {
     my $c = shift;
+    my $method_ref;
 
     unless (eval "require $controller;1") {
       $c->app->log->error($@);
       return $c->_not_implemented($@);
     }
-    unless ($controller->can($method)) {
+    unless ($method_ref = $controller->can($method)) {
+      $method_ref = $controller->can(sprintf '%s_%s', $method, lc $c->req->method)
+        and warn "HTTP method name is not used in method name lookup anymore!";
+    }
+    unless ($method_ref) {
       return $c->render_swagger($self->_not_implemented, {}, 501);
     }
 
@@ -224,7 +227,7 @@ sub _generate_request_handler {
         my ($v, $input) = $self->_validate_input($c, $config);
 
         return $c->render_swagger($v, {}, 400) unless $v->{valid};
-        return $c->$method($input, $delay->begin);
+        return $c->$method_ref($input, $delay->begin);
       },
       sub {
         my $delay  = shift;
