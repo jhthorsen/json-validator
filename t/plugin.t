@@ -2,8 +2,9 @@ use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
-
 use Mojolicious::Lite;
+use t::Api;
+
 plugin Swagger2 => {controller => 't::Api', url => 't/data/petstore.json'};
 
 my $t = Test::Mojo->new;

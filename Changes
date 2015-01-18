@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.24
+       * Add support for x-mojo-controller in swagger spec
+
 0.23     Mon Jan 12 09:42:19 2015
        * Fix scrolling to the right position after rendering POD
        * Fix loading ace.js from relative url

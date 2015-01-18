@@ -3,6 +3,7 @@ use Test::Mojo;
 use Test::More;
 use Test::Warnings;
 use File::Spec::Functions;
+use t::Api;
 
 my $json_file = 't/data/bodytest.json';
 

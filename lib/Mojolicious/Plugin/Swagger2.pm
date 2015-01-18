@@ -17,12 +17,17 @@ The input L</url> to given as argument to the plugin need to point to a
 valid L<swagger|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>
 document.
 
+Note that every operation must have a "x-mojo-controller" specified,
+so this plugin knows where to look for the decamelized "operationId",
+which is used as method name.
+
   ---
   swagger: 2.0
   basePath: /api
   paths:
     /foo:
       get:
+        x-mojo-controller: MyApp::Controller::Api
         operationId: listPets
         parameters: [ ... ]
         responses:
@@ -31,16 +36,11 @@ document.
 =head2 Application
 
 The application need to load the L<Mojolicious::Plugin::Swagger2> plugin,
-with a URL to the specification and a controller namespace. The plugin
-will then add all the routes defined in the L</Swagger specification>.
+with a URL to the API specification. The plugin will then add all the routes
+defined in the L</Swagger specification>.
 
   use Mojolicious::Lite;
-
-  plugin Swagger2 => {
-    url => app->home->rel_file("api.yaml"),
-    controller => "MyApp::Controller::Api",
-  };
-
+  plugin Swagger2 => { url => app->home->rel_file("api.yaml") };
   app->start;
 
 =head2 Controller
@@ -74,18 +74,13 @@ use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
 =head1 ATTRIBUTES
 
-=head2 controller
-
-Holds a class name, which is used to dispatch the request to.
-
 =head2 url
 
 Holds the URL to the swagger specification file.
 
 =cut
 
-has controller => '';
-has url        => '';
+has url => '';
 has _validator => sub { Swagger2::SchemaValidator->new; };
 
 =head1 HELPERS
@@ -102,8 +97,8 @@ C<$status> is the HTTP status code to use:
 
 =item * 200
 
-The default C<$status> is 200, unless the controller sent back any value.
-C<%err> will be empty in this case.
+The default C<$status> is 200, unless the method handling the request sent back
+another value. C<%err> will be empty in this case.
 
 =item * 400
 
@@ -124,7 +119,7 @@ document, like this:
 
 =item * 500
 
-This module will set C<$status> to 500 on invalid response from the controller.
+This module will set C<$status> to 500 on invalid response from the handler.
 C<%err> then contains a data structure describing the errors. The default is
 to render a JSON document, like this:
 
@@ -141,9 +136,9 @@ to render a JSON document, like this:
 
 =item * 501
 
-This module will set C<$status> to 501 if the L</controller> has not implemented
-the required method. C<%err> then contains a data structure describing the
-errors. The default is to render a JSON document, like this:
+This module will set C<$status> to 501 if the given controller has not
+implemented the required method. C<%err> then contains a data structure
+describing the errors. The default is to render a JSON document, like this:
 
   {
     "valid": false,
@@ -182,14 +177,9 @@ sub register {
   my $r = $config->{route} || $app->routes->any('/');
   my ($base_path, $paths, $swagger);
 
-  for my $k (qw( controller url )) {
-    $config->{$k} or die "'$k' is required config parameter";
-    $self->$k($config->{$k});
-  }
-
+  $self->url($config->{url} || die "'url' is required config parameter");
+  $self->{controller} = $config->{controller};    # back compat
   $app->helper(render_swagger => \&render_swagger);
-
-  eval "require $self->{controller}; 1" or die "Could not load controller $self->{controller}: $@";
 
   $swagger   = Swagger2->new->load($self->url)->expand;
   $base_path = $swagger->base_url->path;
@@ -204,8 +194,8 @@ sub register {
       my $m    = lc $method;
       my $info = $paths->{$path}{$method};
       my $name = decamelize(ucfirst sprintf '%s_%s', $info->{operationId} || $route_path, $m);
-      die "$name is not an unique route! ($method $path)" if $app->routes->lookup($name);
-      warn "[Swagger2] Add route $method $route_path\n"   if DEBUG;
+      die "$name is not a unique route! ($method $path)" if $app->routes->lookup($name);
+      warn "[Swagger2] Add route $method $route_path\n"  if DEBUG;
       $r->$m($route_path => $self->_generate_request_handler($name, $info))->name($name);
     }
   }
@@ -213,14 +203,19 @@ sub register {
 
 sub _generate_request_handler {
   my ($self, $method, $config) = @_;
-  my $controller = $self->controller;
-
-  unless ($controller->can($method)) {
-    return sub { shift->render_swagger($self->_not_implemented, {}, 501) };
-  }
+  my $controller = $config->{'x-mojo-controller'} || $self->{controller};    # back compat
 
   return sub {
     my $c = shift;
+
+    unless (eval "require $controller;1") {
+      $c->app->log->error($@);
+      return $c->_not_implemented($@);
+    }
+    unless ($controller->can($method)) {
+      return $c->render_swagger($self->_not_implemented, {}, 501);
+    }
+
     bless $c, $controller;    # ugly hack?
 
     $c->delay(
@@ -246,7 +241,9 @@ sub _generate_request_handler {
 }
 
 sub _not_implemented {
-  {valid => Mojo::JSON->false, errors => [{message => 'No handler defined.', property => undef}]};
+  my ($self, $err) = @_;
+  $err =~ s! at \S+.*!!s if $err;
+  return {valid => Mojo::JSON->false, errors => [{message => $err || 'No handler defined.', property => undef}]};
 }
 
 sub _validate_input {
