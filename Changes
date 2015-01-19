@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.24
+0.24     Mon Jan 19 14:05:08 2015
        * Add support for x-mojo-controller in swagger spec
        * HTTP method is not used in method name looked any more
 
