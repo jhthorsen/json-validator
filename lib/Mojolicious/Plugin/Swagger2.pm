@@ -62,6 +62,25 @@ agent.
     $c->$cb({ foo => 123 }, 200);
   }
 
+=head2 Protected API
+
+It is possible to protect your API, using a custom route:
+
+  use Mojolicious::Lite;
+
+  my $route = app->routes->bridge->to(
+    cb => sub {
+      my $c = shift;
+      return 1 if $c->param('secret');
+      return $c->render(json => {error => "Not authenticated"}, status => 401);
+    }
+  );
+
+  plugin Swagger2 => {
+    route => $route,
+    url   => app->home->rel_file("api.yaml")
+  };
+
 =cut
 
 use Mojo::Base 'Mojolicious::Plugin';
