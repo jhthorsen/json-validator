@@ -101,14 +101,22 @@ sub _path_request_to_string {
   my ($self, $info) = @_;
   my @table = ([qw( Name In Type Required Description )]);
   my $str   = '';
+  my %body;
 
   for my $p (@{$info->{parameters} || []}) {
     $p->{description} ||= NO_DESCRIPTION;
-    push @table, [@$p{qw( name in type )}, $p->{required} ? 'Yes' : 'No', $p->{description}];
+    if ($p->{in} eq 'body') {
+      %body = (name => 'body', %$p);
+      push @table, [$p->{name}, 'body', 'schema', 'Yes', $p->{description}];
+    }
+    else {
+      push @table, [@$p{qw( name in type )}, $p->{required} ? 'Yes' : 'No', $p->{description}];
+    }
   }
 
   $str .= sprintf "=head3 Parameters\n\n";
-  $str .= @table == 1 ? "This resource takes no parameters.\n\n" : sprintf "%s\n", _ascii_table(\@table, '  ');
+  $str .= (@table == 1) ? "This resource takes no parameters.\n\n" : sprintf "%s\n", _ascii_table(\@table, '  ');
+  $str .= "  $body{name}:\n\n" . $self->_schema_to_string_dispatch($body{schema}, 0) . "\n" if %body;
   $str;
 }
 

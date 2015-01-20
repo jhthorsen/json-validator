@@ -4,11 +4,11 @@ use Test::More;
 use Swagger2;
 use File::Spec::Functions 'catfile';
 
-my $pod_file = catfile qw( t data petstore.pod );
+my $pod_file = catfile qw( t data pod-as-string.pod );
 plan skip_all => "Cannot read $pod_file" unless -r $pod_file;
 
 my @expected = split /\n/, slurp $pod_file;
-my $swagger  = Swagger2->new->load('t/data/petstore.json');
+my $swagger  = Swagger2->new->load('t/data/pod-as-string.json');
 my $pod      = $swagger->pod;
 
 isa_ok($pod, 'Swagger2::POD');

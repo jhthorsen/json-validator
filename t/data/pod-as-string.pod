@@ -1,0 +1,62 @@
+=head1 NAME
+
+Noname API
+
+=head1 VERSION
+
+0.01
+
+=head1 DESCRIPTION
+
+Test API for body parameters
+
+=head1 BASEURL
+
+L<http://example.com/api>
+
+=head1 RESOURCES
+
+=head2 addPet
+
+Add a new pet to the store
+
+=head3 Resource URL
+
+  POST http://example.com/api/pets
+
+=head3 Parameters
+
+  .----------------------------------------------------------------------------------.
+  | Name | In   | Type   | Required | Description                                    |
+  |----------------------------------------------------------------------------------|
+  | pet  | body | schema | Yes      | Pet object that needs to be added to the store |
+  '----------------------------------------------------------------------------------'
+
+  pet:
+
+  {
+    "id": int64, // Pet ID
+    "name": string, // Pet name
+  },
+
+=head3 Responses
+
+=head4 200 - OK
+
+pet response
+
+  [
+    {
+      "id": int64, // Pet ID
+      "name": string, // Pet name
+    },
+    ...
+  ]
+
+=head1 COPYRIGHT AND LICENSE
+
+Unknown author
+
+BSD - http://www.linfo.org/bsdlicense.html
+
+=cut
