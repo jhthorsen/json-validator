@@ -1,0 +1,18 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "Test _not_implemented() in plugin"
+  },
+  "paths" : {
+    "/not-implemented" : {
+      "get" : {
+        "x-mojo-controller": "t::NotImplemented",
+        "operationId" : "notImplemented",
+        "parameters" : [],
+        "responses" : {
+          "200" : {}
+        }
+      }
+    }
+  }
+}

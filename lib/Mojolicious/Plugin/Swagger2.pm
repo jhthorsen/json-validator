@@ -129,7 +129,7 @@ document, like this:
     "errors": [
       {
         "message": "string value found, but a integer is required",
-        "property": "$.limit"
+        "path": "/limit"
       },
       ...
     ]
@@ -146,7 +146,7 @@ to render a JSON document, like this:
     "errors": [
       {
         "message": "is missing and it is required",
-        "property": "$.foo"
+        "path": "/foo"
       },
       ...
     ]
@@ -163,7 +163,7 @@ describing the errors. The default is to render a JSON document, like this:
     "errors": [
       {
         "message": "No handler defined.",
-        "property": null
+        "path": "/"
       }
     ]
   }
@@ -228,14 +228,16 @@ sub _generate_request_handler {
 
     unless (eval "require $controller;1") {
       $c->app->log->error($@);
-      return $c->_not_implemented($@);
+      return $c->render_swagger($self->_not_implemented('Controller not implemented.'), {}, 501);
     }
     unless ($method_ref = $controller->can($method)) {
       $method_ref = $controller->can(sprintf '%s_%s', $method, lc $c->req->method)
         and warn "HTTP method name is not used in method name lookup anymore!";
     }
     unless ($method_ref) {
-      return $c->render_swagger($self->_not_implemented, {}, 501);
+      $c->app->log->error(
+        qq(Can't locate object method "$method" via package "$controller. (Something is wrong in @{[$self->url]})"));
+      return $c->render_swagger($self->_not_implemented('Method not implemented.'), {}, 501);
     }
 
     bless $c, $controller;    # ugly hack?
@@ -263,9 +265,8 @@ sub _generate_request_handler {
 }
 
 sub _not_implemented {
-  my ($self, $err) = @_;
-  $err =~ s! at \S+.*!!s if $err;
-  return {valid => Mojo::JSON->false, errors => [{message => $err || 'No handler defined.', property => undef}]};
+  my ($self, $message) = @_;
+  return {valid => Mojo::JSON->false, errors => [{message => $message, path => '/'}]};
 }
 
 sub _validate_input {
@@ -297,7 +298,7 @@ sub _validate_input {
     push @{$v{errors}}, @e;
   }
 
-  $v{valid} = @{$v{errors}} ? Mojo::JSON->false : Mojo::JSON->true;
+  $v{valid} = @{$v{errors} || []} ? Mojo::JSON->false : Mojo::JSON->true;
   return \%v, \%input;
 }
 

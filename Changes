@@ -2,6 +2,7 @@ Changelog for Swagger2
 
 0.25
        * Documented custom route for Swagger2 Mojolicious plugin
+       * Fix rendering "not implemented"
 
 0.24     Mon Jan 19 14:05:08 2015
        * Add support for x-mojo-controller in swagger spec
