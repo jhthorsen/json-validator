@@ -254,6 +254,7 @@ stringification format is subject to change.
 sub validate {
   my ($self, $data, $schema) = @_;
 
+  return E '/', 'No validation rules defined.' unless $schema and %$schema;
   return $self->_validate($data, '', $schema);
 }
 

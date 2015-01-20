@@ -9,7 +9,18 @@
     "/pets" : {
       "post" : {
         "responses" : {
-          "405" : { "description" : "Invalid input" }
+          "200": {
+            "description": "pet response",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Pet" }
+            },
+            "headers": {
+              "x-expires": {
+                "type": "string"
+              }
+            }
+          }
         },
         "tags" : [ "pet" ],
         "summary" : "Add a new pet to the store",
@@ -24,26 +35,6 @@
         ],
         "description" : "",
         "operationId" : "addPet"
-      },
-      "put" : {
-        "operationId" : "updatePet",
-        "description" : "",
-        "parameters" : [
-          {
-            "description" : "Pet object that needs to be added to the store",
-            "in" : "body",
-            "name" : "pet",
-            "schema" : { "$ref" : "#/definitions/Pet" },
-            "required" : "true"
-          }
-        ],
-        "summary" : "Update an existing pet",
-        "tags" : [ "pet" ],
-        "responses" : {
-          "405" : { "description" : "Validation exception" },
-          "404" : { "description" : "Pet not found" },
-          "400" : { "description" : "Invalid ID" }
-        }
       }
     }
   },

@@ -13,7 +13,11 @@
           { "name": "p1", "type": "boolean", "in": "path" }
         ],
         "responses" : {
-          "200" : {}
+          "200" : {
+            "schema" : {
+              "object": {}
+            }
+          }
         }
       }
     }
