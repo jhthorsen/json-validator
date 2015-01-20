@@ -273,19 +273,18 @@ sub _validate_input {
   my ($self, $c, $config) = @_;
   my $headers = $c->req->headers;
   my $query   = $c->req->url->query;
-  my $body    = Mojo::JSON::Pointer->new(data => $c->req->json || $c->req->body_params->to_hash || {});
   my (%input, %v);
 
   for (@{$config->{parameters} || []}) {
     my $p = $_;
-    my @e;
-    my $in   = $p->{in};
-    my $name = $p->{name};
-    my $value
+    my ($in, $name) = @$p{qw( in name )};
+    my ($value, @e);
+
+    $value
       = $in eq 'query'  ? $query->param($name)
       : $in eq 'path'   ? $c->stash($name)
       : $in eq 'header' ? $headers->header($name)
-      :                   $body->get("/$name");
+      :                   $c->req->json || $c->req->body_params->to_hash || {};
 
     $p = $p->{schema} if $p->{schema};
 

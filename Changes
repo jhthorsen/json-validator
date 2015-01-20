@@ -4,6 +4,7 @@ Changelog for Swagger2
        * Fix rendering "not implemented"
        * Fix parsing true/false in URL
        * Fix validating against empty rule set
+       * Fix validating against "body"
        * Documented custom route for Swagger2 Mojolicious plugin
 
 0.24     Mon Jan 19 14:05:08 2015
