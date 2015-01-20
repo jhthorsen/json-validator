@@ -3,6 +3,11 @@ use Mojo::Base 'Mojolicious::Controller';
 
 our $RES = {};
 
+sub boolean_in_url {
+  my ($c, $args, $cb) = @_;
+  $c->$cb({p1 => $args->{p1}, q1 => $args->{q1}});
+}
+
 sub list_pets {
   my ($c, $args, $cb) = @_;
   $c->$cb($RES);

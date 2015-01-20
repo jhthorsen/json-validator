@@ -290,7 +290,9 @@ sub _validate_input {
     $p = $p->{schema} if $p->{schema};
 
     if (defined $value or $p->{required}) {
-      $value += 0 if $p->{type} and $p->{type} =~ /^(?:integer|number)/ and $value =~ /^\d/;
+      my $type = $p->{type} || 'object';
+      $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
+      $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
       push @e, $self->_validator->validate({$name => $value}, {type => 'object', properties => {$name => $p}});
     }
 

@@ -1,0 +1,21 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "Test _not_implemented() in plugin"
+  },
+  "paths" : {
+    "/boolean-in-url/{p1}" : {
+      "get" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "BooleanInUrl",
+        "parameters" : [
+          { "name": "q1", "type": "boolean", "in": "query" },
+          { "name": "p1", "type": "boolean", "in": "path" }
+        ],
+        "responses" : {
+          "200" : {}
+        }
+      }
+    }
+  }
+}
