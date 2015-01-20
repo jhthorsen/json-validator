@@ -200,7 +200,7 @@ sub render_swagger {
   my ($c, $err, $data, $status) = @_;
 
   return $c->render(json => $err, status => $status) if %$err;
-  return $c->render(json => $data, status => $status);
+  return $c->render(ref $data ? (json => $data) : (text => $data), status => $status);
 }
 
 =head1 METHODS

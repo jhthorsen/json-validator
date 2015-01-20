@@ -23,6 +23,18 @@
         }
       }
     },
+    "/file-example": {
+      "post": {
+        "operationId" : "testFile",
+        "responses": {
+          "200": {
+            "schema": {
+              "type": "file"
+            }
+          }
+        }
+      }
+    },
     "/pets" : {
       "post" : {
         "responses" : {

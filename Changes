@@ -2,6 +2,7 @@ Changelog for Swagger2
 
 0.29
        * Fix _schema_to_string_dispatch() can only be called with reference
+       * Add support for raw text/binary data #6
        * Add POD rendering of anyOf, allOf and oneOf #7
          Contributor: Julian Maurice
 

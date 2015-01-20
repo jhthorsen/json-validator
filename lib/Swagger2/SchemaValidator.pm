@@ -284,6 +284,9 @@ sub _validate {
       push @errors, [$self->$code($data, $path, $schema)];
       return if !$check_all and !@{$errors[-1]};    # valid
     }
+    elsif ($t eq 'file') {
+      return;                                       # Skip validating raw file
+    }
     else {
       return E $path, "Cannot validate type '$t'";
     }

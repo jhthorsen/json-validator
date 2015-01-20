@@ -78,6 +78,26 @@ No description.
       string, // No description.
   },
 
+=head2 testFile
+
+No description.
+
+=head3 Resource URL
+
+  POST http://example.com/api/file-example
+
+=head3 Parameters
+
+This resource takes no parameters.
+
+=head3 Responses
+
+=head4 200 - OK
+
+No description.
+
+  This response contains raw binary or text data.
+
 =head1 COPYRIGHT AND LICENSE
 
 Unknown author

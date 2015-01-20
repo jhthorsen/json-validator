@@ -252,6 +252,13 @@ sub _schema_number_to_string {
   sprintf "%s, // %s\n", $schema->{format} || 'number', _type_description($schema, qw( default ));
 }
 
+sub _schema_file_to_string {
+  my ($self, $schema, $depth) = @_;
+  my $str = $schema->{description} || 'This response contains raw binary or text data.';
+
+  return "  $str\n";
+}
+
 sub _schema_object_to_string {
   my ($self, $schema, $depth) = @_;
   my $description = _type_description($schema, qw( minProperties maxProperties ));
