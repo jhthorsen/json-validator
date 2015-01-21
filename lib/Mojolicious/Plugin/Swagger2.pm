@@ -275,24 +275,32 @@ sub _validate_input {
   my $query   = $c->req->url->query;
   my (%input, %v);
 
-  for (@{$config->{parameters} || []}) {
-    my $p = $_;
+  for my $p (@{$config->{parameters} || []}) {
     my ($in, $name) = @$p{qw( in name )};
     my ($value, @e);
 
     $value
-      = $in eq 'query'  ? $query->param($name)
-      : $in eq 'path'   ? $c->stash($name)
-      : $in eq 'header' ? $headers->header($name)
-      :                   $c->req->json || $c->req->body_params->to_hash || {};
-
-    $p = $p->{schema} if $p->{schema};
+      = $in eq 'query'    ? $query->param($name)
+      : $in eq 'path'     ? $c->stash($name)
+      : $in eq 'header'   ? $headers->header($name)
+      : $in eq 'body'     ? $c->req->json
+      : $in eq 'formData' ? $c->req->body_params->to_hash
+      :                     "Invalid 'in' for parameter $name in schema definition";
 
     if (defined $value or $p->{required}) {
       my $type = $p->{type} || 'object';
       $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
       $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
-      push @e, $self->_validator->validate({$name => $value}, {type => 'object', properties => {$name => $p}});
+
+      if ($in eq 'body' or $in eq 'formData') {
+        warn "[Swagger2] Validate $in @{[$c->req->body]}\n" if DEBUG;
+        local $p->{schema}{type} = $p->{schema}{type} || 'object';
+        push @e, $self->_validator->validate($value, $p->{schema});
+      }
+      else {
+        warn "[Swagger2] Validate $in $name=$value\n" if DEBUG;
+        push @e, $self->_validator->validate({$name => $value}, {type => 'object', properties => {$name => $p}});
+      }
     }
 
     $input{$name} = $value unless @e;

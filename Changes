@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.26
+       * Fix validating body and form data
+
 0.25     Tue Jan 20 12:26:23 2015
        * Fix rendering "not implemented"
        * Fix parsing true/false in URL

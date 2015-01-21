@@ -8,6 +8,19 @@
   "paths" : {
     "/pets" : {
       "post" : {
+        "operationId" : "addPet",
+        "tags" : [ "pet" ],
+        "summary" : "Add a new pet to the store",
+        "description" : "",
+        "parameters" : [
+          {
+            "name" : "pet",
+            "required" : "true",
+            "schema" : { "$ref" : "#/definitions/Pet" },
+            "in" : "body",
+            "description" : "Pet object that needs to be added to the store"
+          }
+        ],
         "responses" : {
           "200": {
             "description": "pet response",
@@ -21,20 +34,7 @@
               }
             }
           }
-        },
-        "tags" : [ "pet" ],
-        "summary" : "Add a new pet to the store",
-        "parameters" : [
-          {
-            "name" : "pet",
-            "required" : "true",
-            "schema" : { "$ref" : "#/definitions/Pet" },
-            "in" : "body",
-            "description" : "Pet object that needs to be added to the store"
-          }
-        ],
-        "description" : "",
-        "operationId" : "addPet"
+        }
       }
     }
   },
