@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.26
+0.26     Wed Jan 21 14:05:44 2015
        * Fix validating body and form data
        * Add support for custom placeholder types
 
