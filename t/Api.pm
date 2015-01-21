@@ -9,6 +9,11 @@ sub boolean_in_url {
   $c->$cb({p1 => $args->{p1}, q1 => $args->{q1}});
 }
 
+sub ip_in_url {
+  my ($c, $args, $cb) = @_;
+  $c->$cb({ip => $args->{ip}});
+}
+
 sub list_pets {
   my ($c, $args, $cb) = @_;
   $c->$cb($RES, $CODE);

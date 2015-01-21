@@ -81,6 +81,30 @@ It is possible to protect your API, using a custom route:
     url   => app->home->rel_file("api.yaml")
   };
 
+=head2 Custom placeholders
+
+The default placeholder type is the
+L<generic placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojolicious/Guides/Routing.pod#Generic-placeholders>,
+meaning ":". This can be customized using C<x-mojo-placeholder> in the
+API specification. The example below will enforce a
+L<relaxed placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojolicious/Guides/Routing.pod#Relaxed-placeholders>:
+
+  ---
+  swagger: 2.0
+  basePath: /api
+  paths:
+    /foo:
+      get:
+        x-mojo-controller: MyApp::Controller::Api
+        operationId: listPets
+        parameters:
+        - name: ip
+          in: path
+          type: string
+          x-mojo-placeholder: "#"
+        responses:
+          200: { ... }
+
 =cut
 
 use Mojo::Base 'Mojolicious::Plugin';
@@ -204,12 +228,17 @@ sub register {
   $paths     = $swagger->tree->get('/paths') || {};
 
   for my $path (keys %$paths) {
-    my $route_path = '/' . join '/', grep {$_} @$base_path, split '/', $path;
-
-    $route_path =~ s/{([^}]+)}/:$1/g;
-
     for my $http_method (keys %{$paths->{$path}}) {
-      my $info = $paths->{$path}{$http_method};
+      my $info       = $paths->{$path}{$http_method};
+      my $route_path = '/' . join '/', grep {$_} @$base_path, split '/', $path;
+      my %parameters = map { ($_->{name}, $_) } @{$info->{parameters} || []};
+
+      $route_path =~ s/{([^}]+)}/{
+        my $name = $1;
+        my $type = $parameters{$name}{'x-mojo-placeholder'} || ':';
+        "($type$name)";
+      }/ge;
+
       my $name = decamelize(ucfirst $info->{operationId} || $route_path);
       die "$name is not a unique route! ($http_method $path)" if $app->routes->lookup($name);
       warn "[Swagger2] Add route $http_method $route_path\n"  if DEBUG;
