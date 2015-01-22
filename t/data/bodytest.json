@@ -40,10 +40,9 @@
   },
   "definitions" : {
     "Pet" : {
-      "required" : [ "name" ],
       "properties" : {
         "id" : { "format" : "int64", "type" : "integer" },
-        "name" : { "type" : "string" }
+        "name" : { "type" : "string", "required": true }
       }
     }
   }

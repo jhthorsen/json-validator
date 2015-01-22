@@ -21,6 +21,11 @@ $t->post_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(50
   ->json_is('/errors/0/message', 'Expected array - got object.');
 
 # invalid input
+$t::Api::RES = [{id => 123}];
+$t->post_ok('/api/pets' => json => $t::Api::RES->[0])->status_is(400)
+  ->json_is('/errors/0/message', 'Missing property.')->json_is('/errors/0/path', '/name');
+
+# invalid input
 $t::Api::RES = [{id => "123", name => "kit-cat"}];
 $t->post_ok('/api/pets' => json => $t::Api::RES->[0])->status_is(400)
   ->json_is('/errors/0/message', 'Expected integer - got string.')->json_is('/errors/0/path', '/id');

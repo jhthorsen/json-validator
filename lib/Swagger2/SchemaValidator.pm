@@ -404,7 +404,7 @@ sub _validate_properties {
     elsif ($required{$name}) {
       push @errors, E _path($path, $name), "Missing property.";
     }
-    elsif ($p->{required} and ref $p->{required} eq '') {
+    elsif ($p->{required} and $p->{required} eq '1') {
       push @errors, E _path($path, $name), "Missing property.";
     }
   }
