@@ -37,9 +37,9 @@ $t->post_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(50
   ->json_is('/errors/0/message', 'Expected integer - got string.');
 
 # invalid output
-$t::Api::RES = {id => "123", name => "kit-cat"};
-$t->get_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(500)->json_is('/errors/0/path', '/id')
-  ->json_is('/errors/0/message', 'Expected integer - got string.');
+$t::Api::RES = {some_parent_key => {id => "123", name => "kit-cat"}};
+$t->get_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(500)
+  ->json_is('/errors/0/path', '/some_parent_key/id')->json_is('/errors/0/message', 'Expected integer - got string.');
 
 # invalid output
 $t::Api::RES = {};

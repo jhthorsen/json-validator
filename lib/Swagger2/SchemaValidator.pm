@@ -260,9 +260,12 @@ sub validate {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my ($type) = (map { $schema->{$_} } grep { $schema->{$_} } qw( type allOf anyOf oneOf ))[0] || 'any';
+  my ($type) = (map { $schema->{$_} } grep { $schema->{$_} } qw( type allOf anyOf oneOf ))[0];
   my $check_all = grep { $schema->{$_} } qw( allOf oneOf );
   my @errors;
+
+  $type = 'object' if !$type and $schema->{properties};
+  $type ||= 'any';
 
   #$SIG{__WARN__} = sub { Carp::confess(Data::Dumper::Dumper($schema)) };
 

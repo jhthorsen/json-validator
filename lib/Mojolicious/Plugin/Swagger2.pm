@@ -284,15 +284,7 @@ sub _generate_request_handler {
         my $data   = shift;
         my $status = shift || 200;
         my $format = $config->{responses}{$status} || $config->{responses}{default} || {};
-        my @err;
-
-        if (%$format) {
-          local $format->{schema}{type} = $format->{schema}{type} || 'object';
-          @err = $self->_validator->validate($data, $format->{schema});
-        }
-        else {
-          @err = $self->_validator->validate($data, undef);
-        }
+        my @err    = $self->_validator->validate($data, $format->{schema});
 
         return $c->render_swagger({errors => \@err, valid => Mojo::JSON->false}, $data, 500) if @err;
         return $c->render_swagger({}, $data, $status);
@@ -331,12 +323,11 @@ sub _validate_input {
 
       if ($in eq 'body' or $in eq 'formData') {
         warn "[Swagger2] Validate $in @{[$c->req->body]}\n" if DEBUG;
-        local $p->{schema}{type} = $p->{schema}{type} || 'object';
         push @e, map { $_->{path} = "/$name$_->{path}"; $_; } $self->_validator->validate($value, $p->{schema});
       }
       else {
         warn "[Swagger2] Validate $in $name=$value\n" if DEBUG;
-        push @e, $self->_validator->validate({$name => $value}, {type => 'object', properties => {$name => $p}});
+        push @e, $self->_validator->validate({$name => $value}, {properties => {$name => $p}});
       }
     }
 

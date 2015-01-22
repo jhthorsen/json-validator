@@ -13,7 +13,12 @@
         "responses" : {
           "200" : {
             "schema": {
-              "$ref": "#/definitions/Pet"
+              "type" : "object",
+              "properties" : {
+                "some_parent_key": {
+                  "$ref": "#/definitions/Pet"
+                }
+              }
             }
           }
         }
