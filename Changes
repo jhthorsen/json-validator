@@ -1,7 +1,8 @@
 Changelog for Swagger2
 
 0.27
-       * Fix validation "required" on a property
+       * Fix validating "required" on a property
+       * Fix validating output
        * Fix "path" in errors response when posting JSON or form data
 
 0.26     Wed Jan 21 14:05:44 2015

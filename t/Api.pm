@@ -20,17 +20,24 @@ sub list_pets {
 }
 
 sub show_pet_by_id {
-  my $self = shift;
-  $RES->{id} = $self->param('petId');
-  $self->list_pets(@_);
+  my ($c, $args, $cb) = @_;
+  $RES->{id} = $args->{petId};
+  $c->$cb($RES, $CODE);
+}
+
+sub get_pet {
+  my ($c, $args, $cb) = @_;
+  $c->$cb($RES, $CODE);
 }
 
 sub add_pet {
-  shift->list_pets(@_);
+  my ($c, $args, $cb) = @_;
+  $c->$cb($RES, $CODE);
 }
 
 sub update_pet {
-  shift->list_pets(@_);
+  my ($c, $args, $cb) = @_;
+  $c->$cb($RES, $CODE);
 }
 
 1;

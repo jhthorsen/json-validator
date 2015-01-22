@@ -7,11 +7,19 @@
   "basePath" : "/api",
   "paths" : {
     "/pets" : {
+      "get" : {
+        "operationId" : "getPet",
+        "parameters" : [],
+        "responses" : {
+          "200" : {
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        }
+      },
       "post" : {
         "operationId" : "addPet",
-        "tags" : [ "pet" ],
-        "summary" : "Add a new pet to the store",
-        "description" : "",
         "parameters" : [
           {
             "name" : "pet",
