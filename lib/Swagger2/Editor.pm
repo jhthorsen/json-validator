@@ -136,7 +136,7 @@ Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
 
-$ENV{MOJO_APP_LOADER} ? __PACKAGE__->new : 1;
+$ENV{SWAGGER_LOAD_EDITOR} ? __PACKAGE__->new : 1;
 
 __DATA__
 @@ error.html.ep

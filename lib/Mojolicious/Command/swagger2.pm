@@ -75,6 +75,7 @@ sub _action_edit {
   my ($self, $file, @args) = @_;
 
   $ENV{SWAGGER_API_FILE} = $file || '';
+  $ENV{SWAGGER_LOAD_EDITOR} = 1;
   $file ||= __FILE__;
   require Swagger2::Editor;
   system 'morbo', -w => $file, @args, $INC{'Swagger2/Editor.pm'};
