@@ -1,5 +1,8 @@
 Changelog for Swagger2
 
+0.28
+       * Allow setting specification_file when constructing Swagger2::Editor
+
 0.27     Thu Jan 22 19:52:37 2015
        * Fix validating "required" on a property
        * Fix validating output

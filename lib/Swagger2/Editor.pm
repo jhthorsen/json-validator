@@ -19,6 +19,17 @@ use Mojo::Util;
 use File::Basename;
 use Swagger2;
 
+=head1 ATTRIBUTES
+
+=head2 specification_file
+
+Returns path to swagger specification file. Defaults to
+C<SWAGGER_API_FILE> environment variable.
+
+=cut
+
+has specification_file => sub { $ENV{SWAGGER_API_FILE} || '' };
+
 has _swagger => sub { Swagger2->new };
 
 =head1 ROUTES
@@ -76,11 +87,11 @@ Used to set up the L</ROUTES>.
 sub startup {
   my $self = shift;
 
-  if ($ENV{SWAGGER_API_FILE}) {
+  if (my $file = $self->specification_file) {
     my $api_url = Mojo::URL->new;
-    $api_url->path->parts([File::Spec->splitdir($ENV{SWAGGER_API_FILE})]);
+    $api_url->path->parts([File::Spec->splitdir($file)]);
     $self->_swagger->load($api_url);
-    $self->defaults(raw => Mojo::Util::slurp($ENV{SWAGGER_API_FILE}));
+    $self->defaults(raw => Mojo::Util::slurp($file));
   }
 
   unshift @{$self->renderer->classes}, __PACKAGE__;
