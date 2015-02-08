@@ -6,7 +6,7 @@ use t::Api;
 
 {
   use Mojolicious::Lite;
-  my $route = app->routes->bridge->to(
+  my $route = app->routes->under->to(
     cb => sub {
       my $c = shift;
       return 1 if $c->param('secret');
