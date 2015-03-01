@@ -68,7 +68,7 @@ It is possible to protect your API, using a custom route:
 
   use Mojolicious::Lite;
 
-  my $route = app->routes->bridge->to(
+  my $route = app->routes->under->to(
     cb => sub {
       my $c = shift;
       return 1 if $c->param('secret');
