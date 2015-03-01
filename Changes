@@ -1,6 +1,6 @@
 Changelog for Swagger2
 
-0.28
+0.28     Sun Mar  1 18:02:20 2015
        * Allow setting specification_file when constructing Swagger2::Editor
        * Mojolicious::Routes::Route::bridge is DEPRECATED
 
