@@ -226,7 +226,7 @@ sub _schema_object_to_string {
 
   for my $k (sort keys %$schema) {
     $str .= _sprintf($depth + 1, qq("%s": ), $k);
-    $str .= $self->_schema_to_string_dispatch($schema->{$k}, $depth + 1);
+    $str .= $self->_schema_to_string_dispatch($schema->{$k}, $depth + 1) if ref $schema->{$k};
   }
 
   $str .= _sprintf($depth, "},\n");
