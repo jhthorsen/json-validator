@@ -10,6 +10,7 @@ plan skip_all => "Cannot read $pod_file" unless -r $pod_file;
 my @expected = split /\n/, slurp $pod_file;
 my $swagger  = Swagger2->new->load('t/data/pod-as-string.json');
 my $pod      = $swagger->pod;
+my $fail     = 0;
 
 isa_ok($pod, 'Swagger2::POD');
 
@@ -20,7 +21,18 @@ for my $line (split /\n/, $pod->to_string) {
   $desc =~ s/[^\w\s]//g;
   $i++;
   next unless $desc =~ /\w/;
-  is $line, $expected, "$i: $desc";
+  is $line, $expected, "$i: $desc" or $fail = 1;
 }
+
+if ($fail and $ENV{PRINT_DOC}) {
+  print $pod->to_string;
+}
+
+my $identifier = $swagger->tree->data->{paths}{'/any-of'}{get}{responses}{200}{schema}{properties}{identifier};
+$identifier->{allOf} = delete $identifier->{anyOf};
+like $swagger->pod->to_string, qr{// All of the below:}, 'allOf';
+
+$identifier->{oneOf} = delete $identifier->{allOf};
+like $swagger->pod->to_string, qr{// One of the below:}, 'oneOf';
 
 done_testing;

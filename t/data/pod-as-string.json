@@ -6,6 +6,23 @@
   "schemes" : [ "http" ],
   "basePath" : "/api",
   "paths" : {
+    "/any-of" : {
+      "get": {
+        "operationId" : "testAnyOf",
+        "responses" : {
+          "200": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "anyOf": [ { "type": "integer" }, { "type": "string" } ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/pets" : {
       "post" : {
         "responses" : {

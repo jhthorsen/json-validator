@@ -178,6 +178,42 @@ sub _paths_to_string {
   return $str;
 }
 
+sub _schema_anyof_to_string {
+  my ($self, $schema, $depth) = @_;
+  my $str = "\n" . _sprintf($depth + 1, "// Any of the below:\n");
+
+  for my $s (@{$schema->{anyOf}}) {
+    $str .= _sprintf($depth + 1, "");
+    $str .= $self->_schema_to_string_dispatch($s, $depth + 1);
+  }
+
+  $str;
+}
+
+sub _schema_allof_to_string {
+  my ($self, $schema, $depth) = @_;
+  my $str = "\n" . _sprintf($depth + 1, "// All of the below:\n");
+
+  for my $s (@{$schema->{allOf}}) {
+    $str .= _sprintf($depth + 1, "");
+    $str .= $self->_schema_to_string_dispatch($s, $depth + 1);
+  }
+
+  $str;
+}
+
+sub _schema_oneof_to_string {
+  my ($self, $schema, $depth) = @_;
+  my $str = "\n" . _sprintf($depth + 1, "// One of the below:\n");
+
+  for my $s (@{$schema->{oneOf}}) {
+    $str .= _sprintf($depth + 1, "");
+    $str .= $self->_schema_to_string_dispatch($s, $depth + 1);
+  }
+
+  $str;
+}
+
 sub _schema_array_to_string {
   my ($self, $schema, $depth) = @_;
   my $description = _type_description($schema, qw( minItems maxItems multipleOf uniqueItems ));
@@ -226,7 +262,7 @@ sub _schema_object_to_string {
 
   for my $k (sort keys %$schema) {
     $str .= _sprintf($depth + 1, qq("%s": ), $k);
-    $str .= $self->_schema_to_string_dispatch($schema->{$k}, $depth + 1) if ref $schema->{$k};
+    $str .= $self->_schema_to_string_dispatch($schema->{$k}, $depth + 1) if ref $schema->{$k} eq 'HASH';
   }
 
   $str .= _sprintf($depth, "},\n");
@@ -252,7 +288,19 @@ sub _schema_to_string_dispatch {
     $schema->{$_}{required} = 1 for @$required;
   }
 
-  $method = '_schema_' . ($schema->{type} || 'object') . '_to_string';
+  if ($schema->{anyOf}) {
+    $method = '_schema_anyof_to_string';
+  }
+  elsif ($schema->{allOf}) {
+    $method = '_schema_allof_to_string';
+  }
+  elsif ($schema->{oneOf}) {
+    $method = '_schema_oneof_to_string';
+  }
+  else {
+    $method = '_schema_' . ($schema->{type} || 'object') . '_to_string';
+  }
+
   return "Cannot translate '$schema->{type}' into POD." unless $self->can($method);
   return $self->$method($schema, $depth);
 }

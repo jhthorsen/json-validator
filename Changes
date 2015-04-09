@@ -2,6 +2,8 @@ Changelog for Swagger2
 
 0.29
        * Fix _schema_to_string_dispatch() can only be called with reference
+       * Add POD rendering of anyOf, allOf and oneOf #7
+         Contributor: Julian Maurice
 
 0.28     Sun Mar  1 18:02:20 2015
        * Allow setting specification_file when constructing Swagger2::Editor

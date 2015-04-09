@@ -53,6 +53,31 @@ pet response
     ...
   ]
 
+=head2 testAnyOf
+
+No description.
+
+=head3 Resource URL
+
+  GET http://example.com/api/any-of
+
+=head3 Parameters
+
+This resource takes no parameters.
+
+=head3 Responses
+
+=head4 200 - OK
+
+No description.
+
+  {
+    "identifier": 
+      // Any of the below:
+      integer, // No description.
+      string, // No description.
+  },
+
 =head1 COPYRIGHT AND LICENSE
 
 Unknown author
