@@ -1,136 +1,136 @@
-Changelog for Swagger2
+Revision history for perl distribution Swagger2
 
-0.29     Thu Apr  9 09:52:40 2015
-       * Fix _schema_to_string_dispatch() can only be called with reference
-       * Add support for raw text/binary data #6
-       * Add POD rendering of anyOf, allOf and oneOf #7
-         Contributor: Julian Maurice
+0.29 2015-04-09T09:52:40Z
+ - Fix _schema_to_string_dispatch() can only be called with reference
+ - Add support for raw text/binary data #6
+ - Add POD rendering of anyOf, allOf and oneOf #7 Contributor: Julian
+   Maurice
 
-0.28     Sun Mar  1 18:02:20 2015
-       * Allow setting specification_file when constructing Swagger2::Editor
-       * Mojolicious::Routes::Route::bridge is DEPRECATED
+0.28 2015-03-01T18:02:20Z
+ - Allow setting specification_file when constructing Swagger2::Editor
+ - Mojolicious::Routes::Route::bridge is DEPRECATED
 
-0.27     Thu Jan 22 19:52:37 2015
-       * Fix validating "required" on a property
-       * Fix validating output
-       * Fix "path" in errors response when posting JSON or form data
+0.27 2015-01-22T19:52:37Z
+ - Fix validating "required" on a property
+ - Fix validating output
+ - Fix "path" in errors response when posting JSON or form data
 
-0.26     Wed Jan 21 14:05:44 2015
-       * Fix validating body and form data
-       * Add support for custom placeholder types
+0.26 2015-01-21T14:05:44Z
+ - Fix validating body and form data
+ - Add support for custom placeholder types
 
-0.25     Tue Jan 20 12:26:23 2015
-       * Fix rendering "not implemented"
-       * Fix parsing true/false in URL
-       * Fix validating against empty rule set
-       * Fix validating against "body"
-       * Fix rendering "body" parameters in POD #5
-       * Documented custom route for Swagger2 Mojolicious plugin
+0.25 2015-01-20T12:26:23Z
+ - Fix rendering "not implemented"
+ - Fix parsing true/false in URL
+ - Fix validating against empty rule set
+ - Fix validating against "body"
+ - Fix rendering "body" parameters in POD #5
+ - Documented custom route for Swagger2 Mojolicious plugin
 
-0.24     Mon Jan 19 14:05:08 2015
-       * Add support for x-mojo-controller in swagger spec
-       * HTTP method is not used in method name looked any more
+0.24 2015-01-19T14:05:08Z
+ - Add support for x-mojo-controller in swagger spec
+ - HTTP method is not used in method name looked any more
 
-0.23     Mon Jan 12 09:42:19 2015
-       * Fix scrolling to the right position after rendering POD
-       * Fix loading ace.js from relative url
-       * Will include description in POD, instead of just "required"
-       * Remove editor shortcut CTRL+L
-       * Add editor shortcut CTRL+F (find)
-       * Can load API from same domain, using "#/path/to/api.json" fragment
+0.23 2015-01-12T09:42:19Z
+ - Fix scrolling to the right position after rendering POD
+ - Fix loading ace.js from relative url
+ - Will include description in POD, instead of just "required"
+ - Remove editor shortcut CTRL+L
+ - Add editor shortcut CTRL+F (find)
+ - Can load API from same domain, using "#/path/to/api.json" fragment
 
-0.22     Fri Jan  9 19:37:46 2015
-       * Allow "number" type when generating POD
-       * Editor will also render "Table of contents"
+0.22 2015-01-09T19:37:46Z
+ - Allow "number" type when generating POD
+ - Editor will also render "Table of contents"
 
-0.21     Mon Jan  5 12:26:46 2015
-       * Fix order of headings in generated POD
-       * Fix response codes are rendered with "=head4"
-       * Made text in editor easier to read
+0.21 2015-01-05T12:26:46Z
+ - Fix order of headings in generated POD
+ - Fix response codes are rendered with "=head4"
+ - Made text in editor easier to read
 
-0.20     Sat Jan  3 17:11:06 2015
-       * Fix loading $SWAGGER_API_FILE on Windows in Swagger2::Editor #4
-         Contributor: Andreas Koenig
+0.20 2015-01-03T17:11:06Z
+ - Fix loading $SWAGGER_API_FILE on Windows in Swagger2::Editor #4
+   Contributor: Andreas Koenig
 
-0.19     Sat Jan  3 15:16:15 2015
-       * Move editor code from Mojolicious::Command::swagger2 to Swagger2::Editor
+0.19 2015-01-03T15:16:15Z
+ - Move editor code from Mojolicious::Command::swagger2 to Swagger2::Editor
 
-0.18     Sat Jan  3 14:16:31 2015
-       * Fix bodytest.t: YAML is not a required dependency
+0.18 2015-01-03T14:16:31Z
+ - Fix bodytest.t: YAML is not a required dependency
 
-0.17     Sat Jan  3 10:30:29 2015
-       * Fix failing Windows test where the Mojo::URL path part is invalid
+0.17 2015-01-03T10:30:29Z
+ - Fix failing Windows test where the Mojo::URL path part is invalid
 
-0.16     Fri Jan  2 12:44:33 2015
-       * Tried to fix failing Windows test where c:\path\to\spec is converted
-         into a URL with scheme "c", #4
+0.16 2015-01-02T12:44:33Z
+ - Tried to fix failing Windows test where c:\path\to\spec is converted
+   into a URL with scheme "c", #4
 
-0.15     Fri Dec 19 13:26:24 2014
-       * Fix parse() will set tree() attribute
-       * Allow editor to start without file
+0.15 2014-12-19T13:26:24Z
+ - Fix parse() will set tree() attribute
+ - Allow editor to start without file
 
-0.14     Thu Dec 18 16:06:02 2014
-       * Add both "summary" and "description" to POD
-       * Add print styling for editor
-       * Can resize editor area
-       * Fix detecting yaml/json mode in editor
+0.14 2014-12-18T16:06:02Z
+ - Add both "summary" and "description" to POD
+ - Add print styling for editor
+ - Can resize editor area
+ - Fix detecting yaml/json mode in editor
 
-0.13     Thu Dec 18 14:06:26 2014
-       * Fix "not" logic in SchemaValidator
+0.13 2014-12-18T14:06:26Z
+ - Fix "not" logic in SchemaValidator
 
-0.12     Tue Dec 16 11:30:34 2014
-       * Add missing Swagger2::POD::_schema_boolean_to_string() method
-       * Add Swagger2::parse() method
-       * Add "mojo swagger2 edit" command
-       * Fix printing "Resource URL" when generating POD
-       * Fix parameter references
-       * Fix expanding bare $ref and $ref inside refs
+0.12 2014-12-16T11:30:34Z
+ - Add missing Swagger2::POD::_schema_boolean_to_string() method
+ - Add Swagger2::parse() method
+ - Add "mojo swagger2 edit" command
+ - Fix printing "Resource URL" when generating POD
+ - Fix parameter references
+ - Fix expanding bare $ref and $ref inside refs
 
-0.11     Mon Dec 15 09:29:27 2014
-       * Add "mojo swagger2 pod" command
-       * Add "mojo swagger2 perldoc" command
-       * Add "mojo swagger2 validate" command
-       * Change POD output to follow standard formatting
+0.11 2014-12-15T09:29:27Z
+ - Add "mojo swagger2 pod" command
+ - Add "mojo swagger2 perldoc" command
+ - Add "mojo swagger2 validate" command
+ - Change POD output to follow standard formatting
 
-0.10     Mon Dec 15 07:27:51 2014
-       * Disable "int64" format test if Perl does not support 64 bit
+0.10 2014-12-15T07:27:51Z
+ - Disable "int64" format test if Perl does not support 64 bit
 
-0.09     Sat Dec 13 12:46:39 2014
-       * Fix adding parameter to route #1
-       * Fix "Resource URL" in generated POD
-       * Add "Type" to "Parameters" POD table
+0.09 2014-12-13T12:46:39Z
+ - Fix adding parameter to route #1
+ - Fix "Resource URL" in generated POD
+ - Add "Type" to "Parameters" POD table
 
-0.08     Thu Dec 11 11:08:05 2014
-       * Change "floats" and "double" formats are not tested
-       * Add support for "byte" format
+0.08 2014-12-11T11:08:05Z
+ - Change "floats" and "double" formats are not tested
+ - Add support for "byte" format
 
-0.07     Wed Dec 10 14:58:15 2014
-       * Fix test for negative integers
-       * Add more formats: date, double, float, int32 and int64
+0.07 2014-12-10T14:58:15Z
+ - Fix test for negative integers
+ - Add more formats: date, double, float, int32 and int64
 
-0.06     Wed Dec 10 12:19:40 2014
-       * Fix t/jv-formats.t: Label not found for "last SKIP"
+0.06 2014-12-10T12:19:40Z
+ - Fix t/jv-formats.t: Label not found for "last SKIP"
 
-0.05     Tue Dec  9 22:01:31 2014
-       * Fix "Not an ARRAY reference at lib/Swagger2.pm line 356."
+0.05 2014-12-09T22:01:31Z
+ - Fix "Not an ARRAY reference at lib/Swagger2.pm line 356."
 
-0.04     Tue Dec  9 21:02:43 2014
-       * Add "formats" to Swagger2::SchemaValidator
+0.04 2014-12-09T21:02:43Z
+ - Add "formats" to Swagger2::SchemaValidator
 
-0.03     Tue Dec  9 15:36:04 2014
-       * Add Swagger2::validate()
-       * Add Swagger 2.0 schema
-       * Fix circular $ref when expanding a document
-       * Rewrote Swagger2::SchemaValidator to support draft 4
+0.03 2014-12-09T15:36:04Z
+ - Add Swagger2::validate()
+ - Add Swagger 2.0 schema
+ - Fix circular $ref when expanding a document
+ - Rewrote Swagger2::SchemaValidator to support draft 4
 
-0.02     Fri Dec  5 10:01:34 2014
-       * Add Swagger2::SchemaValidator
-       * Add Swagger2::expand()
-       * Add Mojolicious::Plugin::Swagger2
+0.02 2014-12-05T10:01:34Z
+ - Add Swagger2::SchemaValidator
+ - Add Swagger2::expand()
+ - Add Mojolicious::Plugin::Swagger2
 
-0.01     Thu Dec  4 14:01:27 2014
-       * Add load()
-       * Add pod() and Swagger2::POD
-       * Add to_string($format)
-       * Started project
+0.01 2014-12-04T14:01:27Z
+ - Add load()
+ - Add pod() and Swagger2::POD
+ - Add to_string($format)
+ - Started project
 
