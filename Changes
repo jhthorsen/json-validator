@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.30 Not Released
+0.30 2015-04-21T20:33:43+0200
  - Fix failing test with YAML 1.15 #12
 
 0.29 2015-04-09T09:52:40Z
