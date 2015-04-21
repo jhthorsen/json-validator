@@ -1,3 +1,4 @@
+---
 swagger: "2.0"
 info:
   version: 1.0.0
@@ -51,7 +52,7 @@ paths:
           description: unexpected error
           schema:
             $ref: Error
-  /pets/{petId}:
+  "/pets/{petId}":
     get:
       summary: Info for a specific pet
       operationId: showPetById
