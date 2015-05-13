@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.31 Not Released
+0.31 2015-05-13T12:42:39+0200
  - Change required Mojolicious verision to 5.54 #14
 
 0.30 2015-04-21T20:33:43+0200
