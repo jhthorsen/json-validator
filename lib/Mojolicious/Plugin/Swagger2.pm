@@ -316,7 +316,7 @@ sub _validate_input {
       : $in eq 'formData' ? $c->req->body_params->to_hash
       :                     "Invalid 'in' for parameter $name in schema definition";
 
-    if (defined $value or $p->{required}) {
+    if (defined $value or Swagger2::SchemaValidator::_is_true($p->{required})) {
       my $type = $p->{type} || 'object';
       $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
       $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';

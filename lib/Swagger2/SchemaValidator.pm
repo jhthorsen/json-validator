@@ -117,6 +117,12 @@ sub _is_number {
   return $_[0] eq unpack $_[1], pack $_[1], $_[0];
 }
 
+sub _is_true {
+  return $_[0] if ref $_[0] and !Scalar::Util::blessed($_[0]);
+  return 0 if !$_[0] or $_[0] =~ /^(n|false|off)/i;
+  return 1;
+}
+
 sub _path {
   local $_ = $_[1];
   s!~!~0!g;
@@ -271,7 +277,7 @@ sub _validate {
 
   if ($schema->{not}) {
     @errors = $self->_validate($data, $path, $schema->{not});
-    return E $path, "Should not match." unless @errors;
+    return @errors ? () : (E $path, "Should not match.");
   }
 
   for my $t (ref $type eq 'ARRAY' ? @$type : ($type)) {
@@ -410,7 +416,7 @@ sub _validate_properties {
     elsif ($required{$name}) {
       push @errors, E _path($path, $name), "Missing property.";
     }
-    elsif ($p->{required} and $p->{required} eq '1') {
+    elsif (_is_true($p->{required}) eq '1') {
       push @errors, E _path($path, $name), "Missing property.";
     }
   }
