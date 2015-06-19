@@ -1,6 +1,7 @@
 Revision history for perl distribution Swagger2
 
 0.33 Not Released
+ - Add Swagger2::Client #8
  - Fixed Mojolicious::Plugin::Swagger2 can use default values from schema #18
  - Started deprecating "controller" as plugin config
 

@@ -21,6 +21,9 @@ This distribution comes with a L<Mojolicious> plugin,
 L<Mojolicious::Plugin::Swagger2>, which can set up routes and perform input
 and output validation.
 
+It also comes with a L<Swagger2::Client> generator, which converts the client
+spec to perl code in memory.
+
 =head1 RECOMMENDED MODULES
 
 =over 4
