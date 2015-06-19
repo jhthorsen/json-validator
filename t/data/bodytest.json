@@ -8,6 +8,7 @@
   "paths" : {
     "/pets" : {
       "get" : {
+        "x-mojo-controller": "t::Api",
         "operationId" : "getPet",
         "parameters" : [],
         "responses" : {
@@ -24,6 +25,7 @@
         }
       },
       "post" : {
+        "x-mojo-controller": "t::Api",
         "operationId" : "addPet",
         "parameters" : [
           {

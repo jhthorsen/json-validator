@@ -8,6 +8,7 @@
   "paths" : {
     "/any-of" : {
       "get": {
+        "x-mojo-controller": "t::Api",
         "operationId" : "testAnyOf",
         "responses" : {
           "200": {
@@ -25,6 +26,7 @@
     },
     "/file-example": {
       "post": {
+        "x-mojo-controller": "t::Api",
         "operationId" : "testFile",
         "responses": {
           "200": {
@@ -63,6 +65,7 @@
           }
         ],
         "description" : "",
+        "x-mojo-controller": "t::Api",
         "operationId" : "addPet"
       }
     }

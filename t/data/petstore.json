@@ -22,6 +22,7 @@
   "paths": {
     "/pets": {
       "get": {
+        "x-mojo-controller": "t::Api",
         "tags": [ "pets" ],
         "summary": "finds pets in the system",
         "operationId": "listPets",
@@ -50,6 +51,7 @@
     },
     "/pets/{petId}": {
       "get": {
+        "x-mojo-controller": "t::Api",
         "tags": [ "pets" ],
         "summary": "Info for a specific pet",
         "operationId": "showPetById",

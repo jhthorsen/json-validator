@@ -16,6 +16,7 @@ produces:
 paths:
   /pets:
     get:
+      x-mojo-controller: "t::Api"
       summary: List all pets
       operationId: listPets
       tags:
@@ -41,6 +42,7 @@ paths:
           schema:
             $ref: Error
     post:
+      x-mojo-controller: "t::Api"
       summary: Create a pet
       operationId: createPets
       tags:
@@ -54,6 +56,7 @@ paths:
             $ref: Error
   "/pets/{petId}":
     get:
+      x-mojo-controller: "t::Api"
       summary: Info for a specific pet
       operationId: showPetById
       tags:
