@@ -250,8 +250,10 @@ sub register {
 sub _generate_request_handler {
   my ($self, $method, $config) = @_;
   my $controller = $config->{'x-mojo-controller'} || $self->{controller};    # back compat
+  my $defaults = {};
+  my $handler;
 
-  return sub {
+  $handler = sub {
     my $c = shift;
     my $method_ref;
 
@@ -291,6 +293,12 @@ sub _generate_request_handler {
       },
     );
   };
+
+  for my $p (@{$config->{parameters} || []}) {
+    $defaults->{$p->{name}} = $p->{default} if $p->{in} eq 'path' and defined $p->{default};
+  }
+
+  return $defaults, $handler;
 }
 
 sub _not_implemented {
@@ -315,6 +323,8 @@ sub _validate_input {
       : $in eq 'body'     ? $c->req->json
       : $in eq 'formData' ? $c->req->body_params->to_hash
       :                     "Invalid 'in' for parameter $name in schema definition";
+
+    $value //= $p->{default};
 
     if (defined $value or Swagger2::SchemaValidator::_is_true($p->{required})) {
       my $type = $p->{type} || 'object';

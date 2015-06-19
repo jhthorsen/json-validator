@@ -45,4 +45,9 @@ sub update_pet {
   $c->$cb($RES, $CODE);
 }
 
+sub with_defaults {
+  my ($c, $args, $cb) = @_;
+  $c->$cb({ip => $args->{ip}, x => $args->{x}});
+}
+
 1;

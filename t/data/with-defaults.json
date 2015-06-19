@@ -1,0 +1,37 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "Test _not_implemented() in plugin"
+  },
+  "paths" : {
+    "/ip/{ip}" : {
+      "get" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "WithDefaults",
+        "parameters" : [
+          {
+            "name": "ip",
+            "in": "path",
+            "type": "string",
+            "format": "ipv4",
+            "default": "1.2.3.4",
+            "x-mojo-placeholder": "#"
+          },
+          {
+            "name": "x",
+            "in": "query",
+            "type": "string",
+            "default": "xyz"
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "schema" : {
+              "object": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}

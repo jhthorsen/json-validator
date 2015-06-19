@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.33 Not Released
+ - Fixed Mojolicious::Plugin::Swagger2 can use default values from schema #18
+
 0.32 2015-06-17T15:34:32+0200
  - Allowing {n,no,false,off} as boolean false, #15
 
