@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.32
+    0.33
 
 DESCRIPTION
     THIS MODULE IS EXPERIMENTAL! ANY CHANGES CAN HAPPEN!
@@ -15,6 +15,9 @@ DESCRIPTION
     This distribution comes with a Mojolicious plugin,
     Mojolicious::Plugin::Swagger2, which can set up routes and perform input
     and output validation.
+
+    It also comes with a Swagger2::Client generator, which converts the
+    client spec to perl code in memory.
 
 RECOMMENDED MODULES
     *   YAML parser
