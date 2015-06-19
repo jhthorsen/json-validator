@@ -219,6 +219,10 @@ sub register {
   my $r = $config->{route} || $app->routes->any('/');
   my ($base_path, $paths, $swagger);
 
+  if ($config->{controller}) {
+    warn "Default 'controller' in Swagger2 plugin config is deprecated!";
+  }
+
   $self->url($config->{url} || die "'url' is required config parameter");
   $self->{controller} = $config->{controller};    # back compat
   $app->helper(render_swagger => \&render_swagger);

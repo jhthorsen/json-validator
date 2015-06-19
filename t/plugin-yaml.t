@@ -8,7 +8,7 @@ use t::Api;
 
 plan skip_all => 'Could not load YAML::Tiny' unless eval 'require YAML::Tiny;1';
 
-plugin Swagger2 => {controller => 't::Api', url => 't/data/petstore.yaml'};
+plugin Swagger2 => {url => 't/data/petstore.yaml'};
 
 # this test checks that "require: false" is indeed false
 

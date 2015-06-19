@@ -3,9 +3,8 @@ use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
 use Mojolicious::Lite;
-use t::Api;
 
-plugin Swagger2 => {controller => 't::Api', url => 't/data/boolean-in-url.json'};
+plugin Swagger2 => {url => 't/data/boolean-in-url.json'};
 
 my $t = Test::Mojo->new;
 $t->get_ok('/boolean-in-url/false?q1=true')->status_is(200);

@@ -9,7 +9,7 @@ my $json_file = 't/data/bodytest.json';
 
 {
   use Mojolicious::Lite;
-  plugin Swagger2 => {controller => 't::Api', url => $json_file};
+  plugin Swagger2 => {url => $json_file};
 }
 
 my $t = Test::Mojo->new;

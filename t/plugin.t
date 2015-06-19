@@ -5,7 +5,7 @@ use File::Spec::Functions;
 use Mojolicious::Lite;
 use t::Api;
 
-plugin Swagger2 => {controller => 't::Api', url => 't/data/petstore.json'};
+plugin Swagger2 => {url => 't/data/petstore.json'};
 
 my $t = Test::Mojo->new;
 ok $t->app->routes->lookup('list_pets'), 'add route list_pets';
