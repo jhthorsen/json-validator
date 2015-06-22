@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.34 Not Released
+ - Change order of YAML modules
+
 0.33 2015-06-19T22:04:15+0200
  - Add Swagger2::Client #8
  - Fixed Mojolicious::Plugin::Swagger2 can use default values from schema #18

@@ -64,7 +64,7 @@ our $VERSION = '0.33';
 # Should be considered internal
 our @SPEC_FILE = (File::Spec->splitdir(File::Basename::dirname(__FILE__)), 'Swagger2', 'schema.json');
 
-my @YAML_MODULES = qw( YAML::Tiny YAML YAML::Syck YAML::XS );
+my @YAML_MODULES = qw( YAML::XS YAML::Syck YAML::Tiny YAML );
 my $YAML_MODULE = $ENV{SWAGGER2_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::FALLBACK';
 
 sub Swagger2::FALLBACK::Dump { die "Need to install a YAML module: @YAML_MODULES"; }

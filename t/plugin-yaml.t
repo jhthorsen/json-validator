@@ -2,20 +2,39 @@ use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
-use Mojolicious::Lite;
-BEGIN { $ENV{SWAGGER2_YAML_MODULE} = 'YAML::Tiny' }
+use Mojolicious;
 use t::Api;
 
-plan skip_all => 'Could not load YAML::Tiny' unless eval 'require YAML::Tiny;1';
+my $n = 0;
 
-plugin Swagger2 => {url => 't/data/petstore.yaml'};
+# This test checks that "require: false" is indeed false
 
-# this test checks that "require: false" is indeed false
+for my $module (qw( YAML::XS YAML::Syck YAML::Tiny )) {
+  eval "require $module;1" or next;
+  local *Swagger2::LoadYAML = eval "\\\&$module\::Load";
+  $n++;
 
-my $t = Test::Mojo->new;
-ok $t->app->routes->lookup('list_pets'), 'add route list_pets';
+  diag join ' ', $module, $module->VERSION || 0;
 
-$t::Api::RES = [{id => 123, name => "kit-cat"}];
-$t->get_ok('/v1/pets')->status_is(200)->json_is('/0/id', 123)->json_is('/0/name', 'kit-cat');
+  if ($module eq 'YAML::Tiny' and $module->VERSION < 1.57) {
+    diag 'YAML::Tiny < 1.57 is not supported';
+    next;
+  }
+
+  my $app = Mojolicious->new;
+  unless (eval { $app->plugin(Swagger2 => {url => 't/data/petstore.yaml'}); 1 }) {
+    diag $@;
+    ok 0, "Could not load Swagger2 plugin using $module";
+    next;
+  }
+
+  my $t = Test::Mojo->new($app);
+  ok $t->app->routes->lookup('list_pets'), "add route list_pets with $module\::Load";
+
+  $t::Api::RES = [{id => 123, name => "kit-cat"}];
+  $t->get_ok('/v1/pets')->status_is(200)->json_is('/0/id', 123)->json_is('/0/name', 'kit-cat');
+}
+
+ok 1, 'no yaml modules available' unless $n;
 
 done_testing;
