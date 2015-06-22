@@ -20,7 +20,6 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 =cut
 
 use Mojo::Base 'Mojolicious::Command';
-use Scalar::Util 'looks_like_number';
 use Swagger2;
 
 my $app = __PACKAGE__;
@@ -80,6 +79,7 @@ sub _action_client {
   my ($self, $file, @args) = @_;
 
   unshift @args, $file if $ENV{SWAGGER_API_FILE};
+  $ENV{SWAGGER_COERCE_VALUES} //= 1;
 
   my $method   = shift @args;
   my $args     = {};
@@ -94,9 +94,9 @@ sub _action_client {
 
   for (@args) {
     return $self->_documentation_for($method) if $_ eq 'help';
-    $base_url = $args[$i + 1] if $_ eq '-b';
-    $args = Mojo::JSON::decode_json($args[0]) if /^\{/;
-    $args->{$1} = looks_like_number($2) ? $2 + 0 : $2 if /^(\w+)=(.*)/;
+    $base_url   = $args[$i + 1]                     if $_ eq '-b';
+    $args       = Mojo::JSON::decode_json($args[0]) if /^\{/;
+    $args->{$1} = $2                                if /^(\w+)=(.*)/;
     $i++;
   }
 

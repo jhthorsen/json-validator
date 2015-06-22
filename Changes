@@ -2,6 +2,7 @@ Revision history for perl distribution Swagger2
 
 0.35 Not Released
  - Add "mojo swagger2 client" command
+ - Add EXPERIMENTAL "coerce" attribute to Swagger2::SchemaValidator
 
 0.34 2015-06-22T10:13:44+0200
  - Change order of YAML modules

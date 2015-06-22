@@ -29,4 +29,8 @@ delete $schema->{properties}{nick}{pattern};
 @errors = $validator->validate({nick => 'Déjà vu'}, $schema);
 is "@errors", "", "unicode";
 
+$validator->coerce(1);
+@errors = $validator->validate({nick => 1000}, $schema);
+is "@errors", "", "coerced integer into string";
+
 done_testing;

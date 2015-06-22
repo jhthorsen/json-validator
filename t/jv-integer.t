@@ -30,5 +30,11 @@ $schema->{properties}{mynumber}{multipleOf} = 2;
 @errors = $validator->validate({mynumber => 3}, $schema);
 is "@errors", "/mynumber: Not multiple of 2.", "multipleOf";
 
-done_testing;
+$validator->coerce(1);
+@errors = $validator->validate({mynumber => "2"}, $schema);
+is "@errors", "", "coerced string into integer";
 
+@errors = $validator->validate({mynumber => "2xyz"}, $schema);
+is "@errors", "/mynumber: Expected integer - got string.", "a string";
+
+done_testing;

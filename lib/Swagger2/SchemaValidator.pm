@@ -148,6 +148,14 @@ my $URI_RFC3986_RE = qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))
 
 =head1 ATTRIBUTES
 
+=head2 coerce
+
+  $bool = $self->coerce;
+
+Set this to true if you want to coerce numbers into string and the other way around.
+
+This is EXPERIMENTAL and could be removed without notice!
+
 =head2 formats
 
   $hash_ref = $self->formats;
@@ -218,7 +226,7 @@ Validated against the RFC3986 spec.
 
 =cut
 
-has coerce => $ENV{SWAGGER_COERCE_VALUES} || 0;
+has coerce => $ENV{SWAGGER_COERCE_VALUES} || 0;    # EXPERIMENTAL!
 has formats => sub {
   +{
     'byte'      => \&_is_byte_string,
@@ -518,7 +526,8 @@ sub _validate_type_number {
     return E $path, _expected($expected => $value);
   }
   unless (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
-    return E $path, "Expected $expected - got string.";
+    return E $path, "Expected $expected - got string." if !$self->coerce or $value =~ /\D/;
+    $_[1] = 0 + $value;    # coerce input value
   }
 
   if ($schema->{format}) {
@@ -577,7 +586,8 @@ sub _validate_type_string {
     return E $path, _expected(string => $value);
   }
   if (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
-    return E $path, "Expected string - got number.";
+    return E $path, "Expected string - got number." unless $self->coerce;
+    $_[1] = "$value";    # coerce input value
   }
   if ($schema->{format}) {
     push @errors, $self->_validate_format($value, $path, $schema);
