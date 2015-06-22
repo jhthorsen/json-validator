@@ -167,7 +167,9 @@ sub _documentation_for {
 
   return unless $needle;
   require Pod::Simple;
-  Pod::Text->new->parse_string_document($pod->_paths_to_string);
+  my $pod_text = Pod::Text->new;
+  $pod_text->output_fh(\*STDOUT);
+  $pod_text->parse_string_document($pod->_paths_to_string);
 }
 
 sub _usage {
