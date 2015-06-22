@@ -10,6 +10,7 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 
 =head1 SYNOPSIS
 
+  $ mojo swagger2 client path/to/spec.json <method> [args]
   $ mojo swagger2 edit
   $ mojo swagger2 edit path/to/spec.json --listen http://*:5000
   $ mojo swagger2 pod path/to/spec.json
@@ -19,6 +20,7 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 =cut
 
 use Mojo::Base 'Mojolicious::Command';
+use Scalar::Util 'looks_like_number';
 use Swagger2;
 
 my $app = __PACKAGE__;
@@ -38,6 +40,9 @@ Returns usage of this command.
 has description => 'Interface with Swagger2.';
 has usage       => <<"HERE";
 Usage:
+
+  # Make a request to a Swagger server
+  @{[__PACKAGE__->_usage('client')]}
 
   # Edit an API file in your browser
   # This command also takes whatever option "morbo" takes
@@ -71,10 +76,40 @@ sub run {
   $self->$code(@_);
 }
 
+sub _action_client {
+  my ($self, $file, @args) = @_;
+
+  unshift @args, $file if $ENV{SWAGGER_API_FILE};
+
+  my $method   = shift @args;
+  my $args     = {};
+  my $base_url = $ENV{SWAGGER_BASE_URL};
+  my $i        = 0;
+
+  return print $self->_usage_client unless $ENV{SWAGGER_API_FILE} ||= $file;
+  return print $self->_documentation_for('') if !$method or $method =~ /\W/;
+
+  require Swagger2::Client;
+  my $client = Swagger2::Client->generate($ENV{SWAGGER_API_FILE});
+
+  for (@args) {
+    return $self->_documentation_for($method) if $_ eq 'help';
+    $base_url = $args[$i + 1] if $_ eq '-b';
+    $args = Mojo::JSON::decode_json($args[0]) if /^\{/;
+    $args->{$1} = looks_like_number($2) ? $2 + 0 : $2 if /^(\w+)=(.*)/;
+    $i++;
+  }
+
+  $client->base_url->parse($base_url) if $base_url;
+  my $res = $client->$method($args);
+  print $res->json ? dumper($res->json) : $res->body;
+}
+
 sub _action_edit {
   my ($self, $file, @args) = @_;
 
-  $ENV{SWAGGER_API_FILE} = $file || '';
+  unshift @args, $file if $ENV{SWAGGER_API_FILE};
+  $ENV{SWAGGER_API_FILE} ||= $file || '';
   $ENV{SWAGGER_LOAD_EDITOR} = 1;
   $file ||= __FILE__;
   require Swagger2::Editor;
@@ -115,13 +150,60 @@ sub _action_validate {
   }
 }
 
+sub _documentation_for {
+  my ($self, $needle) = @_;
+  my $pod = Swagger2->new($ENV{SWAGGER_API_FILE})->pod;
+  my $paths = $pod->{tree}->get('/paths') || {};
+
+  for my $path (sort keys %$paths) {
+    for my $method (sort keys %{$paths->{$path}}) {
+      my $operationId
+        = Mojo::Util::decamelize(ucfirst($paths->{$path}{$method}{operationId} || join ' ', $method, $path));
+      print "$operationId\n" unless $needle;
+      delete $paths->{$path}{$method} unless $operationId eq $needle;
+    }
+    delete $paths->{$path} unless %{$paths->{$path}};
+  }
+
+  return unless $needle;
+  require Pod::Simple;
+  Pod::Text->new->parse_string_document($pod->_paths_to_string);
+}
+
 sub _usage {
   my $self = shift;
-  return "Usage: mojo swagger2 edit"                       if $_[0] eq 'edit';
-  return "Usage: mojo swagger2 perldoc path/to/spec.json"  if $_[0] eq 'perldoc';
-  return "Usage: mojo swagger2 pod path/to/spec.json"      if $_[0] eq 'pod';
-  return "Usage: mojo swagger2 validate path/to/spec.json" if $_[0] eq 'validate';
+  return "Usage: mojo swagger2 edit"                                     if $_[0] eq 'edit';
+  return "Usage: mojo swagger2 perldoc path/to/spec.json"                if $_[0] eq 'perldoc';
+  return "Usage: mojo swagger2 pod path/to/spec.json"                    if $_[0] eq 'pod';
+  return "Usage: mojo swagger2 validate path/to/spec.json"               if $_[0] eq 'validate';
+  return "Usage: mojo swagger2 client path/to/spec.json <method> [args]" if $_[0] eq 'client';
   die "No usage for '@_'";
+}
+
+sub _usage_client {
+  my $self = shift;
+
+  return <<HERE;
+Usage:
+  # Call a method with arguments
+  mojo swagger2 client path/to/spec.json <method> [args]
+
+  # List methods
+  mojo swagger2 client path/to/spec.json
+
+  # Get documentation for a method
+  mojo swagger2 client path/to/spec.json <method> help
+
+  # Specifiy spec and/or base URL from environment.
+  # Useful for shell wrappers
+  SWAGGER_API_FILE=path/to/spec.json mojo swagger2 client <method>
+  SWAGGER_BASE_URL=https://example.com/1.0 mojo swagger2 client <method>
+
+  # Example arguments
+  mojo swagger2 client path/to/spec.json list_pets '{"limit":10}'
+  mojo swagger2 client path/to/spec.json list_pets limit=10 owner=joe
+  mojo swagger2 client path/to/spec.json -b https://example.com/1.0 list_pets limit=10 owner=joe
+HERE
 }
 
 =head1 COPYRIGHT AND LICENSE
