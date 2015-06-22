@@ -170,7 +170,7 @@ sub _generate_method {
     }
     else {
       my $tx = $self->ua->$http_method(@$req);
-      die join ': ', grep {defined} $tx->res->{message}, $tx->res->body if $tx->error;
+      die join ': ', grep {defined} $tx->error->{message}, $tx->res->body if $tx->error;
       return $tx->res;
     }
   };
