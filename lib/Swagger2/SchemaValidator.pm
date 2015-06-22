@@ -218,6 +218,7 @@ Validated against the RFC3986 spec.
 
 =cut
 
+has coerce => $ENV{SWAGGER_COERCE_VALUES} || 0;
 has formats => sub {
   +{
     'byte'      => \&_is_byte_string,
