@@ -39,7 +39,7 @@ eval { $client->add_pet };
 like $@, qr{^Invalid input: /data: Expected object - got null}, 'add_pet invalid input';
 
 $res = $client->add_pet({data => {name => 'm4'}});
-is $res->json->{name}, 'kit-cat', 'add_pet';
+is $res->json->{name}, 'm4', 'add_pet';
 
 # async
 $t::Api::RES = [{id => 123, name => "kit-cat"}];

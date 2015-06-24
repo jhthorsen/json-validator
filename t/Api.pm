@@ -37,6 +37,7 @@ sub get_pet {
 
 sub add_pet {
   my ($c, $args, $cb) = @_;
+  $RES->{name} = $args->{data}{name} if ref $args->{data} eq 'HASH';
   $c->$cb($RES, $CODE);
 }
 

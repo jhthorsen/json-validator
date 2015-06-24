@@ -215,7 +215,7 @@ sub _validate_request {
     }
     else {
       my $k = $in eq 'body' ? 'json' : $in eq 'formData' ? 'form' : $in;
-      $data{$k}{$name} = $value;
+      $data{$k} = $value;
     }
   }
 
