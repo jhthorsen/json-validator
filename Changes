@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.36 Not Released
+ - Updated swagger2 schema.json: Allow empty arrays for parameters
+
 0.35 2015-06-24T08:17:43+0200
  - Add "mojo swagger2 client" command
  - Add EXPERIMENTAL "coerce" attribute to Swagger2::SchemaValidator
