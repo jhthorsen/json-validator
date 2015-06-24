@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.35 Not Released
+0.35 2015-06-24T08:17:43+0200
  - Add "mojo swagger2 client" command
  - Add EXPERIMENTAL "coerce" attribute to Swagger2::SchemaValidator
 
