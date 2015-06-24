@@ -64,6 +64,7 @@ the swagger document:
 =cut
 
 use Mojo::Base -base;
+use Mojo::UserAgent;
 use Mojo::Util;
 use Swagger2;
 use Swagger2::SchemaValidator;
