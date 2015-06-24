@@ -197,7 +197,9 @@ sub _validate_request {
 
       if ($in eq 'body' or $in eq 'formData') {
         warn "[Swagger2::Client] Validate $in\n" if DEBUG;
-        push @e, map { $_->{path} = "/$name"; $_; } $self->_validator->validate($value, $p->{schema});
+        push @e,
+          map { $_->{path} = $_->{path} eq "/" ? "/$name" : "/$name$_->{path}"; $_; }
+          $self->_validator->validate($value, $p->{schema});
       }
       else {
         warn "[Swagger2::Client] Validate $in $name=$value\n" if DEBUG;
