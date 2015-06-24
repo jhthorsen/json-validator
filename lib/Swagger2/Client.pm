@@ -130,7 +130,7 @@ sub generate {
       $method =~ s![^\w]!_!g;
       $method = Mojo::Util::decamelize(ucfirst $method);
 
-      warn "[Swagger2] Add method $generated\::$method()\n" if DEBUG;
+      warn "[$generated] Add method $generated\::$method()\n" if DEBUG;
       Mojo::Util::monkey_patch($generated, $method => $generated->_generate_method(lc $http_method, $path, $config));
     }
   }
@@ -192,20 +192,19 @@ sub _validate_request {
       $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
 
       if ($in eq 'body' or $in eq 'formData') {
-        push @e, map { $_->{path} = "/$name$_->{path}"; $_; } $self->_validator->validate($value, $p->{schema});
-        next;
+        warn "[Swagger2::Client] Validate $in\n" if DEBUG;
+        push @e, map { $_->{path} = "/$name"; $_; } $self->_validator->validate($value, $p->{schema});
       }
       else {
+        warn "[Swagger2::Client] Validate $in $name=$value\n" if DEBUG;
         push @e, $self->_validator->validate({$name => $value}, {properties => {$name => $p}});
-        next;
       }
     }
 
     if (not defined $value) {
       next;
     }
-
-    if ($in eq 'query') {
+    elsif ($in eq 'query') {
       $query->param($name => $value);
     }
     elsif ($in eq 'file') {

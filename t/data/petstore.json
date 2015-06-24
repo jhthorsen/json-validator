@@ -47,6 +47,36 @@
             "schema": { "$ref": "#/definitions/Error" }
           }
         }
+      },
+      "post": {
+        "x-mojo-controller": "t::Api",
+        "tags": [ "pets" ],
+        "summary": "add pets to the system",
+        "operationId": "addPet",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "parameters": {
+                "name": { "type": "string" },
+                "tag": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "pet response",
+            "schema": { "$ref": "#/definitions/Pet" }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": { "$ref": "#/definitions/Error" }
+          }
+        }
       }
     },
     "/pets/{petId}": {
