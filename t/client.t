@@ -62,4 +62,13 @@ isa_ok($res, 'Mojo::Message::Response');
 is $res->json->{errors}[0]{message}, 'Expected integer - got string.', 'errors';
 is_deeply($err, ['Internal Server Error'], 'list_pets async invalid output');
 
+# with path
+$t::Api::RES = {id => 123, name => "kit-cat"};
+$client->show_pet_by_id(sub { (my $client, $err, $res) = @_; Mojo::IOLoop->stop });
+is_deeply($err, ['/petId: Expected integer - got null.'], 'show_pet_by_id async invalid input');
+
+$client->show_pet_by_id({petId => 42}, sub { (my $client, $err, $res) = @_; Mojo::IOLoop->stop });
+Mojo::IOLoop->start;
+is_deeply($res->json, {id => 42, name => "kit-cat"}, 'list_pets async ok');
+
 done_testing;

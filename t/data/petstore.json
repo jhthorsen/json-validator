@@ -80,7 +80,7 @@
       }
     },
     "/pets/{petId}": {
-      "get": {
+      "post": {
         "x-mojo-controller": "t::Api",
         "tags": [ "pets" ],
         "summary": "Info for a specific pet",
@@ -89,6 +89,7 @@
           {
             "name": "petId",
             "in": "path",
+            "required": true,
             "description": "The id of the pet to receive",
             "type": "integer"
           }

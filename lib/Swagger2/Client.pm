@@ -188,8 +188,11 @@ sub _validate_request {
 
     if (defined $value or Swagger2::SchemaValidator::_is_true($p->{required})) {
       my $type = $p->{type} || 'object';
-      $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
-      $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
+
+      if (defined $value) {
+        $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
+        $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
+      }
 
       if ($in eq 'body' or $in eq 'formData') {
         warn "[Swagger2::Client] Validate $in\n" if DEBUG;
@@ -213,9 +216,11 @@ sub _validate_request {
     elsif ($in eq 'header') {
       $req->[1]{$name} = $value;
     }
-    else {
-      my $k = $in eq 'body' ? 'json' : $in eq 'formData' ? 'form' : $in;
-      $data{$k} = $value;
+    elsif ($in eq 'body') {
+      $data{json} = $value;
+    }
+    elsif ($in eq 'formData') {
+      $data{form} = $value;
     }
   }
 

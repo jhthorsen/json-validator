@@ -26,9 +26,9 @@ $t->get_ok('/api/pets?limit=foo')->status_is(400)->json_is('/errors/0/path', '/l
   ->json_is('/errors/0/message', 'Expected integer - got string.')->json_is('/errors/1', undef);
 
 $t::Api::RES = {name => "kit-cat"};
-$t->get_ok('/api/pets/42')->status_is(200)->json_is('/id', 42)->json_is('/name', 'kit-cat');
+$t->post_ok('/api/pets/42')->status_is(200)->json_is('/id', 42)->json_is('/name', 'kit-cat');
 
-$t->get_ok('/api/pets/foo')->status_is(400)->json_is('/errors/0/path', '/petId')
+$t->post_ok('/api/pets/foo')->status_is(400)->json_is('/errors/0/path', '/petId')
   ->json_is('/errors/0/message', 'Expected integer - got string.')->json_is('/errors/1', undef);
 
 done_testing;
