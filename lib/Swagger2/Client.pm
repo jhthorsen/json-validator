@@ -68,6 +68,7 @@ use Mojo::UserAgent;
 use Mojo::Util;
 use Swagger2;
 use Swagger2::SchemaValidator;
+use Carp ();
 
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
@@ -150,7 +151,7 @@ sub _generate_method {
     my @e    = $self->_validate_request($args, $config, $req);
 
     if (@e) {
-      die 'Invalid input: ' . join ' ', @e unless $cb;
+      Carp::croak('Invalid input: ' . join ' ', @e) unless $cb;
       $self->$cb(\@e, undef);
       return $self;
     }
@@ -171,7 +172,7 @@ sub _generate_method {
     }
     else {
       my $tx = $self->ua->$http_method(@$req);
-      die join ': ', grep {defined} $tx->error->{message}, $tx->res->body if $tx->error;
+      Carp::croak(join ': ', grep {defined} $tx->error->{message}, $tx->res->body) if $tx->error;
       return $tx->res;
     }
   };
