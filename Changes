@@ -1,6 +1,7 @@
 Revision history for perl distribution Swagger2
 
 0.37 Not Released
+ - Remove EXPERIMENTAL from main Swagger2 module
  - Add example blog app
 
 0.36 Not Released
