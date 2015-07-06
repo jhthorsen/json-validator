@@ -15,11 +15,15 @@ L<swagger|http://swagger.io/> API documentation. It has support for reading
 swagger specification in JSON notation and it can also read YAML files,
 if a L</YAML parser> is installed.
 
+=head2 Mojolicious server side code generator
+
 This distribution comes with a L<Mojolicious> plugin,
 L<Mojolicious::Plugin::Swagger2>, which can set up routes and perform input
 and output validation.
 
-It also comes with a L<Swagger2::Client> generator, which converts the client
+=head2 Mojolicious client side code generator
+
+Swagger2 also comes with a L<Swagger2::Client> generator, which converts the client
 spec to perl code in memory.
 
 =head1 RECOMMENDED MODULES
