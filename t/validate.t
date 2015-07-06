@@ -1,8 +1,3 @@
-BEGIN {
-  use File::Spec;
-  $ENV{SWAGGER2_CACHE_DIR} = File::Spec->catdir(qw( t data cache ));
-}
-
 use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;

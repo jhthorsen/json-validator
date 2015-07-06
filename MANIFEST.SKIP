@@ -60,3 +60,4 @@
 ^local/
 ^MANIFEST\.SKIP
 ^README\.pod
+^lib/Swagger2/public/cache/2241a93918cd59d0fedf58ed73662455

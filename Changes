@@ -1,5 +1,9 @@
 Revision history for perl distribution Swagger2
 
+0.37 Not Released
+ - Bundle http://json-schema.org/draft-04/schema
+ - Bundle http://swagger.io/v2/schema.json
+
 0.36 2015-07-06T21:07:30+0200
  - Remove EXPERIMENTAL from main Swagger2 module
  - Fix POST JSON data with Swagger2::Client

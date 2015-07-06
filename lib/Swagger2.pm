@@ -58,8 +58,10 @@ use Mojo::URL;
 use Mojo::Util 'md5_sum';
 use File::Basename ();
 use File::Spec;
-use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR} || '';
-use constant DEBUG     => $ENV{SWAGGER2_DEBUG}     || 0;
+use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR}
+  || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( Swagger2 public cache ));
+
+use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
 our $VERSION = '0.36';
 
@@ -146,7 +148,7 @@ has tree => sub {
 
 has ua => sub {
   require Mojo::UserAgent;
-  Mojo::UserAgent->new;
+  Mojo::UserAgent->new(max_redirects => 3);
 };
 
 has _validator => sub {
@@ -227,12 +229,11 @@ but parse the text as JSON if it starts with "{".
 
 sub parse {
   my ($self, $doc) = @_;
-  my $type = $doc =~ /^\s*\{/s ? 'json' : 'yaml';
   my $namespace = 'http://127.0.0.1/#';
 
   delete $self->{base_url};
   $self->{url} = Mojo::URL->new($namespace);
-  $self->{tree} = $self->_parse($doc, $type, $namespace);
+  $self->{tree} = $self->_parse($doc, undef, $namespace);
   $self;
 }
 
@@ -344,9 +345,8 @@ sub _expand {
 
 sub _load {
   my ($self, $url) = @_;
-  my $namespace = $url->clone->fragment('');
+  my $namespace = $url->clone->fragment(undef);
   my $scheme = $url->scheme || 'file';
-  my ($doc, $type);
 
   # already loaded into memory
   if ($self->{loaded}{$namespace}) {
@@ -354,29 +354,25 @@ sub _load {
   }
 
   # try to read processed spec from file cache
-  if (CACHE_DIR) {
-    my $file = File::Spec->catfile(CACHE_DIR, md5_sum $namespace);
-    if (-e $file) {
-      $doc  = Mojo::Util::slurp($file);
-      $type = 'json';
-    }
-  }
+  my $file = File::Spec->catfile(CACHE_DIR, md5_sum $namespace);
+  my $doc = -r $file ? Mojo::Util::slurp($file) : '';
+  my $type;
 
   # load spec from disk or web
-  if (!CACHE_DIR or !$doc) {
+  if (!$doc) {
     if ($scheme eq 'file') {
+      warn "[Swagger2] Loading $namespace ($url)\n" if DEBUG;
       $doc = Mojo::Util::slurp(File::Spec->catfile(split '/', $url->path));
       $type = lc $1 if $url->path =~ /\.(yaml|json)$/i;
     }
     else {
-      my $tx = $self->ua->get($url);
+      warn "[Swagger2] Fetching $namespace ($url)\n" if DEBUG;
+      my $tx = $self->ua->get($namespace);
       $doc  = $tx->res->body;
       $type = lc $1 if $url->path =~ /\.(\w+)$/;
       $type = lc $1 if +($tx->res->headers->content_type // '') =~ /(json|yaml)/i;
-      Mojo::Util::spurt($doc, File::Spec->catfile(CACHE_DIR, md5_sum $namespace)) if CACHE_DIR;
+      Mojo::Util::spurt($doc, File::Spec->catfile(CACHE_DIR, md5_sum $namespace)) if CACHE_DIR and -w CACHE_DIR;
     }
-
-    $type ||= $doc =~ /^\s*{/s ? 'json' : 'yaml';
   }
 
   return $self->_parse($doc, $type, $namespace);
@@ -385,6 +381,7 @@ sub _load {
 sub _parse {
   my ($self, $doc, $type, $namespace) = @_;
 
+  $type ||= $doc =~ /^\s*\{/s ? 'json' : 'yaml';
   warn "[Swagger2] Register $namespace ($type)\n" if DEBUG;
 
   # parse the document
