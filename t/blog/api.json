@@ -1,0 +1,139 @@
+{
+  "swagger": "2.0",
+  "info": { "description": "Blog example" },
+  "consumes": [ "application/json" ],
+  "produces": [ "application/json" ],
+  "schemes": [ "http" ],
+  "basePath": "/api",
+  "paths": {
+    "/posts": {
+      "get": {
+        "x-mojo-controller": "Blog::Controller::Posts",
+        "operationId": "index",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Entry" }
+            }
+          },
+          "default": {
+            "description": "Error.",
+            "schema": { "$ref": "#/definitions/Error" }
+          }
+        }
+      },
+      "post": {
+        "x-mojo-controller": "Blog::Controller::Posts",
+        "operationId": "store",
+        "parameters": [
+          { "$ref": "#/parameters/entry" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": { "$ref": "#/definitions/Void" }
+          },
+          "default": {
+            "description": "Error.",
+            "schema": { "$ref": "#/definitions/Error" }
+          }
+        }
+      }
+    },
+    "/posts/{id}": {
+      "get": {
+        "x-mojo-controller": "Blog::Controller::Posts",
+        "operationId": "show",
+        "parameters": [
+          { "$ref": "#/parameters/entry_id" }
+        ],
+        "responses": {
+          "200": {
+            "schema": { "$ref": "#/definitions/Entry" }
+          },
+          "default": {
+            "description": "Error.",
+            "schema": { "$ref": "#/definitions/Error" }
+          }
+        }
+      },
+      "put": {
+        "x-mojo-controller": "Blog::Controller::Posts",
+        "operationId": "update",
+        "parameters": [
+          { "$ref": "#/parameters/entry_id" },
+          { "$ref": "#/parameters/entry" }
+        ],
+        "responses": {
+          "200": {
+            "schema": { "$ref": "#/definitions/Void" }
+          },
+          "default": {
+            "description": "Error.",
+            "schema": { "$ref": "#/definitions/Error" }
+          }
+        }
+      },
+      "delete": {
+        "x-mojo-controller": "Blog::Controller::Posts",
+        "operationId": "remove",
+        "parameters": [
+          { "$ref": "#/parameters/entry_id" }
+        ],
+        "responses": {
+          "200": {
+            "schema": { "$ref": "#/definitions/Void" }
+          },
+          "default": {
+            "description": "Error.",
+            "schema": { "$ref": "#/definitions/Error" }
+          }
+        }
+      }
+    }
+  },
+  "parameters": {
+    "entry": {
+      "name": "entry",
+      "in": "body",
+      "required": "true",
+      "schema": {
+        "$ref": "#/definitions/Entry"
+      },
+      "description": "A blog post"
+    },
+    "entry_id": {
+      "name": "id",
+      "in": "path",
+      "required": "true",
+      "type": "integer",
+      "description": "A blog id"
+    }
+  },
+  "definitions": {
+    "Entry": {
+      "required": [ "body", "title" ],
+      "properties": {
+        "body": { "type": "string", "required": true },
+        "title": { "type": "string", "required": true }
+      }
+    },
+    "Error": {
+      "required": [ "message", "path" ],
+      "properties": {
+        "errors": {
+          "type": "array",
+          "items": {
+            "message": { "type": "string" },
+            "path": { "type": "string" }
+          }
+        }
+      }
+    },
+    "Void": {
+      "properties": {}
+    }
+  }
+}

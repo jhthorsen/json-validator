@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.37 Not Released
+ - Add example blog app
+
 0.36 Not Released
  - Fix POST JSON data with Swagger2::Client
  - Updated swagger2 schema.json: Allow empty arrays for parameters

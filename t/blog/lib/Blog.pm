@@ -4,22 +4,40 @@ use Mojo::Base 'Mojolicious';
 use Blog::Model::Posts;
 use Mojo::Pg;
 
+$ENV{BLOG_PG_URL} ||= 'postgresql://postgres@/test';
+
 sub startup {
   my $self = shift;
 
   # Configuration
-  $self->plugin('Config');
-  $self->secrets($self->config('secrets'));
+  $self->secrets([split /:/, $ENV{BLOG_SECRETS} || 'super:s3cret']);
 
   # Model
-  $self->helper(pg => sub { state $pg = Mojo::Pg->new(shift->config('pg')) });
+  $self->helper(pg => sub { state $pg = Mojo::Pg->new($ENV{BLOG_PG_URL}) });
   $self->helper(posts => sub { state $posts = Blog::Model::Posts->new(pg => shift->pg) });
 
   # Migrate to latest version if necessary
   my $path = $self->home->rel_file('migrations/blog.sql');
   $self->pg->migrations->name('blog')->from_file($path)->migrate;
 
-  # Controller
+  # Swagger API endpoints
+  #/                    *
+  #  +/api/posts        POST    "store"
+  #  +/api/posts        GET     "index"
+  #  +/api/posts/(:id)  PUT     "update"
+  #  +/api/posts/(:id)  DELETE  "remove"
+  #  +/api/posts/(:id)  GET     "show"
+  $self->plugin(swagger2 => {url => $self->home->rel_file('api.json')});
+
+  # Regular web pages
+  # /                GET
+  # /posts           GET     posts
+  # /posts/create    GET     "create_post"
+  # /posts           POST    "store_post"
+  # /posts/:id       GET     "show_post"
+  # /posts/:id/edit  GET     "edit_post"
+  # /posts/:id       PUT     "update_post"
+  # /posts/:id       DELETE  "remove_post"
   my $r = $self->routes;
   $r->get('/' => sub { shift->redirect_to('posts') });
   $r->get('/posts')->to('posts#index');
