@@ -277,7 +277,7 @@ sub _generate_request_handler {
 
   $handler = sub {
     my $c = shift;
-    my $method_ref;
+    my ($method_ref, $v, $input);
 
     unless (eval "require $controller;1") {
       $c->app->log->error($@);
@@ -294,15 +294,11 @@ sub _generate_request_handler {
     }
 
     bless $c, $controller;    # ugly hack?
+    ($v, $input) = $self->_validate_input($c, $config);
 
-    $c->delay(
-      sub {
-        my ($delay) = @_;
-        my ($v, $input) = $self->_validate_input($c, $config);
-
-        return $c->render_swagger($v, {}, 400) unless $v->{valid};
-        return $c->$method_ref($input, $delay->begin);
-      },
+    return $c->render_swagger($v, {}, 400) unless $v->{valid};
+    return $c->delay(
+      sub { $c->$method_ref($input, shift->begin); },
       sub {
         my $delay  = shift;
         my $data   = shift;
