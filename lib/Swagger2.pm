@@ -228,10 +228,10 @@ but parse the text as JSON if it starts with "{".
 =cut
 
 sub parse {
-  my ($self, $doc) = @_;
-  my $namespace = 'http://127.0.0.1/#';
+  my ($self, $doc, $namespace) = @_;
 
   delete $self->{base_url};
+  $namespace ||= 'http://127.0.0.1/#';
   $self->{url} = Mojo::URL->new($namespace);
   $self->{tree} = $self->_parse($doc, undef, $namespace);
   $self;

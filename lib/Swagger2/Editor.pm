@@ -86,12 +86,11 @@ Used to set up the L</ROUTES>.
 
 sub startup {
   my $self = shift;
+  my $raw  = '';
 
   if (my $file = $self->specification_file) {
-    my $api_url = Mojo::URL->new;
-    $api_url->path->parts([File::Spec->splitdir($file)]);
-    $self->_swagger->load($api_url);
-    $self->defaults(raw => Mojo::Util::slurp($file));
+    $raw = $file =~ /^https?:/ ? $self->ua->get($file)->res->body : Mojo::Util::slurp($file);
+    $self->_swagger->parse($raw, $file);
   }
 
   unshift @{$self->renderer->classes}, __PACKAGE__;
@@ -99,7 +98,7 @@ sub startup {
 
   $self->routes->get('/' => \&_get);
   $self->routes->post('/' => \&_post);
-  $self->defaults(swagger => $self->_swagger, layout => 'default');
+  $self->defaults(raw => $raw, swagger => $self->_swagger, layout => 'default');
   $self->plugin('PODRenderer');
   $self->helper(podify => \&_podify);
 }
