@@ -10,12 +10,24 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 
 =head1 SYNOPSIS
 
-  $ mojo swagger2 client path/to/spec.json <method> [args]
-  $ mojo swagger2 edit
-  $ mojo swagger2 edit path/to/spec.json --listen http://*:5000
-  $ mojo swagger2 pod path/to/spec.json
-  $ mojo swagger2 perldoc path/to/spec.json
-  $ mojo swagger2 validate path/to/spec.json
+  # Call a method with arguments
+  mojo swagger2 client path/to/spec.json <method> [args]
+
+  # List methods
+  mojo swagger2 client path/to/spec.json
+
+  # Get documentation for a method
+  mojo swagger2 client path/to/spec.json <method> help
+
+  # Specifiy spec and/or base URL from environment.
+  # Useful for shell wrappers
+  SWAGGER_API_FILE=path/to/spec.json mojo swagger2 client <method>
+  SWAGGER_BASE_URL=https://example.com/1.0 mojo swagger2 client <method>
+
+  # Example arguments
+  mojo swagger2 client path/to/spec.json list_pets '{"limit":10}'
+  mojo swagger2 client path/to/spec.json list_pets limit=10 owner=joe
+  mojo swagger2 client path/to/spec.json -b https://example.com/1.0 list_pets limit=10 owner=joe
 
 =cut
 

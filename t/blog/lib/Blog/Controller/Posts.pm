@@ -37,8 +37,8 @@ sub show {
 
   if ($cb) {           # Swagger2 request
     my $entry = $self->posts->find($args->{id});
-    return $self->$cb({errors => [{message => 'Blog post not found.', path => '/id'}]}, 404) unless $entry;
-    return $self->$cb($entry, 200);
+    return $self->$cb($entry, 200) if $entry;
+    return $self->$cb({errors => [{message => 'Blog post not found.', path => '/id'}]}, 404);
   }
   else {               # Web request
     $self->render(post => $self->posts->find($self->param('id')));

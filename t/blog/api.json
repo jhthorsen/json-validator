@@ -3,6 +3,7 @@
   "info": { "description": "Blog example" },
   "consumes": [ "application/json" ],
   "produces": [ "application/json" ],
+  "host": "localhost",
   "schemes": [ "http" ],
   "basePath": "/api",
   "paths": {
