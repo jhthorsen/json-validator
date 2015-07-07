@@ -6,7 +6,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 =head1 VERSION
 
-0.37
+0.38
 
 =head1 DESCRIPTION
 
@@ -63,7 +63,7 @@ use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR}
 
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
-our $VERSION = '0.37';
+our $VERSION = '0.38';
 
 # Should be considered internal
 our @SPEC_FILE = (File::Spec->splitdir(File::Basename::dirname(__FILE__)), 'Swagger2', 'schema.json');

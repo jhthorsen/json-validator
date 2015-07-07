@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.38 Not Released
+0.38 2015-07-07T09:48:13+0200
  - Will use "basePath" in root API route
  - Swagger2::Editor can load specifications over HTTP
 
