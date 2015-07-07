@@ -345,7 +345,7 @@ sub _expand {
 
 sub _load {
   my ($self, $url) = @_;
-  my $namespace = $url->clone->fragment(undef);
+  my $namespace = $url->clone->fragment(undef)->port(undef);
   my $scheme = $url->scheme || 'file';
 
   # already loaded into memory
@@ -361,13 +361,13 @@ sub _load {
   # load spec from disk or web
   if (!$doc) {
     if ($scheme eq 'file') {
-      warn "[Swagger2] Loading $namespace ($url)\n" if DEBUG;
+      warn "[Swagger2] Loading $url ($namespace)\n" if DEBUG;
       $doc = Mojo::Util::slurp(File::Spec->catfile(split '/', $url->path));
       $type = lc $1 if $url->path =~ /\.(yaml|json)$/i;
     }
     else {
-      warn "[Swagger2] Fetching $namespace ($url)\n" if DEBUG;
-      my $tx = $self->ua->get($namespace);
+      warn "[Swagger2] Fetching $url ($namespace)\n" if DEBUG;
+      my $tx = $self->ua->get($url);
       $doc  = $tx->res->body;
       $type = lc $1 if $url->path =~ /\.(\w+)$/;
       $type = lc $1 if +($tx->res->headers->content_type // '') =~ /(json|yaml)/i;
