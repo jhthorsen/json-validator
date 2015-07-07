@@ -21,12 +21,12 @@ sub startup {
   $self->pg->migrations->name('blog')->from_file($path)->migrate;
 
   # Swagger API endpoints
-  #/                    *
-  #  +/api/posts        POST    "store"
-  #  +/api/posts        GET     "index"
-  #  +/api/posts/(:id)  PUT     "update"
-  #  +/api/posts/(:id)  DELETE  "remove"
-  #  +/api/posts/(:id)  GET     "show"
+  # /api             *       api
+  #   +/posts        POST    "store"
+  #   +/posts        GET     "index"
+  #   +/posts/(:id)  PUT     "update"
+  #   +/posts/(:id)  DELETE  "remove"
+  #   +/posts/(:id)  GET     "show"
   $self->plugin(swagger2 => {url => $self->home->rel_file('api.json')});
 
   # Regular web pages

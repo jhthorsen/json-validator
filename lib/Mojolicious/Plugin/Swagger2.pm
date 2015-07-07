@@ -232,8 +232,7 @@ application.
 
 sub register {
   my ($self, $app, $config) = @_;
-  my $r = $config->{route} || $app->routes->any('/');
-  my ($base_path, $paths, $swagger);
+  my ($paths, $r, $swagger);
 
   if ($config->{controller}) {
     warn "Default 'controller' in Swagger2 plugin config is deprecated!";
@@ -243,14 +242,17 @@ sub register {
   $self->{controller} = $config->{controller};    # back compat
   $app->helper(render_swagger => \&render_swagger);
 
-  $swagger   = Swagger2->new->load($self->url)->expand;
-  $base_path = $swagger->base_url->path;
-  $paths     = $swagger->tree->get('/paths') || {};
+  $swagger = Swagger2->new->load($self->url)->expand;
+  $paths = $swagger->tree->get('/paths') || {};
+
+  $r = $config->{route};
+  $r = $r->any($swagger->base_url->path->to_string) if $r and !$r->pattern->unparsed;
+  $r ||= $app->routes->any($swagger->base_url->path->to_string);
 
   for my $path (keys %$paths) {
     for my $http_method (keys %{$paths->{$path}}) {
       my $info       = $paths->{$path}{$http_method};
-      my $route_path = '/' . join '/', grep {$_} @$base_path, split '/', $path;
+      my $route_path = $path;
       my %parameters = map { ($_->{name}, $_) } @{$info->{parameters} || []};
 
       $route_path =~ s/{([^}]+)}/{
