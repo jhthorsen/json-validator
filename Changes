@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.40 Not Released
+ - Fix "&Digest::MD5::md5_hex function called with reference argument"
+
 0.39 2015-07-08T10:33:02+0200
  - Allow negative integers in query string
 

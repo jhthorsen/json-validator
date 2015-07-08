@@ -354,7 +354,7 @@ sub _load {
   }
 
   # try to read processed spec from file cache
-  my $file = File::Spec->catfile(CACHE_DIR, md5_sum $namespace);
+  my $file = File::Spec->catfile(CACHE_DIR, md5_sum($namespace->to_string));
   my $doc = -r $file ? Mojo::Util::slurp($file) : '';
   my $type;
 
@@ -371,7 +371,8 @@ sub _load {
       $doc  = $tx->res->body;
       $type = lc $1 if $url->path =~ /\.(\w+)$/;
       $type = lc $1 if +($tx->res->headers->content_type // '') =~ /(json|yaml)/i;
-      Mojo::Util::spurt($doc, File::Spec->catfile(CACHE_DIR, md5_sum $namespace)) if CACHE_DIR and -w CACHE_DIR;
+      Mojo::Util::spurt($doc, File::Spec->catfile(CACHE_DIR, md5_sum($namespace->to_string)))
+        if CACHE_DIR and -w CACHE_DIR;
     }
   }
 

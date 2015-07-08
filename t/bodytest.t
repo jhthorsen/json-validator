@@ -5,12 +5,8 @@ use Test::Warnings;
 use File::Spec::Functions;
 use t::Api;
 
-my $json_file = 't/data/bodytest.json';
-
-{
-  use Mojolicious::Lite;
-  plugin Swagger2 => {url => $json_file};
-}
+use Mojolicious::Lite;
+plugin Swagger2 => {url => 't/data/bodytest.json'};
 
 my $t = Test::Mojo->new;
 ok $t->app->routes->lookup('add_pet'), 'add route add_pet';
