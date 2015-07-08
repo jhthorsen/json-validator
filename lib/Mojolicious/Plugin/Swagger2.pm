@@ -346,7 +346,7 @@ sub _validate_input {
 
     if (defined $value or Swagger2::SchemaValidator::_is_true($p->{required})) {
       my $type = $p->{type} || 'object';
-      $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
+      $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^-?\d/;
       $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
 
       if ($in eq 'body' or $in eq 'formData') {

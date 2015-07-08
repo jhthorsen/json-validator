@@ -25,6 +25,9 @@ $t::Api::RES = [{id => 123, name => "kit-cat"}];
 $t->get_ok('/api/pets?limit=foo')->status_is(400)->json_is('/errors/0/path', '/limit')
   ->json_is('/errors/0/message', 'Expected integer - got string.')->json_is('/errors/1', undef);
 
+# Allow negative integers in query string
+$t->get_ok('/api/pets?limit=-100')->status_is(200);
+
 $t::Api::RES = {name => "kit-cat"};
 $t->post_ok('/api/pets/42')->status_is(200)->json_is('/id', 42)->json_is('/name', 'kit-cat');
 
