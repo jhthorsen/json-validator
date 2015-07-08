@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.39 Not Released
+0.39 2015-07-08T10:33:02+0200
  - Allow negative integers in query string
 
 0.38 2015-07-07T09:48:13+0200
