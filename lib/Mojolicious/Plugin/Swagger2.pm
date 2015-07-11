@@ -303,8 +303,11 @@ sub _generate_request_handler {
         my $delay  = shift;
         my $data   = shift;
         my $status = shift || 200;
-        my $format = $config->{responses}{$status} || $config->{responses}{default} || {};
-        my @err    = $self->_validator->validate($data, $format->{schema});
+        my $format = $config->{responses}{$status} || $config->{responses}{default} || undef;
+        my @err
+          = !$format          ? $self->_validator->validate($data, undef)
+          : $format->{schema} ? $self->_validator->validate($data, $format->{schema})
+          :                     ();
 
         return $c->render_swagger({errors => \@err, valid => Mojo::JSON->false}, $data, 500) if @err;
         return $c->render_swagger({}, $data, $status);
