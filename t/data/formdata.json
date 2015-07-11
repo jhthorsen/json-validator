@@ -1,0 +1,29 @@
+{
+  "swagger" : "2.0",
+  "info" : { "description" : "Test API for body parameters" },
+  "consumes" : [ "application/json" ],
+  "produces" : [ "application/json" ],
+  "schemes" : [ "http" ],
+  "basePath" : "/api",
+  "paths" : {
+    "/pets" : {
+      "post" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "addPet",
+        "parameters" : [
+          { "name" : "name", "type" : "string", "in" : "formData", "required": true },
+          { "name" : "id", "type" : "integer", "in" : "formData", "required": true }
+        ],
+        "responses" : {
+          "200": {
+            "description": "pet response",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Pet" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

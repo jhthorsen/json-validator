@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.42 Not Released
+ - Fix parsing formData
+
 0.41 2015-07-11T12:25:55+0200
  - Fix loading swagger spec from editor on Windows
  - Bump Mojolicous requirement to 6.00
