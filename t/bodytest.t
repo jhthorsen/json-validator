@@ -47,4 +47,8 @@ $t::Api::CODE = 204;
 $t->post_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(500)->json_is('/valid', 0)
   ->json_is('/errors/0/path', '/')->json_is('/errors/0/message', 'No validation rules defined.');
 
+# empty document
+$t::Api::CODE = 201;
+$t->get_ok('/api/pets')->status_is(201)->content_is('');
+
 done_testing;

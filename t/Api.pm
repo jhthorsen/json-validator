@@ -32,7 +32,8 @@ sub show_pet_by_id {
 
 sub get_pet {
   my ($c, $args, $cb) = @_;
-  $c->$cb($RES, $CODE);
+  return $c->$cb('', 201) if $CODE eq '201';
+  return $c->$cb($RES, $CODE);
 }
 
 sub add_pet {

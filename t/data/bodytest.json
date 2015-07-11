@@ -21,6 +21,12 @@
                 }
               }
             }
+          },
+          "201": {
+            "description": "empty body.",
+            "schema": {
+              "type": "file"
+            }
           }
         }
       },
