@@ -89,7 +89,10 @@ sub startup {
   my $raw  = '';
 
   if (my $file = $self->specification_file) {
-    $raw = $file =~ /^https?:/ ? $self->ua->get($file)->res->body : Mojo::Util::slurp($file);
+    $raw
+      = $file =~ /^https?:/
+      ? $self->ua->get($file)->res->body
+      : Mojo::Util::slurp(File::Spec->catfile(split '/', $file));
     $self->_swagger->parse($raw, $file);
   }
 

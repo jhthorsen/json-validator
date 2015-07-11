@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.41 Not Released
+ - Fix loading swagger spec from editor on Windows
+
 0.40 2015-07-08T10:47:39+0200
  - Fix "&Digest::MD5::md5_hex function called with reference argument"
 
