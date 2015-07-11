@@ -1,7 +1,8 @@
 Revision history for perl distribution Swagger2
 
-0.42 Not Released
+0.42 2015-07-11T22:02:27+0200
  - Fix parsing formData
+ - Add support for no content in response
 
 0.41 2015-07-11T12:25:55+0200
  - Fix loading swagger spec from editor on Windows
