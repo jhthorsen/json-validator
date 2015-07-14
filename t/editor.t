@@ -1,10 +1,9 @@
 use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
-use File::Spec::Functions 'catfile';
 
 $ENV{MOJO_APP_LOADER}  = 1;
-$ENV{SWAGGER_API_FILE} = catfile qw( t data petstore.json );
+$ENV{SWAGGER_API_FILE} = 't/data/petstore.json';
 my $t = Test::Mojo->new('Swagger2::Editor');
 
 $t->get_ok('/')->status_is(200)->text_is('title', 'Swagger2 - Editor')->element_exists('#editor')

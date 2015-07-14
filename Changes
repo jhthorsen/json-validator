@@ -1,11 +1,14 @@
 Revision history for perl distribution Swagger2
 
+0.43 2015-07-14T17:36:07+0200
+ - Fix loading swagger spec from editor on Windows
+
 0.42 2015-07-11T22:02:27+0200
  - Fix parsing formData
  - Add support for no content in response
 
 0.41 2015-07-11T12:25:55+0200
- - Fix loading swagger spec from editor on Windows
+ - Fix loading swagger spec from editor on Windows (failed)
  - Bump Mojolicous requirement to 6.00
 
 0.40 2015-07-08T10:47:39+0200
