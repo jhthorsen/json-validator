@@ -1,5 +1,9 @@
 Revision history for perl distribution Swagger2
 
+0.44 Not Released
+ - Updated schema.json
+   https://twitter.com/SwaggerApi/status/627128354827862016
+
 0.43 2015-07-14T17:36:07+0200
  - Fix loading swagger spec from editor on Windows
 
