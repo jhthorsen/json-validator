@@ -4,6 +4,12 @@ use Mojo::Base 'Mojolicious::Controller';
 our $RES  = {};
 our $CODE = 200;
 
+sub authenticate {
+  my ($next, $c, $config) = @_;
+  return $next->($c) if $CODE eq '200';
+  return $c->render(json => $config, status => $CODE);
+}
+
 sub test_file {
   my ($c, $args, $cb) = @_;
   $c->$cb('dummy data');
