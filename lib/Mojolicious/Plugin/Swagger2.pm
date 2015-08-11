@@ -150,6 +150,18 @@ L</Swagger specification>, C<MyApp::authenticate_api_request>:
 
 This feature is EXPERIMENTAL and can change without notice.
 
+=head2 Stash variables
+
+=head3 swagger
+
+The L<Swagger2> object used to generate the routes is available
+as C<swagger> from L<stash|Mojolicious/stash>. Example code:
+
+  sub documentation {
+    my ($c, $args, $cb);
+    $c->$cb($c->stash('swagger')->pod->to_string, 200);
+  }
+
 =cut
 
 use Mojo::Base 'Mojolicious::Plugin';
@@ -302,8 +314,15 @@ sub register {
   $app->helper(render_swagger => \&render_swagger) unless $app->renderer->get_helper('render_swagger');
 
   $r = $config->{route};
-  $r = $r->any($swagger->base_url->path->to_string) if $r and !$r->pattern->unparsed;
-  $r = $app->routes->any($swagger->base_url->path->to_string) unless $r;
+
+  if ($r and !$r->pattern->unparsed) {
+    $r->to(swagger => $swagger);
+    $r = $r->any($swagger->base_url->path->to_string);
+  }
+  if (!$r) {
+    $r = $app->routes->any($swagger->base_url->path->to_string);
+    $r->to(swagger => $swagger);
+  }
 
   for my $path (keys %$paths) {
     for my $http_method (keys %{$paths->{$path}}) {

@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.47 Not Released
+ - Add "swagger" as default stash() value
+
 0.46 2015-08-11T16:35:04+0200
  - Add support for giving an Swagger2 object to the plugin
  - Add support for "collectionFormat" (PARTIAL) #17

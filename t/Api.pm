@@ -12,7 +12,7 @@ sub authenticate {
 
 sub test_file {
   my ($c, $args, $cb) = @_;
-  $c->$cb('dummy data');
+  $c->$cb($c->stash('swagger')->pod->to_string, 200);
 }
 
 sub boolean_in_url {
