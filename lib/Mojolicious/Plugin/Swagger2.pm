@@ -148,6 +148,8 @@ L</Swagger specification>, C<MyApp::authenticate_api_request>:
     );
   }
 
+This feature is EXPERIMENTAL and can change without notice.
+
 =cut
 
 use Mojo::Base 'Mojolicious::Plugin';
