@@ -2,7 +2,7 @@ Revision history for perl distribution Swagger2
 
 0.46 2015-08-11T16:35:04+0200
  - Add support for giving an Swagger2 object to the plugin
- - Add support for "collectionFormat" (PARTIAL)
+ - Add support for "collectionFormat" (PARTIAL) #17
  - Deprecated passing "controller" as argument to plugin
  - Remove warning about helpers defined twice #21
 
