@@ -294,16 +294,11 @@ sub register {
   my ($self, $app, $config) = @_;
   my ($paths, $r, $swagger);
 
-  if ($config->{controller}) {
-    warn "Default 'controller' in Swagger2 plugin config is deprecated!";
-  }
-
   $swagger = $config->{swagger} || Swagger2->new->load($config->{url} || '"url" is missing');
   $swagger = $swagger->expand;
   $paths   = $swagger->tree->get('/paths') || {};
 
   $self->url($swagger->url);
-  $self->{controller} = $config->{controller};    # back compat
   $app->helper(render_swagger => \&render_swagger);
 
   $r = $config->{route};
@@ -332,7 +327,7 @@ sub register {
 
 sub _generate_request_handler {
   my ($self, $method, $config) = @_;
-  my $controller = $config->{'x-mojo-controller'} || $self->{controller};    # back compat
+  my $controller = $config->{'x-mojo-controller'} or _die($config, "x-mojo-controller is missing in the swagger spec");
   my $defaults = {};
   my $handler;
 
@@ -445,6 +440,10 @@ sub _validate_input {
 
   $v{valid} = @{$v{errors} || []} ? Mojo::JSON->false : Mojo::JSON->true;
   return \%v, \%input;
+}
+
+sub _die {
+  die "$_[1]: ", Mojo::Util::dumper($_[0]);
 }
 
 =head1 COPYRIGHT AND LICENSE
