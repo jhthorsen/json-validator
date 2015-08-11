@@ -2,13 +2,18 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.46
+    0.47
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger
     <http://swagger.io/> API documentation. It has support for reading
     swagger specification in JSON notation and it can also read YAML files,
     if a "YAML parser" is installed.
+
+    Please read
+    <http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html
+    > for an introduction to Swagger and reasons for why you would to use
+    it.
 
   Mojolicious server side code generator
     This distribution comes with a Mojolicious plugin,
@@ -120,7 +125,7 @@ METHODS
     Swagger2::SchemaValidator.
 
 COPYRIGHT AND LICENSE
-    Copyright (C) 2014, Jan Henning Thorsen
+    Copyright (C) 2014-2015, Jan Henning Thorsen
 
     This program is free software, you can redistribute it and/or modify it
     under the terms of the Artistic License version 2.0.

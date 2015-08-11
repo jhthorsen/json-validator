@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.47 Not Released
+0.47 2015-08-11T18:16:54+0200
  - Add "swagger" as default stash() value
 
 0.46 2015-08-11T16:35:04+0200
