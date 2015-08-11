@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.46 Not Relased
+ - Add support for giving an Swagger2 object to the plugin
+
 0.45 2015-08-11T14:32:05+0200
  - Add support for x-mojo-around-action (EXPERIMENTAL)
 

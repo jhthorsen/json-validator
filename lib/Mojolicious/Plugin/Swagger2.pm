@@ -257,6 +257,37 @@ sub render_swagger {
 This method is called when this plugin is registered in the L<Mojolicious>
 application.
 
+C<%config> can contain these parameters:
+
+=over 4
+
+=item * route
+
+Need to hold a Mojolicious route object. See L</Protected API> for an example.
+
+This parameter is optional.
+
+=item * swagger
+
+A C<Swagger2> object. This can be useful if you want to keep use the
+specification to other things in your application. Example:
+
+  use Swagger2;
+  my $swagger = Swagger2->new->load($url);
+  plugin Swagger2 => {swagger => $swagger2};
+  app->defaults(swagger_spec => $swagger->tree);
+
+Either this parameter or C<url> need to be present.
+
+=item * url
+
+This will be used to construct a new L<Swagger2> object. The C<url>
+can be anything that L<Swagger2/load> can handle.
+
+Either this parameter or C<swagger> need to be present.
+
+=back
+
 =cut
 
 sub register {
@@ -267,16 +298,17 @@ sub register {
     warn "Default 'controller' in Swagger2 plugin config is deprecated!";
   }
 
-  $self->url($config->{url} || die "'url' is required config parameter");
+  $swagger = $config->{swagger} || Swagger2->new->load($config->{url} || '"url" is missing');
+  $swagger = $swagger->expand;
+  $paths   = $swagger->tree->get('/paths') || {};
+
+  $self->url($swagger->url);
   $self->{controller} = $config->{controller};    # back compat
   $app->helper(render_swagger => \&render_swagger);
 
-  $swagger = Swagger2->new->load($self->url)->expand;
-  $paths = $swagger->tree->get('/paths') || {};
-
   $r = $config->{route};
   $r = $r->any($swagger->base_url->path->to_string) if $r and !$r->pattern->unparsed;
-  $r ||= $app->routes->any($swagger->base_url->path->to_string);
+  $r = $app->routes->any($swagger->base_url->path->to_string) unless $r;
 
   for my $path (keys %$paths) {
     for my $http_method (keys %{$paths->{$path}}) {
