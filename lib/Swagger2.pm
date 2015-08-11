@@ -15,6 +15,9 @@ L<swagger|http://swagger.io/> API documentation. It has support for reading
 swagger specification in JSON notation and it can also read YAML files,
 if a L</YAML parser> is installed.
 
+Please read L<http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html>
+for an introduction to Swagger and reasons for why you would to use it.
+
 =head2 Mojolicious server side code generator
 
 This distribution comes with a L<Mojolicious> plugin,

@@ -9,6 +9,9 @@ Mojolicious::Plugin::Swagger2 - Mojolicious plugin for Swagger2
 L<Mojolicious::Plugin::Swagger2> is L<Mojolicious::Plugin> that add routes and
 input/output validation to your L<Mojolicious> application.
 
+Please read L<http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html>
+for an introduction to this plugin and reasons for why you would to use it.
+
 Have a look at this L<example blog app|https://github.com/jhthorsen/swagger2/tree/master/t/blog>
 too see a complete working example, with a database backend. Questions and
 comments on how to improve the example are very much welcome.
