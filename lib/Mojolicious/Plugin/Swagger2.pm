@@ -418,6 +418,11 @@ sub _validate_input {
       $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^-?\d/;
       $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
 
+      # ugly hack
+      if (ref $p->{items} eq 'HASH' and $p->{items}{collectionFormat}) {
+        $value = Swagger2::SchemaValidator->_coerce_by_collection_format($p->{items}{collectionFormat}, $value);
+      }
+
       if ($in eq 'body') {
         warn "[Swagger2] Validate $in @{[$c->req->body]}\n" if DEBUG;
         push @e,

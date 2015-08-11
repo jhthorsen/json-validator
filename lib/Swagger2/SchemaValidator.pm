@@ -273,6 +273,17 @@ sub validate {
   return $self->_validate($data, '', $schema);
 }
 
+sub _coerce_by_collection_format {
+  my ($self, $format, $data) = @_;
+  return [split /,/,  $data] if $format eq 'csv';
+  return [split / /,  $data] if $format eq 'ssv';
+  return [split /\t/, $data] if $format eq 'tsv';
+  return [split /\|/, $data] if $format eq 'pipes';
+  warn
+    "Please file a bug report at https://github.com/jhthorsen/swagger2/issues if you want the collectionFormat $format to be supported";
+  return [$data];    # fallback
+}
+
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
   my ($type) = (map { $schema->{$_} } grep { $schema->{$_} } qw( type allOf anyOf oneOf ))[0];
@@ -441,6 +452,9 @@ sub _validate_type_array {
   my ($self, $data, $path, $schema) = @_;
   my @errors;
 
+  if (ref $schema->{items} eq 'HASH' and $schema->{items}{collectionFormat}) {
+    $data = $self->_coerce_by_collection_format($schema->{items}{collectionFormat}, $data);
+  }
   if (ref $data ne 'ARRAY') {
     return E $path, _expected(array => $data);
   }

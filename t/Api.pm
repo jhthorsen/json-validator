@@ -30,6 +30,11 @@ sub list_pets {
   $c->$cb($RES, $CODE);
 }
 
+sub query_as_array {
+  my ($c, $args, $cb) = @_;
+  $c->$cb($args, $CODE);
+}
+
 sub show_pet_by_id {
   my ($c, $args, $cb) = @_;
   $RES->{id} = $args->{petId};

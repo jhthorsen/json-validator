@@ -1,0 +1,21 @@
+{
+  "info" : {"title" : "Example", "version" : "0.0.0"},
+  "swagger" : "2.0",
+  "paths" : {
+    "/array" : {
+      "get" : {
+        "x-mojo-controller": "t::Api",
+        "operationId": "queryAsArray",
+        "parameters" : [
+          {
+            "items" : {"collectionFormat" : "csv", "type" : "string"},
+            "in" : "query",
+            "name" : "foo",
+            "type" : "array"
+          }
+        ],
+        "responses" : {"200" : {"description" : "OK"}}
+      }
+    }
+  }
+}
