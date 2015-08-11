@@ -299,7 +299,7 @@ sub register {
   $paths   = $swagger->tree->get('/paths') || {};
 
   $self->url($swagger->url);
-  $app->helper(render_swagger => \&render_swagger);
+  $app->helper(render_swagger => \&render_swagger) unless $app->renderer->get_helper('render_swagger');
 
   $r = $config->{route};
   $r = $r->any($swagger->base_url->path->to_string) if $r and !$r->pattern->unparsed;
