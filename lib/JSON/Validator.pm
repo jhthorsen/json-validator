@@ -314,24 +314,36 @@ sub _load_schema {
   my ($self, $url) = @_;
   my ($namespace, $scheme) = ("$url", "file");
 
-  if ($namespace =~ m!^data?://(.*)!) {
-    my ($module, $section) = split '/', $1, 2;
-    require Mojo::Loader;
-    return $self->_register_document(Mojo::Loader::data_section($module, $section), $namespace);
-  }
-
   if ($namespace =~ m!^https?://!) {
     $url = Mojo::URL->new($url);
     ($namespace, $scheme) = ($url->clone->fragment(undef)->port(undef)->to_string, $url->scheme);
   }
+  elsif ($namespace =~ m!^data://(.*)!) {
+    $scheme = 'data';
+  }
+
+  # Make sure we create the correct namespace if not already done by Mojo::URL
+  $namespace =~ s!#.*$!! if $namespace eq $url;
 
   return $self->{cached}{$namespace} if $self->{cached}{$namespace};
-
   warn "[JSON::Validator] Loading schema from $url ($namespace)\n" if DEBUG;
   return $self->_register_document(Mojo::Util::slurp($url), $namespace) if $scheme eq 'file';
+  return $self->_register_document($self->_load_schema_from_data($url, $namespace)) if $scheme eq 'data';
+  return $self->_register_document($self->_load_schema_from_url($url, $namespace));
+}
 
+sub _load_schema_from_data {
+  my ($self, $url, $namespace) = @_;
+  require Mojo::Loader;
+  $namespace =~ m!^data://([^/]+)/(.*)$!;
+  Mojo::Loader::data_section($1 || 'main', $2 || $namespace);
+}
+
+sub _load_schema_from_url {
+  my ($self, $url, $namespace) = @_;
   my $cache = File::Spec->catfile($self->_cache_dir, Mojo::Util::md5_sum($namespace));
-  return $self->_register_document(Mojo::Util::slurp($cache), $namespace) if -r $cache;
+
+  return Mojo::Util::slurp($cache), $namespace if -r $cache;
 
   my $tx  = $self->ua->get($url);
   my $doc = $tx->res->body;
@@ -340,7 +352,7 @@ sub _load_schema {
     Mojo::Util::spurt($doc, File::Spec->catfile($self->_cache_dir, Mojo::Util::md5_sum($url)));
   }
 
-  return $self->_register_document($doc, $namespace);
+  return $doc;
 }
 
 sub _register_document {
