@@ -53,9 +53,10 @@ of the specification.
 =cut
 
 use Mojo::Base -base;
+use Mojo::JSON;
+use Mojo::JSON::Pointer;
 use Mojo::URL;
 use Mojo::Util;
-use Mojo::JSON::Pointer;
 use B;
 use File::Basename ();
 use File::Spec;
@@ -213,14 +214,32 @@ has _cache_dir => sub {
 
   $self = $self->schema(\%schema);
   $self = $self->schema($url);
-  $self = $self->schema($path);
   $schema = $self->schema;
 
-Used to set a schema from either an data structure or from and URL
-or file on disk. C<$url> can be a string or L<Mojo::URL> object.
+Used to set a schema from either an data structure or from a URL.
 
 C<$schema> will be a L<Mojo::JSON::Pointer> object when loaded,
 and C<undef> by default.
+
+The C<$url> can take many forms, but need to point to a text file in the
+JSON or YAML format.
+
+=over 4
+
+=item * http://... or https://...
+
+A web resource will be fetched using the L<Mojo::UserAgent>, stored in L</ua>.
+
+=item * data://Some::Module/file.name
+
+This version will use L<Mojo::Loader/data_section> to load "file.name" from
+the module "Some::Module".
+
+=item * /path/to/file
+
+An URL (without a recognized scheme) will be loaded from disk.
+
+=back
 
 =cut
 
@@ -281,6 +300,12 @@ sub _coerce_by_collection_format {
 sub _load_schema {
   my ($self, $url) = @_;
   my ($namespace, $scheme) = ("$url", "file");
+
+  if ($namespace =~ m!^data?://(.*)!) {
+    my ($module, $section) = split '/', $1, 2;
+    require Mojo::Loader;
+    return $self->_register_document(Mojo::Loader::data_section($module, $section), $namespace);
+  }
 
   if ($namespace =~ m!^https?://!) {
     $url = Mojo::URL->new($url);
