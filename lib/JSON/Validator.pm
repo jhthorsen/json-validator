@@ -313,6 +313,7 @@ sub _coerce_by_collection_format {
 sub _load_schema {
   my ($self, $url) = @_;
   my ($namespace, $scheme) = ("$url", "file");
+  my $doc;
 
   if ($namespace =~ m!^https?://!) {
     $url = Mojo::URL->new($url);
@@ -326,10 +327,17 @@ sub _load_schema {
   $namespace =~ s!#.*$!! if $namespace eq $url;
 
   return $self->{cached}{$namespace} if $self->{cached}{$namespace};
-  warn "[JSON::Validator] Loading schema from $url ($namespace)\n" if DEBUG;
-  return $self->_register_document(Mojo::Util::slurp($url), $namespace) if $scheme eq 'file';
-  return $self->_register_document($self->_load_schema_from_data($url, $namespace)) if $scheme eq 'data';
-  return $self->_register_document($self->_load_schema_from_url($url, $namespace));
+  return eval {
+    warn "[JSON::Validator] Loading schema from $url ($namespace)\n" if DEBUG;
+    $doc
+      = $scheme eq 'file' ? Mojo::Util::slurp($url)
+      : $scheme eq 'data' ? $self->_load_schema_from_data($url, $namespace)
+      :                     $self->_load_schema_from_url($url, $namespace);
+    $self->_register_document($self->_load_schema_from_text($doc));
+  } || do {
+    die "Could not load document from $url: $@ ($doc)" if DEBUG;
+    die "Could not load document from $url: $@";
+  };
 }
 
 sub _load_schema_from_data {
@@ -339,31 +347,22 @@ sub _load_schema_from_data {
   Mojo::Loader::data_section($1 || 'main', $2 || $namespace);
 }
 
+sub _load_schema_from_text {
+  $_[1] =~ /^\s*\{/s ? Mojo::JSON::decode_json($_[1]) : _load_yaml($_[1]);
+}
+
 sub _load_schema_from_url {
   my ($self, $url, $namespace) = @_;
-  my $cache = File::Spec->catfile($self->_cache_dir, Mojo::Util::md5_sum($namespace));
+  my $cache_file = File::Spec->catfile($self->_cache_dir, Mojo::Util::md5_sum($namespace));
 
-  return Mojo::Util::slurp($cache), $namespace if -r $cache;
-
-  my $tx  = $self->ua->get($url);
-  my $doc = $tx->res->body;
-
-  if ($self->_cache_dir and -w $self->_cache_dir) {
-    Mojo::Util::spurt($doc, File::Spec->catfile($self->_cache_dir, Mojo::Util::md5_sum($url)));
-  }
-
+  return Mojo::Util::slurp($cache_file) if -r $cache_file;
+  my $doc = $self->ua->get($url)->res->body;
+  Mojo::Util::spurt($doc, $cache_file) if $self->_cache_dir and -w $self->_cache_dir;
   return $doc;
 }
 
 sub _register_document {
   my ($self, $doc, $namespace) = @_;
-
-  unless (ref $doc) {
-    unless (eval { $doc = $doc =~ /^\s*\{/s ? Mojo::JSON::decode_json($doc) : _load_yaml($doc) }) {
-      die "Could not load document from $namespace: $@ ($doc)" if DEBUG;
-      die "Could not load document from $namespace: $@";
-    }
-  }
 
   $doc = Mojo::JSON::Pointer->new($doc);
   $namespace = Mojo::URL->new($namespace) unless ref $namespace;
