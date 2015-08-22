@@ -16,23 +16,24 @@ of the specification.
   use JSON::Validator;
   my $validator = JSON::Validator->new;
 
-  # define a schema - http://json-schema.org/examples.html
+  # Define a schema - http://json-schema.org/examples.html
+  # You can also load schema from disk or web
   $validator->schema(
     {
       type       => "object",
-      required   => ["first_name", "last_name"],
+      required   => ["firstName", "lastName"],
       properties => {
-        first_name => {type => "string"},
-        last_name  => {type => "string"},
+        firstName => {type => "string"},
+        lastName  => {type => "string"},
         age       => {type => "integer", minimum => 0, description => "Age in years"}
       }
     }
   );
 
-  # validate your input data
-  @errors = $validator->validate({first_name => "Jan Henning", last_name => "Thorsen", age => -42});
+  # Validate your data
+  @errors = $validator->validate({firstName => "Jan Henning", lastName => "Thorsen", age => -42});
 
-  # do something if any errors was found
+  # Do something if any errors was found
   die "@errors" if @errors;
 
 =head1 SEE ALSO
@@ -52,8 +53,12 @@ of the specification.
 =cut
 
 use Mojo::Base -base;
+use Mojo::URL;
 use Mojo::Util;
+use Mojo::JSON::Pointer;
 use B;
+use File::Basename ();
+use File::Spec;
 use Scalar::Util;
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
@@ -63,8 +68,21 @@ use constant IV_SIZE                => eval 'require Config;$Config::Config{ivsi
 use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
   || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
 
+my @YAML_MODULES = qw( YAML::XS YAML::Syck YAML::Tiny YAML );
+my $YAML_MODULE
+  = $ENV{JSON_VALIDATOR_YAML_MODULE}
+  || $ENV{SWAGGER2_YAML_MODULE}
+  || (grep { eval "require $_;1" } @YAML_MODULES)[0]
+  || 'JSON::Validator::FALLBACK';
+
+sub JSON::Validator::FALLBACK::Dump { die "Need to install a YAML module: @YAML_MODULES"; }
+sub JSON::Validator::FALLBACK::Load { die "Need to install a YAML module: @YAML_MODULES"; }
+
 sub E { bless {path => $_[0] || '/', message => $_[1]}, 'JSON::Validator::Error'; }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
+
+Mojo::Util::monkey_patch(__PACKAGE__, LoadYAML => eval "\\\&$YAML_MODULE\::Load");
+Mojo::Util::monkey_patch(__PACKAGE__, DumpYAML => eval "\\\&$YAML_MODULE\::Dump");
 
 =head1 ATTRIBUTES
 
@@ -144,9 +162,22 @@ Validated against the RFC3986 spec.
 
 =back
 
+=head2 ua
+
+  $ua = $self->ua;
+  $self = $self->ua(Mojo::UserAgent->new);
+
+Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
+from remote location.
+
+Note that the default L<Mojo::UserAgent> will detect proxy settings and have
+L<Mojo::UserAgent/max_redirects> set to 3. (These settings are EXPERIMENTAL
+and might change without a warning)
+
 =cut
 
 has coerce => $ENV{JSON_VALIDATOR_COERCE_VALUES} || $ENV{SWAGGER_COERCE_VALUES} || 0;    # EXPERIMENTAL!
+
 has formats => sub {
   +{
     'byte'      => \&_is_byte_string,
@@ -164,6 +195,18 @@ has formats => sub {
   };
 };
 
+has ua => sub {
+  require Mojo::UserAgent;
+  my $ua = Mojo::UserAgent->new;
+  $ua->proxy->detect;
+  $ua->max_redirects(3);
+  $ua;
+};
+
+has _cache_dir => sub {
+  $ENV{JSON_VALIDATOR_CACHE_DIR} || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( JSON Validator cache ));
+};
+
 =head1 METHODS
 
 =head2 schema
@@ -176,15 +219,26 @@ has formats => sub {
 Used to set a schema from either an data structure or from and URL
 or file on disk. C<$url> can be a string or L<Mojo::URL> object.
 
-C<$schema> will be undef, unless set.
+C<$schema> will be a L<Mojo::JSON::Pointer> object when loaded,
+and C<undef> by default.
 
 =cut
 
 sub schema {
-  my $self = shift;
-  return $self->{schema} unless @_;
-  $self->{schema} = $self->_resolve_schema(ref $_[0] eq 'HASH' ? {%{$_[0]}} : $self->_schema_from_url(shift));
-  return $self;
+  my ($self, $schema) = @_;
+
+  if (@_ == 1) {
+    return $self->{schema};
+  }
+  elsif (ref $schema eq 'HASH') {
+    $self->_register_document($schema, $schema->{id} ||= 'http://generated.json.validator.url#');
+  }
+  else {
+    $schema = $self->_load_schema($schema)->data;
+  }
+
+  $self->{schema} = Mojo::JSON::Pointer->new($self->_resolve_schema($schema, $schema->{id}, {}));
+  $self;
 }
 
 =head2 validate
@@ -225,19 +279,91 @@ sub _coerce_by_collection_format {
   return [$data];    # fallback
 }
 
-sub _resolve_schema {
-  my ($self, $schema) = @_;
+sub _load_schema {
+  my ($self, $url) = @_;
+  my ($namespace, $scheme) = ("$url", "file");
+
+  if ($namespace =~ m!^https?://!) {
+    $url = Mojo::URL->new($url);
+    ($namespace, $scheme) = ($url->clone->fragment(undef)->port(undef)->to_string, $url->scheme);
+  }
+
+  return $self->{cached}{$namespace} if $self->{cached}{$namespace};
+
+  warn "[JSON::Validator] Loading schema from $url ($namespace)\n" if DEBUG;
+  return $self->_register_document(Mojo::Util::slurp($url), $namespace) if $scheme eq 'file';
+
+  my $cache = File::Spec->catfile($self->_cache_dir, Mojo::Util::md5_sum($namespace));
+  return $self->_register_document(Mojo::Util::slurp($cache), $namespace) if -r $cache;
+
+  my $tx  = $self->ua->get($url);
+  my $doc = $tx->res->body;
+
+  if ($self->_cache_dir and -w $self->_cache_dir) {
+    Mojo::Util::spurt($doc, File::Spec->catfile($self->_cache_dir, Mojo::Util::md5_sum($url)));
+  }
+
+  return $self->_register_document($doc, $namespace);
 }
 
-sub _schema_from_url {
-  my ($self, $url) = @_;
+sub _register_document {
+  my ($self, $doc, $namespace) = @_;
 
-  if ("$url" =~ m"^https?://") {
-    require Mojo::UserAgent;
-    $url = Mojo::URL->new($url);
+  unless (ref $doc) {
+    unless (eval { $doc = $doc =~ /^\s*\{/s ? Mojo::JSON::decode_json($doc) : LoadYAML($doc) }) {
+      die "Could not load document from $namespace: $@ ($doc)" if DEBUG;
+      die "Could not load document from $namespace: $@";
+    }
   }
-  else {
+
+  $doc = Mojo::JSON::Pointer->new($doc);
+  $namespace = Mojo::URL->new($namespace) unless ref $namespace;
+  $namespace->fragment(undef)->port(undef);
+
+  warn "[JSON::Validator] Register $namespace\n" if DEBUG;
+
+  $self->{cached}{$namespace} = $doc;
+  $doc->data->{id} ||= "$namespace";
+  $self->{cached}{$doc->data->{id}} = $doc;
+  $doc;
+}
+
+sub _resolve_ref {
+  my ($self, $ref, $namespace, $refs) = @_;
+
+  return if !$ref or ref $ref;
+  $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;
+  $ref = Mojo::URL->new($namespace)->fragment($ref) if $ref =~ s!^\#!!;
+  $ref = Mojo::URL->new($ref) unless UNIVERSAL::isa($ref, 'Mojo::URL');
+
+  return $refs->{$ref} if $refs->{$ref};
+
+  warn "[JSON::Validator] Resolve $ref\n" if DEBUG;
+  $refs->{$ref} = {};
+  my $doc = $self->_load_schema($ref);
+  my $def = $self->_resolve_schema($doc->get($ref->fragment), $doc->data->{id}, $refs);
+  delete $def->{id};
+  $refs->{$ref}{$_} = $def->{$_} for keys %$def;
+  $refs->{$ref};
+}
+
+sub _resolve_schema {
+  my ($self, $obj, $namespace, $refs) = @_;
+  my $copy = ref $obj eq 'ARRAY' ? [] : {};
+  my $ref;
+
+  if (ref $obj eq 'HASH') {
+    $obj = $ref if $ref = $self->_resolve_ref($obj->{'$ref'}, $namespace, $refs);
+    $copy->{$_} = $self->_resolve_schema($obj->{$_}, $namespace, $refs) for keys %$obj;
+    delete $copy->{'$ref'};
+    return $copy;
   }
+  elsif (ref $obj eq 'ARRAY') {
+    $copy->[$_] = $self->_resolve_schema($obj->[$_], $namespace, $refs) for 0 .. @$obj - 1;
+    return $copy;
+  }
+
+  return $obj;
 }
 
 sub _validate {
