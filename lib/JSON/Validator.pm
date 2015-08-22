@@ -101,6 +101,7 @@ sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump
 
 =head2 coerce
 
+  $self = $self->coerce(1);
   $bool = $self->coerce;
 
 Set this to true if you want to coerce numbers into string and the other way around.
