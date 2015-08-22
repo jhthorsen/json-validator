@@ -4,6 +4,10 @@ package JSON::Validator;
 
 JSON::Validator - Validate data against a JSON schema
 
+=head1 VERSION
+
+0.48
+
 =head1 SYNOPSIS
 
   use JSON::Validator;
@@ -35,6 +39,10 @@ L<JSON::Validator> is a class for validating data against JSON schemas.
 You might want to use this instead of L<JSON::Schema> if you need to
 validate data against L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
 of the specification.
+
+This module is currently EXPERIMENTAL. Hopefully nothing drastic will change,
+but it need to fit together nicely with L<Swagger2> - Since this is a spin-off
+project.
 
 =head2 Supported schema formats
 
@@ -83,6 +91,8 @@ use constant IV_SIZE           => eval 'require Config;$Config::Config{ivsize}';
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
 use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
   || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
+
+our $VERSION = '0.48';
 
 sub E { bless {path => $_[0] || '/', message => $_[1]}, 'JSON::Validator::Error'; }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
@@ -284,7 +294,7 @@ stringification format is subject to change.
 
 sub validate {
   my ($self, $data, $schema) = @_;
-  $schema ||= $self->schema->data;    # back compat with Swagger2
+  $schema ||= $self->schema->data;    # back compat with Swagger2::SchemaValidator
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
   return $self->_validate($data, '', $schema);
 }

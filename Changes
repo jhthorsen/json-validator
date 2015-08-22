@@ -1,4 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
-0.01 Not Released
- - Started project
+0.48 2015-08-22T21:23:55+0200
+ - Merged core functionality from Swagger2 and Swagger2::SchemaValidator
+   into this module, JSON::Validator
+   See https://metacpan.org/source/JHTHORSEN/Swagger2-0.47/Changes for
+   previous Changes (<=0.47)
+ - Fix coercing collectionFormat strings into integers and numbers
+ - Add support for reading schemas from __DATA__ section

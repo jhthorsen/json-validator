@@ -1,0 +1,202 @@
+NAME
+    JSON::Validator - Validate data against a JSON schema
+
+VERSION
+    0.48
+
+SYNOPSIS
+      use JSON::Validator;
+      my $validator = JSON::Validator->new;
+
+      # Define a schema - http://json-schema.org/examples.html
+      # You can also load schema from disk or web
+      $validator->schema(
+        {
+          type       => "object",
+          required   => ["firstName", "lastName"],
+          properties => {
+            firstName => {type => "string"},
+            lastName  => {type => "string"},
+            age       => {type => "integer", minimum => 0, description => "Age in years"}
+          }
+        }
+      );
+
+      # Validate your data
+      @errors = $validator->validate({firstName => "Jan Henning", lastName => "Thorsen", age => -42});
+
+      # Do something if any errors was found
+      die "@errors" if @errors;
+
+DESCRIPTION
+    JSON::Validator is a class for validating data against JSON schemas. You
+    might want to use this instead of JSON::Schema if you need to validate
+    data against draft 4
+    <https://github.com/json-schema/json-schema/tree/master/draft-04> of the
+    specification.
+
+    This module is currently EXPERIMENTAL. Hopefully nothing drastic will
+    change, but it need to fit together nicely with Swagger2 - Since this is
+    a spin-off project.
+
+  Supported schema formats
+    JSON::Validator can load JSON schemas in multiple formats: Plain perl
+    data structured (as shown in "SYNOPSIS") or files on disk/web in the
+    JSON/YAML format. The JSON parsing is done using Mojo::JSON, while the
+    YAML parsing is done with an optional modules which need to be installed
+    manually. JSON::Validator will look for the YAML modules in this order:
+    YAML::XS, YAML::Syck, YAML::Tiny, YAML. The order is set by which module
+    that performs the best, so it might change in the future.
+
+  Resources
+    Here are some resources that is related to JSON schemas and validation:
+
+    *   <http://json-schema.org/documentation.html>
+
+    *   <http://spacetelescope.github.io/understanding-json-schema/index.htm
+        l>
+
+    *   <http://jsonary.com/documentation/json-schema/>
+
+    *   <https://github.com/json-schema/json-schema/>
+
+    *   Swagger2
+
+ATTRIBUTES
+  coerce
+      $bool = $self->coerce;
+
+    Set this to true if you want to coerce numbers into string and the other
+    way around.
+
+    This is EXPERIMENTAL and could be removed without notice!
+
+  formats
+      $hash_ref = $self->formats;
+      $self = $self->formats(\%hash);
+
+    Holds a hash-ref, where the keys are supported JSON type "formats", and
+    the values holds a code block which can validate a given format.
+
+    Note! The modules mentioned below are optional.
+
+    *   byte
+
+        A padded, base64-encoded string of bytes, encoded with a URL and
+        filename safe alphabet. Defined by RFC4648.
+
+    *   date
+
+        An RFC3339 date in the format YYYY-MM-DD
+
+    *   date-time
+
+        An RFC3339 timestamp in UTC time. This is formatted as
+        "YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is
+        optional
+
+    *   double
+
+        Cannot test double values with higher precision then what the
+        "number" type already provides.
+
+    *   email
+
+        Validated against the RFC5322 spec.
+
+    *   float
+
+        Will always be true if the input is a number, meaning there is no
+        difference between "float" and "double". Patches are welcome.
+
+    *   hostname
+
+        Will be validated using Data::Validate::Domain if installed.
+
+    *   int32
+
+        A signed 32 bit integer.
+
+    *   int64
+
+        A signed 64 bit integer. Note: This check is only available if Perl
+        is compiled to use 64 bit integers.
+
+    *   ipv4
+
+        Will be validated using Data::Validate::IP if installed or fall back
+        to a plain IPv4 IP regex.
+
+    *   ipv6
+
+        Will be validated using Data::Validate::IP if installed.
+
+    *   uri
+
+        Validated against the RFC3986 spec.
+
+  ua
+      $ua = $self->ua;
+      $self = $self->ua(Mojo::UserAgent->new);
+
+    Holds a Mojo::UserAgent object, used by "schema" to load a JSON schema
+    from remote location.
+
+    Note that the default Mojo::UserAgent will detect proxy settings and
+    have "max_redirects" in Mojo::UserAgent set to 3. (These settings are
+    EXPERIMENTAL and might change without a warning)
+
+METHODS
+  schema
+      $self = $self->schema(\%schema);
+      $self = $self->schema($url);
+      $schema = $self->schema;
+
+    Used to set a schema from either an data structure or from a URL.
+
+    $schema will be a Mojo::JSON::Pointer object when loaded, and "undef" by
+    default.
+
+    The $url can take many forms, but need to point to a text file in the
+    JSON or YAML format.
+
+    *   http://... or https://...
+
+        A web resource will be fetched using the Mojo::UserAgent, stored in
+        "ua".
+
+    *   data://Some::Module/file.name
+
+        This version will use "data_section" in Mojo::Loader to load
+        "file.name" from the module "Some::Module".
+
+    *   /path/to/file
+
+        An URL (without a recognized scheme) will be loaded from disk.
+
+  validate
+      @errors = $self->validate($data);
+
+    Validates $data against a given JSON "schema". @errors will contain
+    objects with containing the validation errors. It will be empty on
+    success.
+
+    Example error element:
+
+      bless {
+        message => "Some description",
+        path => "/json/path/to/node",
+      }, "JSON::Validator::Error"
+
+    The error objects are always true in boolean context and will stringify.
+    The stringification format is subject to change.
+
+COPYRIGHT AND LICENSE
+    Copyright (C) 2014-2015, Jan Henning Thorsen
+
+    This program is free software, you can redistribute it and/or modify it
+    under the terms of the Artistic License version 2.0.
+
+AUTHOR
+    Jan Henning Thorsen - "jhthorsen@cpan.org"
+
