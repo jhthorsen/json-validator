@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.48
+    0.49
 
 SYNOPSIS
       use JSON::Validator;
@@ -64,6 +64,7 @@ DESCRIPTION
 
 ATTRIBUTES
   coerce
+      $self = $self->coerce(1);
       $bool = $self->coerce;
 
     Set this to true if you want to coerce numbers into string and the other
