@@ -263,20 +263,19 @@ stringification format is subject to change.
 
 sub validate {
   my ($self, $data, $schema) = @_;
-  $schema ||= $self->schema;    # back compat with Swagger2
+  $schema ||= $self->schema->data;    # back compat with Swagger2
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
   return $self->_validate($data, '', $schema);
 }
 
 sub _coerce_by_collection_format {
-  my ($self, $format, $data) = @_;
-  return [split /,/,  $data] if $format eq 'csv';
-  return [split / /,  $data] if $format eq 'ssv';
-  return [split /\t/, $data] if $format eq 'tsv';
-  return [split /\|/, $data] if $format eq 'pipes';
-  warn
-    "Please file a bug report at https://github.com/jhthorsen/json-validator/issues if you want the collectionFormat $format to be supported";
-  return [$data];    # fallback
+  my ($self, $schema, $data) = @_;
+  my $format = $schema->{collectionFormat};
+  my @data = $format eq 'ssv' ? split / /, $data : $format eq 'tsv' ? split /\t/,
+    $data : $format eq 'pipes' ? split /\|/, $data : split /,/, $data;
+
+  return [map { $_ + 0 } @data] if $schema->{type} and $schema->{type} =~ m!^(integer|number)$!;
+  return \@data;
 }
 
 sub _load_schema {
@@ -535,7 +534,7 @@ sub _validate_type_array {
   my @errors;
 
   if (ref $schema->{items} eq 'HASH' and $schema->{items}{collectionFormat}) {
-    $data = $self->_coerce_by_collection_format($schema->{items}{collectionFormat}, $data);
+    $data = $self->_coerce_by_collection_format($schema->{items}, $data);
   }
   if (ref $data ne 'ARRAY') {
     return E $path, _expected(array => $data);
