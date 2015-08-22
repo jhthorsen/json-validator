@@ -4,13 +4,6 @@ package JSON::Validator;
 
 JSON::Validator - Validate data against a JSON schema
 
-=head1 DESCRIPTION
-
-L<JSON::Validator> is a class for validating data against JSON schemas.
-You might want to use this instead of L<JSON::Schema> if you need to
-validate data against L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
-of the specification.
-
 =head1 SYNOPSIS
 
   use JSON::Validator;
@@ -36,7 +29,26 @@ of the specification.
   # Do something if any errors was found
   die "@errors" if @errors;
 
-=head1 SEE ALSO
+=head1 DESCRIPTION
+
+L<JSON::Validator> is a class for validating data against JSON schemas.
+You might want to use this instead of L<JSON::Schema> if you need to
+validate data against L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
+of the specification.
+
+=head2 Supported schema formats
+
+L<JSON::Validator> can load JSON schemas in multiple formats: Plain perl data
+structured (as shown in L</SYNOPSIS>) or files on disk/web in the JSON/YAML
+format. The JSON parsing is done using L<Mojo::JSON>, while the YAML parsing
+is done with an optional modules which need to be installed manually.
+L<JSON::Validator> will look for the YAML modules in this order: L<YAML::XS>,
+L<YAML::Syck>, L<YAML::Tiny>, L<YAML>. The order is set by which module that
+performs the best, so it might change in the future.
+
+=head2 Resources
+
+Here are some resources that is related to JSON schemas and validation:
 
 =over 4
 
@@ -47,6 +59,8 @@ of the specification.
 =item * L<http://jsonary.com/documentation/json-schema/>
 
 =item * L<https://github.com/json-schema/json-schema/>
+
+=item * L<Swagger2>
 
 =back
 
@@ -62,28 +76,16 @@ use File::Basename ();
 use File::Spec;
 use Scalar::Util;
 
+use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
+use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
+use constant IV_SIZE           => eval 'require Config;$Config::Config{ivsize}';
+
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
-use constant VALIDATE_HOSTNAME      => eval 'require Data::Validate::Domain;1';
-use constant VALIDATE_IP            => eval 'require Data::Validate::IP;1';
-use constant IV_SIZE                => eval 'require Config;$Config::Config{ivsize}';
 use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
   || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
 
-my @YAML_MODULES = qw( YAML::XS YAML::Syck YAML::Tiny YAML );
-my $YAML_MODULE
-  = $ENV{JSON_VALIDATOR_YAML_MODULE}
-  || $ENV{SWAGGER2_YAML_MODULE}
-  || (grep { eval "require $_;1" } @YAML_MODULES)[0]
-  || 'JSON::Validator::FALLBACK';
-
-sub JSON::Validator::FALLBACK::Dump { die "Need to install a YAML module: @YAML_MODULES"; }
-sub JSON::Validator::FALLBACK::Load { die "Need to install a YAML module: @YAML_MODULES"; }
-
 sub E { bless {path => $_[0] || '/', message => $_[1]}, 'JSON::Validator::Error'; }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
-
-Mojo::Util::monkey_patch(__PACKAGE__, LoadYAML => eval "\\\&$YAML_MODULE\::Load");
-Mojo::Util::monkey_patch(__PACKAGE__, DumpYAML => eval "\\\&$YAML_MODULE\::Dump");
 
 =head1 ATTRIBUTES
 
@@ -334,7 +336,7 @@ sub _register_document {
   my ($self, $doc, $namespace) = @_;
 
   unless (ref $doc) {
-    unless (eval { $doc = $doc =~ /^\s*\{/s ? Mojo::JSON::decode_json($doc) : LoadYAML($doc) }) {
+    unless (eval { $doc = $doc =~ /^\s*\{/s ? Mojo::JSON::decode_json($doc) : _load_yaml($doc) }) {
       die "Could not load document from $namespace: $@ ($doc)" if DEBUG;
       die "Could not load document from $namespace: $@";
     }
@@ -799,6 +801,16 @@ sub _is_true {
 }
 
 sub _is_uri { $_[0] =~ qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!o; }
+
+# Please report if you need to manually monkey patch this function
+# https://github.com/jhthorsen/json-validator/issues
+sub _load_yaml {
+  my @YAML_MODULES = qw( YAML::XS YAML::Syck YAML::Tiny YAML );        # subject to change
+  my $YAML_MODULE = (grep { eval "require $_;1" } @YAML_MODULES)[0];
+  die "Need to install a YAML module: @YAML_MODULES" unless $YAML_MODULE;
+  Mojo::Util::monkey_patch(__PACKAGE__, _load_yaml => eval "\\\&$YAML_MODULE\::Load");
+  _load_yaml(@_);
+}
 
 sub _path {
   local $_ = $_[1];
