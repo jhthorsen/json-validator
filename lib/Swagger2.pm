@@ -12,8 +12,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 L<Swagger2> is a module for generating, parsing and transforming
 L<swagger|http://swagger.io/> API documentation. It has support for reading
-swagger specification in JSON notation and it can also read YAML files,
-if a L</YAML parser> is installed.
+swagger specification in JSON notation and as well YAML format.
 
 Please read L<http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html>
 for an introduction to Swagger and reasons for why you would to use it.
@@ -44,7 +43,7 @@ and L<YAML::Tiny>.
 =head1 SYNOPSIS
 
   use Swagger2;
-  my $swagger = Swagger2->new("file:///path/to/api-spec.yaml");
+  my $swagger = Swagger2->new("/path/to/api-spec.yaml");
 
   # Access the raw specification values
   print $swagger->tree->get("/swagger");
@@ -55,30 +54,16 @@ and L<YAML::Tiny>.
 =cut
 
 use Mojo::Base -base;
-use Mojo::JSON qw( encode_json decode_json );
+use Mojo::JSON;
 use Mojo::JSON::Pointer;
 use Mojo::URL;
-use Mojo::Util 'md5_sum';
 use File::Basename ();
 use File::Spec;
-use constant CACHE_DIR => $ENV{SWAGGER2_CACHE_DIR}
-  || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( Swagger2 public cache ));
-
-use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
 our $VERSION = '0.47';
 
 # Should be considered internal
-our @SPEC_FILE = (File::Spec->splitdir(File::Basename::dirname(__FILE__)), 'Swagger2', 'schema.json');
-
-my @YAML_MODULES = qw( YAML::XS YAML::Syck YAML::Tiny YAML );
-my $YAML_MODULE = $ENV{SWAGGER2_YAML_MODULE} || (grep { eval "require $_;1" } @YAML_MODULES)[0] || 'Swagger2::FALLBACK';
-
-sub Swagger2::FALLBACK::Dump { die "Need to install a YAML module: @YAML_MODULES"; }
-sub Swagger2::FALLBACK::Load { die "Need to install a YAML module: @YAML_MODULES"; }
-
-Mojo::Util::monkey_patch __PACKAGE__, LoadYAML => eval "\\\&$YAML_MODULE\::Load";
-Mojo::Util::monkey_patch __PACKAGE__, DumpYAML => eval "\\\&$YAML_MODULE\::Dump";
+our $SPEC_FILE = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'schema.json');
 
 =head1 ATTRIBUTES
 
@@ -91,11 +76,9 @@ Note: This might also just be a dummy URL to L<http://example.com/>.
 
 =head2 specification
 
-  $pointer = $self->specification;
-  $self = $self->specification(Mojo::JSON::Pointer->new({}));
+DEPRECATED.
 
-Holds a L<Mojo::JSON::Pointer> object containing the
-L<Swagger 2.0 schema|https://github.com/swagger-api/swagger-spec>.
+If you need to change this, then you probably want L<JSON::Validator> instead.
 
 =head2 tree
 
@@ -135,30 +118,21 @@ has base_url => sub {
   return $url;
 };
 
-has specification => sub {
-  my $self = shift;
-  my $url  = Mojo::URL->new;
-  $url->path->parts([@SPEC_FILE]);
-  $self->_load($url);
-};
+has specification => sub { shift->_validator->schema($SPEC_FILE)->schema; };
 
 has tree => sub {
   my $self = shift;
-
-  $self->load if '' . $self->url;
-  $self->{tree} || Mojo::JSON::Pointer->new({});
-};
-
-has ua => sub {
-  require Mojo::UserAgent;
-  Mojo::UserAgent->new(max_redirects => 3);
+  return $self->_validator->_load_schema($self->url) if '' . $self->url;
+  return Mojo::JSON::Pointer->new({});
 };
 
 has _validator => sub {
   require Swagger2::SchemaValidator;
-  Swagger2::SchemaValidator->new;
+  Swagger2::SchemaValidator->new->cache_dir($ENV{SWAGGER2_CACHE_DIR}
+      || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( Swagger2 public cache )));
 };
 
+sub ua  { shift->_validator->ua(@_) }
 sub url { shift->{url} }
 
 =head1 METHODS
@@ -174,11 +148,9 @@ are resolved.
 =cut
 
 sub expand {
-  my $self     = shift;
-  my $class    = Scalar::Util::blessed($self);
-  my $expanded = $self->_expand($self->tree);
-
-  $class->new(%$self)->tree($expanded);
+  my $self  = shift;
+  my $class = Scalar::Util::blessed($self);
+  $class->new(%$self)->tree($self->_validator->schema($self->tree->data)->schema);
 }
 
 =head2 load
@@ -187,8 +159,7 @@ sub expand {
   $self = $self->load($url);
 
 Used to load the content from C<$url> or L</url>. This method will try to
-guess the content type (JSON or YAML) by looking at the filename, URL path
-or "Content-Type" header reported by a web server.
+guess the content type (JSON or YAML) by looking at the content of the C<$url>.
 
 =cut
 
@@ -196,7 +167,7 @@ sub load {
   my $self = shift;
   delete $self->{base_url};
   $self->{url} = Mojo::URL->new(shift) if @_;
-  $self->{tree} = $self->_load($self->url);
+  $self->{tree} = $self->_validator->_load_schema($self->{url});
   $self;
 }
 
@@ -213,9 +184,10 @@ Object constructor.
 sub new {
   my $class = shift;
   my $url   = @_ % 2 ? shift : '';
-  my $self  = $class->SUPER::new(url => $url, @_);
+  my $self  = $class->SUPER::new(@_);
 
-  $self->{url} = Mojo::URL->new($self->{url});
+  $url =~ s!^file://!!;
+  $self->{url} = Mojo::URL->new($url);
   $self;
 }
 
@@ -232,11 +204,10 @@ but parse the text as JSON if it starts with "{".
 
 sub parse {
   my ($self, $doc, $namespace) = @_;
-
   delete $self->{base_url};
   $namespace ||= 'http://127.0.0.1/#';
-  $self->{url} = Mojo::URL->new($namespace);
-  $self->{tree} = $self->_parse($doc, undef, $namespace);
+  $self->{url}  = Mojo::URL->new($namespace);
+  $self->{tree} = Mojo::JSON::Pointer->new($self->_validator->_load_schema_from_text($doc));
   $self;
 }
 
@@ -250,8 +221,7 @@ Returns a L<Swagger2::POD> object.
 
 sub pod {
   my $self     = shift;
-  my $resolved = $self->_expand($self->tree);
-
+  my $resolved = $self->_validator->schema($self->tree->data)->schema;
   require Swagger2::POD;
   Swagger2::POD->new(base_url => $self->base_url, tree => $resolved);
 }
@@ -274,7 +244,7 @@ sub to_string {
     return DumpYAML($self->tree->data);
   }
   else {
-    return encode_json $self->tree->data;
+    return Mojo::JSON::encode_json($self->tree->data);
   }
 }
 
@@ -282,122 +252,14 @@ sub to_string {
 
   @errors = $self->validate;
 
-Will validate this object against the L</specification>,
-and return a list with all the errors found. See also
-L<Swagger2::SchemaValidator/validate>.
+Will validate L</tree> against L</specification>, and return a list with all
+the errors found. See also L<Swagger2::SchemaValidator/validate>.
 
 =cut
 
 sub validate {
-  my $self   = shift;
-  my $schema = $self->_expand($self->specification);
-
-  return $self->_validator->validate($self->_expand($self->tree)->data, $schema->data);
-}
-
-sub _clone {
-  my ($self, $obj, $namespace, $refs) = @_;
-  my $copy = ref $obj eq 'ARRAY' ? [] : {};
-  my $ref;
-
-  if (ref $obj eq 'HASH') {
-    $obj = $ref if $ref = $self->_find_ref($obj->{'$ref'}, $namespace, $refs);
-    $copy->{$_} = $self->_clone($obj->{$_}, $namespace, $refs) for keys %$obj;
-    delete $copy->{'$ref'};
-    return $copy;
-  }
-  elsif (ref $obj eq 'ARRAY') {
-    $copy->[$_] = $self->_clone($obj->[$_], $namespace, $refs) for 0 .. @$obj - 1;
-    return $copy;
-  }
-
-  return $obj;
-}
-
-sub _find_ref {
-  my ($self, $ref, $namespace, $refs) = @_;
-  my ($doc, $def);
-
-  if (!$ref or ref $ref) {
-    return;
-  }
-  if ($ref =~ /^\w+$/) {
-    $ref = "#/definitions/$ref";
-  }
-  if ($ref =~ s!^\#!!) {
-    $ref = Mojo::URL->new($namespace)->fragment($ref);
-  }
-  else {
-    $ref = Mojo::URL->new($ref);
-  }
-
-  return $refs->{$ref} if $refs->{$ref};
-  warn "[Swagger2] Resolve $ref\n" if DEBUG;
-  $refs->{$ref} = {};
-  $doc = $self->_load($ref);
-  $def = $self->_clone($doc->get($ref->fragment), $doc->data->{id}, $refs);
-  $refs->{$ref}{$_} = $def->{$_} for keys %$def;
-  $refs->{$ref};
-}
-
-sub _expand {
-  my ($self, $pointer) = @_;
-
-  Mojo::JSON::Pointer->new($self->_clone($pointer->data, $pointer->data->{id}, {}));
-}
-
-sub _load {
-  my ($self, $url) = @_;
-  my $namespace = $url->clone->fragment(undef)->port(undef);
-  my $scheme = $url->scheme || 'file';
-
-  # already loaded into memory
-  if ($self->{loaded}{$namespace}) {
-    return $self->{loaded}{$namespace};
-  }
-
-  # try to read processed spec from file cache
-  my $file = File::Spec->catfile(CACHE_DIR, md5_sum($namespace->to_string));
-  my $doc = -r $file ? Mojo::Util::slurp($file) : '';
-  my $type;
-
-  # load spec from disk or web
-  if (!$doc) {
-    if ($scheme eq 'file') {
-      warn "[Swagger2] Loading $url ($namespace)\n" if DEBUG;
-      $doc = Mojo::Util::slurp(File::Spec->catfile(split '/', $url->path));
-      $type = lc $1 if $url->path =~ /\.(yaml|json)$/i;
-    }
-    else {
-      warn "[Swagger2] Fetching $url ($namespace)\n" if DEBUG;
-      my $tx = $self->ua->get($url);
-      $doc  = $tx->res->body;
-      $type = lc $1 if $url->path =~ /\.(\w+)$/;
-      $type = lc $1 if +($tx->res->headers->content_type // '') =~ /(json|yaml)/i;
-      Mojo::Util::spurt($doc, File::Spec->catfile(CACHE_DIR, md5_sum($namespace->to_string)))
-        if CACHE_DIR and -w CACHE_DIR;
-    }
-  }
-
-  return $self->_parse($doc, $type, $namespace);
-}
-
-sub _parse {
-  my ($self, $doc, $type, $namespace) = @_;
-
-  $type ||= $doc =~ /^\s*\{/s ? 'json' : 'yaml';
-  warn "[Swagger2] Register $namespace ($type)\n" if DEBUG;
-
-  # parse the document
-  eval { $doc = $type eq 'yaml' ? LoadYAML($doc) : decode_json($doc); } or do {
-    die "Could not load document from $namespace: $@ ($doc)";
-  };
-
-  $doc = Mojo::JSON::Pointer->new($doc);
-  $self->{loaded}{$namespace} = $doc;
-  $doc->data->{id} ||= "$namespace";
-  $self->{loaded}{$doc->data->{id}} = $doc;
-  $doc;
+  my $self = shift;
+  $self->_validator->validate($self->tree->data, $self->specification->data);
 }
 
 =head1 COPYRIGHT AND LICENSE

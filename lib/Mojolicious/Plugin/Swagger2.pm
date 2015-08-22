@@ -383,7 +383,7 @@ sub _generate_request_handler {
         my $status = shift || 200;
         my $format = $config->{responses}{$status} || $config->{responses}{default} || undef;
         my @err
-          = !$format          ? $self->_validator->validate($data, undef)
+          = !$format ? $self->_validator->validate($data, {})
           : $format->{schema} ? $self->_validator->validate($data, $format->{schema})
           :                     ();
 
@@ -442,7 +442,7 @@ sub _validate_input {
 
       # ugly hack
       if (ref $p->{items} eq 'HASH' and $p->{items}{collectionFormat}) {
-        $value = Swagger2::SchemaValidator->_coerce_by_collection_format($p->{items}{collectionFormat}, $value);
+        $value = Swagger2::SchemaValidator->_coerce_by_collection_format($p->{items}, $value);
       }
 
       if ($in eq 'body') {
