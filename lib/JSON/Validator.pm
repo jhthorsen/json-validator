@@ -99,6 +99,15 @@ sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump
 
 =head1 ATTRIBUTES
 
+=head2 cache_dir
+
+  $self = $self->cache_dir($path);
+  $path = $self->cache_dir;
+
+Path to where downloaded spec files should be cached. Defaults to
+C<JSON_VALIDATOR_CACHE_DIR> or the bundled spec files that is shipped
+with this distribution.
+
 =head2 coerce
 
   $self = $self->coerce(1);
@@ -190,6 +199,10 @@ and might change without a warning)
 
 =cut
 
+has cache_dir => sub {
+  $ENV{JSON_VALIDATOR_CACHE_DIR} || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( JSON Validator ));
+};
+
 has coerce => $ENV{JSON_VALIDATOR_COERCE_VALUES} || $ENV{SWAGGER_COERCE_VALUES} || 0;    # EXPERIMENTAL!
 
 has formats => sub {
@@ -215,10 +228,6 @@ has ua => sub {
   $ua->proxy->detect;
   $ua->max_redirects(3);
   $ua;
-};
-
-has _cache_dir => sub {
-  $ENV{JSON_VALIDATOR_CACHE_DIR} || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( JSON Validator cache ));
 };
 
 =head1 METHODS
@@ -353,11 +362,11 @@ sub _load_schema_from_text {
 
 sub _load_schema_from_url {
   my ($self, $url, $namespace) = @_;
-  my $cache_file = File::Spec->catfile($self->_cache_dir, Mojo::Util::md5_sum($namespace));
+  my $cache_file = File::Spec->catfile($self->cache_dir, Mojo::Util::md5_sum($namespace));
 
   return Mojo::Util::slurp($cache_file) if -r $cache_file;
   my $doc = $self->ua->get($url)->res->body;
-  Mojo::Util::spurt($doc, $cache_file) if $self->_cache_dir and -w $self->_cache_dir;
+  Mojo::Util::spurt($doc, $cache_file) if $self->cache_dir and -w $self->cache_dir;
   return $doc;
 }
 
