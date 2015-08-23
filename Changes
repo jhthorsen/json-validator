@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.48 Not Released
+0.48 2015-08-23T15:09:58+0200
  - Core validation functionality is moved to JSON::Validator #25
 
 0.47 2015-08-11T18:16:54+0200

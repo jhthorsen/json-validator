@@ -2,13 +2,12 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.47
+    0.48
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger
     <http://swagger.io/> API documentation. It has support for reading
-    swagger specification in JSON notation and it can also read YAML files,
-    if a "YAML parser" is installed.
+    swagger specification in JSON notation and as well YAML format.
 
     Please read
     <http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html
@@ -33,7 +32,7 @@ RECOMMENDED MODULES
 
 SYNOPSIS
       use Swagger2;
-      my $swagger = Swagger2->new("file:///path/to/api-spec.yaml");
+      my $swagger = Swagger2->new("/path/to/api-spec.yaml");
 
       # Access the raw specification values
       print $swagger->tree->get("/swagger");
@@ -49,11 +48,10 @@ ATTRIBUTES
     might also just be a dummy URL to <http://example.com/>.
 
   specification
-      $pointer = $self->specification;
-      $self = $self->specification(Mojo::JSON::Pointer->new({}));
+    DEPRECATED.
 
-    Holds a Mojo::JSON::Pointer object containing the Swagger 2.0 schema
-    <https://github.com/swagger-api/swagger-spec>.
+    If you need to change this, then you probably want JSON::Validator
+    instead.
 
   tree
       $pointer = $self->tree;
@@ -87,8 +85,8 @@ METHODS
       $self = $self->load($url);
 
     Used to load the content from $url or "url". This method will try to
-    guess the content type (JSON or YAML) by looking at the filename, URL
-    path or "Content-Type" header reported by a web server.
+    guess the content type (JSON or YAML) by looking at the content of the
+    $url.
 
   new
       $self = Swagger2->new($url);
@@ -120,9 +118,8 @@ METHODS
   validate
       @errors = $self->validate;
 
-    Will validate this object against the "specification", and return a list
-    with all the errors found. See also "validate" in
-    Swagger2::SchemaValidator.
+    Will validate "tree" against "specification", and return a list with all
+    the errors found. See also "validate" in Swagger2::SchemaValidator.
 
 COPYRIGHT AND LICENSE
     Copyright (C) 2014-2015, Jan Henning Thorsen
