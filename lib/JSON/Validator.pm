@@ -333,7 +333,7 @@ sub _load_schema {
       = $scheme eq 'file' ? Mojo::Util::slurp($url)
       : $scheme eq 'data' ? $self->_load_schema_from_data($url, $namespace)
       :                     $self->_load_schema_from_url($url, $namespace);
-    $self->_register_document($self->_load_schema_from_text($doc));
+    $self->_register_document($self->_load_schema_from_text($doc), $namespace);
   } || do {
     die "Could not load document from $url: $@ ($doc)" if DEBUG;
     die "Could not load document from $url: $@";
