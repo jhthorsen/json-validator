@@ -340,9 +340,8 @@ sub register {
       }/ge;
 
       my $name = decamelize(ucfirst($info->{operationId} || $route_path));
-      die "$name is not a unique route! ($http_method $path)" if $app->routes->lookup($name);
-      warn "[Swagger2] Add route $http_method $route_path\n"  if DEBUG;
-      $r->$http_method($route_path => $self->_generate_request_handler($name, $info))->name($name);
+      warn "[Swagger2] Add route $http_method $route_path\n" if DEBUG;
+      $r->$http_method($route_path => $self->_generate_request_handler($name, $info));
     }
   }
 }

@@ -29,7 +29,6 @@ for my $module (qw( YAML::XS YAML::Syck YAML::Tiny )) {
   }
 
   my $t = Test::Mojo->new($app);
-  ok $t->app->routes->lookup('list_pets'), "add route list_pets with $module\::Load";
 
   $t::Api::RES = [{id => 123, name => "kit-cat"}];
   $t->get_ok('/v1/pets')->status_is(200)->json_is('/0/id', 123)->json_is('/0/name', 'kit-cat');

@@ -9,7 +9,6 @@ plugin Swagger2 => {url => 't/data/not-implemented.json'};
 
 my $t = Test::Mojo->new;
 
-ok $t->app->routes->lookup('not_implemented'), 'add route not_implemented';
 $t->get_ok('/not-implemented')->status_is(501)->json_is('/valid', 0)
   ->json_is('/errors/0/message', 'Controller not implemented.')->json_is('/errors/0/path', '/');
 

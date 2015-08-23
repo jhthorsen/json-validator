@@ -9,7 +9,6 @@ use Mojolicious::Lite;
 plugin Swagger2 => {url => 't/data/bodytest.json'};
 
 my $t = Test::Mojo->new;
-ok $t->app->routes->lookup('add_pet'), 'add route add_pet';
 $t::Api::RES = {};
 
 # invalid input
