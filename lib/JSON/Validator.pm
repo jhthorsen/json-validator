@@ -75,6 +75,7 @@ Here are some resources that is related to JSON schemas and validation:
 =cut
 
 use Mojo::Base -base;
+use Exporter 'import';
 use Mojo::JSON;
 use Mojo::JSON::Pointer;
 use Mojo::URL;
@@ -92,10 +93,28 @@ use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
 use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
   || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
 
-our $VERSION = '0.51';
+our $VERSION   = '0.51';
+our @EXPORT_OK = qw( validate_json );
 
 sub E { bless {path => $_[0] || '/', message => $_[1]}, 'JSON::Validator::Error'; }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
+
+=head1 FUNCTIONS
+
+=head2 validate_json
+
+  use JSON::Validator "validate_json";
+  @errors = validate_json $data, $schema;
+
+This can be useful in web applications:
+
+  @errors = validate_json $c->req->json, "data://main/spec.json";
+
+=cut
+
+sub validate_json {
+  __PACKAGE__->singleton->schema($_[1])->validate($_[0]);
+}
 
 =head1 ATTRIBUTES
 
@@ -281,6 +300,16 @@ sub schema {
   $self->{schema} = Mojo::JSON::Pointer->new($self->_resolve_schema($schema, $schema->{id}, {}));
   $self;
 }
+
+=head2 singleton
+
+  $self = $class->singleton;
+
+Returns the L<JSON::Validator> object used by L</validate_json>.
+
+=cut
+
+sub singleton { state $validator = shift->new }
 
 =head2 validate
 
