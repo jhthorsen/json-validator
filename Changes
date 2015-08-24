@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.51 Not Released
+0.51 2015-08-24T16:19:06+0200
  - Fix "$ref" pointing to a file on disk #1
 
 0.50 2015-08-23T15:07:08+0200

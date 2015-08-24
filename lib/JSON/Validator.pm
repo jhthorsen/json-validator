@@ -6,7 +6,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-0.50
+0.51
 
 =head1 SYNOPSIS
 
@@ -92,7 +92,7 @@ use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
 use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
   || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
 
-our $VERSION = '0.50';
+our $VERSION = '0.51';
 
 sub E { bless {path => $_[0] || '/', message => $_[1]}, 'JSON::Validator::Error'; }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
