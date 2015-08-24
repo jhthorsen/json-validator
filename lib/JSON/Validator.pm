@@ -339,7 +339,7 @@ sub _load_schema {
   return eval {
     warn "[JSON::Validator] Loading schema from $url ($namespace)\n" if DEBUG;
     $doc
-      = $scheme eq 'file' ? Mojo::Util::slurp($url)
+      = $scheme eq 'file' ? Mojo::Util::slurp($namespace)
       : $scheme eq 'data' ? $self->_load_schema_from_data($url, $namespace)
       :                     $self->_load_schema_from_url($url, $namespace);
     $self->_register_document($self->_load_schema_from_text($doc), $namespace);

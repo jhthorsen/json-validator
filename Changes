@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.51 Not Released
+ - Fix "$ref" pointing to a file on disk #1
+
 0.50 2015-08-23T15:07:08+0200
  - Fix missing namespace when registering new document
  - Made cache_dir() public
