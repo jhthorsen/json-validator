@@ -170,7 +170,7 @@ as C<swagger> from L<stash|Mojolicious/stash>. Example code:
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::JSON;
 use Mojo::Util 'decamelize';
-use Swagger2::SchemaValidator;
+use JSON::Validator;
 use Swagger2;
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
@@ -183,7 +183,7 @@ Holds the URL to the swagger specification file.
 =cut
 
 has url => '';
-has _validator => sub { Swagger2::SchemaValidator->new; };
+has _validator => sub { JSON::Validator->new; };
 
 =head1 HELPERS
 
@@ -434,14 +434,14 @@ sub _validate_input {
 
     $value //= $p->{default};
 
-    if (defined $value or Swagger2::SchemaValidator::_is_true($p->{required})) {
+    if (defined $value or Swagger2::_is_true($p->{required})) {
       my $type = $p->{type} || 'object';
       $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^-?\d/;
       $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
 
       # ugly hack
       if (ref $p->{items} eq 'HASH' and $p->{items}{collectionFormat}) {
-        $value = Swagger2::SchemaValidator->_coerce_by_collection_format($p->{items}, $value);
+        $value = _coerce_by_collection_format($p->{items}, $value);
       }
 
       if ($in eq 'body') {
@@ -466,6 +466,17 @@ sub _validate_input {
 
   $v{valid} = @{$v{errors} || []} ? Mojo::JSON->false : Mojo::JSON->true;
   return \%v, \%input;
+}
+
+# copy/paste from JSON::Validator
+sub _coerce_by_collection_format {
+  my ($schema, $data) = @_;
+  my $format = $schema->{collectionFormat};
+  my @data = $format eq 'ssv' ? split / /, $data : $format eq 'tsv' ? split /\t/,
+    $data : $format eq 'pipes' ? split /\|/, $data : split /,/, $data;
+
+  return [map { $_ + 0 } @data] if $schema->{type} and $schema->{type} =~ m!^(integer|number)$!;
+  return \@data;
 }
 
 sub _die {

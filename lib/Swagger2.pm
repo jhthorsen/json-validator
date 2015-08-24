@@ -127,8 +127,8 @@ has tree => sub {
 };
 
 has _validator => sub {
-  require Swagger2::SchemaValidator;
-  Swagger2::SchemaValidator->new->cache_dir($ENV{SWAGGER2_CACHE_DIR}
+  require JSON::Validator;
+  JSON::Validator->new->cache_dir($ENV{SWAGGER2_CACHE_DIR}
       || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( Swagger2 public cache )));
 };
 
@@ -253,13 +253,19 @@ sub to_string {
   @errors = $self->validate;
 
 Will validate L</tree> against L</specification>, and return a list with all
-the errors found. See also L<Swagger2::SchemaValidator/validate>.
+the errors found. See also L<JSON::Validator/validate>.
 
 =cut
 
 sub validate {
   my $self = shift;
   $self->_validator->validate($self->tree->data, $self->specification->data);
+}
+
+sub _is_true {
+  return $_[0] if ref $_[0] and !Scalar::Util::blessed($_[0]);
+  return 0 if !$_[0] or $_[0] =~ /^(n|false|off)/i;
+  return 1;
 }
 
 =head1 COPYRIGHT AND LICENSE

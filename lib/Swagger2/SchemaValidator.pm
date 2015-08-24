@@ -14,13 +14,7 @@ L<JSON::Validator>.
 use Mojo::Base 'JSON::Validator';
 
 my $WARNED = 0;
-warn 'This module is replaced by JSON::Validator.' unless $WARNED++ or $ENV{HARNESS_ACTIVE};
-
-sub _is_true {
-  return $_[0] if ref $_[0] and !Scalar::Util::blessed($_[0]);
-  return 0 if !$_[0] or $_[0] =~ /^(n|false|off)/i;
-  return 1;
-}
+warn 'This module is replaced by JSON::Validator.' unless $WARNED++;
 
 =head1 COPYRIGHT AND LICENSE
 
