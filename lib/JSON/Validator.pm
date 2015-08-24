@@ -41,7 +41,7 @@ validate data against L<draft 4|https://github.com/json-schema/json-schema/tree/
 of the specification.
 
 This module is currently EXPERIMENTAL. Hopefully nothing drastic will change,
-but it need to fit together nicely with L<Swagger2> - Since this is a spin-off
+but it needs to fit together nicely with L<Swagger2> - Since this is a spin-off
 project.
 
 =head2 Supported schema formats
@@ -56,7 +56,7 @@ performs the best, so it might change in the future.
 
 =head2 Resources
 
-Here are some resources that is related to JSON schemas and validation:
+Here are some resources that are related to JSON schemas and validation:
 
 =over 4
 
@@ -105,7 +105,7 @@ sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump
   $path = $self->cache_dir;
 
 Path to where downloaded spec files should be cached. Defaults to
-C<JSON_VALIDATOR_CACHE_DIR> or the bundled spec files that is shipped
+C<JSON_VALIDATOR_CACHE_DIR> or the bundled spec files that are shipped
 with this distribution.
 
 =head2 coerce
@@ -238,12 +238,12 @@ has ua => sub {
   $self = $self->schema($url);
   $schema = $self->schema;
 
-Used to set a schema from either an data structure or from a URL.
+Used to set a schema from either a data structure or a URL.
 
 C<$schema> will be a L<Mojo::JSON::Pointer> object when loaded,
 and C<undef> by default.
 
-The C<$url> can take many forms, but need to point to a text file in the
+The C<$url> can take many forms, but needs to point to a text file in the
 JSON or YAML format.
 
 =over 4
@@ -287,10 +287,10 @@ sub schema {
   @errors = $self->validate($data);
 
 Validates C<$data> against a given JSON L</schema>. C<@errors> will
-contain objects with containing the validation errors. It will be
+contain validation error objects. It will be
 empty on success.
 
-Example error element:
+Example error object:
 
   bless {
     message => "Some description",
