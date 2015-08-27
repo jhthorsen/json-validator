@@ -21,6 +21,9 @@
   },
   "paths": {
     "/pets": {
+      "x-something-something": {
+        "x-nothing-here" : "No, really!"
+      },
       "get": {
         "x-mojo-controller": "t::Api",
         "tags": [ "pets" ],
