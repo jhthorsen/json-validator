@@ -328,7 +328,7 @@ sub register {
   }
 
   for my $path (keys %$paths) {
-    for my $http_method (keys %{$paths->{$path}}) {
+    for my $http_method (grep { !/^x-/ } keys %{$paths->{$path}}) {
       my $info       = $paths->{$path}{$http_method};
       my $route_path = $path;
       my %parameters = map { ($_->{name}, $_) } @{$info->{parameters} || []};
