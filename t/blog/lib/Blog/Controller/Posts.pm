@@ -8,7 +8,7 @@ sub edit {
   $self->stash(post => $self->posts->find($self->param('id')));
 }
 
-sub index {
+sub list {
   my ($self, $args, $cb) = @_;
 
   if ($cb) {           # Swagger2 request

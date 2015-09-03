@@ -23,7 +23,7 @@ sub startup {
   # Swagger API endpoints
   # /api             *       api
   #   +/posts        POST    "store"
-  #   +/posts        GET     "index"
+  #   +/posts        GET     "list"
   #   +/posts/(:id)  PUT     "update"
   #   +/posts/(:id)  DELETE  "remove"
   #   +/posts/(:id)  GET     "show"
@@ -40,7 +40,7 @@ sub startup {
   # /posts/:id       DELETE  "remove_post"
   my $r = $self->routes;
   $r->get('/' => sub { shift->redirect_to('posts') });
-  $r->get('/posts')->to('posts#index');
+  $r->get('/posts')->to('posts#list');
   $r->get('/posts/create')->to('posts#create')->name('create_post');
   $r->post('/posts')->to('posts#store')->name('store_post');
   $r->get('/posts/:id')->to('posts#show')->name('show_post');
