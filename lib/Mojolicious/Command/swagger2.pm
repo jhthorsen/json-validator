@@ -32,6 +32,7 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
 =cut
 
 use Mojo::Base 'Mojolicious::Command';
+use Mojo::Util;
 use Swagger2;
 
 my $app = __PACKAGE__;
@@ -113,8 +114,15 @@ sub _action_client {
   }
 
   $client->base_url->parse($base_url) if $base_url;
-  my $res = $client->$method($args);
-  print $res->json ? dumper($res->json) : $res->body;
+  eval {
+    my $res = $client->$method($args);
+    print $res->json ? Mojo::Util::dumper($res->json) : $res->body;
+    1;
+  } or do {
+    my $e = $@;
+    $e =~ s! at .* line.*!!s;
+    warn "ERROR! $e\n";
+  };
 }
 
 sub _action_edit {
