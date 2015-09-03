@@ -47,6 +47,10 @@ sub startup {
   $r->get('/posts/:id/edit')->to('posts#edit')->name('edit_post');
   $r->put('/posts/:id')->to('posts#update')->name('update_post');
   $r->delete('/posts/:id')->to('posts#remove')->name('remove_post');
+
+  require Swagger2::Editor;
+  my $editor = Swagger2::Editor->new(specification_file => $self->home->rel_file('api.json'));
+  $r->route('/editor')->detour(app => $editor);
 }
 
 1;
