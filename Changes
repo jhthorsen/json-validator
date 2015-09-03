@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.51 Not Released
+0.51 2015-09-03T12:22:20+0200
  - Fix dumper() in Command::swagger2
  - Add /editor to example blog application
  - Add slides for YAPC::EU 2015 t/blog/2015-yapc-eu-slides.pdf
