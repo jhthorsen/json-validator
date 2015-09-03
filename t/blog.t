@@ -1,10 +1,10 @@
 use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
-
 use lib 't/blog/lib';
 
-# RUN=1 BLOG_PG_URL=postgresql://username@/test perl t/blog.t daemon
+plan skip_all => 'BLOG_PG_URL=postgresql://username@/test' unless $ENV{BLOG_PG_URL};
+
 if ($ENV{RUN}) {
   require Mojolicious::Commands;
   Mojolicious::Commands->start_app('Blog');
