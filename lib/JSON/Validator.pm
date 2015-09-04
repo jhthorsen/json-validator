@@ -454,21 +454,21 @@ sub _resolve_schema {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my ($type) = (map { $schema->{$_} } grep { $schema->{$_} } qw( type allOf anyOf oneOf ))[0];
   my $check_all = grep { $schema->{$_} } qw( allOf oneOf );
-  my @errors;
+  my (@errors, @types);
 
-  $type = 'object' if !$type and $schema->{properties};
-  $type ||= 'any';
+  push @types, map { $schema->{$_} } grep { $schema->{$_} } qw( allOf anyOf oneOf );
+  push @types, $schema->{type} || _guess_schema_type($schema) || 'any' unless @types;
 
+  #warn Carp::longmess(Data::Dumper::Dumper([$data, $path, $schema]));
   #$SIG{__WARN__} = sub { Carp::confess(Data::Dumper::Dumper($schema)) };
 
   if ($schema->{not}) {
     @errors = $self->_validate($data, $path, $schema->{not});
-    return @errors ? () : (E $path, "Should not match.");
+    return @errors ? () : (E $path, 'Should not match.');
   }
 
-  for my $t (ref $type eq 'ARRAY' ? @$type : ($type)) {
+  for my $t (map { ref $_ eq 'ARRAY' ? @$_ : $_ } @types) {
     $t //= 'null';
     if (ref $t eq 'HASH') {
       push @errors, [$self->_validate($data, $path, $t)];
@@ -526,7 +526,7 @@ sub _validate_additional_properties {
   my @errors;
 
   if (ref $properties eq 'HASH') {
-    push @errors, $self->_validate_properties($data, $path, $schema);
+    push @errors, $self->_validate($_, $path, $properties) for values %$data;
   }
   elsif (!$properties) {
     my @keys = grep { $_ !~ /^(description|id|title)$/ } keys %$data;
@@ -539,7 +539,7 @@ sub _validate_additional_properties {
   return @errors;
 }
 
-sub _validate_enum {
+sub _validate_type_enum {
   my ($self, $data, $path, $schema) = @_;
   my $enum = $schema->{enum};
   my $m    = S $data;
@@ -595,7 +595,7 @@ sub _validate_properties {
     my $p = $properties->{$name};
     if (exists $data->{$name}) {
       my $v = delete $data->{$name};
-      push @errors, $self->_validate_enum($v, $path, $p) if $p->{enum};
+      push @errors, $self->_validate_type_enum($v, $path, $p) if $p->{enum};
       push @errors, $self->_validate($v, _path($path, $name), $p);
     }
     elsif ($p->{default}) {
@@ -644,11 +644,11 @@ sub _validate_type_array {
     }
   }
   if (ref $schema->{items} eq 'ARRAY') {
-    my $additional_items = $schema->{additionalItems} // 1;
+    my $additional_items = $schema->{additionalItems} // {type => 'any'};
     my @v = @{$schema->{items}};
 
     if ($additional_items) {
-      push @v, $a while @v < @$data;
+      push @v, $additional_items while @v < @$data;
     }
 
     if (@v == @$data) {
@@ -678,7 +678,7 @@ sub _validate_type_array {
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
 
-  return if defined $value and ("$value" eq "1" or "$value" eq "0");
+  return if defined $value and Scalar::Util::blessed($value) and ("$value" eq "1" or "$value" eq "0");
   return E $path, _expected(boolean => $value);
 }
 
@@ -804,12 +804,12 @@ sub _cmp {
 }
 
 sub _expected {
-  my $type = _guess($_[1]);
+  my $type = _guess_data_type($_[1]);
   return "Expected $_[0] - got different $type." if $_[0] =~ /\b$type\b/;
   return "Expected $_[0] - got $type.";
 }
 
-sub _guess {
+sub _guess_data_type {
   local $_ = $_[0];
   my $ref     = ref;
   my $blessed = Scalar::Util::blessed($_[0]);
@@ -820,6 +820,23 @@ sub _guess {
   return 'integer' if /^\d+$/;
   return 'number' if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $_ eq $_ and $_ * 0 == 0;
   return $blessed || 'string';
+}
+
+sub _guess_schema_type {
+  return 'object' if $_[0]->{additionalProperties};
+  return 'object' if $_[0]->{patternProperties};
+  return 'object' if $_[0]->{properties};
+  return 'object' if defined $_[0]->{maxProperties} or defined $_[0]->{minProperties};
+  return 'array'  if $_[0]->{additionalItems};
+  return 'array'  if $_[0]->{items};
+  return 'array'  if $_[0]->{uniqueItems};
+  return 'array'  if defined $_[0]->{maxItems} or defined $_[0]->{minItems};
+  return 'string' if $_[0]->{pattern};
+  return 'string' if defined $_[0]->{maxLength} or defined $_[0]->{minLength};
+  return 'number' if $_[0]->{multipleOf};
+  return 'number' if defined $_[0]->{maximum} or defined $_[0]->{minimum};
+  return 'enum'   if $_[0]->{enum};
+  return;
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/; }

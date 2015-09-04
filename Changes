@@ -1,5 +1,15 @@
 Revision history for perl distribution JSON-Validator
 
+0.52 Not Released
+ - Add guessing of schema type, based on other attributes
+ - More strict on what is validated as "boolean"
+ - Fix additionalItems are allowed by default
+ - Fix additionalProperties allows a schema which should validate
+ - Fix validating "enum"
+ - Fix validating "array" against "additionalItems"
+ - Fix bugs after running
+   https://github.com/Relequestual/Test-JSON-Schema-Acceptance to validate
+
 0.51 2015-08-24T16:19:06+0200
  - Fix "$ref" pointing to a file on disk #1
 
