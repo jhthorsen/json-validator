@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.51
+    0.52
 
 SYNOPSIS
       use JSON::Validator;
@@ -36,8 +36,8 @@ DESCRIPTION
     specification.
 
     This module is currently EXPERIMENTAL. Hopefully nothing drastic will
-    change, but it need to fit together nicely with Swagger2 - Since this is
-    a spin-off project.
+    change, but it needs to fit together nicely with Swagger2 - Since this
+    is a spin-off project.
 
   Supported schema formats
     JSON::Validator can load JSON schemas in multiple formats: Plain perl
@@ -49,7 +49,7 @@ DESCRIPTION
     that performs the best, so it might change in the future.
 
   Resources
-    Here are some resources that is related to JSON schemas and validation:
+    Here are some resources that are related to JSON schemas and validation:
 
     *   <http://json-schema.org/documentation.html>
 
@@ -62,13 +62,22 @@ DESCRIPTION
 
     *   Swagger2
 
+FUNCTIONS
+  validate_json
+      use JSON::Validator "validate_json";
+      @errors = validate_json $data, $schema;
+
+    This can be useful in web applications:
+
+      @errors = validate_json $c->req->json, "data://main/spec.json";
+
 ATTRIBUTES
   cache_dir
       $self = $self->cache_dir($path);
       $path = $self->cache_dir;
 
     Path to where downloaded spec files should be cached. Defaults to
-    "JSON_VALIDATOR_CACHE_DIR" or the bundled spec files that is shipped
+    "JSON_VALIDATOR_CACHE_DIR" or the bundled spec files that are shipped
     with this distribution.
 
   coerce
@@ -161,12 +170,12 @@ METHODS
       $self = $self->schema($url);
       $schema = $self->schema;
 
-    Used to set a schema from either an data structure or from a URL.
+    Used to set a schema from either a data structure or a URL.
 
     $schema will be a Mojo::JSON::Pointer object when loaded, and "undef" by
     default.
 
-    The $url can take many forms, but need to point to a text file in the
+    The $url can take many forms, but needs to point to a text file in the
     JSON or YAML format.
 
     *   http://... or https://...
@@ -183,14 +192,18 @@ METHODS
 
         An URL (without a recognized scheme) will be loaded from disk.
 
+  singleton
+      $self = $class->singleton;
+
+    Returns the JSON::Validator object used by "validate_json".
+
   validate
       @errors = $self->validate($data);
 
     Validates $data against a given JSON "schema". @errors will contain
-    objects with containing the validation errors. It will be empty on
-    success.
+    validation error objects. It will be empty on success.
 
-    Example error element:
+    Example error object:
 
       bless {
         message => "Some description",

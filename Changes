@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.52 Not Released
+0.52 2015-09-05T13:52:39+0200
  - Add guessing of schema type, based on other attributes
  - More strict on what is validated as "boolean"
  - Fix additionalItems are allowed by default
