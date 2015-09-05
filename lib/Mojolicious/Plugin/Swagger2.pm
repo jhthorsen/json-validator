@@ -339,17 +339,18 @@ sub register {
         "($type$name)";
       }/ge;
 
-      my $name = decamelize(ucfirst($info->{operationId} || $route_path));
       warn "[Swagger2] Add route $http_method $route_path\n" if DEBUG;
-      $r->$http_method($route_path => $self->_generate_request_handler($name, $info));
+      $r->$http_method($route_path => $self->_generate_request_handler($route_path, $info));
     }
   }
 }
 
 sub _generate_request_handler {
-  my ($self, $method, $config) = @_;
+  my ($self, $route_path, $config) = @_;
+  my $op         = $config->{operationId} || $route_path;
+  my $method     = decamelize(ucfirst $op);
   my $controller = $config->{'x-mojo-controller'} or _die($config, "x-mojo-controller is missing in the swagger spec");
-  my $defaults = {};
+  my $defaults   = {};
   my $handler;
 
   $handler = sub {
@@ -367,7 +368,7 @@ sub _generate_request_handler {
     unless ($method_ref) {
       $c->app->log->error(
         qq(Can't locate object method "$method" via package "$controller. (Something is wrong in @{[$self->url]})"));
-      return $c->render_swagger($self->_not_implemented('Method not implemented.'), {}, 501);
+      return $c->render_swagger($self->_not_implemented(qq(Method "$op" not implemented.)), {}, 501);
     }
 
     bless $c, $controller;    # ugly hack?

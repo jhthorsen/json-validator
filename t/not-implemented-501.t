@@ -13,9 +13,9 @@ $t->get_ok('/not-implemented')->status_is(501)->json_is('/valid', 0)
   ->json_is('/errors/0/message', 'Controller not implemented.')->json_is('/errors/0/path', '/');
 
 eval 'package t::NotImplemented; use Mojo::Base "Mojolicious::Controller"; $INC{"t/NotImplemented.pm"}=1;';
-$t->get_ok('/not-implemented')->status_is(501)->json_is('/errors/0/message', 'Method not implemented.');
+$t->get_ok('/not-implemented')->status_is(501)->json_is('/errors/0/message', 'Method "noOp" not implemented.');
 
-*t::NotImplemented::not_implemented = sub { my ($c, $args, $cb) = @_; $c->$cb({}); };
+*t::NotImplemented::no_op = sub { my ($c, $args, $cb) = @_; $c->$cb({}); };
 $t->get_ok('/not-implemented')->status_is(200)->content_is('{}');
 
 done_testing;

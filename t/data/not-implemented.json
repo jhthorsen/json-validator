@@ -7,7 +7,7 @@
     "/not-implemented" : {
       "get" : {
         "x-mojo-controller": "t::NotImplemented",
-        "operationId" : "notImplemented",
+        "operationId" : "noOp",
         "parameters" : [],
         "responses" : {
           "200" : {
