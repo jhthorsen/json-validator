@@ -11,7 +11,6 @@ my $opts = {
   skip_tests => [
     'Unicode code point',           # Valid unicode won't pass Mojo::JSON
     'dependencies',                 # TODO
-    'ignores non',                  # Does it really..? How is input array a a valid object?
     'invalid definition schema',    # This module does not validate the schema, it only validates data
     'ref',                          # No way to fetch http://localhost:1234/...
     'with base schema',             # I don't see how this makes sense

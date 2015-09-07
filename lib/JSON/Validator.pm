@@ -458,7 +458,7 @@ sub _validate {
   my (@errors, @types);
 
   push @types, map { $schema->{$_} } grep { $schema->{$_} } qw( allOf anyOf oneOf );
-  push @types, $schema->{type} || _guess_schema_type($schema) || 'any' unless @types;
+  push @types, $schema->{type} || _guess_schema_type($schema, $data) || 'any' unless @types;
 
   #warn Carp::longmess(Data::Dumper::Dumper([$data, $path, $schema]));
   #$SIG{__WARN__} = sub { Carp::confess(Data::Dumper::Dumper($schema)) };
@@ -778,26 +778,29 @@ sub _guess_data_type {
   return lc $ref if $ref and !$blessed;
   return 'null' if !defined;
   return 'boolean' if $blessed and "$_" eq "1" or "$_" eq "0";
-  return 'integer' if /^\d+$/;
   return 'number' if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $_ eq $_ and $_ * 0 == 0;
   return $blessed || 'string';
 }
 
 sub _guess_schema_type {
-  return 'object' if $_[0]->{additionalProperties};
-  return 'object' if $_[0]->{patternProperties};
-  return 'object' if $_[0]->{properties};
-  return 'object' if defined $_[0]->{maxProperties} or defined $_[0]->{minProperties};
-  return 'array'  if $_[0]->{additionalItems};
-  return 'array'  if $_[0]->{items};
-  return 'array'  if $_[0]->{uniqueItems};
-  return 'array'  if defined $_[0]->{maxItems} or defined $_[0]->{minItems};
-  return 'string' if $_[0]->{pattern};
-  return 'string' if defined $_[0]->{maxLength} or defined $_[0]->{minLength};
-  return 'number' if $_[0]->{multipleOf};
-  return 'number' if defined $_[0]->{maximum} or defined $_[0]->{minimum};
-  return 'enum'   if $_[0]->{enum};
-  return;
+  return _guessed_right($_[1], 'object') if $_[0]->{additionalProperties};
+  return _guessed_right($_[1], 'object') if $_[0]->{patternProperties};
+  return _guessed_right($_[1], 'object') if $_[0]->{properties};
+  return _guessed_right($_[1], 'object') if defined $_[0]->{maxProperties} or defined $_[0]->{minProperties};
+  return _guessed_right($_[1], 'array')  if $_[0]->{additionalItems};
+  return _guessed_right($_[1], 'array')  if $_[0]->{items};
+  return _guessed_right($_[1], 'array')  if $_[0]->{uniqueItems};
+  return _guessed_right($_[1], 'array')  if defined $_[0]->{maxItems} or defined $_[0]->{minItems};
+  return _guessed_right($_[1], 'string') if $_[0]->{pattern};
+  return _guessed_right($_[1], 'string') if defined $_[0]->{maxLength} or defined $_[0]->{minLength};
+  return _guessed_right($_[1], 'number') if $_[0]->{multipleOf};
+  return _guessed_right($_[1], 'number') if defined $_[0]->{maximum} or defined $_[0]->{minimum};
+  return 'enum' if $_[0]->{enum};
+  return undef;
+}
+
+sub _guessed_right {
+  return _guess_data_type($_[0]) eq $_[1] ? $_[1] : undef;
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/; }
