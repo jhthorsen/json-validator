@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.53 Not Released
+ - Fix properties, patternProperties, additionalProperties interaction - patternProperty invalidates property
+
 0.52 2015-09-05T13:52:39+0200
  - Add guessing of schema type, based on other attributes
  - More strict on what is validated as "boolean"

@@ -520,25 +520,6 @@ sub _validate {
   return @{$errors[0]};
 }
 
-sub _validate_additional_properties {
-  my ($self, $data, $path, $schema) = @_;
-  my $properties = $schema->{additionalProperties};
-  my @errors;
-
-  if (ref $properties eq 'HASH') {
-    push @errors, $self->_validate($_, $path, $properties) for values %$data;
-  }
-  elsif (!$properties) {
-    my @keys = grep { $_ !~ /^(description|id|title)$/ } keys %$data;
-    if (@keys) {
-      local $" = ', ';
-      push @errors, E $path, "Properties not allowed: @keys.";
-    }
-  }
-
-  return @errors;
-}
-
 sub _validate_type_enum {
   my ($self, $data, $path, $schema) = @_;
   my $enum = $schema->{enum};
@@ -563,53 +544,6 @@ sub _validate_format {
 
   return if $code->($value);
   return E $path, "Does not match $schema->{format} format.";
-}
-
-sub _validate_pattern_properties {
-  my ($self, $data, $path, $schema) = @_;
-  my $properties = $schema->{patternProperties};
-  my @errors;
-
-  for my $pattern (keys %$properties) {
-    my $v = $properties->{$pattern};
-    for my $tk (keys %$data) {
-      next unless $tk =~ /$pattern/;
-      push @errors, $self->_validate(delete $data->{$tk}, _path($path, $tk), $v);
-    }
-  }
-
-  return @errors;
-}
-
-sub _validate_properties {
-  my ($self, $data, $path, $schema) = @_;
-  my $properties = $schema->{properties};
-  my $required   = $schema->{required};
-  my (@errors, %required);
-
-  if ($required and ref $required eq 'ARRAY') {
-    $required{$_} = 1 for @$required;
-  }
-
-  for my $name (keys %$properties) {
-    my $p = $properties->{$name};
-    if (exists $data->{$name}) {
-      my $v = delete $data->{$name};
-      push @errors, $self->_validate_type_enum($v, $path, $p) if $p->{enum};
-      push @errors, $self->_validate($v, _path($path, $name), $p);
-    }
-    elsif ($p->{default}) {
-      $data->{$name} = $p->{default};
-    }
-    elsif ($required{$name}) {
-      push @errors, E _path($path, $name), "Missing property.";
-    }
-    elsif (_is_true($p->{required}) eq '1') {
-      push @errors, E _path($path, $name), "Missing property.";
-    }
-  }
-
-  return @errors;
 }
 
 sub _validate_type_any {
@@ -663,8 +597,7 @@ sub _validate_type_array {
   elsif (ref $schema->{items} eq 'HASH') {
     for my $i (0 .. @$data - 1) {
       if ($schema->{items}{properties}) {
-        my $input = ref $data->[$i] eq 'HASH' ? {%{$data->[$i]}} : $data->[$i];
-        push @errors, $self->_validate_properties($input, "$path/$i", $schema->{items});
+        push @errors, $self->_validate_type_object($data->[$i], "$path/$i", $schema->{items});
       }
       else {
         push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
@@ -732,29 +665,57 @@ sub _validate_type_number {
 
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
-  my @errors;
+  my ($additional, @errors, %rules);
 
   if (ref $data ne 'HASH') {
     return E $path, _expected(object => $data);
   }
-
-  # make sure _validate_xxx() does not mess up original $data
-  $data = {%$data};
-
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < keys %$data) {
     push @errors, E $path, sprintf 'Too many properties: %s/%s.', int(keys %$data), $schema->{maxProperties};
   }
   if (defined $schema->{minProperties} and $schema->{minProperties} > keys %$data) {
     push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int(keys %$data), $schema->{minProperties};
   }
-  if ($schema->{properties}) {
-    push @errors, $self->_validate_properties($data, $path, $schema);
+
+  while (my ($k, $r) = each %{$schema->{properties}}) {
+    push @{$rules{$k}}, $r if exists $data->{$k} or $r->{required};
   }
-  if ($schema->{patternProperties}) {
-    push @errors, $self->_validate_pattern_properties($data, $path, $schema);
+  while (my ($p, $r) = each %{$schema->{patternProperties}}) {
+    push @{$rules{$_}}, $r for grep { $_ =~ /$p/ } keys %$data;
   }
-  if (exists $schema->{additionalProperties}) {
-    push @errors, $self->_validate_additional_properties($data, $path, $schema);
+
+  # special case used internally
+  $rules{id} ||= [{type => 'string'}] if !$path and $data->{id};
+  $additional = exists $schema->{additionalProperties} ? $schema->{additionalProperties} : {};
+
+  if ($additional) {
+    $additional = {} unless ref $additional eq 'HASH';
+    $rules{$_} ||= [$additional] for keys %$data;
+  }
+  elsif (my @keys = grep { !$rules{$_} } keys %$data) {
+    local $" = ', ';
+    return E $path, "Properties not allowed: @keys.";
+  }
+
+  if (ref $schema->{required} eq 'ARRAY') {
+    for my $k (@{$schema->{required}}) {
+      push @{$rules{$k}}, {required => 1};
+    }
+  }
+
+  for my $k (keys %rules) {
+    for my $r (@{$rules{$k}}) {
+      if (!exists $data->{$k} and exists $schema->{default}) {
+        $data->{$k} = $r->{default};
+      }
+      if ($r->{required} and !exists $data->{$k}) {
+        push @errors, E _path($path, $k), 'Missing property.';
+      }
+      else {
+        push @errors, $self->_validate_type_enum($data->{$k}, _path($path, $k), $r) if $r->{enum};
+        push @errors, $self->_validate($data->{$k}, _path($path, $k), $r);
+      }
+    }
   }
 
   return @errors;
