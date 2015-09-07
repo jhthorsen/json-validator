@@ -13,7 +13,6 @@ my $opts = {
     'dependencies',                 # TODO
     'invalid definition schema',    # This module does not validate the schema, it only validates data
     'ref',                          # No way to fetch http://localhost:1234/...
-    'with base schema',             # I don't see how this makes sense
   ],
 };
 

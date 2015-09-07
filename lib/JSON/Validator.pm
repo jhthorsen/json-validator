@@ -454,42 +454,42 @@ sub _resolve_schema {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my $check_all = grep { $schema->{$_} } qw( allOf oneOf );
-  my (@errors, @types);
+  my $type = $schema->{type} || _guess_schema_type($schema, $data);
+  my @errors;
 
-  push @types, map { $schema->{$_} } grep { $schema->{$_} } qw( allOf anyOf oneOf );
-  push @types, $schema->{type} || _guess_schema_type($schema, $data) || 'any' unless @types;
+  # Test base schema before allOf, anyOf or oneOf
+  if (ref $type eq 'ARRAY') {
+    for my $type (@$type) {
+      my $method = sprintf '_validate_type_%s', $type;
+      my @e = $self->$method($data, $path, $schema);
+      warn "[JSON::Validator] type @{[$path||'/']} => $method [@e]\n" if DEBUG == 2;
+      push @errors, \@e;
+      next if @e;
+      @errors = ();
+      last;
+    }
+  }
+  elsif ($type) {
+    my $method = sprintf '_validate_type_%s', $type;
+    @errors = $self->$method($data, $path, $schema);
+    warn "[JSON::Validator] type @{[$path||'/']} $method [@errors]\n" if DEBUG == 2;
+    return @errors if @errors;
+  }
 
-  #warn Carp::longmess(Data::Dumper::Dumper([$data, $path, $schema]));
-  #$SIG{__WARN__} = sub { Carp::confess(Data::Dumper::Dumper($schema)) };
-
-  if ($schema->{not}) {
-    @errors = $self->_validate($data, $path, $schema->{not});
+  if (my $rules = $schema->{not}) {
+    push @errors, $self->_validate($data, $path, $rules);
+    warn "[JSON::Validator] not @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
     return @errors ? () : (E $path, 'Should not match.');
   }
 
-  for my $t (map { ref $_ eq 'ARRAY' ? @$_ : $_ } @types) {
-    $t //= 'null';
-    if (ref $t eq 'HASH') {
-      push @errors, [$self->_validate($data, $path, $t)];
-      return if !$check_all and !@{$errors[-1]};    # valid
-    }
-    elsif (my $code = $self->can(sprintf '_validate_type_%s', $t)) {
-      push @errors, [$self->$code($data, $path, $schema)];
-      return if !$check_all and !@{$errors[-1]};    # valid
-    }
-    elsif ($t eq 'file') {
-      return;                                       # Skip validating raw file
-    }
-    else {
-      return E $path, "Cannot validate type '$t'";
-    }
+  if (my $rules = $schema->{allOf}) {
+    push @errors, $self->_validate_all_of($data, $path, $rules);
   }
-
-  if ($schema->{oneOf}) {
-    my $n = grep { @$_ == 0 } @errors;
-    return if $n == 1;                              # one match
-    return E $path, "Expected only one to match." if $n == @errors;
+  elsif ($rules = $schema->{anyOf}) {
+    push @errors, $self->_validate_any_of($data, $path, $rules);
+  }
+  elsif ($rules = $schema->{oneOf}) {
+    push @errors, $self->_validate_one_of($data, $path, $rules);
   }
 
   if (@errors > 1) {
@@ -517,7 +517,60 @@ sub _validate {
     }
   }
 
-  return @{$errors[0]};
+  return @{$errors[0]} if @errors and ref $errors[0] eq 'ARRAY';
+  return @errors;
+}
+
+sub _validate_all_of {
+  my ($self, $data, $path, $rules) = @_;
+  my @errors;
+
+  for my $rule (@$rules) {
+    push @errors, [$self->_validate($data, $path, $rule)];
+  }
+
+  warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
+  return @errors;
+}
+
+sub _validate_any_of {
+  my ($self, $data, $path, $rules) = @_;
+  my @errors;
+
+  for my $rule (@$rules) {
+    my @e = $self->_validate($data, $path, $rule);
+    last unless @e;
+    push @errors, \@e;
+  }
+
+  if (@errors < @$rules) {
+    warn "[JSON::Validator] anyOf @{[$path||'/']} == success\n" if DEBUG == 2;
+    return;
+  }
+  else {
+    warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
+    return @errors;
+  }
+}
+
+sub _validate_one_of {
+  my ($self, $data, $path, $rules) = @_;
+  my $failed = 0;
+  my @errors;
+
+  for my $rule (@$rules) {
+    my @e = $self->_validate($data, $path, $rule);
+    $failed++ if @e;
+    push @errors, @e;
+  }
+
+  if ($failed + 1 == @$rules) {
+    warn "[JSON::Validator] oneOf @{[$path||'/']} == success\n" if DEBUG == 2;
+    return;
+  }
+
+  warn "[JSON::Validator] oneOf @{[$path||'/']} == failed=$failed/@{[int @$rules]} / @errors\n" if DEBUG == 2;
+  return E $path, 'Expected only one to match.';
 }
 
 sub _validate_type_enum {
@@ -532,6 +585,9 @@ sub _validate_type_enum {
   local $" = ', ';
   return E $path, "Not in enum list: @$enum.";
 }
+
+# TODO: Need to figure out if this is a Swagger specific thing
+sub _validate_type_file { }
 
 sub _validate_format {
   my ($self, $value, $path, $schema) = @_;
