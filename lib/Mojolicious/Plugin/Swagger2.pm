@@ -179,6 +179,18 @@ as C<swagger> from L<stash|Mojolicious/stash>. Example code:
     $c->$cb($c->stash('swagger')->pod->to_string, 200);
   }
 
+=head3 swagger_operation_spec
+
+The Swagger specification for the current
+L<operation object|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md#operationObject>
+is stored in the "swagger_operation_spec" stash variable.
+
+  sub list_pets {
+    my ($c, $args, $cb);
+    $c->app->log->info($c->stash("swagger_operation_spec")->{operationId});
+    ...
+  }
+
 =cut
 
 use Mojo::Base 'Mojolicious::Plugin';
@@ -369,7 +381,7 @@ sub _generate_request_handler {
   my $op         = $config->{operationId} || $route_path;
   my $method     = decamelize(ucfirst $op);
   my $controller = $config->{'x-mojo-controller'} or _die($config, "x-mojo-controller is missing in the swagger spec");
-  my $defaults   = {};
+  my $defaults   = {swagger_operation_spec => $config};
   my $handler;
 
   $handler = sub {

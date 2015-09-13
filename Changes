@@ -1,7 +1,8 @@
 Revision history for perl distribution Swagger2
 
 0.52 Not Released
- - Allow x-mojo-around-action to be inherited
+ - Add "swagger_operation_spec" to route defaults #30
+ - Allow x-mojo-around-action to be inherited #30
  - Allow x-mojo-controller to be inherited
  - Swagger2::SchemaValidator is back because JSON::Validator cannot be Swagger specific
 
