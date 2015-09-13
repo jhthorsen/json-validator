@@ -200,6 +200,8 @@ use Swagger2;
 use Swagger2::SchemaValidator;
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
+my $ANON_CONTROLLER = 1;
+
 =head1 ATTRIBUTES
 
 =head2 url
@@ -340,8 +342,8 @@ sub register {
   $paths   = $swagger->api_spec->get('/paths') || {};
 
   $self->url($swagger->url);
+  $self->_generate_controller($config, $swagger) if $config->{operations};
   $app->helper(render_swagger => \&render_swagger) unless $app->renderer->get_helper('render_swagger');
-
   $r = $config->{route};
 
   if ($r and !$r->pattern->unparsed) {
@@ -383,6 +385,20 @@ sub register {
   }
 }
 
+sub _generate_controller {
+  my ($self, $config, $swagger) = @_;
+  my $controller = "Mojolicious::Plugin::Swagger2::Controller::__ANON${ANON_CONTROLLER}__";
+
+  $INC{"Mojolicious/Plugin/Swagger2/Controller/__ANON${ANON_CONTROLLER}__.pm"} = 'SWAGGER2';
+  eval "package $controller;use Mojo::Base 'Mojolicious::Controller';1" or die "$controller: $@";
+  $swagger->api_spec->data->{'x-mojo-controller'} = $controller;
+  $ANON_CONTROLLER++;
+
+  while (my ($op, $code) = each %{$config->{operations}}) {
+    Mojo::Util::monkey_patch($controller => decamelize(ucfirst $op) => $code);
+  }
+}
+
 sub _generate_request_handler {
   my ($self, $route_path, $config) = @_;
   my $op         = $config->{operationId} || $route_path;
@@ -404,8 +420,7 @@ sub _generate_request_handler {
         and warn "HTTP method name is not used in method name lookup anymore!";
     }
     unless ($method_ref) {
-      $c->app->log->error(
-        qq(Can't locate object method "$method" via package "$controller. (Something is wrong in @{[$self->url]})"));
+      $c->app->log->error(qq(Can't locate object method "$method" via package "$controller".));
       return $c->render_swagger($self->_not_implemented(qq(Method "$op" not implemented.)), {}, 501);
     }
 
