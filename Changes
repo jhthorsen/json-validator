@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.53 Not Released
+0.53 2015-09-13T10:52:16+0200
  - Fix properties, patternProperties, additionalProperties interaction - patternProperty invalidates property
  - Fix validation for a keyword and instance SHOULD succeed when keywords does not match primitive type
  - Fix allOf with base schema - mismatch base schema
