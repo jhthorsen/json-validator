@@ -87,7 +87,6 @@ use Scalar::Util;
 
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
-use constant IV_SIZE           => eval 'require Config;$Config::Config{ivsize}';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
 use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
@@ -148,46 +147,18 @@ Note! The modules mentioned below are optional.
 
 =over 4
 
-=item * byte
-
-A padded, base64-encoded string of bytes, encoded with a URL and filename safe
-alphabet. Defined by RFC4648.
-
-=item * date
-
-An RFC3339 date in the format YYYY-MM-DD
-
 =item * date-time
 
 An RFC3339 timestamp in UTC time. This is formatted as
 "YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is optional
 
-=item * double
-
-Cannot test double values with higher precision then what
-the "number" type already provides.
-
 =item * email
 
 Validated against the RFC5322 spec.
 
-=item * float
-
-Will always be true if the input is a number, meaning there is no difference
-between  L</float> and L</double>. Patches are welcome.
-
 =item * hostname
 
 Will be validated using L<Data::Validate::Domain> if installed.
-
-=item * int32
-
-A signed 32 bit integer.
-
-=item * int64
-
-A signed 64 bit integer. Note: This check is only available if Perl is
-compiled to use 64 bit integers.
 
 =item * ipv4
 
