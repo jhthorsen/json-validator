@@ -36,17 +36,20 @@ The input L</url> to given as argument to the plugin need to point to a
 valid L<swagger|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>
 document.
 
-Every operation must have a "x-mojo-controller" specified,
-so this plugin knows where to look for the decamelized "operationId",
-which is used as method name.
+Every operation must have a "x-mojo-controller" specified, so this plugin
+knows where to look for the decamelized "operationId", which is used as
+method name. C<x-mojo-controller> can be defined on different levels
+and gets inherited unless defined more specific:
 
   ---
   swagger: 2.0
   basePath: /api
+  x-mojo-controller: MyApp::Controller::Default
   paths:
-    /foo:
+    /pets:
+      x-mojo-controller: MyApp::Controller::ForEveryHttpMethodUnderPets
       get:
-        x-mojo-controller: MyApp::Controller::Api
+        x-mojo-controller: MyApp::Controller::Petstore
         x-mojo-around-action: MyApp::authenticate_api_request
         operationId: listPets
         parameters: [ ... ]
@@ -75,11 +78,11 @@ and a callback. The callback should be called with a HTTP status code, and
 a data structure which will be validated and serialized back to the user
 agent.
 
-  package MyApp::Controller::Api;
+  package MyApp::Controller::Petstore;
 
   sub list_pets {
     my ($c, $input, $cb) = @_;
-    $c->$cb({foo => 123}, 200);
+    $c->$cb({limit => 123}, 200);
   }
 
 =head2 Protected API
@@ -113,9 +116,9 @@ L<relaxed placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojo
   swagger: 2.0
   basePath: /api
   paths:
-    /foo:
+    /pets:
       get:
-        x-mojo-controller: MyApp::Controller::Api
+        x-mojo-controller: MyApp::Controller::Petstore
         operationId: listPets
         parameters:
         - name: ip
@@ -150,6 +153,17 @@ L</Swagger specification>, C<MyApp::authenticate_api_request>:
       401
     );
   }
+
+C<x-mojo-around-action> is also inherited from most levels, meaning that you
+define it globally for your whole API if you like:
+
+  ---
+  x-mojo-around-action: MyApp::protect_any_resource
+  paths:
+    /pets:
+      x-mojo-around-action: MyApp::protect_any_method_under_foo
+      get:
+        x-mojo-around-action: MyApp::protect_just_this_resource
 
 This feature is EXPERIMENTAL and can change without notice.
 
@@ -230,7 +244,7 @@ to render a JSON document, like this:
     "errors": [
       {
         "message": "is missing and it is required",
-        "path": "/foo"
+        "path": "/limit"
       },
       ...
     ]
@@ -328,6 +342,9 @@ sub register {
   }
 
   for my $path (keys %$paths) {
+    $paths->{$path}{'x-mojo-around-action'} ||= $swagger->api_spec->get('/x-mojo-around-action');
+    $paths->{$path}{'x-mojo-controller'}    ||= $swagger->api_spec->get('/x-mojo-controller');
+
     for my $http_method (grep { !/^x-/ } keys %{$paths->{$path}}) {
       my $info       = $paths->{$path}{$http_method};
       my $route_path = $path;
@@ -340,6 +357,8 @@ sub register {
       }/ge;
 
       warn "[Swagger2] Add route $http_method $route_path\n" if DEBUG;
+      $info->{'x-mojo-around-action'} ||= $paths->{$path}{'x-mojo-around-action'};
+      $info->{'x-mojo-controller'}    ||= $paths->{$path}{'x-mojo-controller'};
       $r->$http_method($route_path => $self->_generate_request_handler($route_path, $info));
     }
   }
