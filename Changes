@@ -1,6 +1,7 @@
 Revision history for perl distribution Swagger2
 
 0.52 Not Released
+ - Fix validate(): Need to expand, as well as depend on fixes in JSON::Validator
  - Will also log the operationId not implemented
  - Deprecated tree() in favor of api_spec()
  - Deprecated specification()

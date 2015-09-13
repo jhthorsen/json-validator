@@ -265,14 +265,15 @@ sub to_string {
 
   @errors = $self->validate;
 
-Will validate L</tree> against L</specification>, and return a list with all
-the errors found. See also L<JSON::Validator/validate>.
+Will validate L</api_spec> against
+L<Swagger RESTful API Documentation Specification/https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>,
+and return a list with all the errors found. See also L<JSON::Validator/validate>.
 
 =cut
 
 sub validate {
   my $self = shift;
-  $self->_validator->validate($self->tree->data, $self->specification->data);
+  $self->_validator->validate($self->expand->api_spec->data, $self->_specification->data);
 }
 
 sub _is_true {

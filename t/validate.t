@@ -6,7 +6,7 @@ use Swagger2;
 my ($swagger, @errors);
 
 {
-  $swagger = Swagger2->new('t/data/petstore.json');
+  $swagger = Swagger2->new('t/data/validate.json');
   @errors  = $swagger->validate;
   is_deeply \@errors, [], 'petstore.json' or diag join "\n", @errors;
 }
