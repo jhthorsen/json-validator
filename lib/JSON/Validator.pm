@@ -224,22 +224,7 @@ has cache_dir => sub {
 
 has coerce => $ENV{JSON_VALIDATOR_COERCE_VALUES} || $ENV{SWAGGER_COERCE_VALUES} || 0;    # EXPERIMENTAL!
 
-has formats => sub {
-  +{
-    'byte'      => \&_is_byte_string,
-    'date'      => \&_is_date,
-    'date-time' => \&_is_date_time,
-    'double'    => sub {1},
-    'float'     => sub {1},
-    'email'     => \&_is_email,
-    'hostname'  => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
-    'int32'     => sub { _is_number($_[0], 'l'); },
-    'int64'     => IV_SIZE >= 8 ? sub { _is_number($_[0], 'q'); } : sub {1},
-    'ipv4' => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
-    'ipv6' => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
-    'uri'  => \&_is_uri,
-  };
-};
+has formats => sub { shift->_build_formats };
 
 has ua => sub {
   require Mojo::UserAgent;
@@ -336,6 +321,17 @@ sub validate {
   $schema ||= $self->schema->data;    # back compat with Swagger2::SchemaValidator
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
   return $self->_validate($data, '', $schema);
+}
+
+sub _build_formats {
+  return {
+    'date-time' => \&_is_date_time,
+    'email'     => \&_is_email,
+    'hostname'  => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
+    'ipv4'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
+    'ipv6'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
+    'uri'       => \&_is_uri,
+  };
 }
 
 sub _coerce_by_collection_format {
@@ -585,9 +581,6 @@ sub _validate_type_enum {
   local $" = ', ';
   return E $path, "Not in enum list: @$enum.";
 }
-
-# TODO: Need to figure out if this is a Swagger specific thing
-sub _validate_type_file { }
 
 sub _validate_format {
   my ($self, $value, $path, $schema) = @_;
@@ -859,10 +852,8 @@ sub _guessed_right {
   return _guess_data_type($_[0]) eq $_[1] ? $_[1] : undef;
 }
 
-sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/; }
-sub _is_date        { $_[0] =~ qr/^(\d+)-(\d+)-(\d+)$/io; }
-sub _is_date_time   { $_[0] =~ qr/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$/io; }
-sub _is_domain      { warn "Data::Validate::Domain is not installed"; return; }
+sub _is_date_time { $_[0] =~ qr/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$/io; }
+sub _is_domain { warn "Data::Validate::Domain is not installed"; return; }
 
 sub _is_email {
   state $email_rfc5322_re = do {
@@ -885,11 +876,6 @@ sub _is_ipv4 {
 }
 
 sub _is_ipv6 { warn "Data::Validate::IP is not installed"; return; }
-
-sub _is_number {
-  return unless $_[0] =~ /^-?\d+(\.\d+)?$/;
-  return $_[0] eq unpack $_[1], pack $_[1], $_[0];
-}
 
 sub _is_true {
   return $_[0] if ref $_[0] and !Scalar::Util::blessed($_[0]);

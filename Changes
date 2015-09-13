@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+0.54 Not Released
+ - Removed Swagger specific type "file"
+ - Removed Swagger specific formats: "byte", "date", "double", "float", "int32" and "int64".
+
 0.53 2015-09-13T10:52:16+0200
  - Fix properties, patternProperties, additionalProperties interaction - patternProperty invalidates property
  - Fix validation for a keyword and instance SHOULD succeed when keywords does not match primitive type
