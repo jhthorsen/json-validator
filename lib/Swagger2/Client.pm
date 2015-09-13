@@ -66,10 +66,9 @@ the swagger document:
 use Mojo::Base -base;
 use Mojo::UserAgent;
 use Mojo::Util;
-use JSON::Validator;
 use Carp ();
-
-require Swagger2;
+use Swagger2;
+use Swagger2::SchemaValidator;
 
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
@@ -91,7 +90,7 @@ Returns a L<Mojo::UserAgent> object which is used to execute requests.
 
 has base_url   => sub { Mojo::URL->new(shift->_swagger->base_url) };
 has ua         => sub { Mojo::UserAgent->new };
-has _validator => sub { JSON::Validator->new; };
+has _validator => sub { Swagger2::SchemaValidator->new; };
 
 =head1 METHODS
 

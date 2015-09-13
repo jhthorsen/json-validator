@@ -3,6 +3,7 @@ Revision history for perl distribution Swagger2
 0.52 Not Released
  - Allow x-mojo-around-action to be inherited
  - Allow x-mojo-controller to be inherited
+ - Swagger2::SchemaValidator is back because JSON::Validator cannot be Swagger specific
 
 0.52 2015-09-13T10:53:14+0200
  - Fix validate(): Need to expand, as well as depend on fixes in JSON::Validator

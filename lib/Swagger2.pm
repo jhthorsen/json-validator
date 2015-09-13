@@ -60,6 +60,7 @@ use Mojo::URL;
 use Mojo::Util 'deprecated';
 use File::Basename ();
 use File::Spec;
+use Swagger2::SchemaValidator;
 
 our $VERSION = '0.52';
 
@@ -140,8 +141,7 @@ sub tree {
 has _specification => sub { shift->_validator->schema($SPEC_FILE)->schema };
 
 has _validator => sub {
-  require JSON::Validator;
-  JSON::Validator->new->cache_dir($ENV{SWAGGER2_CACHE_DIR}
+  Swagger2::SchemaValidator->new->cache_dir($ENV{SWAGGER2_CACHE_DIR}
       || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( Swagger2 public cache )));
 };
 

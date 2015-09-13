@@ -184,8 +184,8 @@ as C<swagger> from L<stash|Mojolicious/stash>. Example code:
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::JSON;
 use Mojo::Util 'decamelize';
-use JSON::Validator;
 use Swagger2;
+use Swagger2::SchemaValidator;
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
 =head1 ATTRIBUTES
@@ -197,7 +197,7 @@ Holds the URL to the swagger specification file.
 =cut
 
 has url => '';
-has _validator => sub { JSON::Validator->new; };
+has _validator => sub { Swagger2::SchemaValidator->new; };
 
 =head1 HELPERS
 
