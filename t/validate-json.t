@@ -22,5 +22,6 @@ __DATA__
 @@ spec.json
 {
   "type": "object",
-  "properties": { "name": { "required": true, "type": "string" } }
+  "properties": { "name": { "type": "string" } },
+  "required": ["name"]
 }

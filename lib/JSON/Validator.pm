@@ -734,7 +734,7 @@ sub _validate_type_object {
   }
 
   while (my ($k, $r) = each %{$schema->{properties}}) {
-    push @{$rules{$k}}, $r if exists $data->{$k} or $r->{required};
+    push @{$rules{$k}}, $r if exists $data->{$k} or ($r->{required} and ref $r->{required} ne 'ARRAY');
   }
   while (my ($p, $r) = each %{$schema->{patternProperties}}) {
     push @{$rules{$_}}, $r for grep { $_ =~ /$p/ } keys %$data;
