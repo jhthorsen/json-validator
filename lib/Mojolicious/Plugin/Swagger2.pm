@@ -358,9 +358,10 @@ sub register {
     $paths->{$path}{'x-mojo-controller'}    ||= $swagger->api_spec->get('/x-mojo-controller');
 
     for my $http_method (grep { !/^x-/ } keys %{$paths->{$path}}) {
-      my $info       = $paths->{$path}{$http_method};
+      my $op_spec    = $paths->{$path}{$http_method};
       my $route_path = $path;
-      my %parameters = map { ($_->{name}, $_) } @{$info->{parameters} || []};
+      my %parameters = map { ($_->{name}, $_) } @{$op_spec->{parameters} || []};
+      my $route_name;
 
       $route_path =~ s/{([^}]+)}/{
         my $name = $1;
@@ -368,10 +369,16 @@ sub register {
         "($type$name)";
       }/ge;
 
-      warn "[Swagger2] Add route $http_method $route_path\n" if DEBUG;
-      $info->{'x-mojo-around-action'} ||= $paths->{$path}{'x-mojo-around-action'};
-      $info->{'x-mojo-controller'}    ||= $paths->{$path}{'x-mojo-controller'};
-      $r->$http_method($route_path => $self->_generate_request_handler($route_path, $info));
+      $op_spec->{'x-mojo-around-action'} ||= $paths->{$path}{'x-mojo-around-action'};
+      $op_spec->{'x-mojo-controller'}    ||= $paths->{$path}{'x-mojo-controller'};
+      $route_name = decamelize(
+        join '::',
+        map { ucfirst $_ } $op_spec->{'x-mojo-controller'},
+        ($op_spec->{operationId} || $route_path)
+      );
+      $route_name =~ s/\W+/_/g;
+      $r->$http_method($route_path => $self->_generate_request_handler($route_path, $op_spec))->name($route_name);
+      warn "[Swagger2] Add route $http_method $route_path ($route_name)\n" if DEBUG;
     }
   }
 }

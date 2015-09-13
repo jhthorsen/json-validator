@@ -1,6 +1,7 @@
 Revision history for perl distribution Swagger2
 
 0.52 Not Released
+ - Add EXPERIMENTAL naming of swagger routes #27
  - Add "swagger_operation_spec" to route defaults #30
  - Allow x-mojo-around-action to be inherited #30
  - Allow x-mojo-controller to be inherited

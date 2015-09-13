@@ -11,6 +11,9 @@ plugin Swagger2 => {url => 't/data/bodytest.json'};
 my $t = Test::Mojo->new;
 $t::Api::RES = {};
 
+# EXPERIMENTAL
+ok $t->app->routes->lookup('t_api_add_pet'), 'add route add_pet';
+
 # invalid input
 $t->post_ok('/api/pets' => json => {id => 123})->status_is(400)->json_is('/errors/0/message', 'Missing property.')
   ->json_is('/errors/0/path', '/pet/name');
