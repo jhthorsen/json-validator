@@ -11,7 +11,7 @@ Swagger2 - Swagger RESTful API Documentation
 =head1 DESCRIPTION
 
 L<Swagger2> is a module for generating, parsing and transforming
-L<swagger|http://swagger.io/> API documentation. It has support for reading
+L<swagger|http://swagger.io/> API specification. It has support for reading
 swagger specification in JSON notation and as well YAML format.
 
 Please read L<http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html>
@@ -46,7 +46,7 @@ and L<YAML::Tiny>.
   my $swagger = Swagger2->new("/path/to/api-spec.yaml");
 
   # Access the raw specification values
-  print $swagger->tree->get("/swagger");
+  print $swagger->api_spec->get("/swagger");
 
   # Returns the specification as a POD document
   print $swagger->pod->to_string;
@@ -57,6 +57,7 @@ use Mojo::Base -base;
 use Mojo::JSON;
 use Mojo::JSON::Pointer;
 use Mojo::URL;
+use Mojo::Util 'deprecated';
 use File::Basename ();
 use File::Spec;
 
@@ -67,6 +68,13 @@ our $SPEC_FILE = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger
 
 =head1 ATTRIBUTES
 
+=head2 api_spec
+
+  $pointer = $self->api_spec;
+  $self = $self->api_spec(Mojo::JSON::Pointer->new({}));
+
+Holds a L<Mojo::JSON::Pointer> object containing your API specification.
+
 =head2 base_url
 
   $mojo_url = $self->base_url;
@@ -76,16 +84,11 @@ Note: This might also just be a dummy URL to L<http://example.com/>.
 
 =head2 specification
 
-DEPRECATED.
-
-If you need to change this, then you probably want L<JSON::Validator> instead.
+DEPRECATED. If you need to change this, then you probably want L<JSON::Validator> instead.
 
 =head2 tree
 
-  $pointer = $self->tree;
-  $self = $self->tree(Mojo::JSON::Pointer->new({}));
-
-Holds a L<Mojo::JSON::Pointer> object containing your API specification.
+DEPRECATED. Use L</api_spec> instead.
 
 =head2 ua
 
@@ -104,27 +107,37 @@ resource will be fetched using L<Mojo::UserAgent>.
 
 =cut
 
+has api_spec => sub {
+  my $self = shift;
+  return $self->_validator->_load_schema($self->url) if '' . $self->url;
+  return Mojo::JSON::Pointer->new({});
+};
+
 has base_url => sub {
   my $self = shift;
   my $url  = Mojo::URL->new;
   my ($schemes, $v);
 
-  $self->load if !$self->{tree} and '' . $self->url;
-  $schemes = $self->tree->get('/schemes') || [];
-  $url->host($self->tree->get('/host')     || 'example.com');
-  $url->path($self->tree->get('/basePath') || '/');
-  $url->scheme($schemes->[0]               || 'http');
+  $self->load if !$self->{api_spec} and '' . $self->url;
+  $schemes = $self->api_spec->get('/schemes') || [];
+  $url->host($self->api_spec->get('/host')     || 'example.com');
+  $url->path($self->api_spec->get('/basePath') || '/');
+  $url->scheme($schemes->[0]                   || 'http');
 
   return $url;
 };
 
-has specification => sub { shift->_validator->schema($SPEC_FILE)->schema; };
+sub specification {
+  deprecated 'specification() will be removed.';
+  shift->_specification;
+}
 
-has tree => sub {
-  my $self = shift;
-  return $self->_validator->_load_schema($self->url) if '' . $self->url;
-  return Mojo::JSON::Pointer->new({});
-};
+sub tree {
+  deprecated 'tree() is replaced by api_spec().';
+  shift->api_spec(@_);
+}
+
+has _specification => sub { shift->_validator->schema($SPEC_FILE)->schema };
 
 has _validator => sub {
   require JSON::Validator;
@@ -150,7 +163,7 @@ are resolved.
 sub expand {
   my $self  = shift;
   my $class = Scalar::Util::blessed($self);
-  $class->new(%$self)->tree($self->_validator->schema($self->tree->data)->schema);
+  $class->new(%$self)->api_spec($self->_validator->schema($self->api_spec->data)->schema);
 }
 
 =head2 load
@@ -167,7 +180,7 @@ sub load {
   my $self = shift;
   delete $self->{base_url};
   $self->{url} = Mojo::URL->new(shift) if @_;
-  $self->{tree} = $self->_validator->_load_schema($self->{url});
+  $self->{api_spec} = $self->_validator->_load_schema($self->{url});
   $self;
 }
 
@@ -206,8 +219,8 @@ sub parse {
   my ($self, $doc, $namespace) = @_;
   delete $self->{base_url};
   $namespace ||= 'http://127.0.0.1/#';
-  $self->{url}  = Mojo::URL->new($namespace);
-  $self->{tree} = Mojo::JSON::Pointer->new($self->_validator->_load_schema_from_text($doc));
+  $self->{url}      = Mojo::URL->new($namespace);
+  $self->{api_spec} = Mojo::JSON::Pointer->new($self->_validator->_load_schema_from_text($doc));
   $self;
 }
 
@@ -221,9 +234,9 @@ Returns a L<Swagger2::POD> object.
 
 sub pod {
   my $self     = shift;
-  my $resolved = $self->_validator->schema($self->tree->data)->schema;
+  my $resolved = $self->_validator->schema($self->api_spec->data)->schema;
   require Swagger2::POD;
-  Swagger2::POD->new(base_url => $self->base_url, tree => $resolved);
+  Swagger2::POD->new(base_url => $self->base_url, api_spec => $resolved);
 }
 
 =head2 to_string
@@ -241,10 +254,10 @@ sub to_string {
   my $format = shift || 'json';
 
   if ($format eq 'yaml') {
-    return DumpYAML($self->tree->data);
+    return DumpYAML($self->api_spec->data);
   }
   else {
-    return Mojo::JSON::encode_json($self->tree->data);
+    return Mojo::JSON::encode_json($self->api_spec->data);
   }
 }
 

@@ -10,13 +10,13 @@ $original->load('t/data/petstore.json');
 $expanded = $original->expand;
 
 is_deeply(
-  $original->tree->get('/paths/~1pets/get/responses/200/schema/items'),
+  $original->api_spec->get('/paths/~1pets/get/responses/200/schema/items'),
   {'$ref' => '#/definitions/Pet'},
   'original /paths/~1pets/get/responses/200/schema/items'
 );
 
 is_deeply(
-  $expanded->tree->get('/paths/~1pets/get/responses/200/schema/items'),
+  $expanded->api_spec->get('/paths/~1pets/get/responses/200/schema/items'),
   {
     required => ["id", "name"],
     properties => {id => {type => "integer", format => "int64"}, name => {type => "string"}, tag => {type => "string"}}
@@ -24,8 +24,8 @@ is_deeply(
   'expanded /paths/~1pets/get/responses/200/schema/items'
 );
 
-ok find_key($original->tree->data, '$ref'), '$ref in original';
-ok !find_key($expanded->tree->data, '$ref'), 'no $ref in expanded';
+ok find_key($original->api_spec->data, '$ref'), '$ref in original';
+ok !find_key($expanded->api_spec->data, '$ref'), 'no $ref in expanded';
 
 done_testing;
 

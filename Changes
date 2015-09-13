@@ -2,6 +2,8 @@ Revision history for perl distribution Swagger2
 
 0.52 Not Released
  - Will also log the operationId not implemented
+ - Deprecated tree() in favor of api_spec()
+ - Deprecated specification()
 
 0.51 2015-09-03T12:22:20+0200
  - Fix dumper() in Command::swagger2

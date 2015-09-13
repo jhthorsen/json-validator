@@ -46,7 +46,7 @@ sub to_string {
 
 sub _api_endpoint_to_string {
   my $self    = shift;
-  my @schemes = @{$self->{tree}->get('/schemes') || []};
+  my @schemes = @{$self->{api_spec}->get('/schemes') || []};
   my $url     = $self->{base_url}->clone;
   my $str     = "=head1 BASEURL\n\n";
 
@@ -64,8 +64,8 @@ sub _api_endpoint_to_string {
 
 sub _footer_to_string {
   my $self    = shift;
-  my $contact = $self->{tree}->get('/info/contact');
-  my $license = $self->{tree}->get('/info/license');
+  my $contact = $self->{api_spec}->get('/info/contact');
+  my $license = $self->{api_spec}->get('/info/license');
   my $str     = '';
 
   unless ($license->{name}) {
@@ -85,7 +85,7 @@ sub _footer_to_string {
 
 sub _header_to_string {
   my $self = shift;
-  my $info = $self->{tree}->get('/info');
+  my $info = $self->{api_spec}->get('/info');
   my $str  = '';
 
   $info->{title}       ||= 'Noname API';
@@ -141,7 +141,7 @@ sub _path_response_to_string {
 
 sub _paths_to_string {
   my $self  = shift;
-  my $paths = $self->{tree}->get('/paths') || {};
+  my $paths = $self->{api_spec}->get('/paths') || {};
   my $str   = "=head1 RESOURCES\n\n";
   my %info;
 

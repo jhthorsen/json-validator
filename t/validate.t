@@ -12,13 +12,13 @@ my ($swagger, @errors);
 }
 
 {
-  local $swagger->tree->data->{foo} = 123;
+  local $swagger->api_spec->data->{foo} = 123;
   @errors = $swagger->validate;
   is_deeply \@errors, ['/: Properties not allowed: foo.'], 'petstore.json with foo' or diag join "\n", @errors;
 }
 
 {
-  local $swagger->tree->data->{info}{'x-foo'} = 123;
+  local $swagger->api_spec->data->{info}{'x-foo'} = 123;
   @errors = $swagger->validate;
   is_deeply \@errors, [], 'petstore.json with x-foo' or diag join "\n", @errors;
 }

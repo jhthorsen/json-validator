@@ -290,7 +290,7 @@ specification to other things in your application. Example:
   use Swagger2;
   my $swagger = Swagger2->new->load($url);
   plugin Swagger2 => {swagger => $swagger2};
-  app->defaults(swagger_spec => $swagger->tree);
+  app->defaults(swagger_spec => $swagger->api_spec);
 
 Either this parameter or C<url> need to be present.
 
@@ -311,7 +311,7 @@ sub register {
 
   $swagger = $config->{swagger} || Swagger2->new->load($config->{url} || '"url" is missing');
   $swagger = $swagger->expand;
-  $paths   = $swagger->tree->get('/paths') || {};
+  $paths   = $swagger->api_spec->get('/paths') || {};
 
   $self->url($swagger->url);
   $app->helper(render_swagger => \&render_swagger) unless $app->renderer->get_helper('render_swagger');

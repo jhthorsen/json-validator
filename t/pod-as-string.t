@@ -28,7 +28,7 @@ if ($fail and $ENV{PRINT_DOC}) {
   print $pod->to_string;
 }
 
-my $identifier = $swagger->tree->data->{paths}{'/any-of'}{get}{responses}{200}{schema}{properties}{identifier};
+my $identifier = $swagger->api_spec->data->{paths}{'/any-of'}{get}{responses}{200}{schema}{properties}{identifier};
 $identifier->{allOf} = delete $identifier->{anyOf};
 like $swagger->pod->to_string, qr{// All of the below:}, 'allOf';
 

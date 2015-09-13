@@ -110,7 +110,7 @@ same URL will not generate a new class.
 sub generate {
   my ($class, $url) = @_;
   my $swagger = Swagger2->new->load($url)->expand;
-  my $paths = $swagger->tree->get('/paths') || {};
+  my $paths = $swagger->api_spec->get('/paths') || {};
   my $generated;
 
   $generated = 40 < length $url ? Mojo::Util::md5_sum($url) : $url;    # 40 is a bit random: not too long

@@ -23,7 +23,7 @@ my $t = Test::Mojo->new;
 $t->get_ok('/api/pets')->status_is(401)->json_is('/error/message', 'Not authenticated');
 
 isa_ok($spec, 'Swagger2');
-is $spec->tree->get('/info/title'), 'Swagger Petstore', 'got swagger';
+is $spec->api_spec->get('/info/title'), 'Swagger Petstore', 'got swagger';
 
 $t::Api::RES = [{id => 123, name => "kit-cat"}];
 $t->get_ok('/api/pets?secret=whatever')->status_is(200)->json_is('/0/id', 123)->json_is('/0/name', 'kit-cat');
