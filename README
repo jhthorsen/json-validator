@@ -2,11 +2,11 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.51
+    0.52
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger
-    <http://swagger.io/> API documentation. It has support for reading
+    <http://swagger.io/> API specification. It has support for reading
     swagger specification in JSON notation and as well YAML format.
 
     Please read
@@ -35,12 +35,18 @@ SYNOPSIS
       my $swagger = Swagger2->new("/path/to/api-spec.yaml");
 
       # Access the raw specification values
-      print $swagger->tree->get("/swagger");
+      print $swagger->api_spec->get("/swagger");
 
       # Returns the specification as a POD document
       print $swagger->pod->to_string;
 
 ATTRIBUTES
+  api_spec
+      $pointer = $self->api_spec;
+      $self = $self->api_spec(Mojo::JSON::Pointer->new({}));
+
+    Holds a Mojo::JSON::Pointer object containing your API specification.
+
   base_url
       $mojo_url = $self->base_url;
 
@@ -48,16 +54,11 @@ ATTRIBUTES
     might also just be a dummy URL to <http://example.com/>.
 
   specification
-    DEPRECATED.
-
-    If you need to change this, then you probably want JSON::Validator
-    instead.
+    DEPRECATED. If you need to change this, then you probably want
+    JSON::Validator instead.
 
   tree
-      $pointer = $self->tree;
-      $self = $self->tree(Mojo::JSON::Pointer->new({}));
-
-    Holds a Mojo::JSON::Pointer object containing your API specification.
+    DEPRECATED. Use "api_spec" instead.
 
   ua
       $ua = $self->ua;
@@ -118,8 +119,10 @@ METHODS
   validate
       @errors = $self->validate;
 
-    Will validate "tree" against "specification", and return a list with all
-    the errors found. See also "validate" in JSON::Validator.
+    Will validate "api_spec" against
+    "https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md
+    " in Swagger RESTful API Documentation Specification, and return a list
+    with all the errors found. See also "validate" in JSON::Validator.
 
 COPYRIGHT AND LICENSE
     Copyright (C) 2014-2015, Jan Henning Thorsen

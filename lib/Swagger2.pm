@@ -6,7 +6,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 =head1 VERSION
 
-0.51
+0.52
 
 =head1 DESCRIPTION
 
@@ -61,7 +61,7 @@ use Mojo::Util 'deprecated';
 use File::Basename ();
 use File::Spec;
 
-our $VERSION = '0.51';
+our $VERSION = '0.52';
 
 # Should be considered internal
 our $SPEC_FILE = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'schema.json');
