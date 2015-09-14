@@ -1,8 +1,5 @@
 Revision history for perl distribution Swagger2
 
-0.54 Not Released
- - Add EXPERIMENTAL support for lite apps
-
 0.53 2015-09-13T15:55:54+0200
  - Add EXPERIMENTAL naming of swagger routes #27
  - Add "swagger_operation_spec" to route defaults #30
