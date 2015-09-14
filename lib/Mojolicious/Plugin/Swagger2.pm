@@ -41,20 +41,25 @@ knows where to look for the decamelized "operationId", which is used as
 method name. C<x-mojo-controller> can be defined on different levels
 and gets inherited unless defined more specific:
 
-  ---
-  swagger: 2.0
-  basePath: /api
-  x-mojo-controller: MyApp::Controller::Default
-  paths:
-    /pets:
-      x-mojo-controller: MyApp::Controller::ForEveryHttpMethodUnderPets
-      get:
-        x-mojo-controller: MyApp::Controller::Petstore
-        x-mojo-around-action: MyApp::authenticate_api_request
-        operationId: listPets
-        parameters: [ ... ]
-        responses:
-          200: { ... }
+  {
+    "swagger": "2.0",
+    "basePath": "/api",
+    "x-mojo-controller": "MyApp::Controller::Default",
+    "paths": {
+      "/pets": {
+        "x-mojo-controller": "MyApp::Controller::ForEveryHttpMethodUnderPets",
+        "get": {
+          "x-mojo-controller": "MyApp::Controller::Petstore",
+          "x-mojo-around-action": "MyApp::authenticate_api_request",
+          "operationId": "listPets",
+          "parameters": [ ... ],
+          "responses": {
+            "200": { ... }
+          }
+        }
+      }
+    }
+  }
 
 =head2 Application
 
@@ -62,9 +67,13 @@ The application need to load the L<Mojolicious::Plugin::Swagger2> plugin,
 with a URL to the API specification. The plugin will then add all the routes
 defined in the L</Swagger specification>.
 
-  use Mojolicious::Lite;
-  plugin Swagger2 => { url => app->home->rel_file("api.yaml") };
-  app->start;
+  package MyApp;
+  use Mojo::Base "Mojolicious";
+
+  sub startup {
+    my $app = shift;
+    $app->plugin(Swagger2 => { url => app->home->rel_file("api.yaml") });
+  }
 
 =head2 Controller
 
@@ -101,8 +110,12 @@ It is possible to protect your API, using a custom route:
 
   plugin Swagger2 => {
     route => $route,
-    url   => app->home->rel_file("api.yaml")
+    url   => "data://api.json",
   };
+
+  __DATA__
+  @@ api.json
+  {"swagger":"2.0", ...}
 
 =head2 Custom placeholders
 
@@ -112,21 +125,24 @@ meaning ":". This can be customized using C<x-mojo-placeholder> in the
 API specification. The example below will enforce a
 L<relaxed placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojolicious/Guides/Routing.pod#Relaxed-placeholders>:
 
-  ---
-  swagger: 2.0
-  basePath: /api
-  paths:
-    /pets:
-      get:
-        x-mojo-controller: MyApp::Controller::Petstore
-        operationId: listPets
-        parameters:
-        - name: ip
-          in: path
-          type: string
-          x-mojo-placeholder: "#"
-        responses:
-          200: { ... }
+  {
+    "swagger": "2.0",
+    "basePath": "/api",
+    "paths": {
+      "/pets/{name}": {
+        "get": {
+          "x-mojo-controller": "MyApp::Controller::Petstore",
+          "operationId": "listPets",
+          "parameters": [
+            { "name": "name", "in": "path", "type": "string", "x-mojo-placeholder": "#" }
+          ],
+          "responses": {
+            "200": { ... }
+          }
+        }
+      }
+    }
+  }
 
 =head2 Around action hook
 
@@ -157,13 +173,17 @@ L</Swagger specification>, C<MyApp::authenticate_api_request>:
 C<x-mojo-around-action> is also inherited from most levels, meaning that you
 define it globally for your whole API if you like:
 
-  ---
-  x-mojo-around-action: MyApp::protect_any_resource
-  paths:
-    /pets:
-      x-mojo-around-action: MyApp::protect_any_method_under_foo
-      get:
-        x-mojo-around-action: MyApp::protect_just_this_resource
+  {
+    "x-mojo-around-action": "MyApp::protect_any_resource",
+    "paths": {
+      "/pets": {
+        "x-mojo-around-action": "MyApp::protect_any_method_under_foo",
+        "get": {
+          "x-mojo-around-action": "MyApp::protect_just_this_resource"
+        }
+      }
+    }
+  }
 
 This feature is EXPERIMENTAL and can change without notice.
 
