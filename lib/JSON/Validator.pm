@@ -81,6 +81,7 @@ use Mojo::JSON::Pointer;
 use Mojo::URL;
 use Mojo::Util;
 use B;
+use Cwd            ();
 use File::Basename ();
 use File::Spec;
 use Scalar::Util;
@@ -250,6 +251,7 @@ sub schema {
     $self->_register_document($schema, $schema->{id} ||= 'http://generated.json.validator.url#');
   }
   else {
+    $schema = Cwd::abs_path($schema) if -e $schema;
     $schema = $self->_load_schema($schema)->data;
   }
 
@@ -316,16 +318,27 @@ sub _coerce_by_collection_format {
 }
 
 sub _load_schema {
-  my ($self, $url) = @_;
+  my ($self, $url, $parent) = @_;
   my ($namespace, $scheme) = ("$url", "file");
   my $doc;
 
-  if ($namespace =~ m!^https?://!) {
+  if ($namespace =~ /^https?:/) {
     $url = Mojo::URL->new($url);
-    ($namespace, $scheme) = ($url->clone->fragment(undef)->port(undef)->to_string, $url->scheme);
+    ($namespace, $scheme) = ($url->clone->fragment(undef)->to_string, $url->scheme);
   }
   elsif ($namespace =~ m!^data://(.*)!) {
     $scheme = 'data';
+  }
+  elsif ($parent and $parent =~ /^https?:/) {
+    $parent = Mojo::URL->new($parent);
+    $url =~ s!#.*!!;
+    $url = $parent->path($parent->path->merge($url)->canonicalize);
+    ($namespace, $scheme) = ($url->to_string, $url->scheme);
+  }
+  elsif ($parent and !File::Spec->file_name_is_absolute($url)) {
+    $url =~ s!#.*!!;
+    $url = Cwd::abs_path(File::Spec->catfile(File::Basename::dirname($parent), split '/', $url));
+    $namespace = $url;
   }
 
   # Make sure we create the correct namespace if not already done by Mojo::URL
@@ -340,6 +353,7 @@ sub _load_schema {
       :                     $self->_load_schema_from_url($url, $namespace);
     $self->_register_document($self->_load_schema_from_text($doc), $namespace);
   } || do {
+    $doc ||= '';
     die "Could not load document from $url: $@ ($doc)" if DEBUG;
     die "Could not load document from $url: $@";
   };
@@ -371,7 +385,7 @@ sub _register_document {
 
   $doc = Mojo::JSON::Pointer->new($doc);
   $namespace = Mojo::URL->new($namespace) unless ref $namespace;
-  $namespace->fragment(undef)->port(undef);
+  $namespace->fragment(undef);
 
   warn "[JSON::Validator] Register $namespace\n" if DEBUG;
 
@@ -391,9 +405,9 @@ sub _resolve_ref {
 
   return $refs->{$ref} if $refs->{$ref};
 
-  warn "[JSON::Validator] Resolve $ref\n" if DEBUG;
+  warn "[JSON::Validator] Resolve $ref ($namespace)\n" if DEBUG;
   $refs->{$ref} = {};
-  my $doc = $self->_load_schema($ref);
+  my $doc = $self->_load_schema($ref, $namespace);
   my $def = $self->_resolve_schema($doc->get($ref->fragment), $doc->data->{id}, $refs);
   delete $def->{id};
   $refs->{$ref}{$_} = $def->{$_} for keys %$def;
