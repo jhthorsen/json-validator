@@ -1,0 +1,3 @@
+{
+    "age": { "type": "integer", "minimum": 0, "description": "Age in years" }
+}
