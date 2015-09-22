@@ -1,0 +1,5 @@
+{
+  "type": "string",
+  "description": "Unit of Mass",
+  "pattern": "^kg|st|lb$"
+}

@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "age": { "$ref": "../definitions/age.json#" },
+    "weight": { "$ref": "../definitions/weight.json" },
+    "height": { "$ref": "#/definitions/height" }
+  },
+  "definitions": {
+      "height": {
+          "type": "integer",
+          "minimum": 5
+      }
+  }
+}
