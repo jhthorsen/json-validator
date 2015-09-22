@@ -30,6 +30,13 @@ sub list_pets {
   $c->$cb($RES, $CODE);
 }
 
+sub status {
+  my ($c, $args, $cb) = @_;
+  my $resp = {};
+  $resp->{status} = $RES;
+  $c->$cb($resp, $CODE);
+}
+
 sub query_as_array {
   my ($c, $args, $cb) = @_;
   $c->$cb($args, $CODE);

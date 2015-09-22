@@ -373,7 +373,7 @@ sub register {
     $r->to(swagger => $swagger);
   }
 
-  for my $path (keys %$paths) {
+  for my $path (sort {length $a <=> length $b} keys %$paths) {
     $paths->{$path}{'x-mojo-around-action'} ||= $swagger->api_spec->get('/x-mojo-around-action');
     $paths->{$path}{'x-mojo-controller'}    ||= $swagger->api_spec->get('/x-mojo-controller');
 
