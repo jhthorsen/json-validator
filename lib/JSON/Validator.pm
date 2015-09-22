@@ -96,6 +96,8 @@ use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMA
 our $VERSION   = '0.53';
 our @EXPORT_OK = qw( validate_json );
 
+my $HTTP_SCHEME_RE = qr{^https?:};
+
 sub E { bless {path => $_[0] || '/', message => $_[1]}, 'JSON::Validator::Error'; }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
 
@@ -322,14 +324,14 @@ sub _load_schema {
   my ($namespace, $scheme) = ("$url", "file");
   my $doc;
 
-  if ($namespace =~ /^https?:/) {
+  if ($namespace =~ $HTTP_SCHEME_RE) {
     $url = Mojo::URL->new($url);
     ($namespace, $scheme) = ($url->clone->fragment(undef)->to_string, $url->scheme);
   }
   elsif ($namespace =~ m!^data://(.*)!) {
     $scheme = 'data';
   }
-  elsif ($parent and $parent =~ /^https?:/) {
+  elsif ($parent and $parent =~ $HTTP_SCHEME_RE) {
     $parent = Mojo::URL->new($parent);
     $url =~ s!#.*!!;
     $url = $parent->path($parent->path->merge($url)->canonicalize);
