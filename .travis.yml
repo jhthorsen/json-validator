@@ -1,0 +1,12 @@
+language: perl
+perl:
+  - "5.20"
+  - "5.16"
+  - "5.10"
+env:
+  - "HARNESS_OPTIONS=j6"
+install:
+  - "cpanm -n Test::Pod Test::Pod::Coverage Data::Validate::Domain Data::Validate::IP YAML"
+  - "cpanm -n --installdeps ."
+notifications:
+  email: false
