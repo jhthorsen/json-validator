@@ -250,14 +250,16 @@ sub schema {
     return $self->{schema};
   }
   elsif (ref $schema eq 'HASH') {
-    $self->_register_document($schema, $schema->{id} ||= 'http://generated.json.validator.url#');
+    $schema->{id} ||= $self->_default_id($schema);
+    warn "[JSON::Validator] Schema from hash. id=$schema->{id}\n" if DEBUG;
+    $schema = $self->_register_document($schema, $schema->{id});
   }
   else {
     $schema = Cwd::abs_path($schema) if -e $schema;
-    $schema = $self->_load_schema($schema)->data;
+    $schema = $self->_load_schema($schema);
   }
 
-  $self->{schema} = Mojo::JSON::Pointer->new($self->_resolve_schema($schema, $schema->{id}, {}));
+  $self->{schema} = Mojo::JSON::Pointer->new($self->_resolve_schema($schema, $schema->data->{id}));
   $self;
 }
 
@@ -337,9 +339,9 @@ sub _load_schema {
     $url = $parent->path($parent->path->merge($url)->canonicalize);
     ($namespace, $scheme) = ($url->to_string, $url->scheme);
   }
-  elsif ($parent and !File::Spec->file_name_is_absolute($url)) {
+  elsif ($parent) {
     $url =~ s!#.*!!;
-    $url = Cwd::abs_path(File::Spec->catfile(File::Basename::dirname($parent), split '/', $url));
+    $url = File::Spec->catfile(File::Basename::dirname($parent), split '/', $url);
     $namespace = $url;
   }
 
@@ -348,7 +350,7 @@ sub _load_schema {
 
   return $self->{cached}{$namespace} if $self->{cached}{$namespace};
   return eval {
-    warn "[JSON::Validator] Loading schema from $url ($namespace)\n" if DEBUG;
+    warn "[JSON::Validator] Loading schema $url namespace=$namespace scheme=$scheme\n" if DEBUG;
     $doc
       = $scheme eq 'file' ? Mojo::Util::slurp($namespace)
       : $scheme eq 'data' ? $self->_load_schema_from_data($url, $namespace)
@@ -382,6 +384,14 @@ sub _load_schema_from_url {
   return $doc;
 }
 
+sub _default_id {
+  my $path = Cwd::abs_path($0);
+  state $id = 0;
+  $path = File::Basename::dirname($path) if $path;
+  $path = Cwd::getcwd unless $path;
+  return File::Spec->catfile($path, sprintf 'json-validator-%s.json', ++$id);
+}
+
 sub _register_document {
   my ($self, $doc, $namespace) = @_;
 
@@ -389,50 +399,56 @@ sub _register_document {
   $namespace = Mojo::URL->new($namespace) unless ref $namespace;
   $namespace->fragment(undef);
 
-  warn "[JSON::Validator] Register $namespace\n" if DEBUG;
-
   $self->{cached}{$namespace} = $doc;
   $doc->data->{id} ||= "$namespace";
   $self->{cached}{$doc->data->{id}} = $doc;
-  $doc;
-}
 
-sub _resolve_ref {
-  my ($self, $ref, $namespace, $refs) = @_;
-
-  return if !$ref or ref $ref;
-  $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;
-  $ref = Mojo::URL->new($namespace)->fragment($ref) if $ref =~ s!^\#!!;
-  $ref = Mojo::URL->new($ref) unless UNIVERSAL::isa($ref, 'Mojo::URL');
-
-  return $refs->{$ref} if $refs->{$ref};
-
-  warn "[JSON::Validator] Resolve $ref ($namespace)\n" if DEBUG;
-  $refs->{$ref} = {};
-  my $doc = $self->_load_schema($ref, $namespace);
-  my $def = $self->_resolve_schema($doc->get($ref->fragment), $doc->data->{id}, $refs);
-  delete $def->{id};
-  $refs->{$ref}{$_} = $def->{$_} for keys %$def;
-  $refs->{$ref};
+  warn "[JSON::Validator] Register id=$doc->{data}{id} namespace=$namespace\n" if DEBUG;
+  return $doc;
 }
 
 sub _resolve_schema {
-  my ($self, $obj, $namespace, $refs) = @_;
-  my $copy = ref $obj eq 'ARRAY' ? [] : {};
-  my $ref;
+  my ($self, $schema, $namespace) = @_;
+  my $copy  = {%{$schema->data}};
+  my @items = ($copy);
+  my @refs;
 
-  if (ref $obj eq 'HASH') {
-    $obj = $ref if $ref = $self->_resolve_ref($obj->{'$ref'}, $namespace, $refs);
-    $copy->{$_} = $self->_resolve_schema($obj->{$_}, $namespace, $refs) for keys %$obj;
-    delete $copy->{'$ref'};
-    return $copy;
-  }
-  elsif (ref $obj eq 'ARRAY') {
-    $copy->[$_] = $self->_resolve_schema($obj->[$_], $namespace, $refs) for 0 .. @$obj - 1;
-    return $copy;
+  # First step: Make copy and find $ref
+  while (@items) {
+    my $topic = shift @items;
+    if (ref $topic eq 'HASH') {
+      while (my ($k, $v) = each %$topic) {
+        $topic->{$k} = [@$v] if ref $v eq 'ARRAY';
+        $topic->{$k} = {%$v} if ref $v eq 'HASH';
+        push @refs, $topic if $k eq '$ref' and !ref $v;
+        push @items, $topic->{$k};
+      }
+    }
+    elsif (ref $topic eq 'ARRAY') {
+      push @items, @$topic;
+    }
   }
 
-  return $obj;
+  # Seconds step: Resolve $ref
+  for my $topic (@refs) {
+    my $ref = $topic->{'$ref'} or next;    # already resolved?
+    $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;                         # TODO: Figure out if this could be removed
+    $ref = Mojo::URL->new($namespace)->fragment($ref) if $ref =~ s!^\#!!;
+    $ref = Mojo::URL->new($ref) unless ref $ref;
+
+    my $look_in = $self->{cached}{$ref->clone->fragment(undef)};
+
+    if (!$look_in) {
+      $look_in = $self->_load_schema($ref, $namespace);
+      $self->_resolve_schema($look_in, $look_in->data->{id} || $namespace);
+    }
+
+    $ref = $look_in->get($ref->fragment) or die qq(Could not find "$topic->{'$ref'}". Typo in schema "$namespace"?);
+    %$topic = %$ref;
+    delete $topic->{id} unless ref $topic->{id};    # TODO: Is this correct?
+  }
+
+  return $copy;
 }
 
 sub _validate {
