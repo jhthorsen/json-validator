@@ -4,19 +4,47 @@ package Mojolicious::Plugin::Swagger2;
 
 Mojolicious::Plugin::Swagger2 - Mojolicious plugin for Swagger2
 
+=head1 SYNOPSIS
+
+  package MyApp;
+  use Mojo::Base "Mojolicious";
+
+  sub startup {
+    my $app = shift;
+    $app->plugin(Swagger2 => {url => "data://MyApp/petstore.json"});
+  }
+
+  __DATA__
+  @@ petstore.json
+  {
+    "swagger": "2.0",
+    "info": {...},
+    "host": "petstore.swagger.wordnik.com",
+    "basePath": "/api",
+    "paths": {
+      "/pets": {
+        "get": {...}
+      }
+    }
+  }
+
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::Swagger2> is L<Mojolicious::Plugin> that add routes and
 input/output validation to your L<Mojolicious> application.
 
-Please read L<http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html>
-for an introduction to this plugin and reasons for why you would to use it.
+Have a look at the L</RESOURCES> for a complete reference to what is possible
+or look at L<Swagger2::Guides::Tutorial> for an introduction.
 
-Have a look at this L<example blog app|https://github.com/jhthorsen/swagger2/tree/master/t/blog>
-too see a complete working example, with a database backend. Questions and
-comments on how to improve the example are very much welcome.
+=head1 RESOURCES
 
 =over 4
+
+=item * L<Swagger2::Guides::Tutorial> - Tutorial for this plugin
+
+=item * L<Swagger2::Guides::ProtectedApi> - Protected API Guide
+
+=item * L<Swagger2::Guides::CustomPlaceholder> - Custom placeholder for your routes
 
 =item * L<Swagger spec|https://github.com/jhthorsen/swagger2/blob/master/t/blog/api.json>
 
@@ -28,168 +56,9 @@ comments on how to improve the example are very much welcome.
 
 =back
 
-=head1 SYNOPSIS
+=head1 STASH VARIABLES
 
-=head2 Swagger specification
-
-The input L</url> to given as argument to the plugin need to point to a
-valid L<swagger|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>
-document.
-
-Every operation must have a "x-mojo-controller" specified, so this plugin
-knows where to look for the decamelized "operationId", which is used as
-method name. C<x-mojo-controller> can be defined on different levels
-and gets inherited unless defined more specific:
-
-  {
-    "swagger": "2.0",
-    "basePath": "/api",
-    "x-mojo-controller": "MyApp::Controller::Default",
-    "paths": {
-      "/pets": {
-        "x-mojo-controller": "MyApp::Controller::ForEveryHttpMethodUnderPets",
-        "get": {
-          "x-mojo-controller": "MyApp::Controller::Petstore",
-          "x-mojo-around-action": "MyApp::authenticate_api_request",
-          "operationId": "listPets",
-          "parameters": [ ... ],
-          "responses": {
-            "200": { ... }
-          }
-        }
-      }
-    }
-  }
-
-=head2 Application
-
-The application need to load the L<Mojolicious::Plugin::Swagger2> plugin,
-with a URL to the API specification. The plugin will then add all the routes
-defined in the L</Swagger specification>.
-
-  package MyApp;
-  use Mojo::Base "Mojolicious";
-
-  sub startup {
-    my $app = shift;
-    $app->plugin(Swagger2 => { url => app->home->rel_file("api.yaml") });
-  }
-
-=head2 Controller
-
-The method names defined in the controller will be a
-L<decamelized|Mojo::Util::decamelize> version of C<operationId>.
-
-The example L</Swagger specification> above, will result in
-C<list_pets()> in the controller below to be called. This method
-will receive the current L<Mojolicious::Controller> object, input arguments
-and a callback. The callback should be called with a HTTP status code, and
-a data structure which will be validated and serialized back to the user
-agent.
-
-  package MyApp::Controller::Petstore;
-
-  sub list_pets {
-    my ($c, $input, $cb) = @_;
-    $c->$cb({limit => 123}, 200);
-  }
-
-=head2 Protected API
-
-It is possible to protect your API, using a custom route:
-
-  use Mojolicious::Lite;
-
-  my $route = app->routes->under->to(
-    cb => sub {
-      my $c = shift;
-      return 1 if $c->param('secret');
-      return $c->render(json => {error => "Not authenticated"}, status => 401);
-    }
-  );
-
-  plugin Swagger2 => {
-    route => $route,
-    url   => "data://api.json",
-  };
-
-  __DATA__
-  @@ api.json
-  {"swagger":"2.0", ...}
-
-=head2 Custom placeholders
-
-The default placeholder type is the
-L<generic placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojolicious/Guides/Routing.pod#Generic-placeholders>,
-meaning ":". This can be customized using C<x-mojo-placeholder> in the
-API specification. The example below will enforce a
-L<relaxed placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojolicious/Guides/Routing.pod#Relaxed-placeholders>:
-
-  {
-    "swagger": "2.0",
-    "basePath": "/api",
-    "paths": {
-      "/pets/{name}": {
-        "get": {
-          "x-mojo-controller": "MyApp::Controller::Petstore",
-          "operationId": "listPets",
-          "parameters": [
-            { "name": "name", "in": "path", "type": "string", "x-mojo-placeholder": "#" }
-          ],
-          "responses": {
-            "200": { ... }
-          }
-        }
-      }
-    }
-  }
-
-=head2 Around action hook
-
-The C<x-mojo-around-action> value is optional, but can hold the name of a
-method to call, which wraps around the autogenerated action which does input
-and output validation. This means that any data sent to the server is not
-yet converted into C<$input> to your action.
-
-Here is an example method which match the C<x-mojo-around-action> from
-L</Swagger specification>, C<MyApp::authenticate_api_request>:
-
-  package MyApp;
-
-  sub authenticate_api_request {
-    my ($next, $c, $action_spec) = @_;
-
-    # Go to the action if the Authorization header is valid
-    return $next->($c) if $c->req->headers->authorization eq "s3cret!";
-
-    # ...or render an error if not
-    return $c->render_swagger(
-      {errors => [{message => "Invalid authorization key", path => "/"}]},
-      {},
-      401
-    );
-  }
-
-C<x-mojo-around-action> is also inherited from most levels, meaning that you
-define it globally for your whole API if you like:
-
-  {
-    "x-mojo-around-action": "MyApp::protect_any_resource",
-    "paths": {
-      "/pets": {
-        "x-mojo-around-action": "MyApp::protect_any_method_under_foo",
-        "get": {
-          "x-mojo-around-action": "MyApp::protect_just_this_resource"
-        }
-      }
-    }
-  }
-
-This feature is EXPERIMENTAL and can change without notice.
-
-=head2 Stash variables
-
-=head3 swagger
+=head2 swagger
 
 The L<Swagger2> object used to generate the routes is available
 as C<swagger> from L<stash|Mojolicious/stash>. Example code:
@@ -199,7 +68,7 @@ as C<swagger> from L<stash|Mojolicious/stash>. Example code:
     $c->$cb($c->stash('swagger')->pod->to_string, 200);
   }
 
-=head3 swagger_operation_spec
+=head2 swagger_operation_spec
 
 The Swagger specification for the current
 L<operation object|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md#operationObject>
@@ -373,7 +242,7 @@ sub register {
     $r->to(swagger => $swagger);
   }
 
-  for my $path (sort {length $a <=> length $b} keys %$paths) {
+  for my $path (sort { length $a <=> length $b } keys %$paths) {
     $paths->{$path}{'x-mojo-around-action'} ||= $swagger->api_spec->get('/x-mojo-around-action');
     $paths->{$path}{'x-mojo-controller'}    ||= $swagger->api_spec->get('/x-mojo-controller');
 

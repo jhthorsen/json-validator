@@ -1,5 +1,9 @@
 Revision history for perl distribution Swagger2
 
+0.55 Not Released
+ - Split Mojolicious::Plugin::Swagger2 into guides
+ - Remove EXPERIMENTAL from "x-mojo-around-action"
+
 0.54 2015-09-27T13:37:06+0200
  - Compatible with JSON::Validator 0.54
  - Compatible with Mojolicious 6.22

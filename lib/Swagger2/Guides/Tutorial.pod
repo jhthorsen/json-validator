@@ -1,0 +1,96 @@
+=head1 NAME
+
+Swagger2::Guides::Tutorial - Tutorial for Mojolicious::Plugin::Swagger2
+
+=head1 OVERVIEW
+
+This tutorial will give you an introduction to how to use
+L<Mojolicious::Plugin::Swagger2>. 
+
+You can also check out L<https://github.com/jhthorsen/swagger2/tree/master/t/blog>
+if you want to look at a complete example application.
+
+Another resources is the blog post
+L<http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html>,
+which includes reasons for why you want to use L<Swagger2>.
+
+=head1 TUTORIAL
+
+=head2 Swagger specification
+
+The input L</url> to given as argument to the plugin need to point to a
+valid L<swagger|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>
+document.
+
+Every operation must have a "x-mojo-controller" specified, so this plugin
+knows where to look for the decamelized "operationId", which is used as
+method name. C<x-mojo-controller> can be defined on different levels
+and gets inherited unless defined more specific:
+
+  {
+    "swagger": "2.0",
+    "basePath": "/api",
+    "x-mojo-controller": "MyApp::Controller::Default",
+    "paths": {
+      "/pets": {
+        "x-mojo-controller": "MyApp::Controller::ForEveryHttpMethodUnderPets",
+        "get": {
+          "x-mojo-controller": "MyApp::Controller::Petstore",
+          "x-mojo-around-action": "MyApp::authenticate_api_request",
+          "operationId": "listPets",
+          "parameters": [ ... ],
+          "responses": {
+            "200": { ... }
+          }
+        }
+      }
+    }
+  }
+
+=head2 Application
+
+The application need to load the L<Mojolicious::Plugin::Swagger2> plugin,
+with a URL to the API specification. The plugin will then add all the routes
+defined in the L</Swagger specification>.
+
+  package MyApp;
+  use Mojo::Base "Mojolicious";
+
+  sub startup {
+    my $app = shift;
+    $app->plugin(Swagger2 => { url => app->home->rel_file("api.yaml") });
+  }
+
+=head2 Controller
+
+The method names defined in the controller will be a
+L<decamelized|Mojo::Util::decamelize> version of C<operationId>.
+
+The example L</Swagger specification> above, will result in
+C<list_pets()> in the controller below to be called. This method
+will receive the current L<Mojolicious::Controller> object, input arguments
+and a callback. The callback should be called with a HTTP status code, and
+a data structure which will be validated and serialized back to the user
+agent.
+
+  package MyApp::Controller::Petstore;
+
+  sub list_pets {
+    my ($c, $input, $cb) = @_;
+    $c->$cb({limit => 123}, 200);
+  }
+
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * L<Swagger2::Guides::ProtectedApi> - Protected API Guide
+
+=back
+
+=head1 AUTHOR
+
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
+
+=cut
