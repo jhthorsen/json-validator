@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.53
+    0.54
 
 SYNOPSIS
       use JSON::Validator;
@@ -98,47 +98,19 @@ ATTRIBUTES
 
     Note! The modules mentioned below are optional.
 
-    *   byte
-
-        A padded, base64-encoded string of bytes, encoded with a URL and
-        filename safe alphabet. Defined by RFC4648.
-
-    *   date
-
-        An RFC3339 date in the format YYYY-MM-DD
-
     *   date-time
 
         An RFC3339 timestamp in UTC time. This is formatted as
         "YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is
         optional
 
-    *   double
-
-        Cannot test double values with higher precision then what the
-        "number" type already provides.
-
     *   email
 
         Validated against the RFC5322 spec.
 
-    *   float
-
-        Will always be true if the input is a number, meaning there is no
-        difference between "float" and "double". Patches are welcome.
-
     *   hostname
 
         Will be validated using Data::Validate::Domain if installed.
-
-    *   int32
-
-        A signed 32 bit integer.
-
-    *   int64
-
-        A signed 64 bit integer. Note: This check is only available if Perl
-        is compiled to use 64 bit integers.
 
     *   ipv4
 

@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.54 Not Released
+0.54 2015-09-27T13:33:02+0200
  - Add support for $ref to relative path #3 #4 #5
  - Removed Swagger specific type "file"
  - Removed Swagger specific formats: "byte", "date", "double", "float", "int32" and "int64".
