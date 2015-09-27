@@ -11,6 +11,7 @@ my $n = 0;
 
 for my $module (qw( YAML::XS YAML::Syck YAML::Tiny )) {
   eval "require $module;1" or next;
+  no warnings 'once';
   local *Swagger2::LoadYAML = eval "\\\&$module\::Load";
   $n++;
 

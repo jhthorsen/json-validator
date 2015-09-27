@@ -19,7 +19,7 @@
             "description": "pet response",
             "schema": {
               "type": "array",
-              "items": { "$ref": "#/definitions/Pet" }
+              "items": {}
             }
           }
         }
