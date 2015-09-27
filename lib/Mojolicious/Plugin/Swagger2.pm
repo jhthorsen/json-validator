@@ -42,6 +42,8 @@ or look at L<Swagger2::Guides::Tutorial> for an introduction.
 
 =item * L<Swagger2::Guides::Tutorial> - Tutorial for this plugin
 
+=item * L<Swagger2::Guides::Render> - Details about the render process
+
 =item * L<Swagger2::Guides::ProtectedApi> - Protected API Guide
 
 =item * L<Swagger2::Guides::CustomPlaceholder> - Custom placeholder for your routes
@@ -108,66 +110,9 @@ has _validator => sub { Swagger2::SchemaValidator->new; };
 
 This method is used to render C<%data> from the controller method. The C<%err>
 hash will be empty on success, but can contain input/output validation errors.
-C<$status> is the HTTP status code to use:
+C<$status> is used to set a proper HTTP status code such as 200, 400 or 500.
 
-=over 4
-
-=item * 200
-
-The default C<$status> is 200, unless the method handling the request sent back
-another value. C<%err> will be empty in this case.
-
-=item * 400
-
-This module will set C<$status> to 400 on invalid input. C<%err> then contains
-a data structure describing the errors. The default is to render a JSON
-document, like this:
-
-  {
-    "valid": false,
-    "errors": [
-      {
-        "message": "string value found, but a integer is required",
-        "path": "/limit"
-      },
-      ...
-    ]
-  }
-
-=item * 500
-
-This module will set C<$status> to 500 on invalid response from the handler.
-C<%err> then contains a data structure describing the errors. The default is
-to render a JSON document, like this:
-
-  {
-    "valid": false,
-    "errors": [
-      {
-        "message": "is missing and it is required",
-        "path": "/limit"
-      },
-      ...
-    ]
-  }
-
-=item * 501
-
-This module will set C<$status> to 501 if the given controller has not
-implemented the required method. C<%err> then contains a data structure
-describing the errors. The default is to render a JSON document, like this:
-
-  {
-    "valid": false,
-    "errors": [
-      {
-        "message": "No handler defined.",
-        "path": "/"
-      }
-    ]
-  }
-
-=back
+See also L<Swagger2::Guides::Render> for more information.
 
 =cut
 
