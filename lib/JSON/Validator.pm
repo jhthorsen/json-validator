@@ -259,7 +259,7 @@ sub schema {
     $schema = $self->_load_schema($schema);
   }
 
-  $self->{schema} = Mojo::JSON::Pointer->new($self->_resolve_schema($schema, $schema->data->{id}));
+  $self->{schema} = $self->_resolve_schema($schema, $schema->data->{id});
   $self;
 }
 
@@ -342,7 +342,7 @@ sub _load_schema {
   elsif ($parent) {
     $url =~ s!#.*!!;
     $url = File::Spec->catfile(File::Basename::dirname($parent), split '/', $url);
-    $namespace = $url;
+    $namespace = Cwd::abs_path($url) || $url;
   }
 
   # Make sure we create the correct namespace if not already done by Mojo::URL
@@ -409,9 +409,13 @@ sub _register_document {
 
 sub _resolve_schema {
   my ($self, $schema, $namespace) = @_;
-  my $copy  = {%{$schema->data}};
-  my @items = ($copy);
-  my @refs;
+  my (@items, @refs);
+
+  return $self->{resolved}{$namespace} if $self->{resolved}{$namespace};
+
+  warn "[JSON::Validator] Resolving schema $namespace\n" if DEBUG;
+  $self->{resolved}{$namespace} = Mojo::JSON::Pointer->new({%{$schema->data}});
+  @items = ($self->{resolved}{$namespace}->data);
 
   # First step: Make copy and find $ref
   while (@items) {
@@ -436,19 +440,22 @@ sub _resolve_schema {
     $ref = Mojo::URL->new($namespace)->fragment($ref) if $ref =~ s!^\#!!;
     $ref = Mojo::URL->new($ref) unless ref $ref;
 
-    my $look_in = $self->{cached}{$ref->clone->fragment(undef)};
+    warn "[JSON::Validator] Resolving ref $ref defined in $namespace\n" if DEBUG == 2;
+    my $look_in = $self->{resolved}{$ref->clone->fragment(undef)};
 
     if (!$look_in) {
       $look_in = $self->_load_schema($ref, $namespace);
-      $self->_resolve_schema($look_in, $look_in->data->{id} || $namespace);
+      $look_in = $self->_resolve_schema($look_in, $look_in->data->{id} || $namespace);
+      warn "[JSON::Validator] Will look for $ref in $look_in->{data}{id}\n" if DEBUG == 2;
     }
 
-    $ref = $look_in->get($ref->fragment) or die qq(Could not find "$topic->{'$ref'}". Typo in schema "$namespace"?);
+    $ref = $look_in->get($ref->fragment || '')
+      || die qq[Could not find "$topic->{'$ref'}" ($ref). Typo in schema "$namespace"?];
     %$topic = %$ref;
     delete $topic->{id} unless ref $topic->{id};    # TODO: Is this correct?
   }
 
-  return $copy;
+  return $self->{resolved}{$namespace};
 }
 
 sub _validate {

@@ -6,9 +6,6 @@
     "height": { "$ref": "#/definitions/height" }
   },
   "definitions": {
-      "height": {
-          "type": "integer",
-          "minimum": 5
-      }
+    "height": { "type": "integer", "minimum": 5 }
   }
 }
