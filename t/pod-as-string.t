@@ -11,6 +11,7 @@ my @expected = split /\n/, slurp $pod_file;
 my $swagger  = Swagger2->new->load('t/data/pod-as-string.json');
 my $pod      = $swagger->pod;
 my $fail     = 0;
+my $node;
 
 isa_ok($pod, 'Swagger2::POD');
 
@@ -28,11 +29,14 @@ if ($fail and $ENV{PRINT_DOC}) {
   print $pod->to_string;
 }
 
-my $identifier = $swagger->api_spec->data->{paths}{'/any-of'}{get}{responses}{200}{schema}{properties}{identifier};
-$identifier->{allOf} = delete $identifier->{anyOf};
+$swagger       = Swagger2->new->load('t/data/pod-as-string.json');
+$node          = $swagger->api_spec->data->{paths}{'/any-of'}{get}{responses}{200}{schema}{properties}{identifier};
+$node->{allOf} = delete $node->{anyOf};
 like $swagger->pod->to_string, qr{// All of the below:}, 'allOf';
 
-$identifier->{oneOf} = delete $identifier->{allOf};
+$swagger       = Swagger2->new->load('t/data/pod-as-string.json');
+$node          = $swagger->api_spec->data->{paths}{'/any-of'}{get}{responses}{200}{schema}{properties}{identifier};
+$node->{oneOf} = delete $node->{anyOf};
 like $swagger->pod->to_string, qr{// One of the below:}, 'oneOf';
 
 done_testing;
