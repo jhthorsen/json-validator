@@ -1,8 +1,12 @@
 Revision history for perl distribution Swagger2
 
-0.54 Not Released
+0.54 2015-09-27T13:37:06+0200
  - Compatible with JSON::Validator 0.54
  - Compatible with Mojolicious 6.22
+ - Rename index.html.ep to list.html.ep in blog example #28
+   Contributor: Stephan Jauernick
+ - Paths are sorted from the most specific to least specific #35
+   Contributor: Olli-Antti Kivilahti
 
 0.53 2015-09-13T15:55:54+0200
  - Add EXPERIMENTAL naming of swagger routes #27
