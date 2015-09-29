@@ -1,9 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
-0.55 Not Released
+0.55 2015-09-29T19:01:05+0200
  - Fix "required" cannot be a boolean on properties
  - Improved documentation of error object
- - Change "oneOf" error message
+ - Change anyOf/allOf/oneOf error message
 
 0.54 2015-09-27T13:33:02+0200
  - Add support for $ref to relative path #3 #4 #5

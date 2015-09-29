@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.54
+    0.55
 
 SYNOPSIS
       use JSON::Validator;
@@ -62,6 +62,50 @@ DESCRIPTION
 
     *   Swagger2
 
+ERROR OBJECT
+  Overview
+    The method "validate" and the function "validate_json" returns error
+    objects when the input data violates the "schema". Each of the objects
+    looks like this:
+
+      bless {
+        message => "Some description",
+        path => "/json/path/to/node",
+      }, "JSON::Validator::Error"
+
+  Operators
+    The error object overloads the following operators:
+
+    *   bool
+
+        Returns a true value.
+
+    *   string
+
+        Returns the "path" and "message" part as a string: "$path:
+        $message".
+
+  Special cases
+    Have a look at the test suite
+    <https://github.com/jhthorsen/json-validator/tree/master/t> for
+    documented examples of the error cases. Especially look at "jv-allof.t",
+    "jv-anyof.t" and "jv-oneof.t".
+
+    The special cases for "allOf", "anyOf" and "oneOf" will contain the
+    error messages from all the failing rules below. It can be a bit hard to
+    read, so if the error message is long, then you might want to run a
+    smaller test with "JSON_VALIDATOR_DEBUG=1".
+
+    Example error object:
+
+      bless {
+        message => "[0] String is too long: 8/5. [1] Expected number - got string.",
+        path => "/json/path/to/node",
+      }, "JSON::Validator::Error"
+
+    Note that these error messages are subject for change. Any suggestions
+    are most welcome!
+
 FUNCTIONS
   validate_json
       use JSON::Validator "validate_json";
@@ -70,6 +114,8 @@ FUNCTIONS
     This can be useful in web applications:
 
       @errors = validate_json $c->req->json, "data://main/spec.json";
+
+    See also "validate" and "ERROR OBJECT" for more details.
 
 ATTRIBUTES
   cache_dir
@@ -173,17 +219,9 @@ METHODS
       @errors = $self->validate($data);
 
     Validates $data against a given JSON "schema". @errors will contain
-    validation error objects. It will be empty on success.
+    validation error objects or be an empty list on success.
 
-    Example error object:
-
-      bless {
-        message => "Some description",
-        path => "/json/path/to/node",
-      }, "JSON::Validator::Error"
-
-    The error objects are always true in boolean context and will stringify.
-    The stringification format is subject to change.
+    See "ERROR OBJECT" for details.
 
 COPYRIGHT AND LICENSE
     Copyright (C) 2014-2015, Jan Henning Thorsen
