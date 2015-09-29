@@ -27,7 +27,6 @@ paths:
         - name: limit
           in: query
           description: How many items to return at one time (max 100)
-          required: false
           type: integer
           format: int32
       responses:
@@ -67,6 +66,7 @@ paths:
         - name: petId
           in: path
           description: The id of the pet to retrieve
+          required: Yes
           type: string
       responses:
         200:

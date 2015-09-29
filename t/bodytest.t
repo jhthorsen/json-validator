@@ -6,7 +6,7 @@ use File::Spec::Functions;
 use t::Api;
 
 use Mojolicious::Lite;
-plugin Swagger2 => {url => 't/data/bodytest.json'};
+plugin Swagger2 => {url => 'data://main/bodytest.json'};
 
 my $t = Test::Mojo->new;
 $t::Api::RES = {};
@@ -55,3 +55,73 @@ $t::Api::CODE = 201;
 $t->get_ok('/api/pets')->status_is(201)->content_is('');
 
 done_testing;
+
+__DATA__
+@@ bodytest.json
+{
+  "swagger" : "2.0",
+  "info" : { "version": "9.1", "title" : "Test API for body parameters" },
+  "consumes" : [ "application/json" ],
+  "produces" : [ "application/json" ],
+  "schemes" : [ "http" ],
+  "basePath" : "/api",
+  "paths" : {
+    "/pets" : {
+      "get" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "getPet",
+        "responses" : {
+          "200" : {
+            "description": "this is required",
+            "schema": {
+              "type" : "object",
+              "properties" : {
+                "some_parent_key": {
+                  "$ref": "#/definitions/Pet"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "empty body."
+          }
+        }
+      },
+      "post" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "addPet",
+        "parameters" : [
+          {
+            "name" : "pet",
+            "schema" : { "$ref" : "#/definitions/Pet" },
+            "in" : "body",
+            "description" : "Pet object that needs to be added to the store"
+          }
+        ],
+        "responses" : {
+          "200": {
+            "description": "pet response",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Pet" }
+            },
+            "headers": {
+              "x-expires": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions" : {
+    "Pet" : {
+      "required" : ["name"],
+      "properties" : {
+        "id" : { "format" : "int64", "type" : "integer" },
+        "name" : { "type" : "string" }
+      }
+    }
+  }
+}

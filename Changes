@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.56 Not Released
+ - Add Mojolicious::Plugin::Swagger2 will validate spec on load
+
 0.55 2015-09-27T16:53:08+0200
  - Split Mojolicious::Plugin::Swagger2 into guides
  - Remove EXPERIMENTAL from "x-mojo-around-action"

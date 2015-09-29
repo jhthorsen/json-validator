@@ -1,6 +1,10 @@
 {
   "swagger" : "2.0",
-  "info" : { "description" : "Test API for body parameters" },
+  "info" : {
+    "version" : "1.2",
+    "title" : "To the pod racer!",
+    "description" : "Test API for body parameters"
+  },
   "consumes" : [ "application/json" ],
   "produces" : [ "application/json" ],
   "schemes" : [ "http" ],
@@ -12,11 +16,12 @@
         "operationId" : "testAnyOf",
         "responses" : {
           "200": {
+            "description": "any-of",
             "schema": {
               "type": "object",
               "properties": {
                 "identifier": {
-                  "anyOf": [ { "type": "integer" }, { "type": "string" } ]
+                  "type": ["integer", "string"]
                 }
               }
             }
@@ -30,6 +35,7 @@
         "operationId" : "testFile",
         "responses": {
           "200": {
+            "description": "file",
             "schema": {
               "type": "file"
             }
@@ -58,7 +64,6 @@
         "parameters" : [
           {
             "name" : "pet",
-            "required" : "true",
             "schema" : { "$ref" : "#/definitions/Pet" },
             "in" : "body",
             "description" : "Pet object that needs to be added to the store"

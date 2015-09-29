@@ -11,8 +11,9 @@ use t::Api;
 #Making sure we introduce new routes shortest route first
 
 subtest "Lenghtwise Route introduction" => \&testRandomRouteIntroduction;
+
 sub testRandomRouteIntroduction {
-  foreach (0..10) {
+  foreach (0 .. 10) {
     my $app = Mojolicious->new;
     $app->plugin(Swagger2 => {url => "data://main/lenghtwise.json"});
     my $t = Test::Mojo->new($app);
@@ -31,6 +32,10 @@ __DATA__
 @@ lenghtwise.json
 {
   "swagger": "2.0",
+  "info": {
+    "version": "0.9",
+    "title": "sort by length"
+  },
   "basePath": "/api",
   "paths": {
     "/pets/status": {
@@ -50,7 +55,7 @@ __DATA__
           {
             "name": "petnumber",
             "in": "path",
-            "required": "true",
+            "required": true,
             "type": "integer"
           }
         ],

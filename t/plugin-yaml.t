@@ -7,10 +7,17 @@ use t::Api;
 
 my $n = 0;
 
+#
 # This test checks that "require: false" is indeed false
+# https://github.com/jhthorsen/swagger2/issues/39
+#
 
 for my $module (qw( YAML::XS YAML::Syck YAML::Tiny )) {
-  eval "require $module;1" or next;
+  unless (eval "require $module;1") {
+    diag "Skipping test when $module is not installed";
+    next;
+  }
+
   no warnings 'once';
   local *Swagger2::LoadYAML = eval "\\\&$module\::Load";
   $n++;
@@ -23,7 +30,7 @@ for my $module (qw( YAML::XS YAML::Syck YAML::Tiny )) {
   }
 
   my $app = Mojolicious->new;
-  unless (eval { $app->plugin(Swagger2 => {url => 't/data/petstore.yaml'}); 1 }) {
+  unless (eval { $app->plugin(Swagger2 => {validate => 0, url => 't/data/petstore.yaml'}); 1 }) {
     diag $@;
     ok 0, "Could not load Swagger2 plugin using $module";
     next;

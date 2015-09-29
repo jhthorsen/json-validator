@@ -142,6 +142,14 @@ Need to hold a Mojolicious route object. See L</Protected API> for an example.
 
 This parameter is optional.
 
+=item * validate
+
+A boolean value (default is true) that will cause your schema to be validated.
+This plugin will abort loading if the schema include errors
+
+CAVEAT! There is an issue with YAML and booleans, so YAML specs might fail
+even when they are correct. See L<https://github.com/jhthorsen/swagger2/issues/39>.
+
 =item * swagger
 
 A C<Swagger2> object. This can be useful if you want to keep use the
@@ -172,6 +180,11 @@ sub register {
   $swagger = $config->{swagger} || Swagger2->new->load($config->{url} || '"url" is missing');
   $swagger = $swagger->expand;
   $paths   = $swagger->api_spec->get('/paths') || {};
+
+  if ($config->{validate} // 1) {
+    my @errors = $swagger->validate;
+    die join "\n", "Swagger2: Invalid spec:", @errors if @errors;
+  }
 
   $self->url($swagger->url);
   $app->helper(render_swagger => \&render_swagger) unless $app->renderer->get_helper('render_swagger');
@@ -312,6 +325,8 @@ sub _validate_input {
       $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^-?\d/;
       $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
 
+      my $schema = {properties => {$name => $p}, required => [$p->{required} ? ($p->{name}) : ()],};
+
       # ugly hack
       if (ref $p->{items} eq 'HASH' and $p->{items}{collectionFormat}) {
         $value = _coerce_by_collection_format($p->{items}, $value);
@@ -325,11 +340,11 @@ sub _validate_input {
       }
       elsif (defined $value) {
         warn "[Swagger2] Validate $in $name=$value\n" if DEBUG;
-        push @e, $self->_validator->validate({$name => $value}, {properties => {$name => $p}});
+        push @e, $self->_validator->validate({$name => $value}, $schema);
       }
       else {
         warn "[Swagger2] Validate $in $name=undef()\n" if DEBUG;
-        push @e, $self->_validator->validate({}, {properties => {$name => $p}});
+        push @e, $self->_validator->validate({}, $schema);
       }
     }
 

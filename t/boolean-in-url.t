@@ -4,7 +4,7 @@ use Test::More;
 use File::Spec::Functions;
 use Mojolicious::Lite;
 
-plugin Swagger2 => {url => 't/data/boolean-in-url.json'};
+plugin Swagger2 => {url => 'data://main/boolean-in-url.json'};
 
 my $t = Test::Mojo->new;
 $t->get_ok('/boolean-in-url/false?q1=true')->status_is(200);
@@ -22,3 +22,33 @@ $t->get_ok('/boolean-in-url/0')->status_is(200);
 like $t->tx->res->body, qr{"p1":false}, 'p1 0';
 
 done_testing;
+
+__DATA__
+@@ boolean-in-url.json
+{
+  "swagger" : "2.0",
+  "info" : {
+    "version": "1.0",
+    "title" : "Test _not_implemented() in plugin"
+  },
+  "paths" : {
+    "/boolean-in-url/{p1}" : {
+      "get" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "BooleanInUrl",
+        "parameters" : [
+          { "name": "p1", "type": "boolean", "in": "path", "required": true },
+          { "name": "q1", "type": "boolean", "in": "query" }
+        ],
+        "responses" : {
+          "200" : {
+            "description": "whatever",
+            "schema" : {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}

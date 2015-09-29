@@ -1,10 +1,10 @@
 =head1 NAME
 
-Noname API
+To the pod racer!
 
 =head1 VERSION
 
-0.01
+1.2
 
 =head1 DESCRIPTION
 
@@ -69,13 +69,10 @@ This resource takes no parameters.
 
 =head4 200 - OK
 
-No description.
+any-of
 
   {
-    "identifier": 
-      // Any of the below:
-      integer, // No description.
-      string, // No description.
+    "identifier": {integer,string},
   },
 
 =head2 testFile
@@ -94,7 +91,7 @@ This resource takes no parameters.
 
 =head4 200 - OK
 
-No description.
+file
 
   This response contains raw binary or text data.
 

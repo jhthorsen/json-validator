@@ -26,6 +26,10 @@ __DATA__
 {
   "swagger": "2.0",
   "basePath": "/api",
+  "info": {
+    "version": "1.0",
+    "title": "around-action"
+  },
   "paths": {
     "/pets": {
       "get": {
@@ -43,6 +47,10 @@ __DATA__
 {
   "swagger": "2.0",
   "basePath": "/api",
+  "info": {
+    "version": "1.0",
+    "title": "inherit-path"
+  },
   "paths": {
     "/pets": {
       "x-mojo-around-action": "t::Api::authenticate",
@@ -59,6 +67,10 @@ __DATA__
 @@ inherit-global.json
 {
   "swagger": "2.0",
+  "info": {
+    "version": "1.0",
+    "title": "inherit-global"
+  },
   "basePath": "/api",
   "x-mojo-around-action": "t::Api::authenticate",
   "x-mojo-controller": "t::Api",

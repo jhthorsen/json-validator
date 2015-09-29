@@ -24,6 +24,10 @@ __DATA__
 @@ stash.json
 {
   "swagger": "2.0",
+  "info": {
+    "version": "0.3",
+    "title": "required to write"
+  },
   "basePath": "/api",
   "paths": {
     "/pets": {

@@ -306,6 +306,9 @@ sub _schema_to_string_dispatch {
   elsif ($schema->{oneOf}) {
     $method = '_schema_oneof_to_string';
   }
+  elsif (ref $schema->{type} eq 'ARRAY') {
+    return sprintf "{%s},\n", join ',', @{$schema->{type}};
+  }
   else {
     $method = '_schema_' . ($schema->{type} || 'object') . '_to_string';
   }

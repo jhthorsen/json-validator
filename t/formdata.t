@@ -6,10 +6,10 @@ use File::Spec::Functions;
 use t::Api;
 
 use Mojolicious::Lite;
-plugin Swagger2 => {url => 't/data/formdata.json'};
+plugin Swagger2 => {url => 'data://main/formdata.json'};
 
 my $t = Test::Mojo->new;
-$t::Api::RES = {};
+$t::Api::RES = [];
 
 # invalid input
 $t->post_ok('/api/pets' => form => {id => 123})->status_is(400)->json_is('/errors/0/message', 'Missing property.')
@@ -27,3 +27,35 @@ $t->post_ok('/api/pets' => form => {id => 123, name => "kit-cat"})->status_is(20
 $t->post_ok('/api/pets' => form => {id => 123, name => "kit-cat"})->status_is(200)->json_is('/0/id', 123);
 
 done_testing;
+
+__DATA__
+@@ formdata.json
+{
+  "swagger" : "2.0",
+  "info" : { "version": "0.8", "title" : "Test API for body parameters" },
+  "consumes" : [ "application/json" ],
+  "produces" : [ "application/json" ],
+  "schemes" : [ "http" ],
+  "basePath" : "/api",
+  "paths" : {
+    "/pets" : {
+      "post" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "addPet",
+        "parameters" : [
+          { "name" : "name", "type" : "string", "in" : "formData", "required": true },
+          { "name" : "id", "type" : "integer", "in" : "formData", "required": true }
+        ],
+        "responses" : {
+          "200": {
+            "description": "pet response",
+            "schema": {
+              "type": "array",
+              "items": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}
