@@ -724,6 +724,7 @@ sub _validate_type_number {
 
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
+  my %required = map { ($_ => 1) } @{$schema->{required} || []};
   my ($additional, @errors, %rules);
 
   if (ref $data ne 'HASH') {
@@ -737,7 +738,7 @@ sub _validate_type_object {
   }
 
   while (my ($k, $r) = each %{$schema->{properties}}) {
-    push @{$rules{$k}}, $r if exists $data->{$k} or ($r->{required} and ref $r->{required} ne 'ARRAY');
+    push @{$rules{$k}}, $r if exists $data->{$k} or $required{$k};
   }
   while (my ($p, $r) = each %{$schema->{patternProperties}}) {
     push @{$rules{$_}}, $r for grep { $_ =~ /$p/ } keys %$data;
@@ -756,19 +757,16 @@ sub _validate_type_object {
     return E $path, "Properties not allowed: @keys.";
   }
 
-  if (ref $schema->{required} eq 'ARRAY') {
-    for my $k (@{$schema->{required}}) {
-      push @{$rules{$k}}, {required => 1};
-    }
+  for my $k (keys %required) {
+    next if exists $data->{$k};
+    push @errors, E _path($path, $k), 'Missing property.';
+    delete $rules{$k};
   }
 
   for my $k (keys %rules) {
     for my $r (@{$rules{$k}}) {
       if (!exists $data->{$k} and exists $schema->{default}) {
         $data->{$k} = $r->{default};
-      }
-      if ($r->{required} and !exists $data->{$k}) {
-        push @errors, E _path($path, $k), 'Missing property.';
       }
       else {
         push @errors, $self->_validate_type_enum($data->{$k}, _path($path, $k), $r) if $r->{enum};
