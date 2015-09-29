@@ -9,14 +9,14 @@ plan skip_all => 'cpanm Test::JSON::Schema::Acceptance' unless eval 'use Test::J
 my $opts = {
   only_test  => $ENV{ACCEPTANCE_TEST},
   skip_tests => [
-    'Unicode code point',           # Valid unicode won't pass Mojo::JSON
-    'dependencies',                 # TODO
-    'invalid definition schema',    # This module does not validate the schema, it only validates data
-    'ref',                          # No way to fetch http://localhost:1234/...
+    'Unicode code point',         # Valid unicode won't pass Mojo::JSON
+    'dependencies',               # TODO
+    'valid definition schema',    # This module does not validate the schema, it only validates data
+    'ref',                        # No way to fetch http://localhost:1234/...
   ],
 };
 
-my @drafts = qw( 4 );               # ( 3 4 )
+my @drafts = qw( 4 );             # ( 3 4 )
 
 for my $draft (@drafts) {
   my $accepter = Test::JSON::Schema::Acceptance->new($draft);
