@@ -17,13 +17,13 @@ is "@errors", "", "n:10";
 @errors = $validator->validate(9, $schema);
 is "@errors", "", "n:9";
 @errors = $validator->validate(15, $schema);
-is "@errors", "/: Expected only one to match.", "n:15";
+is "@errors", "/: All of the oneOf rules match.", "n:15";
 
 # Alternative oneOf
 # http://json-schema.org/latest/json-schema-validation.html#anchor79
 $schema = {type => 'object', properties => {x => {type => ['string', 'null'], format => 'date-time'}}};
 @errors = $validator->validate({x => 'foo'}, $schema);
-is "@errors", "/x: [0] Does not match date-time format. [1] Not null.", "foo";
+is "@errors", "/x: ([0] Does not match date-time format. [1] Not null.)", "foo";
 
 @errors = $validator->validate({x => '2015-04-21T20:30:43.000Z'}, $schema);
 is "@errors", "", "YYYY-MM-DDThh:mm:ss.fffZ";

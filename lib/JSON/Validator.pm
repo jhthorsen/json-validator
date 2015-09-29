@@ -72,6 +72,55 @@ Here are some resources that are related to JSON schemas and validation:
 
 =back
 
+=head1 ERROR OBJECT
+
+=head2 Overview
+
+The method L</validate> and the function L</validate_json> returns
+error objects when the input data violates the L</schema>. Each of
+the objects looks like this:
+
+  bless {
+    message => "Some description",
+    path => "/json/path/to/node",
+  }, "JSON::Validator::Error"
+
+=head2 Operators
+
+The error object overloads the following operators:
+
+=over 4
+
+=item * bool
+
+Returns a true value.
+
+=item * string
+
+Returns the "path" and "message" part as a string: "$path: $message".
+
+=back
+
+=head2 Special cases
+
+Have a look at the L<test suite|https://github.com/jhthorsen/json-validator/tree/master/t>
+for documented examples of the error cases. Especially look at C<jv-allof.t>,
+C<jv-anyof.t> and C<jv-oneof.t>.
+
+The special cases for "allOf", "anyOf" and "oneOf" will contain the error messages
+from all the failing rules below. It can be a bit hard to read, so if the error message
+is long, then you might want to run a smaller test with C<JSON_VALIDATOR_DEBUG=1>.
+
+Example error object:
+
+  bless {
+    message => "[0] String is too long: 8/5. [1] Expected number - got string.",
+    path => "/json/path/to/node",
+  }, "JSON::Validator::Error"
+
+Note that these error messages are subject for change. Any suggestions are most
+welcome!
+
 =cut
 
 use Mojo::Base -base;
@@ -111,6 +160,8 @@ sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump
 This can be useful in web applications:
 
   @errors = validate_json $c->req->json, "data://main/spec.json";
+
+See also L</validate> and L</ERROR OBJECT> for more details.
 
 =cut
 
@@ -278,18 +329,9 @@ sub singleton { state $validator = shift->new }
   @errors = $self->validate($data);
 
 Validates C<$data> against a given JSON L</schema>. C<@errors> will
-contain validation error objects. It will be
-empty on success.
+contain validation error objects or be an empty list on success.
 
-Example error object:
-
-  bless {
-    message => "Some description",
-    path => "/json/path/to/node",
-  }, "JSON::Validator::Error"
-
-The error objects are always true in boolean context and will stringify. The
-stringification format is subject to change.
+See L</ERROR OBJECT> for details.
 
 =cut
 
@@ -469,11 +511,12 @@ sub _validate {
       my $method = sprintf '_validate_type_%s', $type;
       my @e = $self->$method($data, $path, $schema);
       warn "[JSON::Validator] type @{[$path||'/']} => $method [@e]\n" if DEBUG == 2;
-      push @errors, \@e;
+      push @errors, @e;
       next if @e;
       @errors = ();
       last;
     }
+    @errors = E $path, $self->_merge_errors(@errors) if @errors;
   }
   elsif ($type) {
     my $method = sprintf '_validate_type_%s', $type;
@@ -498,33 +541,36 @@ sub _validate {
     push @errors, $self->_validate_one_of($data, $path, $rules);
   }
 
-  if (@errors > 1) {
-    my %err;
-    for my $i (0 .. @errors - 1) {
-      for my $e (@{$errors[$i]}) {
-        if ($e->{message} =~ m!Expected ([^\.]+)\ - got ([^\.]+)\.!) {
-          push @{$err{$e->{path}}}, [$i, $e->{message}, $1, $2];
-        }
-        else {
-          push @{$err{$e->{path}}}, [$i, $e->{message}];
-        }
-      }
+  return @errors;
+}
+
+sub _merge_errors {
+  my $self = shift;
+  my $i    = 0;
+  my (%err, @messages);
+
+  for my $e (@_) {
+    if ($e and $e->{message} =~ m!Expected ([^\.]+)\ - got ([^\.]+)\.!) {
+      push @{$err{$e->{path}}}, [$i, $e->{message}, $1, $2];
     }
-    unshift @errors, [];
-    for my $p (sort keys %err) {
-      my %uniq;
-      my @e = grep { !$uniq{$_->[1]}++ } @{$err{$p}};
-      if (@e == grep { defined $_->[2] } @e) {
-        push @{$errors[0]}, E $p, sprintf 'Expected %s - got %s.', join(', ', map { $_->[2] } @e), $e[0][3];
-      }
-      else {
-        push @{$errors[0]}, E $p, join ' ', map {"[$_->[0]] $_->[1]"} @e;
-      }
+    elsif ($e) {
+      push @{$err{$e->{path}}}, [$i, $e->{message}];
+    }
+    $i++;
+  }
+
+  for my $p (sort keys %err) {
+    my %uniq;
+    my @e = grep { !$uniq{$_->[1]}++ } @{$err{$p}};
+    if (@e == grep { defined $_->[2] } @e) {
+      push @messages, sprintf 'Expected %s - got %s.', join(', ', map { $_->[2] } @e), $e[0][3];
+    }
+    else {
+      push @messages, join ' ', map {"[$_->[0]] $_->[1]"} @e;
     }
   }
 
-  return @{$errors[0]} if @errors and ref $errors[0] eq 'ARRAY';
-  return @errors;
+  return sprintf '(%s)', join ' ', @messages;
 }
 
 sub _validate_all_of {
@@ -532,30 +578,33 @@ sub _validate_all_of {
   my @errors;
 
   for my $rule (@$rules) {
-    push @errors, [$self->_validate($data, $path, $rule)];
+    my @e = $self->_validate($data, $path, $rule);
+    push @errors, @e ? @e : (undef);
   }
 
   warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-  return @errors;
+  return E $path, sprintf 'allOf failed: %s', $self->_merge_errors(@errors) if grep {$_} @errors;
+  return;
 }
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
+  my $failed = 0;
   my @errors;
 
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule);
-    last unless @e;
-    push @errors, \@e;
+    push @errors, @e ? @e : (undef);
+    $failed++ if @e;
   }
 
-  if (@errors < @$rules) {
+  if ($failed < @$rules) {
     warn "[JSON::Validator] anyOf @{[$path||'/']} == success\n" if DEBUG == 2;
     return;
   }
   else {
     warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-    return @errors;
+    return E $path, sprintf 'anyOf failed: %s', $self->_merge_errors(@errors) if grep {$_} @errors;
   }
 }
 
@@ -566,8 +615,8 @@ sub _validate_one_of {
 
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule);
+    push @errors, @e ? (@e) : (undef);
     $failed++ if @e;
-    push @errors, @e;
   }
 
   if ($failed + 1 == @$rules) {
@@ -576,7 +625,8 @@ sub _validate_one_of {
   }
 
   warn "[JSON::Validator] oneOf @{[$path||'/']} == failed=$failed/@{[int @$rules]} / @errors\n" if DEBUG == 2;
-  return E $path, 'Expected only one to match.';
+  return E $path, 'All of the oneOf rules match.' unless $failed;
+  return E $path, sprintf 'oneOf failed: %s', $self->_merge_errors(@errors) if grep {$_} @errors;
 }
 
 sub _validate_type_enum {
