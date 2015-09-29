@@ -516,7 +516,7 @@ sub _validate {
       @errors = ();
       last;
     }
-    @errors = E $path, $self->_merge_errors(@errors) if @errors;
+    @errors = E $path, $self->_merge_errors($path, @errors) if @errors;
   }
   elsif ($type) {
     my $method = sprintf '_validate_type_%s', $type;
@@ -545,8 +545,8 @@ sub _validate {
 }
 
 sub _merge_errors {
-  my $self = shift;
-  my $i    = 0;
+  my ($self, $root) = (shift, quotemeta shift);
+  my $i = 0;
   my (%err, @messages);
 
   for my $e (@_) {
@@ -560,13 +560,18 @@ sub _merge_errors {
   }
 
   for my $p (sort keys %err) {
-    my %uniq;
-    my @e = grep { !$uniq{$_->[1]}++ } @{$err{$p}};
+    my $prefix = $p;
+    my (@e, %uniq);
+
+    @e = grep { !$uniq{$_->[1]}++ } @{$err{$p}};
+    $prefix =~ s!^$root/?!!;
+    $prefix = "/$prefix: " if $prefix;
+
     if (@e == grep { defined $_->[2] } @e) {
-      push @messages, sprintf 'Expected %s - got %s.', join(', ', map { $_->[2] } @e), $e[0][3];
+      push @messages, sprintf '%sExpected %s - got %s.', $prefix, join(', ', map { $_->[2] } @e), $e[0][3];
     }
     else {
-      push @messages, join ' ', map {"[$_->[0]] $_->[1]"} @e;
+      push @messages, join ' ', map {"[$_->[0]] $prefix$_->[1]"} @e;
     }
   }
 
@@ -583,7 +588,7 @@ sub _validate_all_of {
   }
 
   warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-  return E $path, sprintf 'allOf failed: %s', $self->_merge_errors(@errors) if grep {$_} @errors;
+  return E $path, sprintf 'allOf failed: %s', $self->_merge_errors($path, @errors) if grep {$_} @errors;
   return;
 }
 
@@ -604,7 +609,7 @@ sub _validate_any_of {
   }
   else {
     warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-    return E $path, sprintf 'anyOf failed: %s', $self->_merge_errors(@errors) if grep {$_} @errors;
+    return E $path, sprintf 'anyOf failed: %s', $self->_merge_errors($path, @errors) if grep {$_} @errors;
   }
 }
 
@@ -626,7 +631,7 @@ sub _validate_one_of {
 
   warn "[JSON::Validator] oneOf @{[$path||'/']} == failed=$failed/@{[int @$rules]} / @errors\n" if DEBUG == 2;
   return E $path, 'All of the oneOf rules match.' unless $failed;
-  return E $path, sprintf 'oneOf failed: %s', $self->_merge_errors(@errors) if grep {$_} @errors;
+  return E $path, sprintf 'oneOf failed: %s', $self->_merge_errors($path, @errors) if grep {$_} @errors;
 }
 
 sub _validate_type_enum {
