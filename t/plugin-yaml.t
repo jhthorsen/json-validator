@@ -30,7 +30,7 @@ for my $module (qw( YAML::XS YAML::Syck YAML::Tiny )) {
   }
 
   my $app = Mojolicious->new;
-  unless (eval { $app->plugin(Swagger2 => {validate => 0, url => 't/data/petstore.yaml'}); 1 }) {
+  unless (eval { $app->plugin(Swagger2 => {url => 't/data/petstore.yaml'}); 1 }) {
     diag $@;
     ok 0, "Could not load Swagger2 plugin using $module";
     next;

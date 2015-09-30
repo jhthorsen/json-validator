@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.57 Not Released
+ - Require JSON::Validator 0.56 for YAML validation
+
 0.56 2015-09-29T20:23:07+0200
  - Add Mojolicious::Plugin::Swagger2 will validate spec on load
 
