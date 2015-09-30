@@ -725,7 +725,19 @@ sub _validate_type_array {
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
 
-  return if defined $value and Scalar::Util::blessed($value) and ("$value" eq "1" or "$value" eq "0");
+  if (defined $value) {
+
+    # TODO/github#8:
+    # Boolean detection using FLAGS is very, very, very EXPERIMENTAL.
+    # I would be surprised if this works on other perl versions/OS,
+    # but let's see what CPAN testers think.
+    if (Scalar::Util::blessed($value) or B::svref_2object(\$value)->FLAGS == 0x7706) {
+      if ("$value" eq "1" or "$value" eq "0" or "$value" eq "") {
+        return;
+      }
+    }
+  }
+
   return E $path, _expected(boolean => $value);
 }
 
