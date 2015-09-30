@@ -136,6 +136,10 @@ C<%config> can contain these parameters:
 
 =over 4
 
+=item * coerce
+
+This argument will be passed on to L<JSON::Validator/coerce>.
+
 =item * route
 
 Need to hold a Mojolicious route object. See L</Protected API> for an example.
@@ -186,6 +190,8 @@ sub register {
     die join "\n", "Swagger2: Invalid spec:", @errors if @errors;
   }
 
+  local $config->{coerce} = $config->{coerce} || $ENV{SWAGGER_COERCE_VALUES};
+  $self->_validator->coerce($config->{coerce}) if $config->{coerce};
   $self->url($swagger->url);
   $app->helper(render_swagger => \&render_swagger) unless $app->renderer->get_helper('render_swagger');
 
