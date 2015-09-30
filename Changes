@@ -1,5 +1,11 @@
 Revision history for perl distribution JSON-Validator
 
+0.56 Not Released
+ - Can read YAML::XS booleans automatically #8
+ - Change coerce() into a method. #8
+ - Remove EXPERIMENTAL coerce attribute #8
+ - Remove EXPERIMENTAL JSON_VALIDATOR_COERCE_VALUES and SWAGGER_COERCE_VALUES #8
+
 0.55 2015-09-29T19:01:05+0200
  - Fix "required" cannot be a boolean on properties
  - Improved documentation of error object

@@ -180,15 +180,6 @@ Path to where downloaded spec files should be cached. Defaults to
 C<JSON_VALIDATOR_CACHE_DIR> or the bundled spec files that are shipped
 with this distribution.
 
-=head2 coerce
-
-  $self = $self->coerce(1);
-  $bool = $self->coerce;
-
-Set this to true if you want to coerce numbers into string and the other way around.
-
-This is EXPERIMENTAL and could be removed without notice!
-
 =head2 formats
 
   $hash_ref = $self->formats;
@@ -247,8 +238,6 @@ has cache_dir => sub {
   $ENV{JSON_VALIDATOR_CACHE_DIR} || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( JSON Validator ));
 };
 
-has coerce => $ENV{JSON_VALIDATOR_COERCE_VALUES} || $ENV{SWAGGER_COERCE_VALUES} || 0;    # EXPERIMENTAL!
-
 has formats => sub { shift->_build_formats };
 
 has ua => sub {
@@ -260,6 +249,46 @@ has ua => sub {
 };
 
 =head1 METHODS
+
+=head2 coerce
+
+  $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
+  $self = $self->coerce(1) # enable all
+  $hash = $self->coerce;
+
+Set the given type to coerce. Before enabling coercion this module is very
+strict when it comes to validating types. Example: The string C<"1"> is not
+the same as the number C<1>, unless you have coercion enabled.
+
+WARNING! Enabling coercion might hide bugs in your api, which would have been
+detected if you were strict. For example JavaScript is very picky on a number
+being an actual number. This module tries it best to convert the data on the
+fly into the proper value, but this means that you unit tests might be ok,
+but the client side libraries (that care about types) might break.
+
+Loading a YAML document will enable "booleans" automatically. This feature is
+experimental, but was added since YAML has no real concept of booleans, such
+as L<Mojo::JSON> or other JSON parsers.
+
+The coercion rules are EXPERIMENTAL and will be tighten/loosen if
+bugs are reported. See L<https://github.com/jhthorsen/json-validator/issues/8>
+for more details.
+
+=cut
+
+sub coerce {
+  my ($self, @args) = @_;
+
+  return $self->{coerce} ||= {} unless @args;
+
+  @args = (booleans => 1, numbers => 1, strings => 1) if $args[0] eq '1';    # back compat
+  while (@args) {
+    my $k = shift @args;
+    $self->{coerce}{$k} = shift @args;
+  }
+
+  return $self;
+}
 
 =head2 schema
 
@@ -413,7 +442,9 @@ sub _load_schema_from_data {
 }
 
 sub _load_schema_from_text {
-  $_[1] =~ /^\s*\{/s ? Mojo::JSON::decode_json($_[1]) : _load_yaml($_[1]);
+  return Mojo::JSON::decode_json($_[1]) if $_[1] =~ /^\s*\{/s;
+  $_[0]->{coerce}{booleans} = 1;    # internal coercion
+  _load_yaml($_[1]);
 }
 
 sub _load_schema_from_url {
@@ -640,7 +671,7 @@ sub _validate_type_enum {
   my $m    = S $data;
 
   for my $i (@$enum) {
-    return if !$self->_validate_type_boolean($i, $path) and _is_true($data) == _is_true($i);
+    return if !$self->_validate_type_boolean($data, $path) and _is_true($data) == _is_true($i);
     return if $m eq S $i;
   }
 
@@ -727,15 +758,12 @@ sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
 
   if (defined $value) {
-
-    # TODO/github#8:
-    # Boolean detection using FLAGS is very, very, very EXPERIMENTAL.
-    # I would be surprised if this works on other perl versions/OS,
-    # but let's see what CPAN testers think.
-    if (Scalar::Util::blessed($value) or B::svref_2object(\$value)->FLAGS & (B::SVp_NOK)) {
-      if ("$value" eq "1" or "$value" eq "0" or "$value" eq "") {
-        return;
-      }
+    if (Scalar::Util::blessed($value) and ("$value" eq "1" or !$value)) {
+      return;
+    }
+    if ($self->{coerce}{booleans} and (B::svref_2object(\$value)->FLAGS & B::SVp_NOK or $value =~ /^(true|false)$/)) {
+      $_[1] = $value ? Mojo::JSON->true : Mojo::JSON->false;
+      return;
     }
   }
 
@@ -768,7 +796,7 @@ sub _validate_type_number {
     return E $path, _expected($expected => $value);
   }
   unless (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
-    return E $path, "Expected $expected - got string." if !$self->coerce or $value =~ /\D/;
+    return E $path, "Expected $expected - got string." if !$self->{coerce}{numbers} or $value =~ /\D/;
     $_[1] = 0 + $value;    # coerce input value
   }
 
@@ -854,7 +882,7 @@ sub _validate_type_string {
     return E $path, _expected(string => $value);
   }
   if (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
-    return E $path, "Expected string - got number." unless $self->coerce;
+    return E $path, "Expected string - got number." unless $self->{coerce}{strings};
     $_[1] = "$value";    # coerce input value
   }
   if ($schema->{format}) {
