@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.55
+    0.56
 
 SYNOPSIS
       use JSON::Validator;
@@ -126,15 +126,6 @@ ATTRIBUTES
     "JSON_VALIDATOR_CACHE_DIR" or the bundled spec files that are shipped
     with this distribution.
 
-  coerce
-      $self = $self->coerce(1);
-      $bool = $self->coerce;
-
-    Set this to true if you want to coerce numbers into string and the other
-    way around.
-
-    This is EXPERIMENTAL and could be removed without notice!
-
   formats
       $hash_ref = $self->formats;
       $self = $self->formats(\%hash);
@@ -183,6 +174,30 @@ ATTRIBUTES
     EXPERIMENTAL and might change without a warning)
 
 METHODS
+  coerce
+      $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
+      $self = $self->coerce(1) # enable all
+      $hash = $self->coerce;
+
+    Set the given type to coerce. Before enabling coercion this module is
+    very strict when it comes to validating types. Example: The string "1"
+    is not the same as the number 1, unless you have coercion enabled.
+
+    WARNING! Enabling coercion might hide bugs in your api, which would have
+    been detected if you were strict. For example JavaScript is very picky
+    on a number being an actual number. This module tries it best to convert
+    the data on the fly into the proper value, but this means that you unit
+    tests might be ok, but the client side libraries (that care about types)
+    might break.
+
+    Loading a YAML document will enable "booleans" automatically. This
+    feature is experimental, but was added since YAML has no real concept of
+    booleans, such as Mojo::JSON or other JSON parsers.
+
+    The coercion rules are EXPERIMENTAL and will be tighten/loosen if bugs
+    are reported. See <https://github.com/jhthorsen/json-validator/issues/8>
+    for more details.
+
   schema
       $self = $self->schema(\%schema);
       $self = $self->schema($url);

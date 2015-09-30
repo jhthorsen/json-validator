@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.56 Not Released
+0.56 2015-09-30T11:43:49+0200
  - Can read YAML::XS booleans automatically #8
  - Change coerce() into a method. #8
  - Remove EXPERIMENTAL coerce attribute #8
