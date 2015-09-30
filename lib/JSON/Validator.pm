@@ -640,6 +640,7 @@ sub _validate_type_enum {
   my $m    = S $data;
 
   for my $i (@$enum) {
+    return if !$self->_validate_type_boolean($i, $path) and _is_true($data) == _is_true($i);
     return if $m eq S $i;
   }
 
@@ -731,7 +732,7 @@ sub _validate_type_boolean {
     # Boolean detection using FLAGS is very, very, very EXPERIMENTAL.
     # I would be surprised if this works on other perl versions/OS,
     # but let's see what CPAN testers think.
-    if (Scalar::Util::blessed($value) or B::svref_2object(\$value)->FLAGS == 0x7706) {
+    if (Scalar::Util::blessed($value) or B::svref_2object(\$value)->FLAGS & (B::SVp_NOK)) {
       if ("$value" eq "1" or "$value" eq "0" or "$value" eq "") {
         return;
       }
@@ -953,8 +954,9 @@ sub _is_ipv4 {
 sub _is_ipv6 { warn "Data::Validate::IP is not installed"; return; }
 
 sub _is_true {
-  return $_[0] if ref $_[0] and !Scalar::Util::blessed($_[0]);
-  return 0 if !$_[0] or $_[0] =~ /^(n|false|off)/i;
+  local $_ = $_[0];
+  return 0 + $_ if ref $_ and !Scalar::Util::blessed($_);
+  return 0 if !$_ or /^(n|false|off)/i;
   return 1;
 }
 
@@ -963,9 +965,11 @@ sub _is_uri { $_[0] =~ qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*
 # Please report if you need to manually monkey patch this function
 # https://github.com/jhthorsen/json-validator/issues
 sub _load_yaml {
-  my @YAML_MODULES = qw( YAML::XS YAML::Syck YAML::Tiny YAML );        # subject to change
-  my $YAML_MODULE = (grep { eval "require $_;1" } @YAML_MODULES)[0];
-  die "Need to install a YAML module: @YAML_MODULES" unless $YAML_MODULE;
+  require List::Util;
+  my @YAML_MODULES = qw( YAML::XS YAML::Syck YAML::Tiny YAML );                     # subject to change
+  my $YAML_MODULE = (List::Util::first { eval "require $_;1" } @YAML_MODULES)[0];
+  die "Need to install one of these YAML modules: @YAML_MODULES (YAML::XS is recommended)" unless $YAML_MODULE;
+  warn "[JSON::Validator] Using $YAML_MODULE to parse YAML\n" if DEBUG;
   Mojo::Util::monkey_patch(__PACKAGE__, _load_yaml => eval "\\\&$YAML_MODULE\::Load");
   _load_yaml(@_);
 }
