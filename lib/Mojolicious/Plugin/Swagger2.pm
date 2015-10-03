@@ -265,7 +265,7 @@ sub _generate_request_handler {
     bless $c, $controller;    # ugly hack?
     ($v, $input) = $self->_validate_input($c, $config);
 
-    return $c->render_swagger($v, {}, 400) unless $v->{valid};
+    return $c->render_swagger($v, {}, 400) if @{$v->{errors}};
     return $c->delay(
       sub { $c->$method_ref($input, shift->begin); },
       sub {
@@ -278,7 +278,7 @@ sub _generate_request_handler {
           : $format->{schema} ? $self->_validator->validate($data, $format->{schema})
           :                     ();
 
-        return $c->render_swagger({errors => \@err, valid => Mojo::JSON->false}, $data, 500) if @err;
+        return $c->render_swagger({errors => \@err}, $data, 500) if @err;
         return $c->render_swagger({}, $data, $status);
       },
     );
@@ -302,7 +302,7 @@ sub _generate_request_handler {
 
 sub _not_implemented {
   my ($self, $message) = @_;
-  return {valid => Mojo::JSON->false, errors => [{message => $message, path => '/'}]};
+  return {errors => [{message => $message, path => '/'}]};
 }
 
 sub _validate_input {
@@ -310,7 +310,7 @@ sub _validate_input {
   my $body    = $c->req->body_params;
   my $headers = $c->req->headers;
   my $query   = $c->req->url->query;
-  my (%input, %v);
+  my (%input, @errors);
 
   for my $p (@{$config->{parameters} || []}) {
     my ($in, $name) = @$p{qw( in name )};
@@ -355,11 +355,10 @@ sub _validate_input {
     }
 
     $input{$name} = $value unless @e;
-    push @{$v{errors}}, @e;
+    push @errors, @e;
   }
 
-  $v{valid} = @{$v{errors} || []} ? Mojo::JSON->false : Mojo::JSON->true;
-  return \%v, \%input;
+  return {errors => \@errors}, \%input;
 }
 
 # copy/paste from JSON::Validator

@@ -46,8 +46,7 @@ $t->post_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(50
 
 # no output rules defined
 $t::Api::CODE = 204;
-$t->post_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(500)
-  ->json_is('/valid', Mojo::JSON->false)->json_is('/errors/0/path', '/')
+$t->post_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(500)->json_is('/errors/0/path', '/')
   ->json_is('/errors/0/message', 'No validation rules defined.');
 
 # empty document
