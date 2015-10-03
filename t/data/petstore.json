@@ -46,7 +46,7 @@
           },
           "default": {
             "description": "unexpected error",
-            "schema": { "$ref": "#/definitions/Error" }
+            "schema": { "$ref": "https://raw.githubusercontent.com/jhthorsen/swagger2/master/lib/Swagger2/error.json" }
           }
         }
       },
@@ -76,7 +76,7 @@
           },
           "default": {
             "description": "unexpected error",
-            "schema": { "$ref": "#/definitions/Error" }
+            "schema": { "$ref": "http://git.io/vcKD4#" }
           }
         }
       }
@@ -103,7 +103,7 @@
           },
           "default": {
             "description": "unexpected error",
-            "schema": { "$ref": "#/definitions/Error" }
+            "schema": { "$ref": "http://git.io/vcKD4#" }
           }
         }
       }
@@ -116,13 +116,6 @@
         "id": { "type": "integer", "format": "int64" },
         "name": { "type": "string" },
         "tag": { "type": "string" }
-      }
-    },
-    "Error": {
-      "required": [ "code", "message" ],
-      "properties": {
-        "code": { "type": "integer", "format": "int32" },
-        "message": { "type": "string" }
       }
     }
   }

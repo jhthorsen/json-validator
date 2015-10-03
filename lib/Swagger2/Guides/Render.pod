@@ -68,7 +68,6 @@ a data structure describing the errors. The default is to render a JSON
 document, like this:
 
   {
-    "valid": false,
     "errors": [
       {
         "message": "string value found, but a integer is required",
@@ -85,7 +84,6 @@ C<%err> then contains a data structure describing the errors. The default is
 to render a JSON document, like this:
 
   {
-    "valid": false,
     "errors": [
       {
         "message": "is missing and it is required",
@@ -102,7 +100,6 @@ implemented the required method. C<%err> then contains a data structure
 describing the errors. The default is to render a JSON document, like this:
 
   {
-    "valid": false,
     "errors": [
       {
         "message": "No handler defined.",
@@ -110,6 +107,28 @@ describing the errors. The default is to render a JSON document, like this:
       }
     ]
   }
+
+=head2 Default error schema
+
+The default error schema can be included like this:
+
+  {
+    "paths":
+      "/pets" : {
+        "get" : {
+          "responses" : {
+            "default": {
+              "description": "Default error.",
+              "schema": { "$ref": "http://git.io/vcKD4#" }
+            }
+          }
+        }
+      }
+    }
+  }
+
+L<http://git.io/vcKD4> can also be provided as a full URL:
+L<https://raw.githubusercontent.com/jhthorsen/swagger2/master/lib/Swagger2/error.json>.
 
 =head1 AUTHOR
 

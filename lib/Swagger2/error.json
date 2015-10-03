@@ -1,0 +1,17 @@
+{
+  "type" : "object",
+  "required": [ "errors" ],
+  "properties": {
+    "errors": {
+      "type": "array",
+      "items": {
+        "type" : "object",
+        "required": [ "message", "path" ],
+        "properties": {
+          "message": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      }
+    }
+  }
+}

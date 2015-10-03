@@ -2,6 +2,7 @@ Revision history for perl distribution Swagger2
 
 0.58 Not Released
  - Remove "valid" from standard error structure since it was redundant
+ - Documented how to include http://git.io/vcKD4
 
 0.57 2015-09-30T11:48:22+0200
  - Require JSON::Validator 0.56 for YAML validation
