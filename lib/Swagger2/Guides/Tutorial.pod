@@ -22,22 +22,20 @@ The input L</url> to given as argument to the plugin need to point to a
 valid L<swagger|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>
 document.
 
-Every operation must have a "x-mojo-controller" specified, so this plugin
-knows where to look for the decamelized "operationId", which is used as
-method name. C<x-mojo-controller> can be defined on different levels
-and gets inherited unless defined more specific:
+Every operation must have "operationId" specified, so this plugin knows where to
+look for the controller and method. The naming convention is:
+
+  "operationId": "methodControllerOptions"
+
+Example specification:
 
   {
     "swagger": "2.0",
     "basePath": "/api",
-    "x-mojo-controller": "MyApp::Controller::Default",
     "paths": {
-      "/pets": {
-        "x-mojo-controller": "MyApp::Controller::ForEveryHttpMethodUnderPets",
+      "/pets/{petId}": {
         "get": {
-          "x-mojo-controller": "MyApp::Controller::Petstore",
-          "x-mojo-around-action": "MyApp::authenticate_api_request",
-          "operationId": "listPets",
+          "operationId": "showPetById",
           "parameters": [ ... ],
           "responses": {
             "200": { ... }
@@ -46,6 +44,14 @@ and gets inherited unless defined more specific:
       }
     }
   }
+
+Here the "operationId" contains the method "show" and the controller "Pet".
+The "Pet" controller will again expand to C<MyApp::Controller::Pet> or
+C<MyApp::Pet> or whatever L<Mojolicious::Routes/namespace> is set to. The
+"options" part (ById) is simply ignored.
+
+Note also that "showPetById" and "listPets" will both result in looking for
+the "Pet" controller, since the plural ending ("s") is removed.
 
 =head2 Application
 

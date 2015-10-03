@@ -58,6 +58,20 @@ or look at L<Swagger2::Guides::Tutorial> for an introduction.
 
 =back
 
+=head1 HOOKS
+
+=head2 swagger_route_added
+
+  $app->hook(swagger_route_added => sub {
+    my ($app, $r) = @_;
+    my $op_spec = $r->pattern->defaults->{swagger_operation_spec};
+    # ...
+  });
+
+The "swagger_route_added" event will be emitted on the application object
+for every route that is added by this plugin. This can be useful if you
+want to do things like specifying a custom route name.
+
 =head1 STASH VARIABLES
 
 =head2 swagger
@@ -86,6 +100,7 @@ is stored in the "swagger_operation_spec" stash variable.
 
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::JSON;
+use Mojo::Loader 'load_class';
 use Mojo::Util 'decamelize';
 use Swagger2;
 use Swagger2::SchemaValidator;
@@ -189,6 +204,9 @@ sub register {
     my @errors = $swagger->validate;
     die join "\n", "Swagger2: Invalid spec:", @errors if @errors;
   }
+  if (!$app->plugins->has_subscribers('swagger_route_added')) {
+    $app->hook(swagger_route_added => \&_on_route_added);
+  }
 
   local $config->{coerce} = $config->{coerce} || $ENV{SWAGGER_COERCE_VALUES};
   $self->_validator->coerce($config->{coerce}) if $config->{coerce};
@@ -214,7 +232,6 @@ sub register {
       my $op_spec    = $paths->{$path}{$http_method};
       my $route_path = $path;
       my %parameters = map { ($_->{name}, $_) } @{$op_spec->{parameters} || []};
-      my $route_name;
 
       $route_path =~ s/{([^}]+)}/{
         my $name = $1;
@@ -224,55 +241,77 @@ sub register {
 
       $op_spec->{'x-mojo-around-action'} ||= $paths->{$path}{'x-mojo-around-action'};
       $op_spec->{'x-mojo-controller'}    ||= $paths->{$path}{'x-mojo-controller'};
-      $route_name = decamelize(
-        join '::',
-        map { ucfirst $_ } $op_spec->{'x-mojo-controller'},
-        ($op_spec->{operationId} || $route_path)
+      $app->plugins->emit(
+        swagger_route_added => $r->$http_method($route_path => $self->_generate_request_handler($route_path, $op_spec))
       );
-      $route_name =~ s/\W+/_/g;
-      $r->$http_method($route_path => $self->_generate_request_handler($route_path, $op_spec))->name($route_name);
-      warn "[Swagger2] Add route $http_method $route_path ($route_name)\n" if DEBUG;
+      warn "[Swagger2] Add route $http_method $route_path\n" if DEBUG;
     }
   }
 }
 
+sub _find_controller {
+  my ($self, $c, $moniker) = @_;
+  my $controller = $moniker;
+
+  return $controller if $controller =~ /::/ and !defined load_class $controller;
+  $controller =~ s!s$!!;    # plural to singular, "::Pets" to "::Pet"
+
+  for my $ns (@{$c->app->routes->namespaces}) {
+    my $class = "${ns}::$controller";
+    return $class unless defined load_class $class;
+  }
+
+  $c->app->log->error(qq(Could not find controller class for "$moniker": $@));
+  return;
+}
+
 sub _generate_request_handler {
-  my ($self, $route_path, $config) = @_;
-  my $op         = $config->{operationId} || $route_path;
-  my $method     = decamelize(ucfirst $op);
-  my $controller = $config->{'x-mojo-controller'} or _die($config, "x-mojo-controller is missing in the swagger spec");
-  my $defaults   = {swagger_operation_spec => $config};
-  my $handler;
+  my ($self, $route_path, $op_spec) = @_;
+  my $controller = $op_spec->{'x-mojo-controller'};
+  my $op         = $op_spec->{operationId} or _die($op_spec, "operationId must be present in the swagger spec.");
+  my $defaults   = {swagger_operation_spec => $op_spec};
+  my ($controller_class, $handler, $method);
+
+  if ($controller) {
+    $method = decamelize ucfirst $op;
+  }
+  else {
+    ($method, $controller) = $op =~ /^([a-z]+)([A-Z][a-z]+)/;    # "showPetById" = ("show", "Pet")
+    $controller or _die($op_spec, "Cannot figure out method and controller from operationId '$op'.");
+  }
 
   $handler = sub {
     my $c = shift;
     my ($method_ref, $v, $input);
 
-    unless (eval "require $controller;1") {
-      $c->app->log->error($@);
-      return $c->render_swagger($self->_not_implemented('Controller not implemented.'), {}, 501);
+    unless ($controller_class ||= $self->_find_controller($c, $controller)) {
+      return $c->render_swagger($self->_not_implemented('Controller could not be loaded.'), {}, 501);
     }
-    unless ($method_ref = $controller->can($method)) {
-      $method_ref = $controller->can(sprintf '%s_%s', $method, lc $c->req->method)
+    unless ($method_ref = $controller_class->can($method)) {
+      $method_ref = $controller_class->can(sprintf '%s_%s', $method, lc $c->req->method)
         and warn "HTTP method name is not used in method name lookup anymore!";
     }
     unless ($method_ref) {
       $c->app->log->error(
-        qq(Can't locate object method "$method" via package "$controller. (Something is wrong in @{[$self->url]})"));
-      return $c->render_swagger($self->_not_implemented(qq(Method "$op" not implemented.)), {}, 501);
+        qq(Can't locate object method "$method" via package "$controller_class. (Something is wrong in @{[$self->url]})")
+      );
+      return $c->render_swagger($self->_not_implemented(qq(Method "$method" not implemented.)), {}, 501);
     }
 
-    bless $c, $controller;    # ugly hack?
-    ($v, $input) = $self->_validate_input($c, $config);
+    bless $c, $controller_class;    # ugly hack?
+    ($v, $input) = $self->_validate_input($c, $op_spec);
 
     return $c->render_swagger($v, {}, 400) if @{$v->{errors}};
     return $c->delay(
-      sub { $c->$method_ref($input, shift->begin); },
+      sub {
+        $c->app->log->debug("Swagger2 calling $controller_class\->$method(\$input, \$cb)");
+        $c->$method_ref($input, shift->begin);
+      },
       sub {
         my $delay  = shift;
         my $data   = shift;
         my $status = shift || 200;
-        my $format = $config->{responses}{$status} || $config->{responses}{default} || undef;
+        my $format = $op_spec->{responses}{$status} || $op_spec->{responses}{default} || undef;
         my @err
           = !$format ? $self->_validator->validate($data, {})
           : $format->{schema} ? $self->_validator->validate($data, $format->{schema})
@@ -284,16 +323,16 @@ sub _generate_request_handler {
     );
   };
 
-  for my $p (@{$config->{parameters} || []}) {
+  for my $p (@{$op_spec->{parameters} || []}) {
     $defaults->{$p->{name}} = $p->{default} if $p->{in} eq 'path' and defined $p->{default};
   }
 
-  if (my $around_action = $config->{'x-mojo-around-action'}) {
+  if (my $around_action = $op_spec->{'x-mojo-around-action'}) {
     my $next = $handler;
     $handler = sub {
       my $c = shift;
       my $around = $c->can($around_action) || $around_action;
-      $around->($next, $c, $config);
+      $around->($next, $c, $op_spec);
     };
   }
 
@@ -305,14 +344,28 @@ sub _not_implemented {
   return {errors => [{message => $message, path => '/'}]};
 }
 
+sub _on_route_added {
+  my ($self, $r) = @_;
+  my $op_spec    = $r->pattern->defaults->{swagger_operation_spec};
+  my $controller = $op_spec->{'x-mojo-controller'};
+  my $route_name;
+
+  $route_name = $controller
+    ? decamelize join '::', map { ucfirst $_ } $controller, $op_spec->{operationId}
+    : decamelize $op_spec->{operationId};
+
+  $route_name =~ s/\W+/_/g;
+  $r->name($route_name);
+}
+
 sub _validate_input {
-  my ($self, $c, $config) = @_;
+  my ($self, $c, $op_spec) = @_;
   my $body    = $c->req->body_params;
   my $headers = $c->req->headers;
   my $query   = $c->req->url->query;
   my (%input, @errors);
 
-  for my $p (@{$config->{parameters} || []}) {
+  for my $p (@{$op_spec->{parameters} || []}) {
     my ($in, $name) = @$p{qw( in name )};
     my ($value, @e);
 
