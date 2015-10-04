@@ -16,6 +16,15 @@ $t->get_ok('/api/pets')->status_is(200)->json_is('/0/id', 123)->json_is('/0/name
 $MyApp::Controller::Pet::RES = {name => 'kit-cat'};
 $t->post_ok('/api/pets/42')->status_is(200)->json_is('/id', 42)->json_is('/name', 'kit-cat');
 
+my $cm = Mojolicious::Plugin::Swagger2->can('_find_controller_and_method');
+is_deeply [$cm->(undef, {operationId => 'childrenOfPerson'})],     [qw( Person children )],     'childrenOfPerson';
+is_deeply [$cm->(undef, {operationId => 'designByUser'})],         [qw( User design )],         'designByUser';
+is_deeply [$cm->(undef, {operationId => 'fooWithBar'})],           [qw( Bar foo )],             'fooWithBar';
+is_deeply [$cm->(undef, {operationId => 'messagesForPet'})],       [qw( Pet messages )],        'messagesForPet';
+is_deeply [$cm->(undef, {operationId => 'peopleInConversation'})], [qw( Conversation people )], 'peopleInConversation';
+is_deeply [$cm->(undef, {operationId => 'sendToConversation'})],   [qw( Conversation send )],   'sendToConversation';
+is_deeply [$cm->(undef, {operationId => 'showPetById'})],          [qw( Pet show )],            'showPetById';
+
 done_testing;
 
 __DATA__

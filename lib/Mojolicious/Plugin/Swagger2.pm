@@ -106,6 +106,8 @@ use Swagger2;
 use Swagger2::SchemaValidator;
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
+my $SKIP_OP_RE = qr/(?:By|For|In|Of|To|With)?/;
+
 =head1 ATTRIBUTES
 
 =head2 url
@@ -242,8 +244,7 @@ sub register {
       $op_spec->{'x-mojo-around-action'} ||= $paths->{$path}{'x-mojo-around-action'};
       $op_spec->{'x-mojo-controller'}    ||= $paths->{$path}{'x-mojo-controller'};
       $app->plugins->emit(
-        swagger_route_added => $r->$http_method($route_path => $self->_generate_request_handler($route_path, $op_spec))
-      );
+        swagger_route_added => $r->$http_method($route_path => $self->_generate_request_handler($op_spec)));
       warn "[Swagger2] Add route $http_method $route_path\n" if DEBUG;
     }
   }
@@ -265,20 +266,25 @@ sub _find_controller {
   return;
 }
 
-sub _generate_request_handler {
-  my ($self, $route_path, $op_spec) = @_;
-  my $controller = $op_spec->{'x-mojo-controller'};
-  my $op         = $op_spec->{operationId} or _die($op_spec, "operationId must be present in the swagger spec.");
-  my $defaults   = {swagger_operation_spec => $op_spec};
-  my ($controller_class, $handler, $method);
+sub _find_controller_and_method {
+  my ($self, $op_spec) = @_;
+  my $op = $op_spec->{operationId} or _die($op_spec, "operationId must be present in the swagger spec.");
 
-  if ($controller) {
-    $method = decamelize ucfirst $op;
+  if ($op_spec->{'x-mojo-controller'}) {
+    return $op_spec->{'x-mojo-controller'}, decamelize ucfirst $op;
   }
   else {
-    ($method, $controller) = $op =~ /^([a-z]+)([A-Z][a-z]+)/;    # "showPetById" = ("show", "Pet")
+    my ($method, $controller) = $op =~ /^([a-z]+)$SKIP_OP_RE([A-Z][a-z]+)/;    # "showPetById" = ("show", "Pet")
     $controller or _die($op_spec, "Cannot figure out method and controller from operationId '$op'.");
+    return $controller, $method;
   }
+}
+
+sub _generate_request_handler {
+  my ($self,       $op_spec) = @_;
+  my ($controller, $method)  = $self->_find_controller_and_method($op_spec);
+  my ($controller_class, $handler);
+  my $defaults = {swagger_operation_spec => $op_spec};
 
   $handler = sub {
     my $c = shift;
