@@ -47,7 +47,7 @@ Example specification:
 
 Here the "operationId" contains the method "show" and the controller "Pet".
 The "Pet" controller will again expand to C<MyApp::Controller::Pet> or
-C<MyApp::Pet> or whatever L<Mojolicious::Routes/namespace> is set to. The
+C<MyApp::Pet> or whatever L<Mojolicious::Routes/namespaces> is set to. The
 "options" part (ById) is simply ignored.
 
 Note also that "showPetById" and "listPets" will both result in looking for

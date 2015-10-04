@@ -24,55 +24,17 @@ __DATA__
   "swagger": "2.0",
   "info": { "version": "1.0.0", "title": "Swagger Petstore" },
   "basePath": "/api",
-  "parameters": {
-    "limit": {
-      "name": "limit",
-      "in": "query",
-      "description": "How many items to return at one time (max 100)",
-      "type": "integer",
-      "format": "int32"
-    }
-  },
   "paths": {
     "/pets": {
       "get": {
-        "summary": "finds pets in the system",
         "operationId": "listPets",
-        "parameters": [ { "$ref": "#/parameters/limit" } ],
         "responses": {
-          "200": {
-            "description": "pet response",
-            "schema": { "type": "array", "items": { "$ref": "#/definitions/Pet" } }
-          },
-          "default": {
-            "description": "unexpected error",
-            "schema": { "$ref": "https://raw.githubusercontent.com/jhthorsen/swagger2/master/lib/Swagger2/error.json" }
-          }
-        }
-      },
-      "post": {
-        "summary": "add pets to the system",
-        "operationId": "addPet",
-        "parameters": [
-          {
-            "name": "data",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": { "name": { "type": "string" }, "tag": { "type": "string" } }
-            }
-          }
-        ],
-        "responses": {
-          "200": { "description": "pet response", "schema": { "$ref": "#/definitions/Pet" } },
-          "default": { "description": "unexpected error", "schema": { "$ref": "http://git.io/vcKD4#" } }
+          "200": { "description": "pet response", "schema": { "type": "array", "items": { "$ref": "#/definitions/Pet" } } }
         }
       }
     },
     "/pets/{petId}": {
       "post": {
-        "summary": "Info for a specific pet",
         "operationId": "showPetById",
         "parameters": [
           {
@@ -84,8 +46,7 @@ __DATA__
           }
         ],
         "responses": {
-          "200": { "description": "Expected response to a valid request", "schema": { "$ref": "#/definitions/Pet" } },
-          "default": { "description": "unexpected error", "schema": { "$ref": "http://git.io/vcKD4#" } }
+          "200": { "description": "Expected response to a valid request", "schema": { "$ref": "#/definitions/Pet" } }
         }
       }
     }
