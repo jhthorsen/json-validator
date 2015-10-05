@@ -54,6 +54,12 @@ L<Mojolicious::Controller/render>.
 
 =back
 
+Same as for the  L</render> method above, there is nothing that prevents you
+from calling this manually from inside your actions, but doing so will bypass
+the output validation code which is generated on the fly. There should not be
+a case when you need to call this method directly.
+
+
 =head1 STATUS CODES
 
 =head2 200
@@ -110,7 +116,8 @@ describing the errors. The default is to render a JSON document, like this:
 
 =head2 Default error schema
 
-The default error schema can be included like this:
+The above statuses use the following error schema. It is general enough and so
+far works well. Feel free to use it in your applications like this:
 
   {
     "paths":
