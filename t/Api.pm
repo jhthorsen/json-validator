@@ -10,6 +10,13 @@ sub authenticate {
   return $c->render(json => $config, status => $CODE);
 }
 
+sub get_headers {
+  my ($c, $args, $cb) = @_;
+
+  #$c->res->headers->header('what-ever' => 123); # not yet validated
+  $c->$cb($c->req->headers->to_hash, 200);
+}
+
 sub test_file {
   my ($c, $args, $cb) = @_;
   $c->$cb($c->stash('swagger')->pod->to_string, 200);

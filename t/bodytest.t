@@ -103,11 +103,6 @@ __DATA__
             "schema": {
               "type": "array",
               "items": { "$ref": "#/definitions/Pet" }
-            },
-            "headers": {
-              "x-expires": {
-                "type": "string"
-              }
             }
           }
         }
