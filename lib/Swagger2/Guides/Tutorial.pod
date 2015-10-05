@@ -61,10 +61,11 @@ The table below try to illustrate how the controller/method is resolved:
   | childrenOfPerson     | Person       | children | Of      |
   | designByUser         | User         | design   | By      |
   | fooWithBar           | Bar          | foo      | With    |
+  | getPetById           | Pet          | get      | ById    |
+  | listUsers            | User         | list     | s       |
   | peopleInConversation | Conversation | people   | In      |
-  | searchForPets        | Pet          | messages | For, s  |
+  | searchForPets        | Pet          | search   | For, s  |
   | sendToConversation   | Conversation | send     | To      |
-  | showPetById          | Pet          | show     | ById    |
   '----------------------------------------------------------'
 
 The operationId rules will be updated I<if> bugs or incompatibility is
