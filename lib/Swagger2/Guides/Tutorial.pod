@@ -50,8 +50,25 @@ The "Pet" controller will again expand to C<MyApp::Controller::Pet> or
 C<MyApp::Pet> or whatever L<Mojolicious::Routes/namespaces> is set to. The
 "options" part (ById) is simply ignored.
 
-Note also that "showPetById" and "listPets" will both result in looking for
+Note that "showPetById" and "listPets" will both result in looking for
 the "Pet" controller, since the plural ending ("s") is removed.
+
+The table below try to illustrate how the controller/method is resolved:
+
+  .----------------------------------------------------------.
+  | operationId          | Controller   | Method   | Ignored |
+  |----------------------|--------------|----------|---------|
+  | childrenOfPerson     | Person       | children | Of      |
+  | designByUser         | User         | design   | By      |
+  | fooWithBar           | Bar          | foo      | With    |
+  | peopleInConversation | Conversation | people   | In      |
+  | searchForPets        | Pet          | messages | For, s  |
+  | sendToConversation   | Conversation | send     | To      |
+  | showPetById          | Pet          | show     | ById    |
+  '----------------------------------------------------------'
+
+The operationId rules will be updated I<if> bugs or incompatibility is
+discovered.
 
 =head2 Application
 
