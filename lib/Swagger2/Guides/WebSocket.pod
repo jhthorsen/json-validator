@@ -1,0 +1,138 @@
+=head1 NAME
+
+Swagger2::Guides::WebSocket - How to expose Swagger over WebSockets
+
+=head1 OVERVIEW
+
+This guide will show how to expose a Swagger API over WebSockets.
+
+This feature is EXPERIMENTAL and is subject to change.
+
+=head1 DISCLAIMER
+
+This way of exposing Swagger over WebSockets is in no way compatible with
+L<https://github.com/swagger-api/swagger-socket>.
+
+=head1 SYNOPSIS
+
+=head2 Application
+
+  package MyApp;
+  use Mojo::Base "Mojolicious";
+
+  sub startup {
+    my $app = shift;
+    my $ws = $app->routes->websocket("/ws")->to("events#ws");
+
+    $app->plugin(Swagger2 => {
+      url => app->home->rel_file("api.yaml"),
+      ws  => $ws,
+    });
+  }
+
+In the example application class above, we create a custom route object for
+handling the WebSocket request. The route object C<$ws> is then passed on to
+the L<plugin|Mojolicious::Plugin::Swagger2> and set up with a default route
+variable L<swagger|Mojolicious::Plugin::Swagger2/STASH VARIABLES>.
+
+The reason why we create a custom websocket route is so it can be used
+bi-directional, instead of just dispatching to Swagger actions.
+
+=head2 Controller
+
+  package MyApp::Controller::Events;
+
+  sub ws {
+    my $c = shift;
+
+    $c->on(json => sub {
+      my ($c, $data) = @_;
+      return if $c->dispatch_to_swagger($data);
+    });
+  }
+
+In the example controller above we listen to a L<json|Mojolicious::Controller/on>
+event which can L<dispatch_to_swagger|Mojolicious::Plugin::Swagger2/dispatch_to_swagger>.
+
+This method will return boolean true if the input looks like a Swagger request.
+
+=head2 Request
+
+The input data to the WebSocket need to be JSON and look like this:
+
+  {
+    "id": "some unique string",
+    "op": "operationId",
+    "params": {
+      "paramerName": "value"
+    }
+  }
+
+The "id" is used to map the response to a unique request. This means that the
+"id" need to be generated on the client side. The uniqueness requirement is
+only for this WebSocket connection.
+
+"op" need to match an operationId in the Swagger specification.
+
+"params" must be an object where the keys match the parameters in the Swagger
+specification.
+
+=head2 Response
+
+  {
+    "id": "some unique string",
+    "code": 200,
+    "body": {"any":"thing"}
+  }
+
+The response contains the input "id", the HTTP status "code" and the response
+from the Swagger action inside "body".
+
+=head2 JavaScript example
+
+Here is an example JavaScript which can communicate over the socket:
+
+  var ws = new WebSocket("ws://example.com/ws");
+
+  ws.onopen = function () {
+    ws.send(JSON.stringify({
+      id:   "42",
+      op:   "listPets",
+      args: {limit: 60}
+    });
+  };
+
+  ws.onmessage = function (e) {
+    var data = JSON.parse(e.data);
+    if (data.id == "42") {
+      // Response from the request above, because of matching "id"
+      console.log(data.code, data.body);
+    }
+  };
+
+=head1 CAVEATS
+
+=over 4
+
+=item *
+
+"x-mojo-around-action" is ignored when issuing WebSocket requests. This may be
+changed in future version.
+
+=item *
+
+Sharing a WebSocket route object between multiple Swagger plugins is
+unsupported. (The outcome is unknown)
+
+=item *
+
+The protocol and implementation is subject for change.
+L<feedback|https://github.com/jhthorsen/swagger2/issues> is highly appreciated.
+
+=back
+
+=head1 AUTHOR
+
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
+
+=cut
