@@ -1,8 +1,8 @@
 Revision history for perl distribution Swagger2
 
-0.58 Not Released
+0.58 2015-10-06T11:36:29+0200
  - Add support for using operationId instead of x-mojo-controller #36 #37
- - Add "swagger_route_added" event
+ - Add "swagger_route_added" event #27
  - Remove "valid" from standard error structure since it was redundant
  - Documented how to include http://git.io/vcKD4
 
