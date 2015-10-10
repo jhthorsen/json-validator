@@ -248,6 +248,16 @@ sub register {
       warn "[Swagger2] Add route $http_method $route_path\n" if DEBUG;
     }
   }
+
+  # EXPERIMENTAL: Need documentation and probably a better route name()
+  if (my $title = $swagger->api_spec->get('/info/title')) {
+    my $md5 = Mojo::Util::md5_sum(Mojo::Util::dumper($swagger->api_spec->data));
+    $title =~ s!\W!_!;
+    $r->get("/$md5", [format => [qw( json )]], {format => 'json'})
+      ->to(cb => sub { shift->render(json => $swagger->api_spec->data) })->name(lc $title);
+  }
+
+  $swagger->api_spec->data->{basePath} = $r->to_string;
 }
 
 sub _find_controller {

@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.59 Not Released
+ - Add "basePath" resource can be used to download expanded API spec
+
 0.58 2015-10-06T11:36:29+0200
  - Add support for using operationId instead of x-mojo-controller #36 #37
  - Add "swagger_route_added" event #27
