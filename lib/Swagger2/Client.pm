@@ -125,14 +125,14 @@ sub generate {
 
   for my $path (keys %$paths) {
     for my $http_method (keys %{$paths->{$path}}) {
-      my $config = $paths->{$path}{$http_method};
-      my $method = $config->{operationId} || $path;
+      my $op_spec = $paths->{$path}{$http_method};
+      my $method = $op_spec->{operationId} || $path;
 
       $method =~ s![^\w]!_!g;
       $method = Mojo::Util::decamelize(ucfirst $method);
 
       warn "[$generated] Add method $generated\::$method()\n" if DEBUG;
-      Mojo::Util::monkey_patch($generated, $method => $generated->_generate_method(lc $http_method, $path, $config));
+      Mojo::Util::monkey_patch($generated, $method => $generated->_generate_method(lc $http_method, $path, $op_spec));
     }
   }
 
@@ -140,7 +140,7 @@ sub generate {
 }
 
 sub _generate_method {
-  my ($class, $http_method, $path, $config) = @_;
+  my ($class, $http_method, $path, $op_spec) = @_;
   my @path = grep {length} split '/', $path;
 
   return sub {
@@ -148,7 +148,7 @@ sub _generate_method {
     my $self = shift;
     my $args = shift || {};
     my $req  = [$self->base_url->clone];
-    my @e    = $self->_validate_request($args, $config, $req);
+    my @e    = $self->_validate_request($args, $op_spec, $req);
 
     if (@e) {
       Carp::croak('Invalid input: ' . join ' ', @e) unless $cb;
@@ -179,11 +179,11 @@ sub _generate_method {
 }
 
 sub _validate_request {
-  my ($self, $args, $config, $req) = @_;
+  my ($self, $args, $op_spec, $req) = @_;
   my $query = $req->[0]->query;
   my (%data, $body, @e);
 
-  for my $p (@{$config->{parameters} || []}) {
+  for my $p (@{$op_spec->{parameters} || []}) {
     my ($in, $name) = @$p{qw( in name )};
     my $value = exists $args->{$name} ? $args->{$name} : $p->{default};
 
