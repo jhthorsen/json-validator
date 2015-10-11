@@ -28,9 +28,10 @@ $t::Api::RES = [{id => 123, name => "kit-cat"}];
 $t->get_ok('/protected/pets?secret=whatever')->status_is(200)->json_is('/0/id', 123)->json_is('/0/name', 'kit-cat');
 
 # fetch expanded specification
-is $t->app->url_for('swagger_petstore'), '/protected/fcd21dfc256098f01d32cf7039498b9c.json', 'spec url';
+my $spec_path = $t->app->url_for('swagger_petstore');
+like $spec_path, qr'^/protected/\w{32}.json$', 'spec url';
 
-$t->get_ok('/protected/fcd21dfc256098f01d32cf7039498b9c.json?secret=whatever')->status_is(200)
-  ->json_is('/basePath', '/protected')->json_is('/paths/~1pets/get/parameters/0/in', 'query');
+$t->get_ok("$spec_path?secret=whatever")->status_is(200)->json_is('/basePath', '/protected')
+  ->json_is('/paths/~1pets/get/parameters/0/in', 'query');
 
 done_testing;
