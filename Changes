@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.59 Not Released
+0.59 2015-10-11T13:22:31+0200
  - Fix validating required body
  - Add resource to download full API spec
  - Add before_render hook to make sure we reply with JSON
