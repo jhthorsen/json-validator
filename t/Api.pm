@@ -1,6 +1,7 @@
 package t::Api;
 use Mojo::Base 'Mojolicious::Controller';
 
+our $ERR;
 our $RES  = {};
 our $CODE = 200;
 
@@ -57,6 +58,7 @@ sub show_pet_by_id {
 
 sub get_pet {
   my ($c, $args, $cb) = @_;
+  die $ERR if $ERR;
   return $c->$cb('', 201) if $CODE eq '201';
   return $c->$cb($RES, $CODE);
 }

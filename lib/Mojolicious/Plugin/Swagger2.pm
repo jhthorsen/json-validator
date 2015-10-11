@@ -215,6 +215,19 @@ C<%config> can contain these parameters:
 
 This argument will be passed on to L<JSON::Validator/coerce>.
 
+=item * ensure_swagger_response
+
+  $app->plugin(swagger2 => {
+    ensure_swagger_response => {
+      exception => "Internal server error.",
+      not_found => "Not found.",
+    }
+  });
+
+Adds a L<before_render|Mojolicious/HOOKS> hook which will make sure
+"exception" and "not_found" responses are in JSON format. There is no need to
+specify "exception" and "not_found" if you are happy with the defaults.
+
 =item * route
 
 Need to hold a Mojolicious route object. See L</Protected API> for an example.
@@ -323,6 +336,31 @@ sub register {
   }
 
   $swagger->api_spec->data->{basePath} = $r->to_string;
+
+  if ($config->{ensure_swagger_response}) {
+    $self->_ensure_swagger_response($app, $config->{ensure_swagger_response}, $swagger);
+  }
+}
+
+sub _ensure_swagger_response {
+  my ($self, $app, $responses, $swagger) = @_;
+  my $base_path = $swagger->api_spec->data->{basePath};
+
+  $responses->{exception} ||= 'Internal server error.';
+  $responses->{not_found} ||= 'Not found.';
+  $base_path = qr{^$base_path};
+
+  $app->hook(
+    before_render => sub {
+      my ($c, $args) = @_;
+
+      return unless my $template = $args->{template};
+      return unless my $msg      = $responses->{$template};
+      return unless $c->req->url->path->to_string =~ $base_path;
+
+      $args->{json} = _error($msg);
+    }
+  );
 }
 
 sub _find_controller_and_method {
