@@ -953,6 +953,7 @@ sub _guess_schema_type {
 }
 
 sub _guessed_right {
+  return $_[1] unless defined $_[0];
   return _guess_data_type($_[0]) eq $_[1] ? $_[1] : undef;
 }
 

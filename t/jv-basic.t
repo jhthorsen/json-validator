@@ -25,6 +25,9 @@ is "@errors", "", "boolean true";
 @errors = $validator->validate(j("foo"), {type => 'boolean'});
 is "@errors", "/: Expected boolean - got string.", "not boolean";
 
+@errors = $validator->validate(undef, {properties => {}});
+is "@errors", "/: Expected object - got null.", "undef";
+
 done_testing;
 
 sub j {
