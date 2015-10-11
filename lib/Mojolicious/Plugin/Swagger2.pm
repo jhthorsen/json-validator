@@ -158,7 +158,7 @@ sub dispatch_to_swagger {
   return Mojo::IOLoop->delay(
     sub {
       my $delay = shift;
-      my $sc = $delay->data->{sc} = $sc_class->new(tx => $c->tx);
+      my $sc = $delay->data->{sc} = $sc_class->new($c);    # clone
       $sc->stash(swagger_operation_spec => $op_info->{spec});
       $sc->$method_ref($input, $delay->begin);
     },
