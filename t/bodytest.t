@@ -15,6 +15,9 @@ $t::Api::RES = {};
 ok $t->app->routes->lookup('t_api_add_pet'), 'add route add_pet';
 
 # invalid input
+$t->post_ok('/api/pets')->status_is(400)->json_is('/errors/0/message', 'Expected object - got null.')
+  ->json_is('/errors/0/path', '/pet');
+
 $t->post_ok('/api/pets' => json => {id => 123})->status_is(400)->json_is('/errors/0/message', 'Missing property.')
   ->json_is('/errors/0/path', '/pet/name');
 
@@ -94,6 +97,7 @@ __DATA__
             "name" : "pet",
             "schema" : { "$ref" : "#/definitions/Pet" },
             "in" : "body",
+            "required": true,
             "description" : "Pet object that needs to be added to the store"
           }
         ],

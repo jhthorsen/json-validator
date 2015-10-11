@@ -502,24 +502,22 @@ sub _validate_value {
 
   return if !defined $value and !Swagger2::_is_true($p->{required});
 
-  my $schema = {properties => {$name => $p}, required => [$p->{required} ? ($name) : ()]};
+  my $schema = {properties => {$name => $p->{schema} || $p}, required => [$p->{required} ? ($name) : ()]};
   my $in = $p->{in};
 
   # ugly hack
 
   if ($in eq 'body') {
-    warn "[Swagger2] Validate $in body\n" if DEBUG;
-    return
-      map { $_->{path} = $_->{path} eq "/" ? "/$name" : "/$name$_->{path}"; $_; }
-      $self->_validator->validate($value, $p->{schema});
+    warn "[Swagger2] Validate $in $name\n" if DEBUG;
+    return $self->_validator->validate({$name => $value}, $schema);
   }
   elsif (defined $value) {
     warn "[Swagger2] Validate $in $name=$value\n" if DEBUG;
     return $self->_validator->validate({$name => $value}, $schema);
   }
   else {
-    warn "[Swagger2] Validate $in $name=undef()\n" if DEBUG;
-    return $self->_validator->validate({}, $schema);
+    warn "[Swagger2] Validate $in $name=undef\n" if DEBUG;
+    return $self->_validator->validate({$name => $value}, $schema);
   }
 
   return;

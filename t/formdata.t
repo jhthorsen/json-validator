@@ -12,8 +12,8 @@ my $t = Test::Mojo->new;
 $t::Api::RES = [];
 
 # invalid input
-$t->post_ok('/api/pets' => form => {id => 123})->status_is(400)->json_is('/errors/0/message', 'Missing property.')
-  ->json_is('/errors/0/path', '/name');
+$t->post_ok('/api/pets' => form => {id => 123})->status_is(400)
+  ->json_is('/errors/0/message', 'Expected string - got null.')->json_is('/errors/0/path', '/name');
 
 # invalid input
 $t->post_ok('/api/pets' => form => {id => "invalid", name => "kit-cat"})->status_is(400)

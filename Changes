@@ -1,9 +1,10 @@
 Revision history for perl distribution Swagger2
 
 0.59 Not Released
+ - Fix validating required body
  - Add resource to download full API spec
  - Add before_render hook to make sure we reply with JSON
- - Can call Swagger operations over WebSocket using dispatch_to_swagger()
+ - Add EXPERIMENTAL dispatch_to_swagger()
 
 0.58 2015-10-06T11:36:29+0200
  - Add support for using operationId instead of x-mojo-controller #36 #37
