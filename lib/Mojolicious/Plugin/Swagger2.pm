@@ -313,7 +313,10 @@ sub register {
 
   # EXPERIMENTAL: Need documentation and probably a better route name()
   if (my $title = $swagger->api_spec->get('/info/title')) {
-    my $md5 = Mojo::Util::md5_sum(Mojo::Util::dumper($swagger->api_spec->data));
+    my $md5
+      = Mojo::Util::md5_sum(
+      Data::Dumper->new([$swagger->api_spec->data])->Indent(0)->Pair('=>')->Purity(1)->Quotekeys(1)->Sortkeys(1)
+        ->Terse(1)->Useqq(1)->Dump);
     $title =~ s!\W!_!g;
     $r->get("/$md5", [format => [qw( json )]], {format => 'json'})
       ->to(cb => sub { shift->render(json => $swagger->api_spec->data) })->name(lc $title);
