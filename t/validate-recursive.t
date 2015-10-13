@@ -8,7 +8,7 @@ use JSON::Validator 'validate_json';
   post '/' => sub {
     my $c = shift;
     my @errors = validate_json $c->req->json, 'data://main/spec.json';
-    $c->render(status => @errors ? 400 : 200, text => "@errors");
+    $c->render(status => @errors ? 400 : 200, json => \@errors);
   };
 }
 
@@ -16,9 +16,10 @@ my $t = Test::Mojo->new;
 
 $t->post_ok('/', json => {})->status_is(400)->content_like(qr{/person});
 $t->post_ok('/', json => {person => {name => "foo"}})->status_is(200);
-$t->post_ok('/', json => {person => {name => "foo", children => [{}]}})->status_is(400)->content_like(qr{/person});
+$t->post_ok('/', json => {person => {name => "foo", children => [{}]}})->status_is(400)->json_is('/0/path' => '/person/children/0/name');
 
 done_testing;
+
 __DATA__
 @@ spec.json
 {
