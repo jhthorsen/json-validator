@@ -930,7 +930,7 @@ sub _guess_data_type {
   return 'object' if $ref eq 'HASH';
   return lc $ref if $ref and !$blessed;
   return 'null' if !defined;
-  return 'boolean' if $blessed and "$_" eq "1" or "$_" eq "0";
+  return 'boolean' if $blessed and ("$_" eq "1" or !"$_");
   return 'number' if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $_ eq $_ and $_ * 0 == 0;
   return $blessed || 'string';
 }
