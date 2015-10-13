@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.58 Not Released
+0.58 2015-10-13T14:47:25+0200
  - Fix string "0" is not detected as boolean
 
 0.57 2015-10-11T13:20:45+0200
