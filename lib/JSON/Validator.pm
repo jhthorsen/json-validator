@@ -64,8 +64,6 @@ Here are some resources that are related to JSON schemas and validation:
 
 =item * L<http://spacetelescope.github.io/understanding-json-schema/index.html>
 
-=item * L<http://jsonary.com/documentation/json-schema/>
-
 =item * L<https://github.com/json-schema/json-schema/>
 
 =item * L<Swagger2>
