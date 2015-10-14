@@ -11,6 +11,11 @@ sub authenticate {
   return $c->render(json => $config, status => $CODE);
 }
 
+sub collection_format {
+  my ($c, $args, $cb) = @_;
+  $c->$cb($args, $CODE);
+}
+
 sub get_headers {
   my ($c, $args, $cb) = @_;
 
@@ -43,11 +48,6 @@ sub status {
   my $resp = {};
   $resp->{status} = $RES;
   $c->$cb($resp, $CODE);
-}
-
-sub query_as_array {
-  my ($c, $args, $cb) = @_;
-  $c->$cb($args, $CODE);
 }
 
 sub show_pet_by_id {

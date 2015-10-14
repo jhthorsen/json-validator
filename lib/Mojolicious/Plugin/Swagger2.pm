@@ -482,8 +482,8 @@ sub _validate_input {
       elsif ($type eq 'boolean') {
         $value = (!$value or $value eq 'false') ? Mojo::JSON->false : Mojo::JSON->true;
       }
-      elsif (ref $p->{items} eq 'HASH' and $p->{items}{collectionFormat}) {
-        $value = _coerce_by_collection_format($p->{items}, $value);
+      elsif (ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
+        $value = _coerce_by_collection_format($value, $p);
       }
     }
 
@@ -505,8 +505,6 @@ sub _validate_value {
   my $schema = {properties => {$name => $p->{schema} || $p}, required => [$p->{required} ? ($name) : ()]};
   my $in = $p->{in};
 
-  # ugly hack
-
   if ($in eq 'body') {
     warn "[Swagger2] Validate $in $name\n" if DEBUG;
     return $self->_validator->validate({$name => $value}, $schema);
@@ -523,14 +521,14 @@ sub _validate_value {
   return;
 }
 
-# copy/paste from JSON::Validator
 sub _coerce_by_collection_format {
-  my ($schema, $data) = @_;
+  my ($data, $schema) = @_;
   my $format = $schema->{collectionFormat};
-  my @data = $format eq 'ssv' ? split / /, $data : $format eq 'tsv' ? split /\t/,
+  my $type   = $schema->{items}{type} || '';
+  my @data   = $format eq 'ssv' ? split / /, $data : $format eq 'tsv' ? split /\t/,
     $data : $format eq 'pipes' ? split /\|/, $data : split /,/, $data;
 
-  return [map { $_ + 0 } @data] if $schema->{type} and $schema->{type} =~ m!^(integer|number)$!;
+  return [map { $_ + 0 } @data] if $type eq 'integer' or $type eq 'number';
   return \@data;
 }
 
