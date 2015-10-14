@@ -527,16 +527,15 @@ sub _validate_value {
 
 sub _coerce_by_collection_format {
   my ($data, $schema) = @_;
-  my $format = $schema->{collectionFormat};
+  my $re = $Swagger2::SchemaValidator::COLLECTION_RE{$schema->{collectionFormat}} || '';
   my $type = $schema->{items}{type} || '';
   my @data;
 
-  if ($format eq 'multi') {
+  if (!$re) {
     @data = @$data;
   }
   elsif (defined($data = $data->[0])) {
-    @data = $format eq 'ssv' ? split / /, $data : $format eq 'tsv' ? split /\t/,
-      $data : $format eq 'pipes' ? split /\|/, $data : split /,/, $data;
+    @data = split /$re/, $data;
   }
 
   return [map { $_ + 0 } @data] if $type eq 'integer' or $type eq 'number';

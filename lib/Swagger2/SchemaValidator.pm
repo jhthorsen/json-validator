@@ -16,6 +16,8 @@ use Scalar::Util ();
 
 use constant IV_SIZE => eval 'require Config;$Config::Config{ivsize}';
 
+our %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
+
 =head1 ATTRIBUTES
 
 L<Swagger2::SchemaValidator> inherits all attributes from L<JSON::Validator>.
@@ -59,6 +61,16 @@ compiled to use 64 bit integers.
 
 =cut
 
+sub _validate_type_array {
+  my ($self, $data, $path, $schema) = @_;
+
+  if (ref $data eq 'ARRAY' and ref $schema->{items} eq 'HASH' and $schema->{items}{collectionFormat}) {
+    $self->_coerce_by_collection_format($data, $schema->{items});
+  }
+
+  return $self->SUPER::_validate_type_array(@_[1, 2, 3]);
+}
+
 # always valid
 sub _validate_type_file { }
 
@@ -73,6 +85,17 @@ sub _build_formats {
   $formats->{int64}  = IV_SIZE >= 8 ? sub { _is_number($_[0], 'q'); } : sub {1};
 
   return $formats;
+}
+
+sub _coerce_by_collection_format {
+  my ($self, $data, $schema) = @_;
+  my $re = $COLLECTION_RE{$schema->{collectionFormat}} || ',';
+  my $type = $schema->{type} || '';
+
+  for my $i (0 .. @$data - 1) {
+    my @d = split /$re/, $data->[$i];
+    $data->[$i] = ($type eq 'integer' or $type eq 'number') ? [map { $_ + 0 } @d] : \@d;
+  }
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/; }

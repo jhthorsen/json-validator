@@ -2,7 +2,7 @@ Revision history for perl distribution Swagger2
 
 0.60 Not Released
  - Fix pass on $app to WebSocket controller
- - Fix "collectionFormat" is not part of "items"
+ - Fix support for "collectionFormat" for both "parameters" and "items"
  - Add support for "collectionFormat" "multi"
 
 0.59 2015-10-11T13:22:31+0200
