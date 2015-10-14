@@ -15,6 +15,6 @@ WriteMakefile(
     },
   },
   BUILD_REQUIRES => {'Test::More'      => '0.88', 'Test::Warnings' => '0.016'},
-  PREREQ_PM      => {'JSON::Validator' => '0.57', 'Mojolicious'    => '6.00'},
+  PREREQ_PM      => {'JSON::Validator' => '0.59', 'Mojolicious'    => '6.00'},
   test           => {TESTS             => 't/*.t'},
 );
