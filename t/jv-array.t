@@ -49,20 +49,4 @@ $tuple->{additionalItems} = Mojo::JSON->false;
 @errors = $validator->validate([1600, "Pennsylvania", "Avenue", "NW", "Washington"], $tuple);
 is "@errors", "/: Invalid number of items: 5/4.", "tuple: additionalItems";
 
-$validator->schema({type => "array", items => {type => "number", collectionFormat => 'csv'}});
-@errors = $validator->validate('1,2,3');
-is "@errors", "", "collectionFormat csv";
-
-$validator->schema({type => "array", items => {type => "string", collectionFormat => 'pipes'}});
-@errors = $validator->validate('a|b|3');
-is "@errors", "", "collectionFormat pipes";
-
-$validator->schema({type => "array", items => {type => "integer", collectionFormat => 'ssv'}});
-@errors = $validator->validate('1 2 3');
-is "@errors", "", "collectionFormat pipes";
-
-$validator->schema({type => "array", items => {type => "number", collectionFormat => 'tsv'}});
-@errors = $validator->validate("42\t3.14");
-is "@errors", "", "collectionFormat tsv";
-
 done_testing;

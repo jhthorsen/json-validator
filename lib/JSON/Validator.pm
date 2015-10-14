@@ -380,16 +380,6 @@ sub _build_formats {
   };
 }
 
-sub _coerce_by_collection_format {
-  my ($self, $schema, $data) = @_;
-  my $format = $schema->{collectionFormat};
-  my @data = $format eq 'ssv' ? split / /, $data : $format eq 'tsv' ? split /\t/,
-    $data : $format eq 'pipes' ? split /\|/, $data : split /,/, $data;
-
-  return [map { $_ + 0 } @data] if $schema->{type} and $schema->{type} =~ m!^(integer|number)$!;
-  return \@data;
-}
-
 sub _load_schema {
   my ($self, $url, $parent) = @_;
   my ($namespace, $scheme) = ("$url", "file");
@@ -698,15 +688,9 @@ sub _validate_type_array {
   my ($self, $data, $path, $schema) = @_;
   my @errors;
 
-  if (ref $schema->{items} eq 'HASH' and $schema->{items}{collectionFormat}) {
-    $data = $self->_coerce_by_collection_format($schema->{items}, $data);
-  }
   if (ref $data ne 'ARRAY') {
     return E $path, _expected(array => $data);
   }
-
-  $data = [@$data];
-
   if (defined $schema->{minItems} and $schema->{minItems} > @$data) {
     push @errors, E $path, sprintf 'Not enough items: %s/%s.', int @$data, $schema->{minItems};
   }
