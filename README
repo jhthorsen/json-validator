@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.58
+    0.59
 
 SYNOPSIS
       use JSON::Validator;
@@ -55,8 +55,6 @@ DESCRIPTION
 
     *   <http://spacetelescope.github.io/understanding-json-schema/index.htm
         l>
-
-    *   <http://jsonary.com/documentation/json-schema/>
 
     *   <https://github.com/json-schema/json-schema/>
 
