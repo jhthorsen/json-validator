@@ -468,12 +468,19 @@ sub _validate_input {
   for my $p (@{$op_spec->{parameters} || []}) {
     my ($in, $name, $type) = @$p{qw( in name type )};
     my $value
-      = $in eq 'query'    ? $query->param($name)
+      = $in eq 'query'    ? $query->every_param($name)
       : $in eq 'path'     ? $c->stash($name)
       : $in eq 'header'   ? $headers->header($name)
       : $in eq 'body'     ? $c->req->json
-      : $in eq 'formData' ? $body->param($name)
+      : $in eq 'formData' ? $body->every_param($name)
       :                     "Invalid 'in' for parameter $name in schema definition";
+
+    if (ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
+      $value = _coerce_by_collection_format($value, $p);
+    }
+    elsif (ref $value eq 'ARRAY') {
+      $value = $value->[0];
+    }
 
     if ($type and defined($value //= $p->{default})) {
       if (($type eq 'integer' or $type eq 'number') and $value =~ /^-?\d/) {
@@ -481,9 +488,6 @@ sub _validate_input {
       }
       elsif ($type eq 'boolean') {
         $value = (!$value or $value eq 'false') ? Mojo::JSON->false : Mojo::JSON->true;
-      }
-      elsif (ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
-        $value = _coerce_by_collection_format($value, $p);
       }
     }
 
@@ -524,9 +528,16 @@ sub _validate_value {
 sub _coerce_by_collection_format {
   my ($data, $schema) = @_;
   my $format = $schema->{collectionFormat};
-  my $type   = $schema->{items}{type} || '';
-  my @data   = $format eq 'ssv' ? split / /, $data : $format eq 'tsv' ? split /\t/,
-    $data : $format eq 'pipes' ? split /\|/, $data : split /,/, $data;
+  my $type = $schema->{items}{type} || '';
+  my @data;
+
+  if ($format eq 'multi') {
+    @data = @$data;
+  }
+  elsif (defined($data = $data->[0])) {
+    @data = $format eq 'ssv' ? split / /, $data : $format eq 'tsv' ? split /\t/,
+      $data : $format eq 'pipes' ? split /\|/, $data : split /,/, $data;
+  }
 
   return [map { $_ + 0 } @data] if $type eq 'integer' or $type eq 'number';
   return \@data;
