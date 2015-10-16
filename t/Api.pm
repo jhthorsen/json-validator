@@ -16,6 +16,11 @@ sub collection_format {
   $c->$cb($args, $CODE);
 }
 
+sub empty {
+  my ($c, $args, $cb) = @_;
+  $c->$cb('', $CODE);
+}
+
 sub get_headers {
   my ($c, $args, $cb) = @_;
 
