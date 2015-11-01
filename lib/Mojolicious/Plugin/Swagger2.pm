@@ -537,6 +537,9 @@ sub _coerce_by_collection_format {
   elsif (defined($data = $data->[0])) {
     @data = split /$re/, $data;
   }
+  else {
+    return;
+  }
 
   return [map { $_ + 0 } @data] if $type eq 'integer' or $type eq 'number';
   return \@data;
