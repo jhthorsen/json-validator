@@ -478,7 +478,7 @@ sub _validate_input {
     if (ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
       $value = _coerce_by_collection_format($value, $p);
     }
-    elsif (ref $value eq 'ARRAY') {
+    elsif ($in ne 'body' && ref $value eq 'ARRAY') {
       $value = $value->[0];
     }
 
