@@ -24,6 +24,9 @@ $t->post_ok('/api/pets' => json => {id => 123})->status_is(400)->json_is('/error
 $t->post_ok('/api/pets' => json => {id => "123", name => "kit-cat"})->status_is(400)
   ->json_is('/errors/0/message', 'Expected integer - got string.')->json_is('/errors/0/path', '/pet/id');
 
+# valid patch
+$t->patch_ok('/api/pets' => json => [ { name => "123" } ])->status_is(204);
+
 # valid input and output
 $t::Api::RES = [{id => 123, name => "kit-cat"}];
 $t->post_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(200)->json_is('/0/id', 123);
@@ -109,6 +112,24 @@ __DATA__
             }
           }
         }
+      },
+      "patch" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "patchPet",
+        "parameters" : [
+          {
+            "name" : "patch",
+            "schema" : { "$ref" : "#/definitions/Patch" },
+            "in" : "body",
+            "required": true,
+            "description" : "Patch object to update pet"
+          }
+        ],
+        "responses" : {
+          "204": {
+            "description": "pet response"
+          }
+        }
       }
     }
   },
@@ -118,6 +139,16 @@ __DATA__
       "properties" : {
         "id" : { "format" : "int64", "type" : "integer" },
         "name" : { "type" : "string" }
+      }
+    },
+    "Patch" : {
+      "type" : "array",
+      "items" : {
+        "properties" : {
+          "name" : {
+            "type": "string"
+          }
+        }
       }
     }
   }
