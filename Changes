@@ -1,7 +1,9 @@
 Revision history for perl distribution Swagger2
 
-0.61 Not Released
+0.61 2015-11-03T20:22:55+0000
  - Fix handling of empty collectionFormat value
+ - Fix handling of arrays in request body
+ - Add validation for 204 No Content response
 
 0.60 2015-10-14T23:25:14+0200
  - Fix pass on $app to WebSocket controller
