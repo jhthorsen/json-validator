@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.62 Not Released
+ - Trying to authorise release
+
 0.61 2015-11-03T20:22:55+0000
  - Fix handling of empty collectionFormat value
  - Fix handling of arrays in request body
