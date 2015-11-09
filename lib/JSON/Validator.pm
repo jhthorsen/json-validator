@@ -524,6 +524,11 @@ sub _validate {
   my $type = $schema->{type} || _guess_schema_type($schema, $data);
   my @errors;
 
+  # Make sure we validate plain data and not a perl object
+  if (UNIVERSAL::can($data, 'TO_JSON')) {
+    $data = $data->TO_JSON;
+  }
+
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {
     for my $type (@$type) {
@@ -805,9 +810,6 @@ sub _validate_type_object {
   my %required = map { ($_ => 1) } @{$schema->{required} || []};
   my ($additional, @errors, %rules);
 
-  if (UNIVERSAL::can($data, 'TO_JSON')) {
-    $data = $data->TO_JSON;
-  }
   if (ref $data ne 'HASH') {
     return E $path, _expected(object => $data);
   }
