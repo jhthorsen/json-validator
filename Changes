@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.60 Not Released
+0.60 2015-11-09T14:35:56+0000
  - Can use TO_JSON() when validating perl objects
 
 0.59 2015-10-14T17:19:53+0200
