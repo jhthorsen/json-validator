@@ -805,6 +805,9 @@ sub _validate_type_object {
   my %required = map { ($_ => 1) } @{$schema->{required} || []};
   my ($additional, @errors, %rules);
 
+  if (UNIVERSAL::can($data, 'TO_JSON')) {
+    $data = $data->TO_JSON;
+  }
   if (ref $data ne 'HASH') {
     return E $path, _expected(object => $data);
   }
