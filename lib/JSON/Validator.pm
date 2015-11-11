@@ -729,12 +729,7 @@ sub _validate_type_array {
   }
   elsif (ref $schema->{items} eq 'HASH') {
     for my $i (0 .. @$data - 1) {
-      if ($schema->{items}{properties}) {
-        push @errors, $self->_validate_type_object($data->[$i], "$path/$i", $schema->{items});
-      }
-      else {
-        push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
-      }
+      push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
     }
   }
 
