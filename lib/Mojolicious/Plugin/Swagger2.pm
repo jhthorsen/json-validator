@@ -577,6 +577,7 @@ sub _error {
 sub _find_controller {
   my ($c, $moniker) = @_;
   my $controller = $moniker;
+  my $e;
 
   return $controller if $controller =~ /::/ and !defined load_class $controller;
   $controller =~ s!s$!!;    # plural to singular, "::Pets" to "::Pet"
@@ -584,9 +585,10 @@ sub _find_controller {
   for my $ns (@{$c->app->routes->namespaces}) {
     my $class = "${ns}::$controller";
     return $class unless defined load_class $class;
+    $e ||= $@;              # want the most specific class names
   }
 
-  $c->app->log->error(qq(Could not find controller class for "$moniker": $@));
+  $c->app->log->error(qq(Could not find controller class for "$moniker": $e));
   return;
 }
 
