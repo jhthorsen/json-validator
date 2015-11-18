@@ -59,7 +59,22 @@ compiled to use 64 bit integers.
 
 =back
 
+=head1 METHODS
+
+L<Swagger2::SchemaValidator> inherits all attributes from L<JSON::Validator>.
+
+=head2 validate_input
+
+This method will make sure "readOnly" is taken into account, when validating
+data sent to your API.
+
 =cut
+
+sub validate_input {
+  my $self = shift;
+  local $self->{validate_input} = 1;
+  $self->validate(@_);
+}
 
 sub _validate_type_array {
   my ($self, $data, $path, $schema) = @_;
@@ -73,6 +88,26 @@ sub _validate_type_array {
 
 # always valid
 sub _validate_type_file { }
+
+sub _validate_type_object {
+  return shift->SUPER::_validate_type_object(@_) unless $_[0]->{validate_input};
+
+  my ($self, $data, $path, $schema) = @_;
+  my %properties = %{$schema->{properties} || {}};
+  my (%ro, @e);
+
+  for my $p (keys %properties) {
+    next unless $properties{$p}{readOnly};
+    delete $properties{$p};
+    push @e, JSON::Validator::E("$path/$p", "Read-only.") if exists $data->{$p};
+    $ro{$p} = 1;
+  }
+
+  local $schema->{properties} = \%properties;
+  local $schema->{required} = [grep { !$ro{$_} } @{$schema->{required} || []}];
+
+  return @e, $self->SUPER::_validate_type_object($data, $path, $schema);
+}
 
 sub _build_formats {
   my $formats = shift->SUPER::_build_formats;
@@ -105,10 +140,6 @@ sub _is_number {
   return unless $_[0] =~ /^-?\d+(\.\d+)?$/;
   return $_[0] eq unpack $_[1], pack $_[1], $_[0];
 }
-
-=head1 METHODS
-
-L<Swagger2::SchemaValidator> inherits all attributes from L<JSON::Validator>.
 
 =head1 COPYRIGHT AND LICENSE
 

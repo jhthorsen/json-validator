@@ -149,7 +149,7 @@ sub dispatch_to_swagger {
   for my $p (@{$op_info->{spec}{parameters} || []}) {
     my $name  = $p->{name};
     my $value = $data->{params}{$name} // $p->{default};
-    my @e     = $self->_validate_value($p, $name => $value);
+    my @e     = $self->_validate_input_value($p, $name => $value);
     $input->{$name} = $value unless @e;
     push @errors, @e;
   }
@@ -491,7 +491,7 @@ sub _validate_input {
       }
     }
 
-    my @e = $self->_validate_value($p, $name => $value);
+    my @e = $self->_validate_input_value($p, $name => $value);
     $input{$name} = $value unless @e;
     push @errors, @e;
   }
@@ -499,7 +499,7 @@ sub _validate_input {
   return {errors => \@errors}, \%input;
 }
 
-sub _validate_value {
+sub _validate_input_value {
   my ($self, $p, $name, $value) = @_;
   my $type = $p->{type} || 'object';
   my @e;
@@ -511,15 +511,15 @@ sub _validate_value {
 
   if ($in eq 'body') {
     warn "[Swagger2] Validate $in $name\n" if DEBUG;
-    return $self->_validator->validate({$name => $value}, $schema);
+    return $self->_validator->validate_input({$name => $value}, $schema);
   }
   elsif (defined $value) {
     warn "[Swagger2] Validate $in $name=$value\n" if DEBUG;
-    return $self->_validator->validate({$name => $value}, $schema);
+    return $self->_validator->validate_input({$name => $value}, $schema);
   }
   else {
     warn "[Swagger2] Validate $in $name=undef\n" if DEBUG;
-    return $self->_validator->validate({$name => $value}, $schema);
+    return $self->_validator->validate_input({$name => $value}, $schema);
   }
 
   return;
