@@ -9,11 +9,14 @@ plugin Swagger2 => {url => 'data://main/headers.json'};
 
 my $t = Test::Mojo->new;
 $t->get_ok('/api/headers' => {'x-number' => 'x', 'x-string' => '123'})->status_is(400);
-$t->get_ok('/api/headers' => {'x-number' => 42.3, 'x-string' => '123'})->status_is(200)->json_is('/x-number', 42.3)
-  ->json_is('/x-string', 123);
 
-local $TODO = 'Need to implement validation for output headers: (minItems, ...)';
-$t->header_is("what-ever", "yikes");
+$t::Api::RES->{header} = 123;
+$t->get_ok('/api/headers' => {'x-number' => 42.3, 'x-string' => '123'})->status_is(500)
+  ->json_is('/errors/0/message', 'Expected string - got number.');
+
+$t::Api::RES->{header} = '123';
+$t->get_ok('/api/headers' => {'x-number' => 42.3, 'x-string' => '123'})->status_is(200)->json_is('/x-number', 42.3)
+  ->header_is('what-ever', '123');
 
 done_testing;
 
@@ -40,8 +43,8 @@ __DATA__
             "description": "this is required",
             "headers": {
               "what-ever": {
-                "description": "foo",
-                "type": "string",
+                "type": "array",
+                "items": { "type": "string" },
                 "minItems": 1
               }
             },

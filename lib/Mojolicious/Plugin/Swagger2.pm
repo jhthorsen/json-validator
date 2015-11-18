@@ -166,11 +166,7 @@ sub dispatch_to_swagger {
       my $delay  = shift;
       my $data   = shift;
       my $status = shift || 200;
-      my $format = $op_info->{spec}{responses}{$status} || $op_info->{spec}{responses}{default} || undef;
-      my @errors
-        = !$format ? $self->_validator->validate($data, {})
-        : $format->{schema} ? $self->_validator->validate($data, $format->{schema})
-        :                     ();
+      my @errors = $self->_validate_response($c, $data, $op_info->{spec}, $status);
 
       return $c->$reply($data, $status) unless @errors;
       warn "[Swagger2] Invalid response: @errors\n" if DEBUG;
@@ -414,11 +410,7 @@ sub _generate_request_handler {
         my $delay  = shift;
         my $data   = shift;
         my $status = shift || 200;
-        my $format = $op_spec->{responses}{$status} || $op_spec->{responses}{default} || undef;
-        my @errors
-          = !$format ? $self->_validator->validate($data, {})
-          : $format->{schema} ? $self->_validator->validate($data, $format->{schema})
-          :                     ();
+        my @errors = $self->_validate_response($c, $data, $op_spec, $status);
 
         return $c->render_swagger({}, $data, $status) unless @errors;
         warn "[Swagger2] Invalid response: @errors\n" if DEBUG;
@@ -523,6 +515,35 @@ sub _validate_input_value {
   }
 
   return;
+}
+
+sub _validate_response {
+  my ($self, $c, $data, $op_spec, $status) = @_;
+  my @errors;
+
+  if (my $res = $op_spec->{responses}{$status} || $op_spec->{responses}{default}) {
+    my $headers = $c->res->headers->to_hash(1);
+
+    for my $n (keys %{$res->{headers} || {}}) {
+      my $p = $res->{headers}{$n};
+
+      # jhthorsen: I think that the only way to make a header required,
+      # is by defining "array" and "minItems" >= 1.
+      if ($p->{type} eq 'array') {
+        push @errors, $self->_validator->validate($headers->{$n}, $p);
+      }
+      elsif ($headers->{$n}) {
+        push @errors, $self->_validator->validate($headers->{$n}[0], $p);
+      }
+    }
+
+    push @errors, $self->_validator->validate($data, $res->{schema}) if $res->{schema};
+  }
+  else {
+    push @errors, $self->_validator->validate($data, {});
+  }
+
+  return @errors;
 }
 
 sub _coerce_by_collection_format {

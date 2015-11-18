@@ -24,7 +24,7 @@ sub empty {
 sub get_headers {
   my ($c, $args, $cb) = @_;
 
-  #$c->res->headers->header('what-ever' => 123); # not yet validated
+  $c->res->headers->header('what-ever' => delete $RES->{header});
   $c->$cb($c->req->headers->to_hash, 200);
 }
 
