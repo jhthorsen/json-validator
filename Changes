@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.63 Not Released
+0.63 2015-11-19T09:22:44+0100
  - Add validation of output headers, fixes #41
  - Add support for "readOnly" in object properties #49
 
