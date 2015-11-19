@@ -93,17 +93,15 @@ sub _validate_type_object {
   return shift->SUPER::_validate_type_object(@_) unless $_[0]->{validate_input};
 
   my ($self, $data, $path, $schema) = @_;
-  my %properties = %{$schema->{properties} || {}};
+  my $properties = $schema->{properties} || {};
   my (%ro, @e);
 
-  for my $p (keys %properties) {
-    next unless $properties{$p}{readOnly};
-    delete $properties{$p};
+  for my $p (keys %$properties) {
+    next unless $properties->{$p}{readOnly};
     push @e, JSON::Validator::E("$path/$p", "Read-only.") if exists $data->{$p};
     $ro{$p} = 1;
   }
 
-  local $schema->{properties} = \%properties;
   local $schema->{required} = [grep { !$ro{$_} } @{$schema->{required} || []}];
 
   return @e, $self->SUPER::_validate_type_object($data, $path, $schema);
