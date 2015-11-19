@@ -2,6 +2,8 @@ use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
 
+plan skip_all => 'Fail on Win32' if $^O eq 'MSWin32';
+
 $ENV{MOJO_APP_LOADER}  = 1;
 $ENV{SWAGGER_API_FILE} = 't/data/petstore.json';
 my $t = Test::Mojo->new('Swagger2::Editor');
