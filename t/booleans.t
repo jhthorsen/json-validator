@@ -24,15 +24,12 @@ for my $value ("true", "false") {
   ok !@errors, "boolean ($value). (@errors)";
 }
 
-
-if (eval 'require YAML::XS;1') {
+SKIP: {
+  plan skip => 'YAML::XS is not installed', 1 unless eval 'require YAML::XS;1';
   $validator->coerce(booleans => 0);    # see that _load_schema_from_text() turns it back on
   my @errors = $validator->validate($validator->_load_schema_from_text("---\nrequired: true\n"));
   ok !@errors, "true in YAML::XS is boolean. (@errors)";
   ok $validator->coerce->{booleans}, 'coerce booleans';
-}
-else {
-  diag "YAML::XS is not installed";
 }
 
 done_testing;

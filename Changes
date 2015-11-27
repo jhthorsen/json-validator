@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+0.62 Not Released
+ - Remove support for YAML.pm #jhthorsen/swagger2#50
+ - Remove support for YAML::Tiny #jhthorsen/swagger2#50
+
 0.61 2015-11-11T21:01:13+0100
  - Fix use of TO_JSON() on objects inside arrays #12
 

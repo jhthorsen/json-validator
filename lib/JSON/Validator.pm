@@ -51,8 +51,8 @@ structured (as shown in L</SYNOPSIS>) or files on disk/web in the JSON/YAML
 format. The JSON parsing is done using L<Mojo::JSON>, while the YAML parsing
 is done with an optional modules which need to be installed manually.
 L<JSON::Validator> will look for the YAML modules in this order: L<YAML::XS>,
-L<YAML::Syck>, L<YAML::Tiny>, L<YAML>. The order is set by which module that
-performs the best, so it might change in the future.
+L<YAML::Syck>. The order is set by which module that performs the best, so it
+might change in the future.
 
 =head2 Resources
 
@@ -977,7 +977,7 @@ sub _is_uri { $_[0] =~ qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*
 # https://github.com/jhthorsen/json-validator/issues
 sub _load_yaml {
   require List::Util;
-  my @YAML_MODULES = qw( YAML::XS YAML::Syck YAML::Tiny YAML );                     # subject to change
+  my @YAML_MODULES = qw( YAML::XS YAML::Syck );                                     # subject to change
   my $YAML_MODULE = (List::Util::first { eval "require $_;1" } @YAML_MODULES)[0];
   die "Need to install one of these YAML modules: @YAML_MODULES (YAML::XS is recommended)" unless $YAML_MODULE;
   warn "[JSON::Validator] Using $YAML_MODULE to parse YAML\n" if DEBUG;
