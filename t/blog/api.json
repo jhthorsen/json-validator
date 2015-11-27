@@ -1,6 +1,6 @@
 {
   "swagger": "2.0",
-  "info": { "description": "Blog example" },
+  "info": { "title": "Blog", "description": "Blog example", "version": "0.63" },
   "consumes": [ "application/json" ],
   "produces": [ "application/json" ],
   "host": "localhost",
