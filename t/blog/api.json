@@ -103,7 +103,7 @@
     "entry": {
       "name": "entry",
       "in": "body",
-      "required": "true",
+      "required": true,
       "schema": {
         "$ref": "#/definitions/Entry"
       },
@@ -112,7 +112,7 @@
     "entry_id": {
       "name": "id",
       "in": "path",
-      "required": "true",
+      "required": true,
       "type": "integer",
       "description": "A blog id"
     }
