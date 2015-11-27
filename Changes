@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.62 Not Released
+0.62 2015-11-27T12:13:08+0100
  - Remove support for YAML.pm #jhthorsen/swagger2#50
  - Remove support for YAML::Tiny #jhthorsen/swagger2#50
 

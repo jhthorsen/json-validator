@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.61
+    0.62
 
 SYNOPSIS
       use JSON::Validator;
@@ -45,8 +45,8 @@ DESCRIPTION
     JSON/YAML format. The JSON parsing is done using Mojo::JSON, while the
     YAML parsing is done with an optional modules which need to be installed
     manually. JSON::Validator will look for the YAML modules in this order:
-    YAML::XS, YAML::Syck, YAML::Tiny, YAML. The order is set by which module
-    that performs the best, so it might change in the future.
+    YAML::XS, YAML::Syck. The order is set by which module that performs the
+    best, so it might change in the future.
 
   Resources
     Here are some resources that are related to JSON schemas and validation:
