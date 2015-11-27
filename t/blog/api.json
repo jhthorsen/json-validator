@@ -121,6 +121,7 @@
     "Entry": {
       "required": [ "body", "title" ],
       "properties": {
+        "id": { "type": "integer" },
         "body": { "type": "string" },
         "title": { "type": "string" }
       }
