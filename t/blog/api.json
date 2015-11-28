@@ -1,6 +1,6 @@
 {
   "swagger": "2.0",
-  "info": { "description": "Blog example" },
+  "info": { "title": "Blog", "description": "Blog example", "version": "0.63" },
   "consumes": [ "application/json" ],
   "produces": [ "application/json" ],
   "host": "localhost",
@@ -14,6 +14,7 @@
         "parameters": [],
         "responses": {
           "200": {
+            "description": "Success",
             "schema": {
               "type": "array",
               "items": { "$ref": "#/definitions/Entry" }
@@ -52,6 +53,7 @@
         ],
         "responses": {
           "200": {
+            "description": "Success",
             "schema": { "$ref": "#/definitions/Entry" }
           },
           "default": {
@@ -69,6 +71,7 @@
         ],
         "responses": {
           "200": {
+            "description": "Success",
             "schema": { "$ref": "#/definitions/Void" }
           },
           "default": {
@@ -85,6 +88,7 @@
         ],
         "responses": {
           "200": {
+            "description": "Success",
             "schema": { "$ref": "#/definitions/Void" }
           },
           "default": {
@@ -99,7 +103,7 @@
     "entry": {
       "name": "entry",
       "in": "body",
-      "required": "true",
+      "required": true,
       "schema": {
         "$ref": "#/definitions/Entry"
       },
@@ -108,7 +112,7 @@
     "entry_id": {
       "name": "id",
       "in": "path",
-      "required": "true",
+      "required": true,
       "type": "integer",
       "description": "A blog id"
     }
@@ -117,8 +121,9 @@
     "Entry": {
       "required": [ "body", "title" ],
       "properties": {
-        "body": { "type": "string", "required": true },
-        "title": { "type": "string", "required": true }
+        "id": { "type": "integer" },
+        "body": { "type": "string" },
+        "title": { "type": "string" }
       }
     },
     "Void": {
