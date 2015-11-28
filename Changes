@@ -1,7 +1,8 @@
 Revision history for perl distribution Swagger2
 
-0.64 Not Released
+0.64 2015-11-28T08:18:45+0100
  - YAML::Tiny is no longer supported by JSON::Validator
+ - Bump JSON::Validator dependency to 0.63
 
 0.63 2015-11-19T09:22:44+0100
  - Add validation of output headers, fixes #41
