@@ -14,6 +14,7 @@ my $err;
 isa_ok($client->base_url, 'Mojo::URL');
 isa_ok($client->ua,       'Mojo::UserAgent');
 isa_ok($client->_swagger, 'Swagger2');
+can_ok($client, qw( list_pets listPets ));
 
 is $client->base_url, 'http://petstore.swagger.wordnik.com/api', 'base_url';
 $client->ua($ua);

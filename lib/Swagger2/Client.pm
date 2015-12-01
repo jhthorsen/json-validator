@@ -126,13 +126,16 @@ sub generate {
   for my $path (keys %$paths) {
     for my $http_method (keys %{$paths->{$path}}) {
       my $op_spec = $paths->{$path}{$http_method};
-      my $method = $op_spec->{operationId} || $path;
+      my $method  = $op_spec->{operationId} || $path;
+      my $code    = $generated->_generate_method(lc $http_method, $path, $op_spec);
 
       $method =~ s![^\w]!_!g;
-      $method = Mojo::Util::decamelize(ucfirst $method);
-
       warn "[$generated] Add method $generated\::$method()\n" if DEBUG;
-      Mojo::Util::monkey_patch($generated, $method => $generated->_generate_method(lc $http_method, $path, $op_spec));
+      Mojo::Util::monkey_patch($generated, $method => $code);
+
+      my $snake = Mojo::Util::decamelize(ucfirst $method);
+      warn "[$generated] Add method $generated\::$snake()\n" if DEBUG;
+      Mojo::Util::monkey_patch($generated, $snake => $code);
     }
   }
 
