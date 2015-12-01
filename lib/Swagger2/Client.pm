@@ -167,8 +167,8 @@ sub _generate_method {
         @$req,
         sub {
           my ($ua, $tx) = @_;
-          return $self->$cb(undef, $tx->res) unless my $err = $tx->error;
-          return $self->$cb([$err->{message}], $tx->res);
+          return $self->$cb('', $tx->res) unless my $err = $tx->error;
+          return $self->$cb($err->{message}, $tx->res);
         }
       );
       return $self;

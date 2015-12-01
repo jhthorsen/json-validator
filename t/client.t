@@ -61,7 +61,7 @@ $client->list_pets(sub { (my $client, $err, $res) = @_; Mojo::IOLoop->stop });
 Mojo::IOLoop->start;
 isa_ok($res, 'Mojo::Message::Response');
 is $res->json->{errors}[0]{message}, 'Expected integer - got string.', 'errors';
-is_deeply($err, ['Internal Server Error'], 'list_pets async invalid output');
+is_deeply($err, 'Internal Server Error', 'list_pets async invalid output');
 
 # with path
 $t::Api::RES = {id => 123, name => "kit-cat"};

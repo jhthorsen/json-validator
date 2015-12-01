@@ -2,6 +2,7 @@ Revision history for perl distribution Swagger2
 
 0.65 Not Released
  - Swagger2::Client will generate both camel- and snake case methods
+ - Swagger2::Client pass $err as a string to callback
 
 0.64 2015-11-28T08:18:45+0100
  - YAML::Tiny is no longer supported by JSON::Validator
