@@ -62,10 +62,13 @@ Will L<parse|Swagger/parse> the JSON/YAML in the HTTP body and render it as POD.
 =cut
 
 sub _post {
-  my $c = shift;
+  my $c    = shift;
+  my $spec = $c->req->body || '{}';
+  my $file = $c->app->specification_file;
 
   eval {
-    my $s = Swagger2->new->parse($c->req->body || '{}');
+    my $s = Swagger2->new->parse($spec);
+    Mojo::Util::spurt($spec, $file) if $file and -w $file;
     $c->render(text => $c->podify($s->pod), layout => undef);
   } or do {
     my $e = $@;
