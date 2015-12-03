@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.65 Not Released
+0.65 2015-12-03T12:51:51+0100
  - Swagger2::Client will generate both camel- and snake case methods
  - Swagger2::Client pass $err as a string to callback
  - Swagger2::Editor can save specification back to disk on POST
