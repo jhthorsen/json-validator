@@ -279,12 +279,10 @@ sub coerce {
 
   return $self->{coerce} ||= {} unless @args;
 
-  @args = (booleans => 1, numbers => 1, strings => 1) if $args[0] eq '1';    # back compat
-  while (@args) {
-    my $k = shift @args;
-    $self->{coerce}{$k} = shift @args;
+  if( $args[0] eq '1'){   # back compat
+    @args = (booleans => 1, numbers => 1, strings => 1) ;
   }
-
+  $self->{coerce} = @args > 1 ? {@args} : {%{$args[0]}};
   return $self;
 }
 
