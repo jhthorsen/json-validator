@@ -18,6 +18,8 @@ $t::Api::RES->{header} = '123';
 $t->get_ok('/api/headers' => {'x-number' => 42.3, 'x-string' => '123'})->status_is(200)->json_is('/x-number', 42.3)
   ->header_is('what-ever', '123');
 
+$t->get_ok('/api/headers' => {'x-bool' => 'true'})->status_is(200)->json_is('/x-bool', 1);
+
 done_testing;
 
 __DATA__
@@ -37,6 +39,7 @@ __DATA__
         "parameters" : [
           { "in": "header", "name": "x-number", "type": "number", "description": "desc..." },
           { "in": "header", "name": "x-string", "type": "string", "description": "desc..." }
+          { "in": "header", "name": "x-bool", "type": "boolean", "description": "desc..." }
         ],
         "responses" : {
           "200" : {
