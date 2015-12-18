@@ -279,12 +279,10 @@ sub coerce {
 
   return $self->{coerce} ||= {} unless @args;
 
-  @args = (booleans => 1, numbers => 1, strings => 1) if $args[0] eq '1';    # back compat
-  while (@args) {
-    my $k = shift @args;
-    $self->{coerce}{$k} = shift @args;
+  if( $args[0] eq '1'){   # back compat
+    @args = (booleans => 1, numbers => 1, strings => 1) ;
   }
-
+  $self->{coerce} = @args > 1 ? {@args} : {%{$args[0]}};
   return $self;
 }
 
@@ -740,7 +738,7 @@ sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
 
   if (defined $value) {
-    if (Scalar::Util::blessed($value) and ("$value" eq "1" or !$value)) {
+    if (Scalar::Util::blessed($value) and ("$value" =~ /^true|1$/ or !$value)) {
       return;
     }
     if ($self->{coerce}{booleans} and (B::svref_2object(\$value)->FLAGS & B::SVp_NOK or $value =~ /^(true|false)$/)) {
