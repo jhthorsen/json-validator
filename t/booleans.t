@@ -24,23 +24,6 @@ for my $value ("true", "false") {
   ok !@errors, "boolean ($value). (@errors)";
 }
 
-SKIP:{
-  skip 'One of Cpanel::JSON::XS or Mojo::JSON::MaybeXS is not installed.'
-    unless eval {require Cpanel::JSON::XS && require Mojo::JSON::MaybeXS};
-  my $schema = {properties => {disabled => {type => "boolean"}}};
-  $validator = JSON::Validator->new->schema($schema);
-  $validator->coerce(booleans => 0);
-  my $objects = [{disabled => 1}, {disabled => 0}];
-  for my $o (@$objects){
-    $o->{disabled}
-      ? ($o->{disabled} = Mojo::JSON->true)
-      : ($o->{disabled} = Mojo::JSON->false);
-    @errors = $validator->validate($o);
-    ok !@errors, "boolean via Mojo::JSON::MaybeXS ($o->{disabled}). (@errors)";
-  }
-}
-
-
 SKIP: {
   skip 'YAML::XS is not installed', 1 unless eval 'require YAML::XS;1';
   $validator->coerce(booleans => 0);    # see that _load_schema_from_text() turns it back on

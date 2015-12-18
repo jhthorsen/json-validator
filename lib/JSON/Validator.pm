@@ -251,6 +251,7 @@ has ua => sub {
 =head2 coerce
 
   $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
+  $self = $self->coerce({booleans => 1, numbers => 1, strings => 1});
   $self = $self->coerce(1) # enable all
   $hash = $self->coerce;
 
@@ -275,15 +276,10 @@ for more details.
 =cut
 
 sub coerce {
-  my ($self, @args) = @_;
-
-  return $self->{coerce} ||= {} unless @args;
-
-  if( $args[0] eq '1'){   # back compat
-    @args = (booleans => 1, numbers => 1, strings => 1) ;
-  }
-  $self->{coerce} = @args > 1 ? {@args} : {%{$args[0]}};
-  return $self;
+  my $self = shift;
+  return $self->{coerce} ||= {} unless @_;
+  $self->{coerce} = $_[0] eq '1' ? {booleans => 1, numbers => 1, strings => 1} : ref $_[0] ? {%{$_[0]}} : {@_};
+  $self;
 }
 
 =head2 schema
@@ -737,14 +733,15 @@ sub _validate_type_array {
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
 
-  if (defined $value) {
-    if (Scalar::Util::blessed($value) and ("$value" =~ /^true|1$/ or !$value)) {
-      return;
-    }
-    if ($self->{coerce}{booleans} and (B::svref_2object(\$value)->FLAGS & B::SVp_NOK or $value =~ /^(true|false)$/)) {
-      $_[1] = $value ? Mojo::JSON->true : Mojo::JSON->false;
-      return;
-    }
+  return if UNIVERSAL::isa($value, 'JSON::PP::Boolean');
+  return if Scalar::Util::blessed($value) and ("$value" eq "1" or !$value);
+
+  if (  defined $value
+    and $self->{coerce}{booleans}
+    and (B::svref_2object(\$value)->FLAGS & B::SVp_NOK or $value =~ /^(true|false)$/))
+  {
+    $_[1] = $value ? Mojo::JSON->true : Mojo::JSON->false;
+    return;
   }
 
   return E $path, _expected(boolean => $value);
