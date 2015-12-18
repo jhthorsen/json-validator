@@ -738,7 +738,7 @@ sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
 
   if (defined $value) {
-    if (Scalar::Util::blessed($value) and ("$value" eq "1" or !$value)) {
+    if (Scalar::Util::blessed($value) and ("$value" =~ /^true|1$/ or !$value)) {
       return;
     }
     if ($self->{coerce}{booleans} and (B::svref_2object(\$value)->FLAGS & B::SVp_NOK or $value =~ /^(true|false)$/)) {

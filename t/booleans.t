@@ -25,8 +25,8 @@ for my $value ("true", "false") {
 }
 
 SKIP:{
-  skip 'Mojo::JSON::MaybeXS is not installed'
-    unless eval {require Mojo::JSON::MaybeXS};
+  skip 'One of Cpanel::JSON::XS or Mojo::JSON::MaybeXS is not installed.'
+    unless eval {require Cpanel::JSON::XS && require Mojo::JSON::MaybeXS};
   my $schema = {properties => {disabled => {type => "boolean"}}};
   $validator = JSON::Validator->new->schema($schema);
   $validator->coerce(booleans => 0);
