@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.64 Not Released
+0.64 2015-12-18T16:03:09+0800
  - Fix treating JSON::PP::Boolean objects as boolean
  - Allow hash reference as arguments to coerce
 
