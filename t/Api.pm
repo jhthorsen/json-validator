@@ -25,7 +25,7 @@ sub get_headers {
   my ($c, $args, $cb) = @_;
 
   $c->res->headers->header('what-ever' => delete $RES->{header});
-  $c->$cb($c->req->headers->to_hash, 200);
+  $c->$cb($args, 200);
 }
 
 sub test_file {
