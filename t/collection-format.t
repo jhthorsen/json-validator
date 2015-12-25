@@ -14,9 +14,8 @@ $t->get_ok('/collection/format/string?foo=1,x,3')->status_is(200)->content_is('{
 $t->get_ok('/collection/format/string?foo=x')->status_is(200)->content_is('{"foo":["x"]}');
 $t->get_ok('/collection/format/array?foo=1|2,3|4')->status_is(200)->content_is('{"foo":[["1","2"],["3","4"]]}');
 $t->get_ok('/collection/format/string?foo=')->status_is(200)->content_is('{"foo":[]}');
-
-local $TODO = 'Should foo even be part of $input in this case?';
-$t->get_ok('/collection/format/string')->status_is(200)->content_is('{"foo":null}');
+$t->get_ok('/collection/format/string?foo')->status_is(200)->content_is('{"foo":[]}');
+$t->get_ok('/collection/format/string')->status_is(200)->content_is('{}');
 
 done_testing;
 

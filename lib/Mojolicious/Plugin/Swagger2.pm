@@ -452,26 +452,22 @@ sub _on_route_added {
 
 sub _validate_input {
   my ($self, $c, $op_spec) = @_;
-  my $body    = $c->req->body_params;
-  my $headers = $c->req->headers;
-  my $query   = $c->req->url->query;
-  my (%input, @errors);
+  my (%cache, %input, @errors);
 
   for my $p (@{$op_spec->{parameters} || []}) {
     my ($in, $name, $type) = @$p{qw( in name type )};
-    my $value
-      = $in eq 'query'    ? $query->every_param($name)
-      : $in eq 'path'     ? $c->stash($name)
-      : $in eq 'header'   ? $headers->header($name)
-      : $in eq 'body'     ? $c->req->json
-      : $in eq 'formData' ? $body->every_param($name)
-      :                     "Invalid 'in' for parameter $name in schema definition";
+    my ($value, $exists);
+
+    if ($in eq 'body') {
+      $value  = $c->req->json;
+      $exists = defined $value;
+    }
+    else {
+      ($exists, $value) = _input($c, $in, $name, \%cache);
+    }
 
     if (ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
       $value = _coerce_by_collection_format($value, $p);
-    }
-    elsif ($in ne 'body' && ref $value eq 'ARRAY') {
-      $value = $value->[0];
     }
 
     if ($type and defined($value //= $p->{default})) {
@@ -484,7 +480,7 @@ sub _validate_input {
     }
 
     my @e = $self->_validate_input_value($p, $name => $value);
-    $input{$name} = $value unless @e;
+    $input{$name} = $value if !@e and ($exists or $p->{default});
     push @errors, @e;
   }
 
@@ -547,21 +543,13 @@ sub _validate_response {
 }
 
 sub _coerce_by_collection_format {
-  my ($data, $schema) = @_;
+  my ($value, $schema) = @_;
   my $re = $Swagger2::SchemaValidator::COLLECTION_RE{$schema->{collectionFormat}} || '';
   my $type = $schema->{items}{type} || '';
   my @data;
 
-  if (!$re) {
-    @data = @$data;
-  }
-  elsif (defined($data = $data->[0])) {
-    @data = split /$re/, $data;
-  }
-  else {
-    return;
-  }
-
+  return [ref $value ? @$value : $value] unless $re;
+  defined and push @data, split /$re/ for ref $value ? @$value : $value;
   return [map { $_ + 0 } @data] if $type eq 'integer' or $type eq 'number';
   return \@data;
 }
@@ -590,6 +578,20 @@ sub _find_controller {
 
   $c->app->log->error(qq(Could not find controller class for "$moniker": $e));
   return;
+}
+
+sub _input {
+  my ($c, $in, $name, $cache) = @_;
+
+  $in = $cache->{$in} ||= do {
+        $in eq 'formData' ? $c->req->body_params->to_hash
+      : $in eq 'header'   ? $c->req->headers->to_hash
+      : $in eq 'path'     ? $c->stash
+      : $in eq 'query'    ? $c->req->url->query->to_hash
+      :                     $c->req->json;                  # body
+  };
+
+  return exists $in->{$name}, $in->{$name};
 }
 
 =head1 COPYRIGHT AND LICENSE
