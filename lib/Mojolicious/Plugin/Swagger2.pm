@@ -456,14 +456,22 @@ sub _validate_input {
 
   for my $p (@{$op_spec->{parameters} || []}) {
     my ($in, $name, $type) = @$p{qw( in name type )};
-    my ($value, $exists);
+    my ($exists, $value);
 
     if ($in eq 'body') {
       $value  = $c->req->json;
-      $exists = defined $value;
+      $exists = $c->req->body_size;
     }
     else {
-      ($exists, $value) = _input($c, $in, $name, \%cache);
+      $value = $cache{$in} ||= do {
+            $in eq 'query'    ? $c->req->url->query->to_hash
+          : $in eq 'path'     ? $c->stash
+          : $in eq 'formData' ? $c->req->body_params->to_hash
+          : $in eq 'header'   ? $c->req->headers->to_hash
+          :                     {};
+      };
+      $exists = exists $value->{$name};
+      $value  = $value->{$name};
     }
 
     if (ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
@@ -480,7 +488,7 @@ sub _validate_input {
     }
 
     my @e = $self->_validate_input_value($p, $name => $value);
-    $input{$name} = $value if !@e and ($exists or $p->{default});
+    $input{$name} = $value if !@e and ($exists or exists $p->{default});
     push @errors, @e;
   }
 
@@ -578,20 +586,6 @@ sub _find_controller {
 
   $c->app->log->error(qq(Could not find controller class for "$moniker": $e));
   return;
-}
-
-sub _input {
-  my ($c, $in, $name, $cache) = @_;
-
-  $in = $cache->{$in} ||= do {
-        $in eq 'formData' ? $c->req->body_params->to_hash
-      : $in eq 'header'   ? $c->req->headers->to_hash
-      : $in eq 'path'     ? $c->stash
-      : $in eq 'query'    ? $c->req->url->query->to_hash
-      :                     $c->req->json;                  # body
-  };
-
-  return exists $in->{$name}, $in->{$name};
 }
 
 =head1 COPYRIGHT AND LICENSE
