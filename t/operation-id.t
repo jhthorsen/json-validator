@@ -24,6 +24,7 @@ is_deeply [$cm->(undef, {operationId => 'messagesForPet'})],       [qw( Pet mess
 is_deeply [$cm->(undef, {operationId => 'peopleInConversation'})], [qw( Conversation people )], 'peopleInConversation';
 is_deeply [$cm->(undef, {operationId => 'sendToConversation'})],   [qw( Conversation send )],   'sendToConversation';
 is_deeply [$cm->(undef, {operationId => 'showPetById'})],          [qw( Pet show )],            'showPetById';
+is_deeply [$cm->(undef, {operationId => 'deleteFromFoo'})],        [qw( Foo delete )],          'deleteFromFoo';
 
 done_testing;
 

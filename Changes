@@ -4,6 +4,7 @@ Revision history for perl distribution Swagger2
  - Will not add non-existing input keys to $args #52
    Contributor: Scott Wiersdorf
  - Use $c->match instead of $c->stash to get placeholder data
+ - Add "From" to list of ignored words in SKIP_OP_RE #54
  - Skipping editor test on Win32 #56
  - Boolean in headers will be the strings "true" and "false" #58
 

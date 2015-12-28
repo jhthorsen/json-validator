@@ -106,7 +106,7 @@ use Swagger2;
 use Swagger2::SchemaValidator;
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
-my $SKIP_OP_RE = qr/(?:By|For|In|Of|To|With)?/;
+my $SKIP_OP_RE = qr/(?:By|From|For|In|Of|To|With)?/;
 
 =head1 ATTRIBUTES
 
