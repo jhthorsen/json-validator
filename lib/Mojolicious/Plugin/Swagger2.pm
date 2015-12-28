@@ -367,7 +367,7 @@ sub _find_controller_and_method {
     return $op_spec->{'x-mojo-controller'}, decamelize ucfirst $op;
   }
   else {
-    my ($method, $controller) = $op =~ /^([a-z]+)$SKIP_OP_RE([A-Z][a-z]+)/;    # "showPetById" = ("show", "Pet")
+    my ($method, $controller) = $op =~ /^([a-z_]+)$SKIP_OP_RE([A-Z][a-z]+)/;    # "showPetById" = ("show", "Pet")
     $controller or _die($op_spec, "Cannot figure out method and controller from operationId '$op'.");
     return $controller, $method;
   }

@@ -25,6 +25,7 @@ is_deeply [$cm->(undef, {operationId => 'peopleInConversation'})], [qw( Conversa
 is_deeply [$cm->(undef, {operationId => 'sendToConversation'})],   [qw( Conversation send )],   'sendToConversation';
 is_deeply [$cm->(undef, {operationId => 'showPetById'})],          [qw( Pet show )],            'showPetById';
 is_deeply [$cm->(undef, {operationId => 'deleteFromFoo'})],        [qw( Foo delete )],          'deleteFromFoo';
+is_deeply [$cm->(undef, {operationId => 'create_fileInFs'})],      [qw( Fs create_file )],      'create_fileInFs';
 
 done_testing;
 
