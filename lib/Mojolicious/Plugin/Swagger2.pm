@@ -465,7 +465,7 @@ sub _validate_input {
     else {
       $value = $cache{$in} ||= do {
             $in eq 'query'    ? $c->req->url->query->to_hash
-          : $in eq 'path'     ? $c->stash
+          : $in eq 'path'     ? $c->match->stack->[-1]
           : $in eq 'formData' ? $c->req->body_params->to_hash
           : $in eq 'header'   ? $c->req->headers->to_hash
           :                     {};

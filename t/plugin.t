@@ -6,6 +6,11 @@ use Mojolicious::Lite;
 use t::Api;
 
 plugin Swagger2 => {url => 't/data/petstore.json'};
+hook around_action => sub {
+  my ($next, $c) = @_;
+  $c->stash(petId => 'will_not_change_id_from_path');
+  $next->();
+};
 
 my $t = Test::Mojo->new;
 
