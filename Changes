@@ -4,6 +4,7 @@ Revision history for perl distribution Swagger2
  - Will not add non-existing input keys to $args #52
    Contributor: Scott Wiersdorf
  - Use $c->match instead of $c->stash to get placeholder data
+ - Boolean in headers will be the strings "true" and "false", fixes #58
 
 0.65 2015-12-03T12:51:51+0100
  - Swagger2::Client will generate both camel- and snake case methods

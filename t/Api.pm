@@ -25,6 +25,7 @@ sub get_headers {
   my ($c, $args, $cb) = @_;
 
   $c->res->headers->header('what-ever' => delete $RES->{header});
+  $c->res->headers->header('x-bool' => $args->{'x-bool'}) if exists $args->{'x-bool'};
   $c->$cb($args, 200);
 }
 

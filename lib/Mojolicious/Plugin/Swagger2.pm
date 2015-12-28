@@ -523,25 +523,27 @@ sub _validate_input_value {
 
 sub _validate_response {
   my ($self, $c, $data, $op_spec, $status) = @_;
+  my $headers = $c->res->headers;
   my @errors;
 
-  if (my $res = $op_spec->{responses}{$status} || $op_spec->{responses}{default}) {
-    my $headers = $c->res->headers->to_hash(1);
+  if (my $blueprint = $op_spec->{responses}{$status} || $op_spec->{responses}{default}) {
+    my $input = $headers->to_hash(1);
 
-    for my $n (keys %{$res->{headers} || {}}) {
-      my $p = $res->{headers}{$n};
+    for my $n (keys %{$blueprint->{headers} || {}}) {
+      my $p = $blueprint->{headers}{$n};
 
       # jhthorsen: I think that the only way to make a header required,
       # is by defining "array" and "minItems" >= 1.
       if ($p->{type} eq 'array') {
-        push @errors, $self->_validator->validate($headers->{$n}, $p);
+        push @errors, $self->_validator->validate($input->{$n}, $p);
       }
-      elsif ($headers->{$n}) {
-        push @errors, $self->_validator->validate($headers->{$n}[0], $p);
+      elsif ($input->{$n}) {
+        push @errors, $self->_validator->validate($input->{$n}[0], $p);
+        $headers->header($n => $input->{$n}[0] ? 'true' : 'false') if $p->{type} eq 'boolean' and !@errors;
       }
     }
 
-    push @errors, $self->_validator->validate($data, $res->{schema}) if $res->{schema};
+    push @errors, $self->_validator->validate($data, $blueprint->{schema}) if $blueprint->{schema};
   }
   else {
     push @errors, $self->_validator->validate($data, {});

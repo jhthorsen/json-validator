@@ -19,9 +19,10 @@ $t->get_ok('/api/headers' => {'x-number' => 42.3, 'x-string' => '123'})->status_
   ->header_is('what-ever', '123');
 
 for my $bool (qw( true false 1 0 )) {
-  my $e = $bool =~ /true|1/ ? 'true' : 'false';
+  my $s = $bool =~ /true|1/ ? 'true' : 'false';
   $t::Api::RES->{header} = '123';
-  $t->get_ok('/api/headers' => {'x-bool' => $bool})->status_is(200)->content_like(qr{"x-bool":$e});
+  $t->get_ok('/api/headers' => {'x-bool' => $bool})->status_is(200)->content_like(qr{"x-bool":$s})
+    ->header_is('x-bool', $s);
 }
 
 done_testing;
@@ -49,6 +50,7 @@ __DATA__
           "200" : {
             "description": "this is required",
             "headers": {
+              "x-bool": { "type": "boolean" },
               "what-ever": {
                 "type": "array",
                 "items": { "type": "string" },
