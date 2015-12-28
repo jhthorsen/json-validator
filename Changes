@@ -5,7 +5,7 @@ Revision history for perl distribution Swagger2
    Contributor: Scott Wiersdorf
  - Use $c->match instead of $c->stash to get placeholder data
  - Add "From" to list of ignored words in SKIP_OP_RE #54
- - Allow method name with underscore in operationId #55
+ - Allow more complex method name detection from operationId #55
  - Skipping editor test on Win32 #56
  - Boolean in headers will be the strings "true" and "false" #58
 

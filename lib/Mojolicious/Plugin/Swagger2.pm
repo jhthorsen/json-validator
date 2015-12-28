@@ -100,13 +100,13 @@ is stored in the "swagger_operation_spec" stash variable.
 
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::JSON;
-use Mojo::Loader 'load_class';
+use Mojo::Loader;
 use Mojo::Util 'decamelize';
 use Swagger2;
 use Swagger2::SchemaValidator;
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
-my $SKIP_OP_RE = qr/(?:By|From|For|In|Of|To|With)?/;
+my $SKIP_OP_RE = qr(By|From|For|In|Of|To|With);
 
 =head1 ATTRIBUTES
 
@@ -138,15 +138,14 @@ sub dispatch_to_swagger {
   my ($c, $data) = @_;
   my $self     = $c->stash('swagger.plugin');
   my $reply    = sub { $_[0]->send({json => {code => $_[2] || 200, id => $data->{id}, body => $_[1]}}) };
-  my $op_info  = $self->{op_info}{$data->{op}} or return $c->$reply(_error('Unknown operationId.'), 400);
-  my $sc_class = $op_info->{class} ||= _find_controller($c, $op_info->{controller});
-  my ($input, $method_ref, @errors);
+  my $defaults = $self->{route_defaults}{$data->{op}} or return $c->$reply(_error('Unknown operationId.'), 400);
+  my $e        = _find_action($c, $defaults->{swagger_operation_spec}, $defaults);
+  my $action   = $defaults->{action};
+  my ($input, @errors);
 
-  return $c->$reply(_error('Controller could not be loaded.'), 501) unless $sc_class;
-  return $c->$reply(_error(qq(Method "$op_info->{method}" not implemented.)), 501)
-    unless $method_ref = $sc_class->can($op_info->{method});
+  return $c->$reply(_error($e), 501) if $e;
 
-  for my $p (@{$op_info->{spec}{parameters} || []}) {
+  for my $p (@{$defaults->{swagger_operation_spec}{parameters} || []}) {
     my $name  = $p->{name};
     my $value = $data->{params}{$name} // $p->{default};
     my @e     = $self->_validate_input_value($p, $name => $value);
@@ -158,15 +157,15 @@ sub dispatch_to_swagger {
   return Mojo::IOLoop->delay(
     sub {
       my $delay = shift;
-      my $sc = $delay->data->{sc} = $sc_class->new($c);    # clone
-      $sc->stash(swagger_operation_spec => $op_info->{spec});
-      $sc->$method_ref($input, $delay->begin);
+      my $sc = $delay->data->{sc} = $defaults->{controller}->new(%$c);
+      $sc->stash(swagger_operation_spec => $defaults->{swagger_operation_spec});
+      $sc->$action($input, $delay->begin);
     },
     sub {
       my $delay  = shift;
       my $data   = shift;
       my $status = shift || 200;
-      my @errors = $self->_validate_response($c, $data, $op_info->{spec}, $status);
+      my @errors = $self->_validate_response($c, $data, $defaults->{swagger_operation_spec}, $status);
 
       return $c->$reply($data, $status) unless @errors;
       warn "[Swagger2] Invalid response: @errors\n" if DEBUG;
@@ -359,52 +358,25 @@ sub _ensure_swagger_response {
   );
 }
 
-sub _find_controller_and_method {
-  my ($self, $op_spec) = @_;
-  my $op = $op_spec->{operationId} or _die($op_spec, "operationId must be present in the swagger spec.");
-
-  if ($op_spec->{'x-mojo-controller'}) {
-    return $op_spec->{'x-mojo-controller'}, decamelize ucfirst $op;
-  }
-  else {
-    my ($method, $controller) = $op =~ /^([a-z_]+)$SKIP_OP_RE([A-Z][a-z]+)/;    # "showPetById" = ("show", "Pet")
-    $controller or _die($op_spec, "Cannot figure out method and controller from operationId '$op'.");
-    return $controller, $method;
-  }
-}
-
 sub _generate_request_handler {
-  my ($self,       $op_spec) = @_;
-  my ($controller, $method)  = $self->_find_controller_and_method($op_spec);
+  my ($self, $op_spec) = @_;
   my $defaults = {swagger_operation_spec => $op_spec};
-  my $op_info = {controller => $controller, method => $method, spec => $op_spec};
 
   my $handler = sub {
-    my $c = shift;
-    my ($method_ref, $v, $input);
+    my $c      = shift;
+    my $e      = _find_action($c, $op_spec, $defaults);
+    my $action = $defaults->{action};
+    my ($v, $input);
 
-    unless ($op_info->{class} ||= _find_controller($c, $controller)) {
-      return $c->render_swagger(_error('Controller could not be loaded.'), {}, 501);
-    }
-    unless ($method_ref = $op_info->{class}->can($method)) {
-      $method_ref = $op_info->{class}->can(sprintf '%s_%s', $method, lc $c->req->method)
-        and warn "HTTP method name is not used in method name lookup anymore!";
-    }
-    unless ($method_ref) {
-      $c->app->log->error(
-        qq(Can't locate object method "$method" via package "$op_info->{class}". (Something is wrong in @{[$self->url]})")
-      );
-      return $c->render_swagger(_error(qq(Method "$method" not implemented.)), {}, 501);
-    }
-
-    bless $c, $op_info->{class};    # ugly hack?
+    return $c->render_swagger(_error($e), {}, 501) if $e;
+    $c = $defaults->{controller}->new(%$c);
     ($v, $input) = $self->_validate_input($c, $op_spec);
 
     return $c->render_swagger($v, {}, 400) if @{$v->{errors}};
     return $c->delay(
       sub {
-        $c->app->log->debug("Swagger2 calling $op_info->{class}\->$method(\$input, \$cb)");
-        $c->$method_ref($input, shift->begin);
+        $c->app->log->debug(qq(Swagger2 routing to controller "$defaults->{controller}" and action "$action"));
+        $c->$action($input, shift->begin);
       },
       sub {
         my $delay  = shift;
@@ -432,7 +404,7 @@ sub _generate_request_handler {
     };
   }
 
-  $self->{op_info}{$op_spec->{operationId}} = $op_info;
+  $self->{route_defaults}{$op_spec->{operationId}} = $defaults;
   return $defaults, $handler;
 }
 
@@ -552,6 +524,12 @@ sub _validate_response {
   return @errors;
 }
 
+sub _can {
+  my $defaults = shift;
+  return if $defaults->{controller}->can($defaults->{action});
+  return qq(Method "$defaults->{action}" not implemented.);
+}
+
 sub _coerce_by_collection_format {
   my ($value, $schema) = @_;
   my $re = $Swagger2::SchemaValidator::COLLECTION_RE{$schema->{collectionFormat}} || '';
@@ -572,21 +550,53 @@ sub _error {
   return {errors => [{message => $_[0], path => '/'}]};
 }
 
-sub _find_controller {
-  my ($c, $moniker) = @_;
-  my $controller = $moniker;
-  my $e;
+sub _find_action {
+  return if $_[2]->{controller};    # cached
 
-  return $controller if $controller =~ /::/ and !defined load_class $controller;
-  $controller =~ s!s$!!;    # plural to singular, "::Pets" to "::Pet"
+  my ($c, $op_spec, $defaults) = @_;
+  my $op = $op_spec->{operationId} or return 'operationId is missing.';
 
-  for my $ns (@{$c->app->routes->namespaces}) {
-    my $class = "${ns}::$controller";
-    return $class unless defined load_class $class;
-    $e ||= $@;              # want the most specific class names
+  # specify controller manually
+  @$defaults{qw( action controller )} = _load($c, $op, $op_spec->{'x-mojo-controller'});
+  return _can($defaults) if $defaults->{controller};
+
+  # "createFileInFileSystem" = ("createFile", "FileSystem")
+  @$defaults{qw( action controller )} = _load($c, split $SKIP_OP_RE, $op);
+  return _can($defaults) if $defaults->{controller};
+
+  # "showPetById" = "showPet"
+  $op =~ s!$SKIP_OP_RE.*$!!;
+
+  # "show_fooPet" = ("show_foo", "Pet")
+  @$defaults{qw( action controller )} = _load($c, $op =~ /^([a-z_]+)([A-Z]\w+)$/);
+  return _can($defaults) if $defaults->{controller};
+
+  return qq(Controller from operationId "$op_spec->{operationId}" could not be loaded.);
+}
+
+sub _load {
+  my ($c, $action, $controller) = @_;
+  my (@classes, %uniq);
+
+  return unless $controller;
+  $action = decamelize ucfirst $action;
+
+  if ($controller =~ /::/) {
+    push @classes, $controller;
+  }
+  else {
+    my $singular = $controller;
+    $singular =~ s!s$!!;    # "showPets" = "showPet"
+    push @classes,
+      grep { !$uniq{$_}++ } map { ("${_}::$controller", "${_}::$singular") } @{$c->app->routes->namespaces};
   }
 
-  $c->app->log->error(qq(Could not find controller class for "$moniker": $e));
+  while ($controller = shift @classes) {
+    my $e = Mojo::Loader::load_class($controller);
+    warn qq([Swagger2] Load "$controller": @{[ref $e ? $e : $e ? "Can't locate class" : "Success"]}.\n) if DEBUG;
+    return ($action, $controller) if $controller->can('new');
+  }
+
   return;
 }
 

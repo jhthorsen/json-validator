@@ -55,18 +55,20 @@ the "Pet" controller, since the plural ending ("s") is removed.
 
 The table below try to illustrate how the controller/method is resolved:
 
-  .----------------------------------------------------------.
-  | operationId          | Controller   | Method   | Ignored |
-  |----------------------|--------------|----------|---------|
-  | childrenOfPerson     | Person       | children | Of      |
-  | designByUser         | User         | design   | By      |
-  | fooWithBar           | Bar          | foo      | With    |
-  | getPetById           | Pet          | get      | ById    |
-  | listUsers            | User         | list     | s       |
-  | peopleInConversation | Conversation | people   | In      |
-  | searchForPets        | Pet          | search   | For, s  |
-  | sendToConversation   | Conversation | send     | To      |
-  '----------------------------------------------------------'
+  .---------------------------------------------------------------.
+  | operationId            | Controller   | Method      | Ignored |
+  |------------------------|--------------|-------------|---------|
+  | childrenOfPerson       | Person       | children    | Of      |
+  | designByUser           | User         | design      | By      |
+  | fooWithBar             | Bar          | foo         | With    |
+  | getPetById             | Pet          | get         | ById    |
+  | listUsers              | User         | list        | s       |
+  | peopleInConversation   | Conversation | people      | In      |
+  | searchForPets          | Pet          | search      | For, s  |
+  | sendToConversation     | Conversation | send        | To      |
+  | createFileInFileSystem | FileSystem   | create_file | In      |
+  | removeFromFileSystem   | FileSystem   | remove      | From    |
+  '---------------------------------------------------------------'
 
 The operationId rules will be updated I<if> bugs or incompatibility is
 discovered.
