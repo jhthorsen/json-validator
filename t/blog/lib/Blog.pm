@@ -40,13 +40,13 @@ sub startup {
   # /posts/:id       DELETE  "remove_post"
   my $r = $self->routes;
   $r->get('/' => sub { shift->redirect_to('posts') });
-  $r->get('/posts')->to('posts#list');
-  $r->get('/posts/create')->to('posts#create')->name('create_post');
-  $r->post('/posts')->to('posts#store')->name('store_post');
-  $r->get('/posts/:id')->to('posts#show')->name('show_post');
-  $r->get('/posts/:id/edit')->to('posts#edit')->name('edit_post');
-  $r->put('/posts/:id')->to('posts#update')->name('update_post');
-  $r->delete('/posts/:id')->to('posts#remove')->name('remove_post');
+  $r->get('/posts')->to('post#list');
+  $r->get('/posts/create')->to('post#create')->name('create_post');
+  $r->post('/posts')->to('post#store')->name('store_post');
+  $r->get('/posts/:id')->to('post#show')->name('show_post');
+  $r->get('/posts/:id/edit')->to('post#edit')->name('edit_post');
+  $r->put('/posts/:id')->to('post#update')->name('update_post');
+  $r->delete('/posts/:id')->to('post#remove')->name('remove_post');
 
   require Swagger2::Editor;
   my $editor = Swagger2::Editor->new(specification_file => $self->home->rel_file('api.json'));

@@ -1,4 +1,4 @@
-package Blog::Controller::Posts;
+package Blog::Controller::Post;
 use Mojo::Base 'Mojolicious::Controller';
 
 sub create { shift->stash(post => {}) }
@@ -50,10 +50,8 @@ sub store {
   my $validation = $self->_validation($args->{entry});
 
   if ($cb) {           # Swagger2 request
-    my $failed = $validation->failed;
-    return $self->$cb({errors => [map { +{message => 'Invalid value.', path => "/$_"} } @$failed]}, 400) if @$failed;
-    my $id = $self->posts->add($validation->output);
-    return $self->$cb({id => $id}, 200);
+    $args->{entry}{id} = int $self->posts->add($validation->output);
+    return $self->$cb($args->{entry}, 200);
   }
   else {               # Web request
     return $self->render(action => 'create', post => {}) if $validation->has_error;
