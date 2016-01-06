@@ -18,8 +18,12 @@ class: center, middle
 
 ???
 
-Mojolicious is an awesome web framework which allow you concentrate on the
+Mojolicious is an modern web framework which allow you concentrate on the
 business logic, while the rest Just Works (tm).
+
+It ships with a template language, a JSON encoder/decoder, HTML/XML parser, a
+web user agent, websocket support, session handling and an IO loop which
+allows you to handle thousands of concurrent requests.
 
 ---
 class: center, middle
@@ -47,8 +51,9 @@ class: center, middle
 
 JSON Schema is a powerful tool for describing and validating the structure of
 JSON data. The building blocks in a JSON Schema are strings, numbers, arrays
-and objects (hashes). It allows you to define rules on top of those basic
-building blocks which results in powerful tool for validation.
+and objects (hashes). Swagger allows you to define rules on top of those basic
+building blocks which results in powerful tool for validation and as well a
+documented API.
 
 ---
 class: center, middle
@@ -65,7 +70,14 @@ Jan Henning Thorsen and friends
 
 ???
 
-JSON::Schema is...
+JSON::Schema was an existing implementation of the JSON Schema spec, but it
+only supported draft 3. This was not sufficient, since Swagger require draft
+\4. Since I was unable to get that module up to speed, I decided to implement
+a new module called JSON::Validator which support the validation rules in
+draft 4.
+
+It used to be part of Swagger2, but I factored the code out since many people
+wanted a module just to validate JSON.
 
 ---
 class: middle
@@ -79,37 +91,33 @@ class: middle
 ???
 
 This question comes up quite often after telling people about Swagger:
-“but…why??” The people asking this often come from the same background as
+“but...why??” The people asking this often come from the same background as
 myself, where you both write the producer (backend web server) and consumer
-(javascript, …) code. When you’re in complete control of both sides you don’t
+(javascript, ...) code. When you’re in complete control of both sides you don’t
 really need to write any formal specification or document your API, since you
-already know how it works. This can be very true - at least if you make sure
-you have tests of all your endpoints.
+already know how it works. This statement can be very true - at least if you
+make sure you have written tests of all your endpoints.
 
 Personally I’m a huge fan of documenting as well as testing. I often say that
-if you can’t document (describe) the API/method/whatever, something is wrong
-and you should reconsider what you’re coding. Documenting an API on the
-other hand is awful IMO, especially during rapid prototyping/developing
-where it’s hard to keep the code and documentation up to date.
+if you can’t document (describe) the API/method/whatever, then you should
+consider throwing the method away and start over with something you _can_
+describe.
+
+Documenting an API used to be very troubling for me. The reason for that is
+that there are so many details too keep in sync in multiple places: You need
+to _remember_ to update the documentation every time you make a change in the
+code.
 
 So how does swagger fix this? Since the input/ouput Perl code is generated
 from the swagger document, you know that the backend is always running code
 accordingly to the specification. Also, since the documentation you generate
 is not hand written, but generated from the same swagger document you can know
-that the code the server is running is in sync with the documentation.
+that the server is running the code which is in sync with the documentation.
 
-When “generated code” is mentioned, it’s not just the routing, but also input
-and output validation. This means that when any data has made it through to
-your controller action, you know that the data is valid. On the other side,
-the consumer (let’s say a javascript that cares about the difference between
-an integer and string) will know that it has received the correct data, since
-invalid output will result in a 500.
-
-So… If you don’t care about documenation or collaberation with others, then
-I’m not sure if I would care much about swagger either.
-
-Note that the swagger spec is not just for the server, but can also be used to
-generate javascript and perl client side code.
+The last thing I like is that you can hand the spec over to someone building a
+client for iOS, Android or JavaScript and they can auto generate code, just
+like you do in Perl. So sharing the spec is a good idea, since you then know
+that the clients run the same code as the server do.
 
 ---
 class: middle
@@ -157,10 +165,19 @@ $ SWAGGER_BASE_URL=http://localhost:3000 \
 
 ???
 
+file:///Users/jhthorsen/git/demo/swagger2/t/blog/api.json
+
+BLOG_PG_URL=postgresql://jhthorsen@/test perl script/blog routes
+
 BLOG_PG_URL=postgresql://jhthorsen@/test perl script/blog daemon
+
 SWAGGER_BASE_URL=http://localhost:3000 mojo swagger2 client api.json
-PERL5LIB=../../lib SWAGGER_BASE_URL=http://localhost:3000/api mojo swagger2 client api.json store '{"entry":{"body":"yay!","title":"demo"}}'
-PERL5LIB=../../lib SWAGGER_BASE_URL=http://localhost:3000/api mojo swagger2 client api.json list
+
+SWAGGER_BASE_URL=http://localhost:3000/api mojo swagger2 client api.json storePost '{"entry":{"body":"yay!","title":"demo"}
+
+SWAGGER_BASE_URL=http://localhost:3000/api mojo swagger2 client api.json listPosts
+
+SWAGGER_BASE_URL=http://localhost:3000/api mojo swagger2 client api.json removePost '{"id":"1"}'
 
 ---
 class: contrast, center, middle
