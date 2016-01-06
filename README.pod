@@ -1,0 +1,18 @@
+=head1 NAME
+
+Swagger2 presentation
+
+=head1 VERSION
+
+20150106
+
+=head1 SYNOPSIS
+
+  $ cpanm App::remarkpl
+  $ remarkpl swagger2.markdown
+
+=head1 AUTHOR
+
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
+
+=cut
