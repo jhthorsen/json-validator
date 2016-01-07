@@ -17,7 +17,7 @@ use Test::More;
 # - Jan Henning Thorsen
 #
 
-plan skip_all => 'Swagger2 is required' unless eval 'require Swagger2;1';
+plan skip_all => 'Swagger2 0.66+ is required' unless eval 'require Swagger2;Swagger2->VERSION >= 0.66';
 my $swagger = Swagger2->new('data://main/spec.json');
 my @errors  = $swagger->validate;
 ok !@errors, 'no errors in spec.json' or diag join "\n", @errors;

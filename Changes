@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.65 Not Released
+ - Fix t/swagger-validate-response-object.t require Swagger2 0.66 #14
+
 0.64 2015-12-18T16:03:09+0800
  - Fix treating JSON::PP::Boolean objects as boolean #13
    Contributor: Krasimir Berov
