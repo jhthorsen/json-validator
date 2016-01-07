@@ -266,7 +266,7 @@ sub to_string {
   @errors = $self->validate;
 
 Will validate L</api_spec> against
-L<Swagger RESTful API Documentation Specification/https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>,
+L<Swagger RESTful API Documentation Specification|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>,
 and return a list with all the errors found. See also L<JSON::Validator/validate>.
 
 =cut
