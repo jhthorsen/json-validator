@@ -38,4 +38,11 @@ $t->post_ok('/api/pets/42')->status_is(200)->json_is('/id', 42)->json_is('/name'
 $t->post_ok('/api/pets/foo')->status_is(400)->json_is('/errors/0/path', '/petId')
   ->json_is('/errors/0/message', 'Expected integer - got string.')->json_is('/errors/1', undef);
 
+$t->get_ok('/api')->status_is(200)->json_is('/info/title', 'Swagger Petstore');
+
+{
+  local $TODO = 'Should rendered spec contain x-mojo-?';
+  $t->json_is('/paths/~1pets/get/x-mojo-controller', 't::Api');
+}
+
 done_testing;

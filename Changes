@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.68 Not Released
+ - Can serve specification from basePath
+
 0.67 2016-01-12T14:36:24+0100
  - Add "basePath" to "Add route ..." debug message #64
  - Can pass Swagger2->new to Swagger2::Client #63

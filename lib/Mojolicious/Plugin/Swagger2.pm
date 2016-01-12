@@ -123,17 +123,11 @@ sub register {
     }
   }
 
-  # EXPERIMENTAL: Need documentation and probably a better route name()
-  if (my $title = $swagger->api_spec->get('/info/title')) {
-    my $md5
-      = Mojo::Util::md5_sum(
-      Data::Dumper->new([$swagger->api_spec->data])->Indent(0)->Pair('=>')->Purity(1)->Quotekeys(1)->Sortkeys(1)
-        ->Terse(1)->Useqq(1)->Dump);
+  if (my $spec_path = $config->{spec_path} // '/') {
+    my $title = $swagger->api_spec->get('/info/title');
     $title =~ s!\W!_!g;
-    $r->get("/$md5", [format => [qw( json )]], {format => 'json'})
-      ->to(cb => sub { shift->render(json => $swagger->api_spec->data) })->name(lc $title);
+    $r->get($spec_path)->to(cb => sub { shift->render(json => $swagger->api_spec->data) })->name(lc $title);
   }
-
   if ($config->{ensure_swagger_response}) {
     $self->_ensure_swagger_response($app, $config->{ensure_swagger_response}, $swagger);
   }
@@ -564,6 +558,12 @@ specify "exception" and "not_found" if you are happy with the defaults.
 Need to hold a Mojolicious route object. See L</Protected API> for an example.
 
 This parameter is optional.
+
+=item * spec_path
+
+Holds the location for where the specifiation can be served from. The default
+value is "/", relative to "basePath" in the specification. Can be disabled
+by setting this value to empty string.
 
 =item * validate
 
