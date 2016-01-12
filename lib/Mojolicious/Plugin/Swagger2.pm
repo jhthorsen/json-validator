@@ -19,11 +19,9 @@ sub dispatch_to_swagger {
   my $self     = $c->stash('swagger.plugin');
   my $reply    = sub { $_[0]->send({json => {code => $_[2] || 200, id => $data->{id}, body => $_[1]}}) };
   my $defaults = $self->{route_defaults}{$data->{op}} or return $c->$reply(_error('Unknown operationId.'), 400);
-  my $e        = _find_action($c, $defaults->{swagger_operation_spec}, $defaults);
-  my $action   = $defaults->{action};
-  my ($input, @errors);
+  my ($e, $input, @errors);
 
-  return $c->$reply(_error($e), 501) if $e;
+  return $c->$reply(_error($e), 501) if $e = _find_action($c, $defaults);
 
   for my $p (@{$defaults->{swagger_operation_spec}{parameters} || []}) {
     my $name  = $p->{name};
@@ -36,8 +34,9 @@ sub dispatch_to_swagger {
   return $c->$reply({errors => \@errors}, 400) if @errors;
   return Mojo::IOLoop->delay(
     sub {
-      my $delay = shift;
-      my $sc = $delay->data->{sc} = $defaults->{controller}->new(%$c);
+      my $delay  = shift;
+      my $action = $defaults->{action};
+      my $sc     = $delay->data->{sc} = $defaults->{controller}->new(%$c);
       $sc->stash(swagger_operation_spec => $defaults->{swagger_operation_spec});
       $sc->$action($input, $delay->begin);
     },
@@ -159,18 +158,17 @@ sub _generate_request_handler {
   my $defaults = {swagger_operation_spec => $op_spec};
 
   my $handler = sub {
-    my $c      = shift;
-    my $e      = _find_action($c, $op_spec, $defaults);
-    my $action = $defaults->{action};
-    my ($v, $input);
+    my $c = shift;
+    my ($e, $v, $input);
 
-    return $c->render_swagger(_error($e), {}, 501) if $e;
+    return $c->render_swagger(_error($e), {}, 501) if $e = _find_action($c, $defaults);
     $c = $defaults->{controller}->new(%$c);
     ($v, $input) = $self->_validate_input($c, $op_spec);
 
     return $c->render_swagger($v, {}, 400) if @{$v->{errors}};
     return $c->delay(
       sub {
+        my $action = $defaults->{action};
         $c->app->log->debug(qq(Swagger2 routing to controller "$defaults->{controller}" and action "$action"));
         $c->$action($input, shift->begin);
       },
@@ -320,12 +318,6 @@ sub _validate_response {
   return @errors;
 }
 
-sub _can {
-  my $defaults = shift;
-  return if $defaults->{controller}->can($defaults->{action});
-  return qq(Method "$defaults->{action}" not implemented.);
-}
-
 sub _coerce_by_collection_format {
   my ($value, $schema) = @_;
   my $re = $Swagger2::SchemaValidator::COLLECTION_RE{$schema->{collectionFormat}} || '';
@@ -338,36 +330,34 @@ sub _coerce_by_collection_format {
   return \@data;
 }
 
-sub _die {
-  die "$_[1]: ", Mojo::Util::dumper($_[0]);
-}
-
 sub _error {
   return {errors => [{message => $_[0], path => '/'}]};
 }
 
 sub _find_action {
-  return if $_[2]->{controller};    # cached
-
-  my ($c, $op_spec, $defaults) = @_;
-  my $op = $op_spec->{operationId} or return 'operationId is missing.';
+  return if $_[1]->{controller};    # cached
+  my ($c, $defaults) = @_;
+  my $op = $defaults->{swagger_operation_spec}{operationId} or return 'operationId is missing.';
+  my $can = sub {
+    $defaults->{controller}->can($defaults->{action}) ? '' : qq(Method "$defaults->{action}" not implemented.);
+  };
 
   # specify controller manually
-  @$defaults{qw( action controller )} = _load($c, $op, $op_spec->{'x-mojo-controller'});
-  return _can($defaults) if $defaults->{controller};
+  @$defaults{qw( action controller )} = _load($c, $op, $defaults->{swagger_operation_spec}{'x-mojo-controller'});
+  return $can->() if $defaults->{controller};
 
   # "createFileInFileSystem" = ("createFile", "FileSystem")
   @$defaults{qw( action controller )} = _load($c, split $SKIP_OP_RE, $op);
-  return _can($defaults) if $defaults->{controller};
+  return $can->() if $defaults->{controller};
 
   # "showPetById" = "showPet"
   $op =~ s!$SKIP_OP_RE.*$!!;
 
   # "show_fooPet" = ("show_foo", "Pet")
   @$defaults{qw( action controller )} = _load($c, $op =~ /^([a-z_]+)([A-Z]\w+)$/);
-  return _can($defaults) if $defaults->{controller};
+  return $can->() if $defaults->{controller};
 
-  return qq(Controller from operationId "$op_spec->{operationId}" could not be loaded.);
+  return qq(Controller from operationId "$defaults->{swagger_operation_spec}{operationId}" could not be loaded.);
 }
 
 sub _load {

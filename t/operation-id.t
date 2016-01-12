@@ -37,8 +37,8 @@ done_testing;
 sub ca {
   my $c = $t->app->controller_class->new(app => $t->app);
   my $m = Mojolicious::Plugin::Swagger2->can('_find_action');
-  my $e = $m->($c, {operationId => $_[0]}, my $r = {});
-  diag $e if $e and $ENV{SWAGGER2_DEBUG};
+  my $e = $m->($c, (my $r = {swagger_operation_spec => {operationId => $_[0]}}));
+  diag $e if $e and $ENV{HARNESS_IS_VERBOSE};
   return @$r{qw( controller action )};
 }
 
