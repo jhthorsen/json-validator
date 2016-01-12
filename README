@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.66
+    0.67
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger
@@ -119,10 +119,11 @@ METHODS
   validate
       @errors = $self->validate;
 
-    Will validate "api_spec" against
-    "https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md
-    " in Swagger RESTful API Documentation Specification, and return a list
-    with all the errors found. See also "validate" in JSON::Validator.
+    Will validate "api_spec" against Swagger RESTful API Documentation
+    Specification
+    <https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md
+    >, and return a list with all the errors found. See also "validate" in
+    JSON::Validator.
 
 COPYRIGHT AND LICENSE
     Copyright (C) 2014-2015, Jan Henning Thorsen

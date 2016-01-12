@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.67 Not Released
+0.67 2016-01-12T14:36:24+0100
  - Add "basePath" to "Add route ..." debug message #64
  - Can pass Swagger2->new to Swagger2::Client #63
  - Fix new(url => Mojo::URL->new(...));
