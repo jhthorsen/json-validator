@@ -1,22 +1,4 @@
 package Swagger2::POD;
-
-=head1 NAME
-
-Swagger2::POD - Convert swagger API spec to Perl documentation
-
-=head1 DESCRIPTION
-
-L<Swagger2::POD> is a module that can convert from L</Swagger2> to L<POD|perlpod>.
-
-=head1 SYNOPSIS
-
-  use Swagger2;
-  my $swagger = Sswagger2->new("file:///path/to/api-spec.yaml");
-
-  print $swagger->pod->to_string;
-
-=cut
-
 use Mojo::Base -base;
 use Mojo::JSON 'encode_json';
 use Mojo::Message::Response;
@@ -26,16 +8,6 @@ use constant NO_DESCRIPTION => 'No description.';
 require Swagger2;
 
 my $MOJO_MESSAGE_RESPONSE = Mojo::Message::Response->new;
-
-=head1 METHODS
-
-=head2 to_string
-
-  $str = $self->to_string;
-
-Will convert swagger API spec to plain old documentation.
-
-=cut
 
 sub to_string {
   my $self = shift;
@@ -385,6 +357,33 @@ sub _type_description {
   return join ', ', @description;
 }
 
+1;
+
+=encoding utf8
+
+=head1 NAME
+
+Swagger2::POD - Convert swagger API spec to Perl documentation
+
+=head1 DESCRIPTION
+
+L<Swagger2::POD> is a module that can convert from L</Swagger2> to L<POD|perlpod>.
+
+=head1 SYNOPSIS
+
+  use Swagger2;
+  my $swagger = Sswagger2->new("file:///path/to/api-spec.yaml");
+
+  print $swagger->pod->to_string;
+
+=head1 METHODS
+
+=head2 to_string
+
+  $str = $self->to_string;
+
+Will convert swagger API spec to plain old documentation.
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2014-2015, Jan Henning Thorsen
@@ -397,5 +396,3 @@ the terms of the Artistic License version 2.0.
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
-
-1;

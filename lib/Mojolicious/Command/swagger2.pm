@@ -1,36 +1,4 @@
 package Mojolicious::Command::swagger2;
-
-=head1 NAME
-
-Mojolicious::Command::swagger2 - mojo swagger2 command
-
-=head1 DESCRIPTION
-
-L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
-
-=head1 SYNOPSIS
-
-  # Call a method with arguments
-  mojo swagger2 client path/to/spec.json <method> [args]
-
-  # List methods
-  mojo swagger2 client path/to/spec.json
-
-  # Get documentation for a method
-  mojo swagger2 client path/to/spec.json <method> help
-
-  # Specifiy spec and/or base URL from environment.
-  # Useful for shell wrappers
-  SWAGGER_API_FILE=path/to/spec.json mojo swagger2 client <method>
-  SWAGGER_BASE_URL=https://example.com/1.0 mojo swagger2 client <method>
-
-  # Example arguments
-  mojo swagger2 client path/to/spec.json list_pets '{"limit":10}'
-  mojo swagger2 client path/to/spec.json list_pets limit=10 owner=joe
-  mojo swagger2 client path/to/spec.json -b https://example.com/1.0 list_pets limit=10 owner=joe
-
-=cut
-
 use Mojo::Base 'Mojolicious::Command';
 use Mojo::Util;
 use Swagger2;
@@ -39,18 +7,6 @@ my $app = __PACKAGE__;
 
 # used in tests
 our $OUT = \*STDOUT;
-
-=head1 ATTRIBUTES
-
-=head2 description
-
-Returns description of this command.
-
-=head2 usage
-
-Returns usage of this command.
-
-=cut
 
 has description => 'Interface with Swagger2.';
 has usage       => <<"HERE";
@@ -73,14 +29,6 @@ Usage:
   @{[__PACKAGE__->_usage('validate')]}
 
 HERE
-
-=head1 METHODS
-
-=head2 run
-
-See L</SYNOPSIS>.
-
-=cut
 
 sub run {
   my $self   = shift;
@@ -234,6 +182,55 @@ Usage:
 HERE
 }
 
+1;
+
+=encoding utf8
+
+=head1 NAME
+
+Mojolicious::Command::swagger2 - mojo swagger2 command
+
+=head1 DESCRIPTION
+
+L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
+
+=head1 SYNOPSIS
+
+  # Call a method with arguments
+  mojo swagger2 client path/to/spec.json <method> [args]
+
+  # List methods
+  mojo swagger2 client path/to/spec.json
+
+  # Get documentation for a method
+  mojo swagger2 client path/to/spec.json <method> help
+
+  # Specifiy spec and/or base URL from environment.
+  # Useful for shell wrappers
+  SWAGGER_API_FILE=path/to/spec.json mojo swagger2 client <method>
+  SWAGGER_BASE_URL=https://example.com/1.0 mojo swagger2 client <method>
+
+  # Example arguments
+  mojo swagger2 client path/to/spec.json list_pets '{"limit":10}'
+  mojo swagger2 client path/to/spec.json list_pets limit=10 owner=joe
+  mojo swagger2 client path/to/spec.json -b https://example.com/1.0 list_pets limit=10 owner=joe
+
+=head1 ATTRIBUTES
+
+=head2 description
+
+Returns description of this command.
+
+=head2 usage
+
+Returns usage of this command.
+
+=head1 METHODS
+
+=head2 run
+
+See L</SYNOPSIS>.
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2014-2015, Jan Henning Thorsen
@@ -246,5 +243,3 @@ the terms of the Artistic License version 2.0.
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
-
-1;

@@ -1,46 +1,12 @@
 package Swagger2::Editor;
-
-=head1 NAME
-
-Swagger2::Editor - A WEB based Swagger2 API editor
-
-=head1 DESCRIPTION
-
-L<Swagger2::Editor> is a WEB based Swagger2 API editor.
-
-=head1 SYNOPSIS
-
-  $ mojo swagger2 edit /path/to/api.json --listen http://*:3000
-
-=cut
-
 use Mojo::Base 'Mojolicious';
 use Mojo::Util;
 use File::Basename;
 use Swagger2;
 
-=head1 ATTRIBUTES
-
-=head2 specification_file
-
-Returns path to swagger specification file. Defaults to
-C<SWAGGER_API_FILE> environment variable.
-
-=cut
-
 has specification_file => sub { $ENV{SWAGGER_API_FILE} || '' };
 
 has _swagger => sub { Swagger2->new };
-
-=head1 ROUTES
-
-=head2 GET /
-
-Will render the editor and any Swagger specification given as input.
-
-Can also just render the POD if requested as C</.txt> instead.
-
-=cut
 
 sub _get {
   my $c = shift;
@@ -54,12 +20,6 @@ sub _get {
     }
   );
 }
-
-=head2 POST /
-
-Will L<parse|Swagger/parse> the JSON/YAML in the HTTP body and render it as POD.
-
-=cut
 
 sub _post {
   my $c    = shift;
@@ -78,14 +38,6 @@ sub _post {
     $c->render(template => 'error', error => $e);
   };
 }
-
-=head1 METHODS
-
-=head2 startup
-
-Used to set up the L</ROUTES>.
-
-=cut
 
 sub startup {
   my $self = shift;
@@ -138,19 +90,6 @@ sub _podify {
 
   return $c->b(qq(<div class="pod-container"><h1 id="toc">TABLE OF CONTENTS</h1>$ul$dom</div>));
 }
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2014-2015, Jan Henning Thorsen
-
-This program is free software, you can redistribute it and/or modify it under
-the terms of the Artistic License version 2.0.
-
-=head1 AUTHOR
-
-Jan Henning Thorsen - C<jhthorsen@cpan.org>
-
-=cut
 
 $ENV{SWAGGER_LOAD_EDITOR} ? __PACKAGE__->new : 1;
 
@@ -321,3 +260,56 @@ __DATA__
   %= content
 </body>
 </html>
+1;
+
+=encoding utf8
+
+=head1 NAME
+
+Swagger2::Editor - A WEB based Swagger2 API editor
+
+=head1 DESCRIPTION
+
+L<Swagger2::Editor> is a WEB based Swagger2 API editor.
+
+=head1 SYNOPSIS
+
+  $ mojo swagger2 edit /path/to/api.json --listen http://*:3000
+
+=head1 ATTRIBUTES
+
+=head2 specification_file
+
+Returns path to swagger specification file. Defaults to
+C<SWAGGER_API_FILE> environment variable.
+
+=head1 ROUTES
+
+=head2 GET /
+
+Will render the editor and any Swagger specification given as input.
+
+Can also just render the POD if requested as C</.txt> instead.
+
+=head2 POST /
+
+Will L<parse|Swagger/parse> the JSON/YAML in the HTTP body and render it as POD.
+
+=head1 METHODS
+
+=head2 startup
+
+Used to set up the L</ROUTES>.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2014-2015, Jan Henning Thorsen
+
+This program is free software, you can redistribute it and/or modify it under
+the terms of the Artistic License version 2.0.
+
+=head1 AUTHOR
+
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
+
+=cut
