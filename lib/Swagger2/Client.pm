@@ -96,6 +96,7 @@ has _validator => sub { Swagger2::SchemaValidator->new; };
 
 =head2 generate
 
+  $client = Swagger2::Client->generate(Swagger2->new($specification_url));
   $client = Swagger2::Client->generate($specification_url);
 
 Returns an object of a generated class, with the rules from the
