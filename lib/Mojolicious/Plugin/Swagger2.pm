@@ -262,7 +262,7 @@ Either this parameter or C<swagger> need to be present.
 
 sub register {
   my ($self, $app, $config) = @_;
-  my ($paths, $r, $swagger);
+  my ($base_path, $paths, $r, $swagger);
 
   $swagger = $config->{swagger} || Swagger2->new->load($config->{url} || '"url" is missing');
   $swagger = $swagger->expand;
@@ -296,6 +296,9 @@ sub register {
     $ws->to('swagger.plugin' => $self);
   }
 
+  $base_path = $swagger->api_spec->data->{basePath} = $r->to_string;
+  $base_path =~ s!/$!!;
+
   for my $path (sort { length $a <=> length $b } keys %$paths) {
     $paths->{$path}{'x-mojo-around-action'} ||= $swagger->api_spec->get('/x-mojo-around-action');
     $paths->{$path}{'x-mojo-controller'}    ||= $swagger->api_spec->get('/x-mojo-controller');
@@ -315,7 +318,7 @@ sub register {
       $op_spec->{'x-mojo-controller'}    ||= $paths->{$path}{'x-mojo-controller'};
       $app->plugins->emit(
         swagger_route_added => $r->$http_method($route_path => $self->_generate_request_handler($op_spec)));
-      warn "[Swagger2] Add route $http_method $route_path\n" if DEBUG;
+      warn "[Swagger2] Add route $http_method $base_path$route_path\n" if DEBUG;
     }
   }
 
@@ -329,8 +332,6 @@ sub register {
     $r->get("/$md5", [format => [qw( json )]], {format => 'json'})
       ->to(cb => sub { shift->render(json => $swagger->api_spec->data) })->name(lc $title);
   }
-
-  $swagger->api_spec->data->{basePath} = $r->to_string;
 
   if ($config->{ensure_swagger_response}) {
     $self->_ensure_swagger_response($app, $config->{ensure_swagger_response}, $swagger);

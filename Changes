@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.67 Not Released
+ - Add "basePath" to "Add route ..." debug message #64
+
 0.66 2015-12-29T11:52:06+0100
  - Will not add non-existing input keys to $args #52
    Contributor: Scott Wiersdorf
