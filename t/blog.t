@@ -3,7 +3,7 @@ use Test::Mojo;
 use Test::More;
 use lib 't/blog/lib';
 
-plan skip_all => 'BLOG_PG_URL=postgresql://username@/test' unless $ENV{BLOG_PG_URL};
+plan skip_all => 'BLOG_PG_URL=postgresql://postgres@/test' unless $ENV{BLOG_PG_URL};
 
 if ($ENV{RUN}) {
   require Mojolicious::Commands;

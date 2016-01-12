@@ -68,7 +68,7 @@
         "responses": {
           "200": {
             "description": "Success",
-            "schema": { "$ref": "#/definitions/Entry" }
+            "schema": { "$ref": "#/definitions/Void" }
           },
           "default": {
             "description": "Error.",
