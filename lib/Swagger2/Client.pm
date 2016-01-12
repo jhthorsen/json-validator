@@ -107,8 +107,8 @@ same URL will not generate a new class.
 =cut
 
 sub generate {
-  my ($class, $url) = @_;
-  my $swagger = Swagger2->new->load($url)->expand;
+  my $class = shift;
+  my ($swagger, $url) = _swagger_url(shift);
   my $paths = $swagger->api_spec->get('/paths') || {};
   my $generated;
 
@@ -179,6 +179,17 @@ sub _generate_method {
       return $tx->res;
     }
   };
+}
+
+sub _swagger_url {
+  if (UNIVERSAL::isa($_[0], 'Swagger2')) {
+    my $swagger = shift->load->expand;
+    return ($swagger, $swagger->url);
+  }
+  else {
+    my $url = shift;
+    return (Swagger2->new->load($url)->expand, $url);
+  }
 }
 
 sub _validate_request {

@@ -2,6 +2,9 @@ Revision history for perl distribution Swagger2
 
 0.67 Not Released
  - Add "basePath" to "Add route ..." debug message #64
+ - Can pass Swagger2->new to Swagger2::Client #63
+ - Fix new(url => Mojo::URL->new(...));
+ - Fix expand() will not clear url()
 
 0.66 2015-12-29T11:52:06+0100
  - Will not add non-existing input keys to $args #52

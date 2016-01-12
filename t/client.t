@@ -1,10 +1,9 @@
-use Mojo::Base -strict;
-use Test::Mojo;
-use Test::More;
-use Swagger2::Client;
 use t::Api;
+use Swagger2::Client;
+use Test::More;
 
 use Mojolicious::Lite;
+app->log->level('error') unless $ENV{HARNESS_IS_VERBOSE};
 plugin Swagger2 => {url => 't/data/petstore.json'};
 
 my $client = Swagger2::Client->generate('t/data/petstore.json');

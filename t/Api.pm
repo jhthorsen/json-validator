@@ -90,4 +90,9 @@ sub with_defaults {
   $c->$cb({ip => $args->{ip}, x => $args->{x}});
 }
 
+sub import {
+  strict->import;
+  warnings->import;
+}
+
 1;

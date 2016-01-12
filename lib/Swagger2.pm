@@ -200,7 +200,8 @@ sub new {
   my $self  = $class->SUPER::new(@_);
 
   $url =~ s!^file://!!;
-  $self->{url} = Mojo::URL->new($url);
+  $self->{url} ||= $url;
+  $self->{url} = Mojo::URL->new($self->{url}) unless ref $self->{url};
   $self;
 }
 
