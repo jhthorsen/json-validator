@@ -37,6 +37,9 @@ use Swagger2;
 
 my $app = __PACKAGE__;
 
+# used in tests
+our $OUT = \*STDOUT;
+
 =head1 ATTRIBUTES
 
 =head2 description
@@ -99,8 +102,8 @@ sub _action_client {
   my $base_url = $ENV{SWAGGER_BASE_URL};
   my $i        = 0;
 
-  return print $self->_usage_client unless $ENV{SWAGGER_API_FILE} ||= $file;
-  return print $self->_documentation_for('') if !$method or $method =~ /\W/;
+  return print $OUT $self->_usage_client unless $ENV{SWAGGER_API_FILE} ||= $file;
+  return print $OUT $self->_documentation_for('') if !$method or $method =~ /\W/;
 
   require Swagger2::Client;
   my $client = Swagger2::Client->generate($ENV{SWAGGER_API_FILE});
@@ -116,7 +119,7 @@ sub _action_client {
   $client->base_url->parse($base_url) if $base_url;
   eval {
     my $res = $client->$method($args);
-    print $res->json ? Mojo::Util::dumper($res->json) : $res->body;
+    print $OUT $res->json ? Mojo::Util::dumper($res->json) : $res->body;
     1;
   } or do {
     my $e = $@;
@@ -150,7 +153,7 @@ sub _action_pod {
   my ($self, $file) = @_;
 
   die $self->_usage('pod'), "\n" unless $file;
-  print Swagger2->new($file)->pod->to_string;
+  print $OUT Swagger2->new($file)->pod->to_string;
 }
 
 sub _action_validate {
@@ -161,34 +164,37 @@ sub _action_validate {
   @errors = Swagger2->new($file)->validate;
 
   unless (@errors) {
-    print "$file is valid.\n";
+    print $OUT "$file is valid.\n";
     return;
   }
 
   for my $e (@errors) {
-    print "$e\n";
+    print $OUT "$e\n";
   }
 }
 
 sub _documentation_for {
   my ($self, $needle) = @_;
   my $pod = Swagger2->new($ENV{SWAGGER_API_FILE})->pod;
-  my $paths = $pod->{tree}->get('/paths') || {};
+  my $paths = $pod->{api_spec}->get('/paths') || {};
+  my @methods;
 
   for my $path (sort keys %$paths) {
     for my $method (sort keys %{$paths->{$path}}) {
-      my $operationId
-        = Mojo::Util::decamelize(ucfirst($paths->{$path}{$method}{operationId} || join ' ', $method, $path));
-      print "$operationId\n" unless $needle;
-      delete $paths->{$path}{$method} unless $operationId eq $needle;
+      push @methods, $paths->{$path}{$method}{operationId} || join ' ', $method, $path;
+      delete $paths->{$path}{$method} unless $methods[-1] eq $needle;
     }
     delete $paths->{$path} unless %{$paths->{$path}};
   }
 
-  return unless $needle;
+  unless ($needle) {
+    print $OUT "$_\n" for sort @methods;
+    return;
+  }
+
   require Pod::Simple;
   my $pod_text = Pod::Text->new;
-  $pod_text->output_fh(\*STDOUT);
+  $pod_text->output_fh($OUT);
   $pod_text->parse_string_document($pod->_paths_to_string);
 }
 
