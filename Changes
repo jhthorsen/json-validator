@@ -1,7 +1,9 @@
 Revision history for perl distribution Swagger2
 
-0.68 Not Released
+0.68 2016-01-13T16:36:28+0100
  - Can serve specification from basePath
+ - Fix skipping tests on MSWin32 #66
+   Contributor: Paul Durden
 
 0.67 2016-01-12T14:36:24+0100
  - Add "basePath" to "Add route ..." debug message #64
