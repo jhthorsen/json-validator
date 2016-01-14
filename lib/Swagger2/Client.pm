@@ -23,10 +23,7 @@ sub generate {
   $generated =~ s!\W!_!g;
   $generated = "$class\::$generated";
 
-  if ($generated->isa($class)) {
-    return $generated->new;
-  }
-
+  return $generated->new if $generated->isa($class);                   # already generated
   _init_package($generated, $class);
   Mojo::Util::monkey_patch($generated, _swagger => sub {$swagger});
 
@@ -217,20 +214,28 @@ The swagger specification will the be turned into a sub class of
 L<Swagger2::Client>, where the "parameters" rules are used to do input
 validation.
 
-The method name added is a L<decamelized|Mojo::Util/decamelize> version of
-the operationId, which creates a more perl-ish feeling to the API.
-
   use Swagger2::Client;
-  my $ua = Swagger2::Client->generate("file:///path/to/api.json");
+  $ua = Swagger2::Client->generate("file:///path/to/api.json");
 
-  # blocking
-  my $pets = $ua->list_pets; # instead of listPets()
+  # blocking (will croak() on error)
+  $pets = $ua->listPets;
+
+  # blocking (will not croak() on error)
+  $ua->return_on_error(1);
+  $pets = $ua->listPets;
 
   # non-blocking
-  $ua = $ua->list_pets(sub { my ($ua, $err, $pets) = @_; });
+  $ua = $ua->listPets(sub { my ($ua, $err, $pets) = @_; });
 
   # with arguments, where the key map to the "parameters" name
-  my $pets = $ua->list_pets({limit => 10});
+  $pets = $ua->listPets({limit => 10});
+
+The method name added will both be the original C<operationId>, but a "snake
+case" version will also be added. Example:
+
+  "operationId": "listPets"
+    => $client->listPets()
+    => $client->list_pets()
 
 =head2 Customization
 
