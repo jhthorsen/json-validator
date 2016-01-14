@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.69 Not Released
+ - Allow blocking Swagger2::Client requests to return on failure #67
+
 0.68 2016-01-13T16:36:28+0100
  - Can serve specification from basePath
  - Fix skipping tests on MSWin32 #66

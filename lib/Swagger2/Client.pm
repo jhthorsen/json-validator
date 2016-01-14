@@ -1,5 +1,6 @@
 package Swagger2::Client;
 use Mojo::Base -base;
+use Mojo::JSON;
 use Mojo::UserAgent;
 use Mojo::Util;
 use Carp ();
@@ -26,7 +27,7 @@ sub generate {
     return $generated->new;
   }
 
-  eval "package $generated; use Mojo::Base '$class'; 1" or die "package $generated: $@";
+  _init_package($generated, $class);
   Mojo::Util::monkey_patch($generated, _swagger => sub {$swagger});
 
   for my $path (keys %$paths) {
@@ -60,7 +61,10 @@ sub _generate_method {
     my @e    = $self->_validate_request($args, $op_spec, $req);
 
     if (@e) {
-      Carp::croak('Invalid input: ' . join ' ', @e) unless $cb;
+      unless ($cb) {
+        return _invalid_input_res(\@e) if $self->return_on_error;
+        Carp::croak('Invalid input: ' . join ' ', @e);
+      }
       $self->$cb(\@e, undef);
       return $self;
     }
@@ -81,10 +85,27 @@ sub _generate_method {
     }
     else {
       my $tx = $self->ua->$http_method(@$req);
-      Carp::croak(join ': ', grep {defined} $tx->error->{message}, $tx->res->body) if $tx->error;
-      return $tx->res;
+      return $tx->res if !$tx->error or $self->return_on_error;
+      Carp::croak(join ': ', grep {defined} $tx->error->{message}, $tx->res->body);
     }
   };
+}
+
+sub _init_package {
+  my ($package, $base) = @_;
+  eval <<"HERE" or die "package $package: $@";
+package $package;
+use Mojo::Base '$base';
+has return_on_error => 0;
+1;
+HERE
+}
+
+sub _invalid_input_res {
+  my $res = Mojo::Message::Response->new;
+  $res->body(Mojo::JSON::encode_json({errors => $_[0]}));
+  $res->code(400)->message($res->default_message);
+  $res->error({message => 'Invalid input', code => 400});
 }
 
 sub _swagger_url {
