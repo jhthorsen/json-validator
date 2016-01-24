@@ -18,7 +18,6 @@ L<relaxed placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojo
     "paths": {
       "/pets/{name}": {
         "get": {
-          "x-mojo-controller": "MyApp::Controller::Petstore",
           "operationId": "listPets",
           "parameters": [
             { "name": "name", "in": "path", "type": "string", "x-mojo-placeholder": "#" }
