@@ -38,7 +38,7 @@ this fail, L</render_swagger> will be called with the L</501> status code.
 =item 3.
 
 Next the input data is parsed to see if the request is valid. If this fail,
-L</render_swagger> is called with the L</401> status code.
+L</render_swagger> is called with the L</400> status code.
 
 =item 4.
 
