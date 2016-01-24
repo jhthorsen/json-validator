@@ -38,7 +38,7 @@ this fail, L</render_swagger> will be called with the L</501> status code.
 =item 3.
 
 Next the input data is parsed to see if the request is valid. If this fail,
-L</render_swagger> is called with the L</401> status code.
+L</render_swagger> is called with the L</400> status code.
 
 =item 4.
 
@@ -54,10 +54,10 @@ L<Mojolicious::Controller/render>.
 
 =back
 
-Same as for the  L</render> method above, there is nothing that prevents you
-from calling this manually from inside your actions, but doing so will bypass
-the output validation code which is generated on the fly. There should not be
-a case when you need to call this method directly.
+As for the  L</render> method above, there is nothing that prevents you from
+calling C</render_swagger> manually from inside your actions, but doing so will
+bypass the output validation code which is generated on the fly. There should
+not be a case when you need to call this method directly.
 
 
 =head1 STATUS CODES

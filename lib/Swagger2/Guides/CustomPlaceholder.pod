@@ -5,7 +5,7 @@ Swagger2::Guides::CustomPlaceholder - Custom placeholders
 =head2 OVERVIEW
 
 The default placeholder type is the
-L<generic placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojolicious/Guides/Routing.pod#Generic-placeholders>,
+L<standard placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojolicious/Guides/Routing.pod#Standard-placeholders>,
 meaning ":". This can be customized using C<x-mojo-placeholder> in the
 API specification. The example in L</SYNOPSIS> will enforce a
 L<relaxed placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojolicious/Guides/Routing.pod#Relaxed-placeholders>.
@@ -18,7 +18,6 @@ L<relaxed placeholder|https://metacpan.org/pod/distribution/Mojolicious/lib/Mojo
     "paths": {
       "/pets/{name}": {
         "get": {
-          "x-mojo-controller": "MyApp::Controller::Petstore",
           "operationId": "listPets",
           "parameters": [
             { "name": "name", "in": "path", "type": "string", "x-mojo-placeholder": "#" }
