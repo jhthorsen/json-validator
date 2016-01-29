@@ -560,9 +560,6 @@ by setting this value to empty string.
 A boolean value (default is true) that will cause your schema to be validated.
 This plugin will abort loading if the schema include errors
 
-CAVEAT! There is an issue with YAML and booleans, so YAML specs might fail
-even when they are correct. See L<https://github.com/jhthorsen/swagger2/issues/39>.
-
 =item * swagger
 
 A C<Swagger2> object. This can be useful if you want to keep use the
