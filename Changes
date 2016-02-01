@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.71 Not Released
+ - Bundle EXPERIMENTAL swagger2-client.js
+
 0.70 2016-01-29T10:50:57+0100
  - Documentation fixes
    Contributor: Bernhard Graf

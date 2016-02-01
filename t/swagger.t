@@ -13,4 +13,7 @@ is $swagger->url, '', 'no default url';
 $swagger = Swagger2->new('http://example.com/api-spec');
 is $swagger->url, 'http://example.com/api-spec', 'url from new()';
 
+my $v = Swagger2->VERSION;
+like $swagger->javascript_client->slurp, qr{\@version $v}, 'javascript_client version';
+
 done_testing;

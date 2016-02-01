@@ -1,5 +1,6 @@
 package Swagger2;
 use Mojo::Base -base;
+use Mojo::Asset::File;
 use Mojo::JSON;
 use Mojo::JSON::Pointer;
 use Mojo::URL;
@@ -12,6 +13,7 @@ our $VERSION = '0.70';
 
 # Should be considered internal
 our $SPEC_FILE = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'schema.json');
+our $JS_CLIENT = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'swagger2-client.js');
 
 has api_spec => sub {
   my $self = shift;
@@ -58,6 +60,8 @@ sub expand {
   my $class = Scalar::Util::blessed($self);
   $class->new(%$self)->api_spec($self->_validator->schema($self->api_spec->data)->schema);
 }
+
+sub javascript_client { Mojo::Asset::File->new(path => $JS_CLIENT) }
 
 sub load {
   my $self = shift;
@@ -220,6 +224,19 @@ resource will be fetched using L<Mojo::UserAgent>.
 This method returns a new C<Swagger2> object, where all the
 L<references|https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28>
 are resolved.
+
+=head2 javascript_client
+
+  $file = $self->javascript_client;
+
+Returns a L<Mojo::Asset::File> object which points to a file containing a
+custom JavaScript file which can communicate with
+L<Mojolicious::Plugin::Swagger2>.
+
+See L<https://github.com/jhthorsen/swagger2/blob/master/lib/Swagger2/swagger2-client.js>
+for source code.
+
+C<swagger2-client.js> is currently EXPERIMENTAL!
 
 =head2 load
 
