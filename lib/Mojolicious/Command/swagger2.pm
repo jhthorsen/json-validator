@@ -170,7 +170,7 @@ Usage:
   # Get documentation for a method
   mojo swagger2 client path/to/spec.json <method> help
 
-  # Specifiy spec and/or base URL from environment.
+  # Specify spec and/or base URL from environment.
   # Useful for shell wrappers
   SWAGGER_API_FILE=path/to/spec.json mojo swagger2 client <method>
   SWAGGER_BASE_URL=https://example.com/1.0 mojo swagger2 client <method>
@@ -205,7 +205,7 @@ L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
   # Get documentation for a method
   mojo swagger2 client path/to/spec.json <method> help
 
-  # Specifiy spec and/or base URL from environment.
+  # Specify spec and/or base URL from environment.
   # Useful for shell wrappers
   SWAGGER_API_FILE=path/to/spec.json mojo swagger2 client <method>
   SWAGGER_BASE_URL=https://example.com/1.0 mojo swagger2 client <method>
