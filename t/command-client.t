@@ -4,6 +4,8 @@ use Test::More;
 use File::Spec;
 use Mojolicious::Command::swagger2;
 
+plan skip_all => $^O if $^O eq 'MSWin32';
+
 my $cmd = Mojolicious::Command::swagger2->new;
 close $Mojolicious::Command::swagger2::OUT;
 open $Mojolicious::Command::swagger2::OUT, '>', \my $stdout;
