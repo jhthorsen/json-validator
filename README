@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.70
+    0.71
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger
@@ -80,6 +80,19 @@ METHODS
     This method returns a new "Swagger2" object, where all the references
     <https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28> are
     resolved.
+
+  javascript_client
+      $file = $self->javascript_client;
+
+    Returns a Mojo::Asset::File object which points to a file containing a
+    custom JavaScript file which can communicate with
+    Mojolicious::Plugin::Swagger2.
+
+    See
+    <https://github.com/jhthorsen/swagger2/blob/master/lib/Swagger2/swagger2
+    -client.js> for source code.
+
+    "swagger2-client.js" is currently EXPERIMENTAL!
 
   load
       $self = $self->load;
