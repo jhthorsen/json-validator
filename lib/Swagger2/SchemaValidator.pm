@@ -67,11 +67,11 @@ sub _coerce_by_collection_format {
   }
 }
 
-sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/; }
-sub _is_date        { $_[0] =~ qr/^(\d+)-(\d+)-(\d+)$/io; }
+sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/o }
+sub _is_date        { $_[0] =~ /^(\d+)-(\d+)-(\d+)$/o }
 
 sub _is_number {
-  return unless $_[0] =~ /^-?\d+(\.\d+)?$/;
+  return unless $_[0] =~ /^-?\d+(\.\d+)?$/o;
   return $_[0] eq unpack $_[1], pack $_[1], $_[0];
 }
 
