@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.66 Not Released
+ - Fix validating recursive datastructures
+
 0.65 2016-01-07T15:31:37+0100
  - Fix t/swagger-validate-response-object.t require Swagger2 0.66 #14
 

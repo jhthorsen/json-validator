@@ -358,6 +358,7 @@ See L</ERROR OBJECT> for details.
 
 sub validate {
   my ($self, $data, $schema) = @_;
+  local $self->{seen} = {};
   $schema ||= $self->schema->data;    # back compat with Swagger2::SchemaValidator
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
   return $self->_validate($data, '', $schema);
@@ -517,6 +518,9 @@ sub _validate {
   my ($self, $data, $path, $schema) = @_;
   my $type = $schema->{type} || _guess_schema_type($schema, $data);
   my @errors;
+
+  # Avoid recursion
+  return if ref $data and $self->{seen}{"$schema\:$data"}++;
 
   # Make sure we validate plain data and not a perl object
   if (UNIVERSAL::can($data, 'TO_JSON')) {
