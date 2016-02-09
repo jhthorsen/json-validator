@@ -1,5 +1,9 @@
 Revision history for perl distribution Swagger2
 
+0.72 Not Released
+ - Made the code less confusing by removing the /o regex modifier #71
+   Contributor: Daniel Böhmer
+
 0.71 2016-02-08T21:29:57+0100
  - Bundle EXPERIMENTAL swagger2-client.js
  - Fix spelling error #70
