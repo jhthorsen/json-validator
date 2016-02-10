@@ -13,10 +13,19 @@ plan skip_all => 'TEST_ONLINE=1' unless $ENV{TEST_ONLINE};
 # This test is an example to implement parts of the spec
 # in a different way.
 #
+# TODO: Make sure "path" is also part of the spec, using "discriminator":
+# https://github.com/jhthorsen/swagger2/issues/72
+#
 # http://json.schemastore.org/json-patch.json#/definitions/operation/oneOf/0
 #  => "patch"
+#     Add, replace or test.
+#
 # http://json.schemastore.org/json-patch.json#/definitions/operation/oneOf/1
 #  => "delete"
+#     DELETE can take a HTTP body, so it can either delete
+#     the whole object, or parts of the object.
+#     http://tools.ietf.org/html/draft-ietf-httpbis-p2-semantics-19#section-6.7
+#
 # http://json.schemastore.org/json-patch.json#/definitions/operation/oneOf/2
 #  => Not implemented
 #
@@ -51,9 +60,13 @@ __DATA__
           {
             "name": "data",
             "in": "body",
-            "description": "This is http://json.schemastore.org/json-patch.json#/definitions/operation/oneOf/1",
-            "required": true,
-            "schema": { }
+            "description": "Remove the whole or parts of the object",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "http://json.schemastore.org/json-patch.json#/definitions/operation/oneOf/1"
+              }
+            }
           }
         ],
         "responses": {
@@ -69,7 +82,7 @@ __DATA__
           {
             "name": "data",
             "in": "body",
-            "description": "Patch a buffer",
+            "description": "Add, replace or test",
             "required": true,
             "schema": {
               "type": "array",
