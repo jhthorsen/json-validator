@@ -1,0 +1,48 @@
+=head1 NAME
+
+Swagger2::Guides::JSONSchemaSupport - Adding json-schema support
+
+=head2 OVERVIEW
+
+By default L<json-schema|http://json-schema.org/> schema's are not supported by the swagger specification (though it 
+does use a sub/superset of the features).
+
+This makes swagger incompatible with many recognised standards including L<json-patch|http://tools.ietf.org/html/rfc6902>.
+
+To ovecome this and allow your specification files to remain valid, L<Mojolicious::Plugin::Swagger2> has added support 
+for 'x-json-schema' for both input body and response validation.
+
+=head1 SYNOPSIS
+
+  {
+    "swagger": "2.0",
+    "basePath": "/api",
+    "paths": {
+      "/pets/{name}": {
+        "patch": {
+          "operationId": "patchPets",
+          "parameters": [
+            { "name": "name", "in": "path", "type": "string" },
+            { 
+              "name": "data", 
+              "in": "body", 
+              "schema": { "type": "object" }, 
+              "x-json-schema": { "$ref": "http://json.schemastore.org/json-patch" } 
+            }
+          ],
+          "responses": {
+            "226": { 
+              "schema": { "type": "object" },
+              "x-json-schema": { "$ref": "http://json.schemastore.org/json-patch" } 
+            }
+          }
+        }
+      }
+    }
+  }
+
+=head1 AUTHOR
+
+Martin Renvoize - C<ashimema@cpan.org>
+
+=cut
