@@ -39,6 +39,11 @@ $t->post_ok('/api/pets/foo')->status_is(400)->json_is('/errors/0/path', '/petId'
   ->json_is('/errors/0/message', 'Expected integer - got string.')->json_is('/errors/1', undef);
 
 $t->get_ok('/api')->status_is(200)->json_is('/info/title', 'Swagger Petstore');
+my $api_spec = $t->tx->res->json;
+like $api_spec->{host}, qr{:\d+$}, 'petstore.swagger.wordnik.com is replaced';
+ok !exists $api_spec->{'id'}, 'no id in expanded spec';
+ok !exists $api_spec->{'paths'}{'/pets'}{'x-mojo-controller'},    'no x-mojo-controller in expanded spec';
+ok !exists $api_spec->{'paths'}{'/pets'}{'x-mojo-around-action'}, 'no x-mojo-around-action in expanded spec';
 
 {
   local $TODO = 'Should rendered spec contain x-mojo-?';

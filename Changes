@@ -1,6 +1,8 @@
 Revision history for perl distribution Swagger2
 
 0.72 Not Released
+ - Fix rendering Swagger spec cannot contain "id" and "x-mojo-xxx"
+ - Fix rendering Swagger spec with requested host in response.
  - Made the code less confusing by removing the /o regex modifier #71
    Contributor: Daniel Böhmer
 

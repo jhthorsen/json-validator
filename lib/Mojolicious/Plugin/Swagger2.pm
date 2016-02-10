@@ -100,8 +100,8 @@ sub register {
   $base_path =~ s!/$!!;
 
   for my $path (sort { length $a <=> length $b } keys %$paths) {
-    $paths->{$path}{'x-mojo-around-action'} ||= $swagger->api_spec->get('/x-mojo-around-action');
-    $paths->{$path}{'x-mojo-controller'}    ||= $swagger->api_spec->get('/x-mojo-controller');
+    my $around_action = $paths->{$path}{'x-mojo-around-action'} || $swagger->api_spec->get('/x-mojo-around-action');
+    my $controller    = $paths->{$path}{'x-mojo-controller'}    || $swagger->api_spec->get('/x-mojo-controller');
 
     for my $http_method (grep { !/^x-/ } keys %{$paths->{$path}}) {
       my $op_spec    = $paths->{$path}{$http_method};
@@ -114,8 +114,8 @@ sub register {
         "($type$name)";
       }/ge;
 
-      $op_spec->{'x-mojo-around-action'} ||= $paths->{$path}{'x-mojo-around-action'};
-      $op_spec->{'x-mojo-controller'}    ||= $paths->{$path}{'x-mojo-controller'};
+      $op_spec->{'x-mojo-around-action'} = $around_action if !$op_spec->{'x-mojo-around-action'} and $around_action;
+      $op_spec->{'x-mojo-controller'}    = $controller    if !$op_spec->{'x-mojo-controller'}    and $controller;
       $app->plugins->emit(
         swagger_route_added => $r->$http_method($route_path => $self->_generate_request_handler($op_spec)));
       warn "[Swagger2] Add route $http_method $base_path$route_path\n" if DEBUG;
@@ -125,7 +125,7 @@ sub register {
   if (my $spec_path = $config->{spec_path} // '/') {
     my $title = $swagger->api_spec->get('/info/title');
     $title =~ s!\W!_!g;
-    $r->get($spec_path)->to(cb => sub { shift->render(json => $swagger->api_spec->data) })->name(lc $title);
+    $r->get($spec_path)->to(cb => sub { _render_spec(shift, $swagger) })->name(lc $title);
   }
   if ($config->{ensure_swagger_response}) {
     $self->_ensure_swagger_response($app, $config->{ensure_swagger_response}, $swagger);
@@ -214,6 +214,16 @@ sub _on_route_added {
 
   $route_name =~ s/\W+/_/g;
   $r->name($route_name);
+}
+
+sub _render_spec {
+  my ($c, $swagger) = @_;
+  my $spec = $swagger->api_spec->data;
+
+  local $spec->{id};
+  delete $spec->{id};
+  local $spec->{host} = $c->req->url->to_abs->host_port;
+  $c->render(json => $spec);
 }
 
 sub _validate_input {
