@@ -11,6 +11,7 @@ my $SKIP_OP_RE = qr(By|From|For|In|Of|To|With);
 
 has url => '';
 has _validator => sub { Swagger2::SchemaValidator->new; };
+has _json_validator => sub { JSON::Validator->new; };
 
 sub dispatch_to_swagger {
   return undef unless $_[1]->{op} and $_[1]->{id} and ref $_[1]->{params} eq 'HASH';
@@ -278,12 +279,17 @@ sub _validate_input_value {
 
   return if !defined $value and !Swagger2::_is_true($p->{required});
 
-  my $schema = {properties => {$name => $p->{schema} || $p}, required => [$p->{required} ? ($name) : ()]};
+  my $schema = {properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p}, required => [$p->{required} ? ($name) : ()]};
   my $in = $p->{in};
 
   if ($in eq 'body') {
     warn "[Swagger2] Validate $in $name\n" if DEBUG;
-    return $self->_validator->validate_input({$name => $value}, $schema);
+    if ( $p->{'x-json-schema'} ) {
+      return $self->_json_validator->validate({$name => $value}, $schema);
+    }
+    else {
+      return $self->_validator->validate_input({$name => $value}, $schema);
+    }
   }
   elsif (defined $value) {
     warn "[Swagger2] Validate $in $name=$value\n" if DEBUG;
@@ -319,7 +325,14 @@ sub _validate_response {
       }
     }
 
-    push @errors, $self->_validator->validate($data, $blueprint->{schema}) if $blueprint->{schema};
+    if ( $blueprint->{'x-json-schema'} ) {
+      warn "[Swagger2] Validate using x-json-schema\n" if DEBUG;
+      push @errors, $self->_json_validator->validate($data, $blueprint->{'x-json-schema'});
+    }
+    elsif ( $blueprint->{schema} ) {
+      warn "[Swagger2] Validate using schema\n" if DEBUG;
+      push @errors, $self->_validator->validate($data, $blueprint->{schema});
+    }
   }
   else {
     push @errors, $self->_validator->validate($data, {});
@@ -447,6 +460,8 @@ or look at L<Swagger2::Guides::Tutorial> for an introduction.
 =item * L<Swagger2::Guides::ProtectedApi> - Protected API Guide
 
 =item * L<Swagger2::Guides::CustomPlaceholder> - Custom placeholder for your routes
+
+=item * L<Swagger2::Guides::JSONSchemaSupport> - Adding json-schema support
 
 =item * L<Swagger spec|https://github.com/jhthorsen/swagger2/blob/master/t/blog/api.json>
 
