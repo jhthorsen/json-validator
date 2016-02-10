@@ -50,17 +50,22 @@ __DATA__
           "200" : {
             "description": "this is required",
             "headers": {
-              "x-bool": { "type": "boolean" },
-              "what-ever": {
-                "type": "array",
-                "items": { "type": "string" },
-                "minItems": 1
-              }
+              "$ref": "#/definitions/common_headers/properties"
             },
-            "schema": {
-              "type" : "object"
-            }
+            "schema": { "type" : "object" }
           }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "common_headers": {
+      "properties": {
+        "x-bool": { "type": "boolean" },
+        "what-ever": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
         }
       }
     }
