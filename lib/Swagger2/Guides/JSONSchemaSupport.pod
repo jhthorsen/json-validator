@@ -1,6 +1,11 @@
 =head1 NAME
 
-Swagger2::Guides::JSONSchemaSupport - Adding json-schema support
+Swagger2::Guides::JSONSchemaSupport - Adding json-schema support - EXPERIMENTAL
+
+=head1 DISCLAIMER
+
+This feature is both EXPERIMENTAL and DISCOURAGED.  Third party tooling will simply ignore the x-json-schema property
+and thus not do any special handling on it's side for you.
 
 =head2 OVERVIEW
 
@@ -9,10 +14,10 @@ does use a sub/superset of the features).
 
 This makes swagger incompatible with many recognised standards including L<json-patch|http://tools.ietf.org/html/rfc6902>.
 
-To ovecome this and allow your specification files to remain valid, L<Mojolicious::Plugin::Swagger2> has added support 
-for 'x-json-schema' for both input body and response validation.
+To ovecome this and allow your specification files to remain valid, L<Mojolicious::Plugin::Swagger2> has added 
+EXPERIMENTAL support for 'x-json-schema' for both input body and response validation.
 
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   {
     "swagger": "2.0",
@@ -41,7 +46,7 @@ for 'x-json-schema' for both input body and response validation.
     }
   }
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 Martin Renvoize - C<ashimema@cpan.org>
 

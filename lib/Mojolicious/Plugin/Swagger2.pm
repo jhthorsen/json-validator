@@ -461,7 +461,7 @@ or look at L<Swagger2::Guides::Tutorial> for an introduction.
 
 =item * L<Swagger2::Guides::CustomPlaceholder> - Custom placeholder for your routes
 
-=item * L<Swagger2::Guides::JSONSchemaSupport> - Adding json-schema support
+=item * L<Swagger2::Guides::JSONSchemaSupport> - Adding json-schema support - EXPERIMENTAL
 
 =item * L<Swagger spec|https://github.com/jhthorsen/swagger2/blob/master/t/blog/api.json>
 
