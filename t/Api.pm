@@ -85,6 +85,11 @@ sub patch_pet {
   $c->$cb({}, 204);
 }
 
+sub json_patch_pet {
+  my ($c, $args, $cb) = @_;
+  $c->$cb($RES, 226);
+}
+
 sub with_defaults {
   my ($c, $args, $cb) = @_;
   $c->$cb({ip => $args->{ip}, x => $args->{x}});
