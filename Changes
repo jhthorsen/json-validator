@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.72 Not Released
+0.72 2016-02-12T11:30:05+0100
  - Fix rendering Swagger spec cannot contain "id" and "x-mojo-xxx"
  - Fix rendering Swagger spec with requested host in response.
  - Made the code less confusing by removing the /o regex modifier #71
