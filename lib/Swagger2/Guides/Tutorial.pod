@@ -92,20 +92,30 @@ defined in the L</Swagger specification>.
 The method names defined in the controller will be a
 L<decamelized|Mojo::Util::decamelize> version of C<operationId>.
 
-The example L</Swagger specification> above, will result in
-C<show()> in the controller below to be called. This method
-will receive the current L<Mojolicious::Controller> object, input arguments
-and a callback. The callback should be called with a HTTP status code, and
-a data structure which will be validated and serialized back to the user
-agent.
+The example L</Swagger specification> above, will result in C<show()> in the
+controller below to be called. This method will receive the current
+L<Mojolicious::Controller> object, input arguments and a callback. The callback
+should be called with a HTTP status code, and a data structure which will be
+validated and serialized back to the user agent.
+
+C<$args> (input arguments) will be a hash, where the keys match "name" in the
+"parameters" defined in the Swagger spec, and the values are whatever input
+came from the client. This also goes for the "body" parameter: This means that
+the input JSON from HTTP body will not be flattened, but stored under the body
+parameter name in C<$args>.
 
   package MyApp::Controller::Pet;
 
   sub show {
-    my ($c, $input, $cb) = @_;
+    my ($c, $args, $cb) = @_;
+
+    # Example $args:
+    # $args->{body_param_name}  == $c->req->json
+    # $args->{query_param_name} == $c->req->url->query->param("query_param_name")
+    # $args->{"X-Header-Name"}  == $c->req->headers->header("X-Header-Name")
+
     $c->$cb({limit => 123}, 200);
   }
-
 
 =head1 SEE ALSO
 
