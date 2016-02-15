@@ -66,7 +66,7 @@ sub _generate_method {
       return $self;
     }
 
-    push @{$req->[0]->path->parts}, map { local $_ = $_; s/\{(\w+)\}/{$args->{$1}||''}/ge; $_; } @path;
+    push @{$req->[0]->path->parts}, map { local $_ = $_; s,\{(\w+)\},{$args->{$1}//''},ge; $_; } @path;
 
     if ($cb) {
       Scalar::Util::weaken($self);

@@ -1,5 +1,9 @@
 Revision history for perl distribution Swagger2
 
+0.73 Not Released
+ - Fix "0" as placeholder value #74
+   Contributor: Le Garff Yoann
+
 0.72 2016-02-12T11:30:05+0100
  - Fix rendering Swagger spec cannot contain "id" and "x-mojo-xxx"
  - Fix rendering Swagger spec with requested host in response.
