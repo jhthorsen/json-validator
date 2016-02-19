@@ -1,5 +1,9 @@
 Revision history for perl distribution Swagger2
 
+0.74 2016-02-19T11:28:52+0000
+ - Add x-json-schema support
+   Contributor: Martin Renvoize
+
 0.73 2016-02-15T14:04:15+0100
  - Fix "0" as placeholder value #74
    Contributor: Le Garff Yoann
