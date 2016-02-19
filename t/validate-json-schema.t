@@ -18,8 +18,9 @@ $t::Api::RES = [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}];
 $t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])->status_is(226);
 
 # invalid output
-$t::Api::RES = [{id => "123", name => "kit-cat"}];
-$t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])->status_is(500);
+$t::Api::RES = [{op => "add"}];
+$t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])->status_is(500)
+  ->json_is('/errors/0/path', '/0/path')->json_is('/errors/0/message', 'Missing property.');
 
 done_testing;
 
