@@ -14,12 +14,12 @@ $t::Api::RES = [];
 $t->patch_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(400);
 
 # valid input and output
-$t::Api::RES = [ { "op" => "test", "path" => "/a/b/c", "value" => "foo" } ];
-$t->patch_ok('/api/pets' => json => [ { "op" => "test", "path" => "/a/b/c", "value" => "foo" } ])->status_is(226);
+$t::Api::RES = [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}];
+$t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])->status_is(226);
 
 # invalid output
 $t::Api::RES = [{id => "123", name => "kit-cat"}];
-$t->patch_ok('/api/pets' => json => [ { "op" => "test", "path" => "/a/b/c", "value" => "foo" } ])->status_is(500);
+$t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])->status_is(500);
 
 done_testing;
 

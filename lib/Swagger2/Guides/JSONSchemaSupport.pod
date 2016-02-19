@@ -19,32 +19,44 @@ EXPERIMENTAL support for 'x-json-schema' for both input body and response valida
 
 =head2 SYNOPSIS
 
-  {
-    "swagger": "2.0",
-    "basePath": "/api",
-    "paths": {
-      "/pets/{name}": {
-        "patch": {
-          "operationId": "patchPets",
-          "parameters": [
-            { "name": "name", "in": "path", "type": "string" },
-            { 
-              "name": "data", 
-              "in": "body", 
-              "schema": { "type": "object" }, 
-              "x-json-schema": { "$ref": "http://json.schemastore.org/json-patch" } 
+{
+  "swagger":"2.0",
+  "basePath":"/api",
+  "paths":{
+    "/pets/{name}":{
+      "patch":{
+        "operationId":"patchPets",
+        "parameters":[
+          {
+            "name":"name",
+            "in":"path",
+            "type":"string"
+          },
+          {
+            "name":"data",
+            "in":"body",
+            "schema":{
+              "type":"object"
+            },
+            "x-json-schema":{
+              "$ref":"http://json.schemastore.org/json-patch"
             }
-          ],
-          "responses": {
-            "226": { 
-              "schema": { "type": "object" },
-              "x-json-schema": { "$ref": "http://json.schemastore.org/json-patch" } 
+          }
+        ],
+        "responses":{
+          "226":{
+            "schema":{
+              "type":"object"
+            },
+            "x-json-schema":{
+              "$ref":"http://json.schemastore.org/json-patch"
             }
           }
         }
       }
     }
   }
+}
 
 =head2 AUTHOR
 

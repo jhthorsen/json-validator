@@ -9,8 +9,8 @@ use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
 my $SKIP_OP_RE = qr(By|From|For|In|Of|To|With);
 
-has url => '';
-has _validator => sub { Swagger2::SchemaValidator->new; };
+has url             => '';
+has _validator      => sub { Swagger2::SchemaValidator->new; };
 has _json_validator => sub { JSON::Validator->new; };
 
 sub dispatch_to_swagger {
@@ -279,12 +279,13 @@ sub _validate_input_value {
 
   return if !defined $value and !Swagger2::_is_true($p->{required});
 
-  my $schema = {properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p}, required => [$p->{required} ? ($name) : ()]};
+  my $schema = {properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p},
+    required => [$p->{required} ? ($name) : ()]};
   my $in = $p->{in};
 
   if ($in eq 'body') {
     warn "[Swagger2] Validate $in $name\n" if DEBUG;
-    if ( $p->{'x-json-schema'} ) {
+    if ($p->{'x-json-schema'}) {
       return $self->_json_validator->validate({$name => $value}, $schema);
     }
     else {
@@ -325,11 +326,11 @@ sub _validate_response {
       }
     }
 
-    if ( $blueprint->{'x-json-schema'} ) {
+    if ($blueprint->{'x-json-schema'}) {
       warn "[Swagger2] Validate using x-json-schema\n" if DEBUG;
       push @errors, $self->_json_validator->validate($data, $blueprint->{'x-json-schema'});
     }
-    elsif ( $blueprint->{schema} ) {
+    elsif ($blueprint->{schema}) {
       warn "[Swagger2] Validate using schema\n" if DEBUG;
       push @errors, $self->_validator->validate($data, $blueprint->{schema});
     }
