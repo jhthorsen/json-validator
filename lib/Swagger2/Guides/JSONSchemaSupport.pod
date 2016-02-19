@@ -1,0 +1,71 @@
+=head1 NAME
+
+Swagger2::Guides::JSONSchemaSupport - Adding json-schema support - EXPERIMENTAL
+
+=head1 DISCLAIMER
+
+This feature is both EXPERIMENTAL and DISCOURAGED.
+
+Third party tooling will simply ignore the x-json-schema property and thus not do any special handling on it's side for 
+you. Paths that include this property will introduce unexpected consequences in third party client generators for
+instance, where the x-json-schema will not be validated against and thus manual intervention will likely be needed for 
+these paths.
+
+=head2 JUSTIFICATION
+
+By default L<json-schema|http://json-schema.org/> schema's are not supported by the swagger specification (though it 
+does use a sub/superset of the features).
+
+This makes swagger incompatible with many recognised standards including L<json-patch|http://tools.ietf.org/html/rfc6902>.
+
+To ovecome this and allow your specification files to remain 'valid', L<Mojolicious::Plugin::Swagger2> has added 
+EXPERIMENTAL support for 'x-json-schema' for both input body and response validation. This means that should you choose 
+to adopt one of the many standards that use json-schema and you cannot see a way of converting it to a swagger schema 
+then you may still yield the benefits of request and response validation for those objects as outlined below.
+
+=head2 SYNOPSIS
+
+{
+  "swagger":"2.0",
+  "basePath":"/api",
+  "paths":{
+    "/pets/{name}":{
+      "patch":{
+        "operationId":"patchPets",
+        "parameters":[
+          {
+            "name":"name",
+            "in":"path",
+            "type":"string"
+          },
+          {
+            "name":"data",
+            "in":"body",
+            "schema":{
+              "type":"object"
+            },
+            "x-json-schema":{
+              "$ref":"http://json.schemastore.org/json-patch"
+            }
+          }
+        ],
+        "responses":{
+          "226":{
+            "schema":{
+              "type":"object"
+            },
+            "x-json-schema":{
+              "$ref":"http://json.schemastore.org/json-patch"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+=head2 AUTHOR
+
+Martin Renvoize - C<ashimema@cpan.org>
+
+=cut
