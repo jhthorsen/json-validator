@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.75 Not Released
+0.75 2016-02-22T09:02:43+0000
  - Fix indentation of JSONSchemaSupport guide
 
 0.74 2016-02-19T11:28:52+0000
