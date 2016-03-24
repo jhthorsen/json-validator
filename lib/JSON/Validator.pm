@@ -1,126 +1,4 @@
 package JSON::Validator;
-
-=head1 NAME
-
-JSON::Validator - Validate data against a JSON schema
-
-=head1 VERSION
-
-0.66
-
-=head1 SYNOPSIS
-
-  use JSON::Validator;
-  my $validator = JSON::Validator->new;
-
-  # Define a schema - http://json-schema.org/examples.html
-  # You can also load schema from disk or web
-  $validator->schema(
-    {
-      type       => "object",
-      required   => ["firstName", "lastName"],
-      properties => {
-        firstName => {type => "string"},
-        lastName  => {type => "string"},
-        age       => {type => "integer", minimum => 0, description => "Age in years"}
-      }
-    }
-  );
-
-  # Validate your data
-  @errors = $validator->validate({firstName => "Jan Henning", lastName => "Thorsen", age => -42});
-
-  # Do something if any errors was found
-  die "@errors" if @errors;
-
-=head1 DESCRIPTION
-
-L<JSON::Validator> is a class for validating data against JSON schemas.
-You might want to use this instead of L<JSON::Schema> if you need to
-validate data against L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
-of the specification.
-
-This module is currently EXPERIMENTAL. Hopefully nothing drastic will change,
-but it needs to fit together nicely with L<Swagger2> - Since this is a spin-off
-project.
-
-=head2 Supported schema formats
-
-L<JSON::Validator> can load JSON schemas in multiple formats: Plain perl data
-structured (as shown in L</SYNOPSIS>) or files on disk/web in the JSON/YAML
-format. The JSON parsing is done using L<Mojo::JSON>, while the YAML parsing
-is done with an optional modules which need to be installed manually.
-L<JSON::Validator> will look for the YAML modules in this order: L<YAML::XS>,
-L<YAML::Syck>. The order is set by which module that performs the best, so it
-might change in the future.
-
-=head2 Resources
-
-Here are some resources that are related to JSON schemas and validation:
-
-=over 4
-
-=item * L<http://json-schema.org/documentation.html>
-
-=item * L<http://spacetelescope.github.io/understanding-json-schema/index.html>
-
-=item * L<https://github.com/json-schema/json-schema/>
-
-=item * L<Swagger2>
-
-=back
-
-=head1 ERROR OBJECT
-
-=head2 Overview
-
-The method L</validate> and the function L</validate_json> returns
-error objects when the input data violates the L</schema>. Each of
-the objects looks like this:
-
-  bless {
-    message => "Some description",
-    path => "/json/path/to/node",
-  }, "JSON::Validator::Error"
-
-=head2 Operators
-
-The error object overloads the following operators:
-
-=over 4
-
-=item * bool
-
-Returns a true value.
-
-=item * string
-
-Returns the "path" and "message" part as a string: "$path: $message".
-
-=back
-
-=head2 Special cases
-
-Have a look at the L<test suite|https://github.com/jhthorsen/json-validator/tree/master/t>
-for documented examples of the error cases. Especially look at C<jv-allof.t>,
-C<jv-anyof.t> and C<jv-oneof.t>.
-
-The special cases for "allOf", "anyOf" and "oneOf" will contain the error messages
-from all the failing rules below. It can be a bit hard to read, so if the error message
-is long, then you might want to run a smaller test with C<JSON_VALIDATOR_DEBUG=1>.
-
-Example error object:
-
-  bless {
-    message => "[0] String is too long: 8/5. [1] Expected number - got string.",
-    path => "/json/path/to/node",
-  }, "JSON::Validator::Error"
-
-Note that these error messages are subject for change. Any suggestions are most
-welcome!
-
-=cut
-
 use Mojo::Base -base;
 use Exporter 'import';
 use Mojo::JSON;
@@ -148,89 +26,9 @@ my $HTTP_SCHEME_RE = qr{^https?:};
 sub E { bless {path => $_[0] || '/', message => $_[1]}, 'JSON::Validator::Error'; }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
 
-=head1 FUNCTIONS
-
-=head2 validate_json
-
-  use JSON::Validator "validate_json";
-  @errors = validate_json $data, $schema;
-
-This can be useful in web applications:
-
-  @errors = validate_json $c->req->json, "data://main/spec.json";
-
-See also L</validate> and L</ERROR OBJECT> for more details.
-
-=cut
-
 sub validate_json {
   __PACKAGE__->singleton->schema($_[1])->validate($_[0]);
 }
-
-=head1 ATTRIBUTES
-
-=head2 cache_dir
-
-  $self = $self->cache_dir($path);
-  $path = $self->cache_dir;
-
-Path to where downloaded spec files should be cached. Defaults to
-C<JSON_VALIDATOR_CACHE_DIR> or the bundled spec files that are shipped
-with this distribution.
-
-=head2 formats
-
-  $hash_ref = $self->formats;
-  $self = $self->formats(\%hash);
-
-Holds a hash-ref, where the keys are supported JSON type "formats", and
-the values holds a code block which can validate a given format.
-
-Note! The modules mentioned below are optional.
-
-=over 4
-
-=item * date-time
-
-An RFC3339 timestamp in UTC time. This is formatted as
-"YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is optional
-
-=item * email
-
-Validated against the RFC5322 spec.
-
-=item * hostname
-
-Will be validated using L<Data::Validate::Domain> if installed.
-
-=item * ipv4
-
-Will be validated using L<Data::Validate::IP> if installed or
-fall back to a plain IPv4 IP regex.
-
-=item * ipv6
-
-Will be validated using L<Data::Validate::IP> if installed.
-
-=item * uri
-
-Validated against the RFC3986 spec.
-
-=back
-
-=head2 ua
-
-  $ua = $self->ua;
-  $self = $self->ua(Mojo::UserAgent->new);
-
-Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
-from remote location.
-
-Note that the default L<Mojo::UserAgent> will detect proxy settings and have
-L<Mojo::UserAgent/max_redirects> set to 3. (These settings are EXPERIMENTAL
-and might change without a warning)
-
-=cut
 
 has cache_dir => sub {
   $ENV{JSON_VALIDATOR_CACHE_DIR} || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( JSON Validator ));
@@ -246,74 +44,12 @@ has ua => sub {
   $ua;
 };
 
-=head1 METHODS
-
-=head2 coerce
-
-  $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
-  $self = $self->coerce({booleans => 1, numbers => 1, strings => 1});
-  $self = $self->coerce(1) # enable all
-  $hash = $self->coerce;
-
-Set the given type to coerce. Before enabling coercion this module is very
-strict when it comes to validating types. Example: The string C<"1"> is not
-the same as the number C<1>, unless you have coercion enabled.
-
-WARNING! Enabling coercion might hide bugs in your api, which would have been
-detected if you were strict. For example JavaScript is very picky on a number
-being an actual number. This module tries it best to convert the data on the
-fly into the proper value, but this means that you unit tests might be ok,
-but the client side libraries (that care about types) might break.
-
-Loading a YAML document will enable "booleans" automatically. This feature is
-experimental, but was added since YAML has no real concept of booleans, such
-as L<Mojo::JSON> or other JSON parsers.
-
-The coercion rules are EXPERIMENTAL and will be tighten/loosen if
-bugs are reported. See L<https://github.com/jhthorsen/json-validator/issues/8>
-for more details.
-
-=cut
-
 sub coerce {
   my $self = shift;
   return $self->{coerce} ||= {} unless @_;
   $self->{coerce} = $_[0] eq '1' ? {booleans => 1, numbers => 1, strings => 1} : ref $_[0] ? {%{$_[0]}} : {@_};
   $self;
 }
-
-=head2 schema
-
-  $self = $self->schema(\%schema);
-  $self = $self->schema($url);
-  $schema = $self->schema;
-
-Used to set a schema from either a data structure or a URL.
-
-C<$schema> will be a L<Mojo::JSON::Pointer> object when loaded,
-and C<undef> by default.
-
-The C<$url> can take many forms, but needs to point to a text file in the
-JSON or YAML format.
-
-=over 4
-
-=item * http://... or https://...
-
-A web resource will be fetched using the L<Mojo::UserAgent>, stored in L</ua>.
-
-=item * data://Some::Module/file.name
-
-This version will use L<Mojo::Loader/data_section> to load "file.name" from
-the module "Some::Module".
-
-=item * /path/to/file
-
-An URL (without a recognized scheme) will be loaded from disk.
-
-=back
-
-=cut
 
 sub schema {
   my ($self, $schema) = @_;
@@ -335,26 +71,7 @@ sub schema {
   $self;
 }
 
-=head2 singleton
-
-  $self = $class->singleton;
-
-Returns the L<JSON::Validator> object used by L</validate_json>.
-
-=cut
-
 sub singleton { state $validator = shift->new }
-
-=head2 validate
-
-  @errors = $self->validate($data);
-
-Validates C<$data> against a given JSON L</schema>. C<@errors> will
-contain validation error objects or be an empty list on success.
-
-See L</ERROR OBJECT> for details.
-
-=cut
 
 sub validate {
   my ($self, $data, $schema) = @_;
@@ -999,6 +716,278 @@ sub message { shift->{message} }
 sub path    { shift->{path} }
 sub TO_JSON { {message => $_[0]->{message}, path => $_[0]->{path}} }
 
+1;
+
+=encoding utf8
+
+=head1 NAME
+
+JSON::Validator - Validate data against a JSON schema
+
+=head1 VERSION
+
+0.66
+
+=head1 SYNOPSIS
+
+  use JSON::Validator;
+  my $validator = JSON::Validator->new;
+
+  # Define a schema - http://json-schema.org/examples.html
+  # You can also load schema from disk or web
+  $validator->schema(
+    {
+      type       => "object",
+      required   => ["firstName", "lastName"],
+      properties => {
+        firstName => {type => "string"},
+        lastName  => {type => "string"},
+        age       => {type => "integer", minimum => 0, description => "Age in years"}
+      }
+    }
+  );
+
+  # Validate your data
+  @errors = $validator->validate({firstName => "Jan Henning", lastName => "Thorsen", age => -42});
+
+  # Do something if any errors was found
+  die "@errors" if @errors;
+
+=head1 DESCRIPTION
+
+L<JSON::Validator> is a class for validating data against JSON schemas.
+You might want to use this instead of L<JSON::Schema> if you need to
+validate data against L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
+of the specification.
+
+This module is currently EXPERIMENTAL. Hopefully nothing drastic will change,
+but it needs to fit together nicely with L<Swagger2> - Since this is a spin-off
+project.
+
+=head2 Supported schema formats
+
+L<JSON::Validator> can load JSON schemas in multiple formats: Plain perl data
+structured (as shown in L</SYNOPSIS>) or files on disk/web in the JSON/YAML
+format. The JSON parsing is done using L<Mojo::JSON>, while the YAML parsing
+is done with an optional modules which need to be installed manually.
+L<JSON::Validator> will look for the YAML modules in this order: L<YAML::XS>,
+L<YAML::Syck>. The order is set by which module that performs the best, so it
+might change in the future.
+
+=head2 Resources
+
+Here are some resources that are related to JSON schemas and validation:
+
+=over 4
+
+=item * L<http://json-schema.org/documentation.html>
+
+=item * L<http://spacetelescope.github.io/understanding-json-schema/index.html>
+
+=item * L<https://github.com/json-schema/json-schema/>
+
+=item * L<Swagger2>
+
+=back
+
+=head1 ERROR OBJECT
+
+=head2 Overview
+
+The method L</validate> and the function L</validate_json> returns
+error objects when the input data violates the L</schema>. Each of
+the objects looks like this:
+
+  bless {
+    message => "Some description",
+    path => "/json/path/to/node",
+  }, "JSON::Validator::Error"
+
+=head2 Operators
+
+The error object overloads the following operators:
+
+=over 4
+
+=item * bool
+
+Returns a true value.
+
+=item * string
+
+Returns the "path" and "message" part as a string: "$path: $message".
+
+=back
+
+=head2 Special cases
+
+Have a look at the L<test suite|https://github.com/jhthorsen/json-validator/tree/master/t>
+for documented examples of the error cases. Especially look at C<jv-allof.t>,
+C<jv-anyof.t> and C<jv-oneof.t>.
+
+The special cases for "allOf", "anyOf" and "oneOf" will contain the error messages
+from all the failing rules below. It can be a bit hard to read, so if the error message
+is long, then you might want to run a smaller test with C<JSON_VALIDATOR_DEBUG=1>.
+
+Example error object:
+
+  bless {
+    message => "[0] String is too long: 8/5. [1] Expected number - got string.",
+    path => "/json/path/to/node",
+  }, "JSON::Validator::Error"
+
+Note that these error messages are subject for change. Any suggestions are most
+welcome!
+
+=head1 FUNCTIONS
+
+=head2 validate_json
+
+  use JSON::Validator "validate_json";
+  @errors = validate_json $data, $schema;
+
+This can be useful in web applications:
+
+  @errors = validate_json $c->req->json, "data://main/spec.json";
+
+See also L</validate> and L</ERROR OBJECT> for more details.
+
+=head1 ATTRIBUTES
+
+=head2 cache_dir
+
+  $self = $self->cache_dir($path);
+  $path = $self->cache_dir;
+
+Path to where downloaded spec files should be cached. Defaults to
+C<JSON_VALIDATOR_CACHE_DIR> or the bundled spec files that are shipped
+with this distribution.
+
+=head2 formats
+
+  $hash_ref = $self->formats;
+  $self = $self->formats(\%hash);
+
+Holds a hash-ref, where the keys are supported JSON type "formats", and
+the values holds a code block which can validate a given format.
+
+Note! The modules mentioned below are optional.
+
+=over 4
+
+=item * date-time
+
+An RFC3339 timestamp in UTC time. This is formatted as
+"YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is optional
+
+=item * email
+
+Validated against the RFC5322 spec.
+
+=item * hostname
+
+Will be validated using L<Data::Validate::Domain> if installed.
+
+=item * ipv4
+
+Will be validated using L<Data::Validate::IP> if installed or
+fall back to a plain IPv4 IP regex.
+
+=item * ipv6
+
+Will be validated using L<Data::Validate::IP> if installed.
+
+=item * uri
+
+Validated against the RFC3986 spec.
+
+=back
+
+=head2 ua
+
+  $ua = $self->ua;
+  $self = $self->ua(Mojo::UserAgent->new);
+
+Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
+from remote location.
+
+Note that the default L<Mojo::UserAgent> will detect proxy settings and have
+L<Mojo::UserAgent/max_redirects> set to 3. (These settings are EXPERIMENTAL
+and might change without a warning)
+
+=head1 METHODS
+
+=head2 coerce
+
+  $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
+  $self = $self->coerce({booleans => 1, numbers => 1, strings => 1});
+  $self = $self->coerce(1) # enable all
+  $hash = $self->coerce;
+
+Set the given type to coerce. Before enabling coercion this module is very
+strict when it comes to validating types. Example: The string C<"1"> is not
+the same as the number C<1>, unless you have coercion enabled.
+
+WARNING! Enabling coercion might hide bugs in your api, which would have been
+detected if you were strict. For example JavaScript is very picky on a number
+being an actual number. This module tries it best to convert the data on the
+fly into the proper value, but this means that you unit tests might be ok,
+but the client side libraries (that care about types) might break.
+
+Loading a YAML document will enable "booleans" automatically. This feature is
+experimental, but was added since YAML has no real concept of booleans, such
+as L<Mojo::JSON> or other JSON parsers.
+
+The coercion rules are EXPERIMENTAL and will be tighten/loosen if
+bugs are reported. See L<https://github.com/jhthorsen/json-validator/issues/8>
+for more details.
+
+=head2 schema
+
+  $self = $self->schema(\%schema);
+  $self = $self->schema($url);
+  $schema = $self->schema;
+
+Used to set a schema from either a data structure or a URL.
+
+C<$schema> will be a L<Mojo::JSON::Pointer> object when loaded,
+and C<undef> by default.
+
+The C<$url> can take many forms, but needs to point to a text file in the
+JSON or YAML format.
+
+=over 4
+
+=item * http://... or https://...
+
+A web resource will be fetched using the L<Mojo::UserAgent>, stored in L</ua>.
+
+=item * data://Some::Module/file.name
+
+This version will use L<Mojo::Loader/data_section> to load "file.name" from
+the module "Some::Module".
+
+=item * /path/to/file
+
+An URL (without a recognized scheme) will be loaded from disk.
+
+=back
+
+=head2 singleton
+
+  $self = $class->singleton;
+
+Returns the L<JSON::Validator> object used by L</validate_json>.
+
+=head2 validate
+
+  @errors = $self->validate($data);
+
+Validates C<$data> against a given JSON L</schema>. C<@errors> will
+contain validation error objects or be an empty list on success.
+
+See L</ERROR OBJECT> for details.
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2014-2015, Jan Henning Thorsen
@@ -1011,5 +1000,3 @@ the terms of the Artistic License version 2.0.
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
-
-1;
