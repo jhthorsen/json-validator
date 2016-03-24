@@ -344,7 +344,8 @@ sub _validate_any_of {
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule);
     push @errors, @e ? @e : (undef);
-    $failed++ if @e;
+    last unless @e;
+    $failed++;
   }
 
   if ($failed < @$rules) {
@@ -353,8 +354,7 @@ sub _validate_any_of {
   }
   else {
     warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-    return E $path, sprintf 'anyOf failed: %s', $self->_merge_errors($path, @errors)
-      if grep {$_} @errors;
+    return E $path, sprintf 'anyOf failed: %s', $self->_merge_errors($path, grep {$_} @errors);
   }
 }
 
