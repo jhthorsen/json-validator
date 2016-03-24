@@ -7,9 +7,11 @@ my $validator = JSON::Validator->new;
 # from http://json-schema.org/latest/json-schema-core.html#anchor30
 $validator->schema(
   {
-    id => 'http://my.site/myschema#',
-    definitions =>
-      {schema1 => {id => 'schema1', type => 'integer'}, schema2 => {type => 'array', items => {'$ref' => 'schema1'}}}
+    id          => 'http://my.site/myschema#',
+    definitions => {
+      schema1 => {id   => 'schema1', type  => 'integer'},
+      schema2 => {type => 'array',   items => {'$ref' => 'schema1'}}
+    }
   }
 );
 

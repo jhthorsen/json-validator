@@ -21,7 +21,8 @@ is "@errors", "/: All of the oneOf rules match.", "n:15";
 
 # Alternative oneOf
 # http://json-schema.org/latest/json-schema-validation.html#anchor79
-$schema = {type => 'object', properties => {x => {type => ['string', 'null'], format => 'date-time'}}};
+$schema
+  = {type => 'object', properties => {x => {type => ['string', 'null'], format => 'date-time'}}};
 @errors = $validator->validate({x => 'foo'}, $schema);
 is "@errors", "/x: ([0] Does not match date-time format. [1] Not null.)", "foo";
 

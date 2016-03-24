@@ -15,7 +15,9 @@ is_deeply $errors[0]->TO_JSON, {path => '/lastName', message => 'Missing propert
 my $spec = slurp $file;
 $spec =~ s!"#!"person.json#! or die "Invalid spec: $spec";
 spurt $spec => "$file.2";
-ok eval { JSON::Validator->new->schema("$file.2") }, 'test issue #1 where $ref could not point to a file' or diag $@;
+ok eval { JSON::Validator->new->schema("$file.2") },
+  'test issue #1 where $ref could not point to a file'
+  or diag $@;
 unlink "$file.2";
 
 done_testing;

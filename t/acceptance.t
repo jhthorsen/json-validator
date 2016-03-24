@@ -4,7 +4,8 @@ use Mojo::Util 'dumper';
 use Test::More;
 use JSON::Validator 'validate_json';
 
-plan skip_all => 'cpanm Test::JSON::Schema::Acceptance' unless eval 'use Test::JSON::Schema::Acceptance; 1';
+plan skip_all => 'cpanm Test::JSON::Schema::Acceptance'
+  unless eval 'use Test::JSON::Schema::Acceptance; 1';
 
 my $opts = {
   only_test  => $ENV{ACCEPTANCE_TEST},

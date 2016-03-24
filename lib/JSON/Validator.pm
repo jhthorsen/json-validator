@@ -19,7 +19,7 @@ use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMA
   || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
 
 our $VERSION   = '0.66';
-our @EXPORT_OK = qw( validate_json );
+our @EXPORT_OK = qw(validate_json);
 
 my $HTTP_SCHEME_RE = qr{^https?:};
 
@@ -31,7 +31,8 @@ sub validate_json {
 }
 
 has cache_dir => sub {
-  $ENV{JSON_VALIDATOR_CACHE_DIR} || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( JSON Validator ));
+  $ENV{JSON_VALIDATOR_CACHE_DIR}
+    || File::Spec->catdir(File::Basename::dirname(__FILE__), qw(JSON Validator));
 };
 
 has formats => sub { shift->_build_formats };
@@ -47,7 +48,8 @@ has ua => sub {
 sub coerce {
   my $self = shift;
   return $self->{coerce} ||= {} unless @_;
-  $self->{coerce} = $_[0] eq '1' ? {booleans => 1, numbers => 1, strings => 1} : ref $_[0] ? {%{$_[0]}} : {@_};
+  $self->{coerce}
+    = $_[0] eq '1' ? {booleans => 1, numbers => 1, strings => 1} : ref $_[0] ? {%{$_[0]}} : {@_};
   $self;
 }
 
@@ -121,7 +123,8 @@ sub _load_schema {
 
   return $self->{cached}{$namespace} if $self->{cached}{$namespace};
   return eval {
-    warn "[JSON::Validator] Loading schema $url namespace=$namespace scheme=$scheme\n" if DEBUG;
+    warn "[JSON::Validator] Loading schema $url namespace=$namespace scheme=$scheme\n"
+      if DEBUG;
     $doc
       = $scheme eq 'file' ? Mojo::Util::slurp($namespace)
       : $scheme eq 'data' ? $self->_load_schema_from_data($url, $namespace)
@@ -209,7 +212,7 @@ sub _resolve_schema {
   # Seconds step: Resolve $ref
   for my $topic (@refs) {
     my $ref = $topic->{'$ref'} or next;    # already resolved?
-    $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;                         # TODO: Figure out if this could be removed
+    $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;    # TODO: Figure out if this could be removed
     $ref = Mojo::URL->new($namespace)->fragment($ref) if $ref =~ s!^\#!!;
     $ref = Mojo::URL->new($ref) unless ref $ref;
 
@@ -307,7 +310,8 @@ sub _merge_errors {
     $prefix = "/$prefix: " if $prefix;
 
     if (@e == grep { defined $_->[2] } @e) {
-      push @messages, sprintf '%sExpected %s - got %s.', $prefix, join(', ', map { $_->[2] } @e), $e[0][3];
+      push @messages, sprintf '%sExpected %s - got %s.', $prefix, join(', ', map { $_->[2] } @e),
+        $e[0][3];
     }
     else {
       push @messages, join ' ', map {"[$_->[0]] $prefix$_->[1]"} @e;
@@ -327,7 +331,8 @@ sub _validate_all_of {
   }
 
   warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-  return E $path, sprintf 'allOf failed: %s', $self->_merge_errors($path, @errors) if grep {$_} @errors;
+  return E $path, sprintf 'allOf failed: %s', $self->_merge_errors($path, @errors)
+    if grep {$_} @errors;
   return;
 }
 
@@ -348,7 +353,8 @@ sub _validate_any_of {
   }
   else {
     warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-    return E $path, sprintf 'anyOf failed: %s', $self->_merge_errors($path, @errors) if grep {$_} @errors;
+    return E $path, sprintf 'anyOf failed: %s', $self->_merge_errors($path, @errors)
+      if grep {$_} @errors;
   }
 }
 
@@ -368,9 +374,11 @@ sub _validate_one_of {
     return;
   }
 
-  warn "[JSON::Validator] oneOf @{[$path||'/']} == failed=$failed/@{[int @$rules]} / @errors\n" if DEBUG == 2;
+  warn "[JSON::Validator] oneOf @{[$path||'/']} == failed=$failed/@{[int @$rules]} / @errors\n"
+    if DEBUG == 2;
   return E $path, 'All of the oneOf rules match.' unless $failed;
-  return E $path, sprintf 'oneOf failed: %s', $self->_merge_errors($path, @errors) if grep {$_} @errors;
+  return E $path, sprintf 'oneOf failed: %s', $self->_merge_errors($path, @errors)
+    if grep {$_} @errors;
 }
 
 sub _validate_type_enum {
@@ -400,9 +408,7 @@ sub _validate_format {
   return E $path, "Does not match $schema->{format} format.";
 }
 
-sub _validate_type_any {
-  return;
-}
+sub _validate_type_any { }
 
 sub _validate_type_array {
   my ($self, $data, $path, $schema) = @_;
@@ -493,8 +499,12 @@ sub _validate_type_number {
   if (!defined $value or ref $value) {
     return E $path, _expected($expected => $value);
   }
-  unless (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
-    return E $path, "Expected $expected - got string." if !$self->{coerce}{numbers} or $value =~ /\D/;
+  unless (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
+    and 0 + $value eq $value
+    and $value * 0 == 0)
+  {
+    return E $path, "Expected $expected - got string."
+      if !$self->{coerce}{numbers} or $value =~ /\D/;
     $_[1] = 0 + $value;    # coerce input value
   }
 
@@ -525,10 +535,12 @@ sub _validate_type_object {
     return E $path, _expected(object => $data);
   }
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < keys %$data) {
-    push @errors, E $path, sprintf 'Too many properties: %s/%s.', int(keys %$data), $schema->{maxProperties};
+    push @errors, E $path, sprintf 'Too many properties: %s/%s.', int(keys %$data),
+      $schema->{maxProperties};
   }
   if (defined $schema->{minProperties} and $schema->{minProperties} > keys %$data) {
-    push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int(keys %$data), $schema->{minProperties};
+    push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int(keys %$data),
+      $schema->{minProperties};
   }
 
   while (my ($k, $r) = each %{$schema->{properties}}) {
@@ -579,7 +591,10 @@ sub _validate_type_string {
   if (!defined $value or ref $value) {
     return E $path, _expected(string => $value);
   }
-  if (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
+  if (  B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
+    and 0 + $value eq $value
+    and $value * 0 == 0)
+  {
     return E $path, "Expected string - got number." unless $self->{coerce}{strings};
     $_[1] = "$value";    # coerce input value
   }
@@ -588,12 +603,14 @@ sub _validate_type_string {
   }
   if (defined $schema->{maxLength}) {
     if (length($value) > $schema->{maxLength}) {
-      push @errors, E $path, sprintf "String is too long: %s/%s.", length($value), $schema->{maxLength};
+      push @errors, E $path, sprintf "String is too long: %s/%s.", length($value),
+        $schema->{maxLength};
     }
   }
   if (defined $schema->{minLength}) {
     if (length($value) < $schema->{minLength}) {
-      push @errors, E $path, sprintf "String is too short: %s/%s.", length($value), $schema->{minLength};
+      push @errors, E $path, sprintf "String is too short: %s/%s.", length($value),
+        $schema->{minLength};
     }
   }
   if (defined $schema->{pattern}) {
@@ -629,7 +646,10 @@ sub _guess_data_type {
   return lc $ref if $ref and !$blessed;
   return 'null' if !defined;
   return 'boolean' if $blessed and ("$_" eq "1" or !"$_");
-  return 'number' if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $_ eq $_ and $_ * 0 == 0;
+  return 'number'
+    if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
+    and 0 + $_ eq $_
+    and $_ * 0 == 0;
   return $blessed || 'string';
 }
 
@@ -637,13 +657,17 @@ sub _guess_schema_type {
   return _guessed_right($_[1], 'object') if $_[0]->{additionalProperties};
   return _guessed_right($_[1], 'object') if $_[0]->{patternProperties};
   return _guessed_right($_[1], 'object') if $_[0]->{properties};
-  return _guessed_right($_[1], 'object') if defined $_[0]->{maxProperties} or defined $_[0]->{minProperties};
+  return _guessed_right($_[1], 'object')
+    if defined $_[0]->{maxProperties}
+    or defined $_[0]->{minProperties};
   return _guessed_right($_[1], 'array')  if $_[0]->{additionalItems};
   return _guessed_right($_[1], 'array')  if $_[0]->{items};
   return _guessed_right($_[1], 'array')  if $_[0]->{uniqueItems};
   return _guessed_right($_[1], 'array')  if defined $_[0]->{maxItems} or defined $_[0]->{minItems};
   return _guessed_right($_[1], 'string') if $_[0]->{pattern};
-  return _guessed_right($_[1], 'string') if defined $_[0]->{maxLength} or defined $_[0]->{minLength};
+  return _guessed_right($_[1], 'string')
+    if defined $_[0]->{maxLength}
+    or defined $_[0]->{minLength};
   return _guessed_right($_[1], 'number') if $_[0]->{multipleOf};
   return _guessed_right($_[1], 'number') if defined $_[0]->{maximum} or defined $_[0]->{minimum};
   return 'enum' if $_[0]->{enum};
@@ -655,7 +679,9 @@ sub _guessed_right {
   return _guess_data_type($_[0]) eq $_[1] ? $_[1] : undef;
 }
 
-sub _is_date_time { $_[0] =~ qr/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$/io; }
+sub _is_date_time {
+  $_[0] =~ qr/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$/io;
+}
 sub _is_domain { warn "Data::Validate::Domain is not installed"; return; }
 
 sub _is_email {
@@ -693,9 +719,10 @@ sub _is_uri { $_[0] =~ qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*
 # https://github.com/jhthorsen/json-validator/issues
 sub _load_yaml {
   require List::Util;
-  my @YAML_MODULES = qw( YAML::XS YAML::Syck );                                     # subject to change
+  my @YAML_MODULES = qw(YAML::XS YAML::Syck);    # subject to change
   my $YAML_MODULE = (List::Util::first { eval "require $_;1" } @YAML_MODULES)[0];
-  die "Need to install one of these YAML modules: @YAML_MODULES (YAML::XS is recommended)" unless $YAML_MODULE;
+  die "Need to install one of these YAML modules: @YAML_MODULES (YAML::XS is recommended)"
+    unless $YAML_MODULE;
   warn "[JSON::Validator] Using $YAML_MODULE to parse YAML\n" if DEBUG;
   Mojo::Util::monkey_patch(__PACKAGE__, _load_yaml => eval "\\\&$YAML_MODULE\::Load");
   _load_yaml(@_);
@@ -711,7 +738,10 @@ sub _path {
 package    # hide from
   JSON::Validator::Error;
 
-use overload q("") => sub { sprintf '%s: %s', @{$_[0]}{qw( path message )} }, bool => sub {1}, fallback => 1;
+use overload
+  q("")    => sub { sprintf '%s: %s', @{$_[0]}{qw(path message)} },
+  bool     => sub {1},
+  fallback => 1;
 sub message { shift->{message} }
 sub path    { shift->{path} }
 sub TO_JSON { {message => $_[0]->{message}, path => $_[0]->{path}} }

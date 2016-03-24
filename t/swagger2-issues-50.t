@@ -11,7 +11,8 @@ HERE
 for my $module (qw( YAML::XS YAML::Syck )) {
   next unless eval "require $module;1";
   my $loader = eval "\\\&$module\::Load";
-  is_deeply eval { $loader->($doc) } || undef, {foo => [{'$ref' => '#/parameters/Foo'}]}, "loaded with $module";
+  is_deeply eval { $loader->($doc) } || undef, {foo => [{'$ref' => '#/parameters/Foo'}]},
+    "loaded with $module";
   $i++;
 }
 

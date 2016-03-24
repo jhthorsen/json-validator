@@ -9,8 +9,12 @@ $validator->schema(File::Spec->catfile(qw( t spec petstore.json )));
 is_deeply(
   $validator->schema->get('/paths/~1pets/get/responses/200/schema/items'),
   {
-    required => ["id", "name"],
-    properties => {id => {type => "integer", format => "int64"}, name => {type => "string"}, tag => {type => "string"}}
+    required   => ["id", "name"],
+    properties => {
+      id   => {type => "integer", format => "int64"},
+      name => {type => "string"},
+      tag  => {type => "string"}
+    }
   },
   'expanded /paths/~1pets/get/responses/200/schema/items'
 );

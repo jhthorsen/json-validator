@@ -4,8 +4,10 @@ use JSON::Validator;
 use utf8;
 
 my $validator = JSON::Validator->new;
-my $schema = {type => 'object',
-  properties => {nick => {type => 'string', minLength => 3, maxLength => 10, pattern => qr{^\w+$}}}};
+my $schema    = {
+  type       => 'object',
+  properties => {nick => {type => 'string', minLength => 3, maxLength => 10, pattern => qr{^\w+$}}}
+};
 
 my @errors = $validator->validate({nick => 'batman'}, $schema);
 is "@errors", "", "batman";

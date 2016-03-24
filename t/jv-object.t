@@ -21,14 +21,18 @@ my ($schema, @errors);
   };
   local $schema->{patternProperties} = {"^S_" => {type => "string"}, "^I_" => {type => "integer"}};
 
-  @errors = $validator->validate({number => 1600, street_name => "Pennsylvania", street_type => "Avenue"}, $schema);
+  @errors
+    = $validator->validate({number => 1600, street_name => "Pennsylvania", street_type => "Avenue"},
+    $schema);
   is "@errors", "", "object with properties";
-  @errors = $validator->validate({number => "1600", street_name => "Pennsylvania", street_type => "Avenue"}, $schema);
+  @errors = $validator->validate(
+    {number => "1600", street_name => "Pennsylvania", street_type => "Avenue"}, $schema);
   is "@errors", "/number: Expected number - got string.", "object with invalid number";
   @errors = $validator->validate({number => 1600, street_name => "Pennsylvania"}, $schema);
   is "@errors", "", "object with missing properties";
   @errors
-    = $validator->validate({number => 1600, street_name => "Pennsylvania", street_type => "Avenue", direction => "NW"},
+    = $validator->validate(
+    {number => 1600, street_name => "Pennsylvania", street_type => "Avenue", direction => "NW"},
     $schema);
   is "@errors", "", "object with additional properties";
 
@@ -41,13 +45,15 @@ my ($schema, @errors);
 {
   local $schema->{additionalProperties} = 0;
   @errors
-    = $validator->validate({number => 1600, street_name => "Pennsylvania", street_type => "Avenue", direction => "NW"},
+    = $validator->validate(
+    {number => 1600, street_name => "Pennsylvania", street_type => "Avenue", direction => "NW"},
     $schema);
   is "@errors", "/: Properties not allowed: direction.", "additionalProperties=0";
 
   $schema->{additionalProperties} = {type => "string"};
   @errors
-    = $validator->validate({number => 1600, street_name => "Pennsylvania", street_type => "Avenue", direction => "NW"},
+    = $validator->validate(
+    {number => 1600, street_name => "Pennsylvania", street_type => "Avenue", direction => "NW"},
     $schema);
   is "@errors", "", "additionalProperties=object";
 }
@@ -71,9 +77,12 @@ my ($schema, @errors);
 {
   local $TODO = 'Add support for dependencies';
   $schema = {
-    type => "object",
-    properties =>
-      {name => {type => "string"}, credit_card => {type => "number"}, billing_address => {type => "string"}},
+    type       => "object",
+    properties => {
+      name            => {type => "string"},
+      credit_card     => {type => "number"},
+      billing_address => {type => "string"}
+    },
     required     => ["name"],
     dependencies => {credit_card => ["billing_address"]}
   };

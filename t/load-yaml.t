@@ -5,7 +5,8 @@ use JSON::Validator;
 plan skip_all => $@ unless eval { JSON::Validator::_load_yaml("---\nfoo: bar") };
 
 my $validator = JSON::Validator->new;
-my @errors = $validator->schema('data://Some::Module/s_pec-/-ficaTion')->validate({firstName => 'yikes!'});
+my @errors
+  = $validator->schema('data://Some::Module/s_pec-/-ficaTion')->validate({firstName => 'yikes!'});
 
 is int(@errors), 1, 'one error';
 is $errors[0]->path,    '/lastName',         'lastName';

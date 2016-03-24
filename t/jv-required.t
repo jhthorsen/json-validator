@@ -3,7 +3,8 @@ use Test::More;
 use JSON::Validator 'validate_json';
 
 my $schema0 = {type => 'object', properties => {mynumber => {type => 'string', required => 1}}};
-my $schema1 = {type => 'object', properties => {mynumber => {type => 'string'}}, required => ['mynumber']};
+my $schema1
+  = {type => 'object', properties => {mynumber => {type => 'string'}}, required => ['mynumber']};
 my $schema2 = {type => 'object', properties => {mynumber => {type => 'string'}}};
 
 my $data1 = {mynumber => "yay"};

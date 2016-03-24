@@ -3,7 +3,8 @@ use Test::More;
 use JSON::Validator;
 
 my $validator = JSON::Validator->new;
-my $schema = {type => 'object', properties => {mynumber => {type => 'integer', minimum => 1, maximum => 4}}};
+my $schema
+  = {type => 'object', properties => {mynumber => {type => 'integer', minimum => 1, maximum => 4}}};
 
 my @errors = $validator->validate({mynumber => 1}, $schema);
 is "@errors", "", "min";
