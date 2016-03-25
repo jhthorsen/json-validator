@@ -50,7 +50,29 @@ the L</200> status code, if not it will be called with a L</500> status code.
 =item 5.
 
 L</render_swagger> will by default generate a JSON response using
-L<Mojolicious::Controller/render>.
+L<Mojolicious::Controller/render>. For a different response type you need to
+override L</render_swagger>. Since L</render_swagger> is a "helper" it suffices
+to redefine L</render_swagger> as a L<helper|Mojolicious/helper> once the
+L<Mojolicious::Plugin::Swagger2> plugin is loaded. Example:
+
+  package MyApp;
+  use Some::XML::Library "toXML";
+
+  sub startup {
+    my ($app) = @_;
+
+    $app->helper(
+      render_swagger => sub {
+        my ($c, $err, $data, $status) = @_;
+        $data = $err if %$err;
+        return $c->respond_to(
+          xml => {text => toXML($data), status => $status},
+          any => {ref $data ? (json => $data) : (data => $data), status => $status},
+        );
+      }
+    );
+  }
+
 
 =back
 
@@ -58,7 +80,6 @@ As for the  L</render> method above, there is nothing that prevents you from
 calling C</render_swagger> manually from inside your actions, but doing so will
 bypass the output validation code which is generated on the fly. There should
 not be a case when you need to call this method directly.
-
 
 =head1 STATUS CODES
 
