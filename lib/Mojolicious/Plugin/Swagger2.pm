@@ -5,7 +5,8 @@ use Mojo::Loader;
 use Mojo::Util 'decamelize';
 use Swagger2;
 use Swagger2::SchemaValidator;
-use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
+use constant DEBUG      => $ENV{SWAGGER2_DEBUG};
+use constant IO_LOGGING => $ENV{SWAGGER2_IO_LOGGING};    # EXPERIMENTAL
 
 my $SKIP_OP_RE = qr(By|From|For|In|Of|To|With);
 
@@ -166,6 +167,7 @@ sub _generate_request_handler {
     $c = $defaults->{controller}->new(%$c);
     ($v, $input) = $self->_validate_input($c, $op_spec);
 
+    _io_error($c, Input => $v->{errors}) if IO_LOGGING and @{$v->{errors}};
     return $c->render_swagger($v, {}, 400) if @{$v->{errors}};
     return $c->delay(
       sub {
@@ -180,7 +182,7 @@ sub _generate_request_handler {
         my @errors = $self->_validate_response($c, $data, $op_spec, $status);
 
         return $c->render_swagger({}, $data, $status) unless @errors;
-        warn "[Swagger2] Invalid response: @errors\n" if DEBUG;
+        _io_error($c, Output => \@errors) if IO_LOGGING and @errors;
         $c->render_swagger({errors => \@errors}, $data, 500);
       },
     );
@@ -382,6 +384,12 @@ sub _find_action {
   return $can->() if $defaults->{controller};
 
   return qq(Controller from operationId "$defaults->{swagger_operation_spec}{operationId}" could not be loaded.);
+}
+
+sub _io_error {
+  my $c     = shift;
+  my $level = IO_LOGGING;
+  $c->app->log->$level(sprintf '%s error: %s', shift, Mojo::JSON::encode_json(shift));
 }
 
 sub _load {
