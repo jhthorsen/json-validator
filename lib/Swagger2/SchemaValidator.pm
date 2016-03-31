@@ -15,7 +15,10 @@ sub validate_input {
 sub _validate_type_array {
   my ($self, $data, $path, $schema) = @_;
 
-  if (ref $data eq 'ARRAY' and ref $schema->{items} eq 'HASH' and $schema->{items}{collectionFormat}) {
+  if (  ref $data eq 'ARRAY'
+    and ref $schema->{items} eq 'HASH'
+    and $schema->{items}{collectionFormat})
+  {
     $self->_coerce_by_collection_format($data, $schema->{items});
   }
 

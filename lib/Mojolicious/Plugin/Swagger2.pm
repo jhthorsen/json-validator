@@ -18,9 +18,11 @@ sub dispatch_to_swagger {
   return undef unless $_[1]->{op} and $_[1]->{id} and ref $_[1]->{params} eq 'HASH';
 
   my ($c, $data) = @_;
-  my $self     = $c->stash('swagger.plugin');
-  my $reply    = sub { $_[0]->send({json => {code => $_[2] || 200, id => $data->{id}, body => $_[1]}}) };
-  my $defaults = $self->{route_defaults}{$data->{op}} or return $c->$reply(_error('Unknown operationId.'), 400);
+  my $self = $c->stash('swagger.plugin');
+  my $reply
+    = sub { $_[0]->send({json => {code => $_[2] || 200, id => $data->{id}, body => $_[1]}}) };
+  my $defaults = $self->{route_defaults}{$data->{op}}
+    or return $c->$reply(_error('Unknown operationId.'), 400);
   my ($e, $input, @errors);
 
   return $c->$reply(_error($e), 501) if $e = _find_action($c, $defaults);
@@ -46,7 +48,8 @@ sub dispatch_to_swagger {
       my $delay  = shift;
       my $data   = shift;
       my $status = shift || 200;
-      my @errors = $self->_validate_response($c, $data, $defaults->{swagger_operation_spec}, $status);
+      my @errors
+        = $self->_validate_response($c, $data, $defaults->{swagger_operation_spec}, $status);
 
       return $c->$reply($data, $status) unless @errors;
       warn "[Swagger2] Invalid response: @errors\n" if DEBUG;
@@ -81,8 +84,10 @@ sub register {
   local $config->{coerce} = $config->{coerce} || $ENV{SWAGGER_COERCE_VALUES};
   $self->_validator->coerce($config->{coerce}) if $config->{coerce};
   $self->url($swagger->url);
-  $app->helper(dispatch_to_swagger => \&dispatch_to_swagger) unless $app->renderer->get_helper('dispatch_to_swagger');
-  $app->helper(render_swagger      => \&render_swagger)      unless $app->renderer->get_helper('render_swagger');
+  $app->helper(dispatch_to_swagger => \&dispatch_to_swagger)
+    unless $app->renderer->get_helper('dispatch_to_swagger');
+  $app->helper(render_swagger => \&render_swagger)
+    unless $app->renderer->get_helper('render_swagger');
 
   $r = $config->{route};
 
@@ -102,8 +107,10 @@ sub register {
   $base_path =~ s!/$!!;
 
   for my $path (sort { length $a <=> length $b } keys %$paths) {
-    my $around_action = $paths->{$path}{'x-mojo-around-action'} || $swagger->api_spec->get('/x-mojo-around-action');
-    my $controller    = $paths->{$path}{'x-mojo-controller'}    || $swagger->api_spec->get('/x-mojo-controller');
+    my $around_action
+      = $paths->{$path}{'x-mojo-around-action'} || $swagger->api_spec->get('/x-mojo-around-action');
+    my $controller
+      = $paths->{$path}{'x-mojo-controller'} || $swagger->api_spec->get('/x-mojo-controller');
 
     for my $http_method (grep { !/^x-/ } keys %{$paths->{$path}}) {
       my $op_spec    = $paths->{$path}{$http_method};
@@ -116,10 +123,12 @@ sub register {
         "($type$name)";
       }/ge;
 
-      $op_spec->{'x-mojo-around-action'} = $around_action if !$op_spec->{'x-mojo-around-action'} and $around_action;
-      $op_spec->{'x-mojo-controller'}    = $controller    if !$op_spec->{'x-mojo-controller'}    and $controller;
-      $app->plugins->emit(
-        swagger_route_added => $r->$http_method($route_path => $self->_generate_request_handler($op_spec)));
+      $op_spec->{'x-mojo-around-action'} = $around_action
+        if !$op_spec->{'x-mojo-around-action'} and $around_action;
+      $op_spec->{'x-mojo-controller'} = $controller
+        if !$op_spec->{'x-mojo-controller'} and $controller;
+      $app->plugins->emit(swagger_route_added =>
+          $r->$http_method($route_path => $self->_generate_request_handler($op_spec)));
       warn "[Swagger2] Add route $http_method $base_path$route_path\n" if DEBUG;
     }
   }
@@ -172,7 +181,8 @@ sub _generate_request_handler {
     return $c->delay(
       sub {
         my $action = $defaults->{action};
-        $c->app->log->debug(qq(Swagger2 routing to controller "$defaults->{controller}" and action "$action"));
+        $c->app->log->debug(
+          qq(Swagger2 routing to controller "$defaults->{controller}" and action "$action"));
         $c->$action($input, shift->begin);
       },
       sub {
@@ -234,7 +244,7 @@ sub _validate_input {
   my (%cache, %input, @errors);
 
   for my $p (@{$op_spec->{parameters} || []}) {
-    my ($in, $name, $type) = @$p{qw( in name type )};
+    my ($in, $name, $type) = @$p{qw(in name type)};
     my ($exists, $value);
 
     if ($in eq 'body') {
@@ -281,8 +291,10 @@ sub _validate_input_value {
 
   return if !defined $value and !Swagger2::_is_true($p->{required});
 
-  my $schema = {properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p},
-    required => [$p->{required} ? ($name) : ()]};
+  my $schema = {
+    properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p},
+    required => [$p->{required} ? ($name) : ()]
+  };
   my $in = $p->{in};
 
   if ($in eq 'body') {
@@ -324,7 +336,8 @@ sub _validate_response {
       }
       elsif ($input->{$n}) {
         push @errors, $self->_validator->validate($input->{$n}[0], $p);
-        $headers->header($n => $input->{$n}[0] ? 'true' : 'false') if $p->{type} eq 'boolean' and !@errors;
+        $headers->header($n => $input->{$n}[0] ? 'true' : 'false')
+          if $p->{type} eq 'boolean' and !@errors;
       }
     }
 
@@ -365,25 +378,29 @@ sub _find_action {
   my ($c, $defaults) = @_;
   my $op = $defaults->{swagger_operation_spec}{operationId} or return 'operationId is missing.';
   my $can = sub {
-    $defaults->{controller}->can($defaults->{action}) ? '' : qq(Method "$defaults->{action}" not implemented.);
+    $defaults->{controller}->can($defaults->{action})
+      ? ''
+      : qq(Method "$defaults->{action}" not implemented.);
   };
 
   # specify controller manually
-  @$defaults{qw( action controller )} = _load($c, $op, $defaults->{swagger_operation_spec}{'x-mojo-controller'});
+  @$defaults{qw(action controller)}
+    = _load($c, $op, $defaults->{swagger_operation_spec}{'x-mojo-controller'});
   return $can->() if $defaults->{controller};
 
   # "createFileInFileSystem" = ("createFile", "FileSystem")
-  @$defaults{qw( action controller )} = _load($c, split $SKIP_OP_RE, $op);
+  @$defaults{qw(action controller)} = _load($c, split $SKIP_OP_RE, $op);
   return $can->() if $defaults->{controller};
 
   # "showPetById" = "showPet"
   $op =~ s!$SKIP_OP_RE.*$!!;
 
   # "show_fooPet" = ("show_foo", "Pet")
-  @$defaults{qw( action controller )} = _load($c, $op =~ /^([a-z_]+)([A-Z]\w+)$/);
+  @$defaults{qw(action controller)} = _load($c, $op =~ /^([a-z_]+)([A-Z]\w+)$/);
   return $can->() if $defaults->{controller};
 
-  return qq(Controller from operationId "$defaults->{swagger_operation_spec}{operationId}" could not be loaded.);
+  return
+    qq(Controller from operationId "$defaults->{swagger_operation_spec}{operationId}" could not be loaded.);
 }
 
 sub _io_error {
@@ -406,12 +423,15 @@ sub _load {
     my $singular = $controller;
     $singular =~ s!s$!!;    # "showPets" = "showPet"
     push @classes,
-      grep { !$uniq{$_}++ } map { ("${_}::$controller", "${_}::$singular") } @{$c->app->routes->namespaces};
+      grep { !$uniq{$_}++ }
+      map { ("${_}::$controller", "${_}::$singular") } @{$c->app->routes->namespaces};
   }
 
   while ($controller = shift @classes) {
     my $e = Mojo::Loader::load_class($controller);
-    warn qq([Swagger2] Load "$controller": @{[ref $e ? $e : $e ? "Can't locate class" : "Success"]}.\n) if DEBUG;
+    warn
+      qq([Swagger2] Load "$controller": @{[ref $e ? $e : $e ? "Can't locate class" : "Success"]}.\n)
+      if DEBUG;
     return ($action, $controller) if $controller->can('new');
   }
 

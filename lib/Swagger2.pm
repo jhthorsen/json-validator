@@ -13,7 +13,8 @@ our $VERSION = '0.75';
 
 # Should be considered internal
 our $SPEC_FILE = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'schema.json');
-our $JS_CLIENT = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'swagger2-client.js');
+our $JS_CLIENT
+  = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'swagger2-client.js');
 
 has api_spec => sub {
   my $self = shift;

@@ -12,7 +12,9 @@ my $MOJO_MESSAGE_RESPONSE = Mojo::Message::Response->new;
 sub to_string {
   my $self = shift;
 
-  join('', $self->_header_to_string, $self->_api_endpoint_to_string, $self->_paths_to_string, $self->_footer_to_string,
+  join('',
+    $self->_header_to_string, $self->_api_endpoint_to_string,
+    $self->_paths_to_string,  $self->_footer_to_string,
   );
 }
 
@@ -48,7 +50,8 @@ sub _footer_to_string {
   $contact->{name} ||= 'Unknown author';
 
   $str .= sprintf "=head1 COPYRIGHT AND LICENSE\n\n%s", $contact->{name};
-  $str .= sprintf " - %s",  $contact->{email} || $contact->{url} if $contact->{email} || $contact->{url};
+  $str .= sprintf " - %s", $contact->{email} || $contact->{url}
+    if $contact->{email} || $contact->{url};
   $str .= sprintf "\n\n%s", $license->{name};
   $str .= sprintf " - %s", $license->{url} if $license->{url};
   $str .= "\n\n=cut\n";
@@ -67,7 +70,8 @@ sub _header_to_string {
   $str .= sprintf "=head1 NAME\n\n%s\n\n",             $info->{title};
   $str .= sprintf "=head1 VERSION\n\n%s\n\n",          $info->{version};
   $str .= sprintf "=head1 DESCRIPTION\n\n%s\n\n",      $info->{description};
-  $str .= sprintf "=head1 TERMS OF SERVICE\n\n%s\n\n", $info->{termsOfService} if $info->{termsOfService};
+  $str .= sprintf "=head1 TERMS OF SERVICE\n\n%s\n\n", $info->{termsOfService}
+    if $info->{termsOfService};
   $str;
 }
 
@@ -84,13 +88,19 @@ sub _path_request_to_string {
       push @table, [$p->{name}, 'body', 'schema', 'Yes', $p->{description}];
     }
     else {
-      push @table, [@$p{qw( name in type )}, Swagger2::_is_true($p->{required}) ? 'Yes' : 'No', $p->{description}];
+      push @table,
+        [
+        @$p{qw( name in type )}, Swagger2::_is_true($p->{required}) ? 'Yes' : 'No',
+        $p->{description}
+        ];
     }
   }
 
   $str .= sprintf "=head3 Parameters\n\n";
-  $str .= (@table == 1) ? "This resource takes no parameters.\n\n" : sprintf "%s\n", _ascii_table(\@table, '  ');
-  $str .= "  $body{name}:\n\n" . $self->_schema_to_string_dispatch($body{schema}, 0) . "\n" if %body;
+  $str .= (@table == 1) ? "This resource takes no parameters.\n\n" : sprintf "%s\n",
+    _ascii_table(\@table, '  ');
+  $str .= "  $body{name}:\n\n" . $self->_schema_to_string_dispatch($body{schema}, 0) . "\n"
+    if %body;
   $str;
 }
 
@@ -243,7 +253,8 @@ sub _schema_object_to_string {
 
   for my $k (sort keys %$schema) {
     $str .= _sprintf($depth + 1, qq("%s": ), $k);
-    $str .= $self->_schema_to_string_dispatch($schema->{$k}, $depth + 1) if ref $schema->{$k} eq 'HASH';
+    $str .= $self->_schema_to_string_dispatch($schema->{$k}, $depth + 1)
+      if ref $schema->{$k} eq 'HASH';
   }
 
   $str .= _sprintf($depth, "},\n");

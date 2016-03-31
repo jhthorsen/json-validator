@@ -19,11 +19,12 @@ sub generate {
   my $paths = $swagger->api_spec->get('/paths') || {};
   my $generated;
 
-  $generated = 40 < length $url ? Mojo::Util::md5_sum($url) : $url;    # 40 is a bit random: not too long
+  $generated
+    = 40 < length $url ? Mojo::Util::md5_sum($url) : $url;    # 40 is a bit random: not too long
   $generated =~ s!\W!_!g;
   $generated = "$class\::$generated";
 
-  return $generated->new if $generated->isa($class);                   # already generated
+  return $generated->new if $generated->isa($class);          # already generated
   _init_package($generated, $class);
   Mojo::Util::monkey_patch($generated, _swagger => sub {$swagger});
 
@@ -66,7 +67,8 @@ sub _generate_method {
       return $self;
     }
 
-    push @{$req->[0]->path->parts}, map { local $_ = $_; s,\{(\w+)\},{$args->{$1}//''},ge; $_; } @path;
+    push @{$req->[0]->path->parts},
+      map { local $_ = $_; s,\{(\w+)\},{$args->{$1}//''},ge; $_; } @path;
 
     if ($cb) {
       Scalar::Util::weaken($self);
@@ -130,7 +132,8 @@ sub _validate_request {
 
       if (defined $value) {
         $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
-        $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true if $type eq 'boolean';
+        $value = ($value eq 'false' or !$value) ? Mojo::JSON->false : Mojo::JSON->true
+          if $type eq 'boolean';
       }
 
       if ($in eq 'body' or $in eq 'formData') {
