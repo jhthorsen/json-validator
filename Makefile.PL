@@ -2,7 +2,7 @@
 use ExtUtils::MakeMaker;
 WriteMakefile(
   NAME          => 'Swagger2',
-  AUTHOR        => 'Martin Renvoize <martin.renvoize@gmail.com>',
+  AUTHOR        => 'Jan Henning Thorsen <jhthorsen@cpan.org>',
   LICENSE       => 'artistic_2',
   ABSTRACT_FROM => 'lib/Swagger2.pm',
   VERSION_FROM  => 'lib/Swagger2.pm',
@@ -11,10 +11,10 @@ WriteMakefile(
     resources => {
       bugtracker => 'https://github.com/jhthorsen/swagger2/issues',
       homepage   => 'https://github.com/jhthorsen/swagger2',
-      repository => 'https://github.com/mrenvoize/swagger2.git',
+      repository => 'https://github.com/jhthorsen/swagger2.git',
     },
   },
   BUILD_REQUIRES => {'Test::More'      => '0.88', 'Test::Warnings' => '0.016'},
   PREREQ_PM      => {'JSON::Validator' => '0.63', 'Mojolicious'    => '6.00'},
-  test           => {TESTS             => 't/*.t'},
+  test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );

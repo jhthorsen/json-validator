@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.75
+    0.76
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger
@@ -52,13 +52,6 @@ ATTRIBUTES
 
     Mojo::URL object that holds the location to the API endpoint. Note: This
     might also just be a dummy URL to <http://example.com/>.
-
-  specification
-    DEPRECATED. If you need to change this, then you probably want
-    JSON::Validator instead.
-
-  tree
-    DEPRECATED. Use "api_spec" instead.
 
   ua
       $ua = $self->ua;
