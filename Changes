@@ -3,6 +3,7 @@ Revision history for perl distribution Swagger2
 0.76 Not Released
  - Documented different response types #78 #79
  - Add EXPERIMENTAL support for SWAGGER2_IO_LOGGING=debug
+ - Removed deprecated methods specification() and tree()
 
 0.75 2016-02-22T09:02:43+0000
  - Fix indentation of JSONSchemaSupport guide

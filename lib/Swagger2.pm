@@ -4,7 +4,6 @@ use Mojo::Asset::File;
 use Mojo::JSON;
 use Mojo::JSON::Pointer;
 use Mojo::URL;
-use Mojo::Util 'deprecated';
 use File::Basename ();
 use File::Spec;
 use Swagger2::SchemaValidator;
@@ -35,16 +34,6 @@ has base_url => sub {
 
   return $url;
 };
-
-sub specification {
-  deprecated 'specification() will be removed.';
-  shift->_specification;
-}
-
-sub tree {
-  deprecated 'tree() is replaced by api_spec().';
-  shift->api_spec(@_);
-}
 
 has _specification => sub { shift->_validator->schema($SPEC_FILE)->schema };
 
@@ -103,12 +92,8 @@ sub to_string {
   my $self = shift;
   my $format = shift || 'json';
 
-  if ($format eq 'yaml') {
-    return DumpYAML($self->api_spec->data);
-  }
-  else {
-    return Mojo::JSON::encode_json($self->api_spec->data);
-  }
+  return DumpYAML($self->api_spec->data) if $format eq 'yaml';
+  return Mojo::JSON::encode_json($self->api_spec->data);
 }
 
 sub validate {
@@ -192,14 +177,6 @@ Holds a L<Mojo::JSON::Pointer> object containing your API specification.
 
 L<Mojo::URL> object that holds the location to the API endpoint.
 Note: This might also just be a dummy URL to L<http://example.com/>.
-
-=head2 specification
-
-DEPRECATED. If you need to change this, then you probably want L<JSON::Validator> instead.
-
-=head2 tree
-
-DEPRECATED. Use L</api_spec> instead.
 
 =head2 ua
 
