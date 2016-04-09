@@ -1,8 +1,10 @@
 Revision history for perl distribution Swagger2
 
 0.76 Not Released
- - Documented different response types #78 #79
+ - Fix new($file)->expand->validate #80
+   Contributors: Tina Müller and Daniel Böhmer
  - Add EXPERIMENTAL support for SWAGGER2_IO_LOGGING=debug
+ - Documented different response types #78 #79
  - Removed deprecated methods specification() and tree()
 
 0.75 2016-02-22T09:02:43+0000

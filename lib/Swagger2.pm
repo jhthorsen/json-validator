@@ -46,9 +46,10 @@ sub ua  { shift->_validator->ua(@_) }
 sub url { shift->{url} }
 
 sub expand {
-  my $self  = shift;
-  my $class = Scalar::Util::blessed($self);
-  $class->new(%$self)->api_spec($self->_validator->schema($self->api_spec->data)->schema);
+  my $self   = shift;
+  my $class  = Scalar::Util::blessed($self);
+  my $schema = $self->_validator->schema($self->api_spec->data)->schema;
+  $class->new(%$self)->api_spec($schema);
 }
 
 sub javascript_client { Mojo::Asset::File->new(path => $JS_CLIENT) }
@@ -57,7 +58,7 @@ sub load {
   my $self = shift;
   delete $self->{base_url};
   $self->{url} = Mojo::URL->new(shift) if @_;
-  $self->{api_spec} = $self->_validator->_load_schema($self->{url});
+  $self->{api_spec} = $self->api_spec;
   $self;
 }
 
