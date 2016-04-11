@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.66
+    0.67
 
 SYNOPSIS
       use JSON::Validator;
@@ -70,6 +70,8 @@ ERROR OBJECT
         message => "Some description",
         path => "/json/path/to/node",
       }, "JSON::Validator::Error"
+
+    See also JSON::Validator::Error.
 
   Operators
     The error object overloads the following operators:
