@@ -14,7 +14,8 @@ no warnings 'redefine';
 
 sub t::Api::list_pets {
   my ($c, $args, $cb) = @_;
-  $c->$cb([{id => time % 100, name => "Catwoman"}], 200);
+  state $i = 42;
+  $c->$cb([{id => $i++, name => "Catwoman"}], 200);
 }
 
 get '/' => 'index';
@@ -44,14 +45,19 @@ __DATA__
 <!doctype html>
 <html>
   <head>
-    % if (param('ws') // 1 == 0) {
+    % if (param('ws') // 1) {
       %= link_to "Disable websockets", url_with()->query(ws => 0)
     % } else {
       %= link_to "Enable websockets", url_with()->query(ws => 1)
     % }
     <p id="loading">Loading Swagger spec...</p>
     <p id="loaded"></p>
-    <p id="pets"></p>
+    <hr>
+    <b><%= (param('ws') // 1) ? "WebSocket response" : "Plain HTTP response" %>:</b>
+    <span id="pets"></span>
+    <hr>
+    <b>Plain HTTP response:</b>
+    <span id="pets_http"></span>
   </head>
   <body>
     %= javascript '/asset/swagger-client.js';
@@ -61,8 +67,15 @@ __DATA__
       var clientLoaded = function(err) {
         document.getElementById("loaded").innerHTML = err || 'Specification loaded.';
         if (err) return;
+
+        // Request over WebSocket or plain HTTP
         this.listPets({limit: 10}, function(err, xhr) {
           document.getElementById("pets").innerHTML = JSON.stringify(err || xhr.body);
+        });
+
+        // Request over plain HTTP
+        this.http().listPets({limit: 10}, function(err, xhr) {
+          document.getElementById("pets_http").innerHTML = JSON.stringify(err || xhr.body);
         });
       };
 
