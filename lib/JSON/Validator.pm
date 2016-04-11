@@ -1,6 +1,7 @@
 package JSON::Validator;
 use Mojo::Base -base;
 use Exporter 'import';
+use JSON::Validator::Error;
 use Mojo::JSON;
 use Mojo::JSON::Pointer;
 use Mojo::URL;
@@ -23,7 +24,7 @@ our @EXPORT_OK = qw(validate_json);
 
 my $HTTP_SCHEME_RE = qr{^https?:};
 
-sub E { bless {path => $_[0] || '/', message => $_[1]}, 'JSON::Validator::Error'; }
+sub E { JSON::Validator::Error->new(@_) }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
 
 sub validate_json {
@@ -735,17 +736,6 @@ sub _path {
   "$_[0]/$_";
 }
 
-package    # hide from
-  JSON::Validator::Error;
-
-use overload
-  q("")    => sub { sprintf '%s: %s', @{$_[0]}{qw(path message)} },
-  bool     => sub {1},
-  fallback => 1;
-sub message { shift->{message} }
-sub path    { shift->{path} }
-sub TO_JSON { {message => $_[0]->{message}, path => $_[0]->{path}} }
-
 1;
 
 =encoding utf8
@@ -832,6 +822,8 @@ the objects looks like this:
     message => "Some description",
     path => "/json/path/to/node",
   }, "JSON::Validator::Error"
+
+See also L<JSON::Validator::Error>.
 
 =head2 Operators
 

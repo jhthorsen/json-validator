@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.67 Not Released
+ - Add JSON::Validator::Error class
+
 0.66 2016-02-09T18:32:57+0100
  - Fix validating recursive datastructures
 
