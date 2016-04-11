@@ -52,6 +52,30 @@ sub expand {
   $class->new(%$self)->api_spec($schema);
 }
 
+sub find_operations {
+  my ($self, $needle) = @_;
+  my $paths      = $self->api_spec->get('/paths');
+  my $operations = [];
+
+  $needle ||= {};
+  $needle = {operationId => $needle} unless ref $needle;
+
+  for my $path (keys %$paths) {
+    next if $path =~ /^x-/;
+    next if $needle->{path} and $needle->{path} ne $path;
+    for my $method (keys %{$paths->{$path}}) {
+      my $object = $paths->{$path}{$method};
+      next if $method =~ /^x-/;
+      next if $needle->{tag} and !grep { $needle->{tag} eq $_ } @{$object->{tags} || []};
+      next if $needle->{method} and $needle->{method} ne $method;
+      next if $needle->{operationId} and $needle->{operationId} ne $object->{operationId};
+      push @$operations, $object;
+    }
+  }
+
+  return $operations;
+}
+
 sub javascript_client { Mojo::Asset::File->new(path => $JS_CLIENT) }
 
 sub load {
@@ -203,6 +227,19 @@ resource will be fetched using L<Mojo::UserAgent>.
 This method returns a new C<Swagger2> object, where all the
 L<references|https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28>
 are resolved.
+
+=head2 find_operations
+
+  $operations = $self->find_operations(\%q);
+
+Used to find a list of L<Operation Objects|http://swagger.io/specification/#operationObject>
+from the specification. C<%q> can be:
+
+  $all        = $self->find_operations;
+  $operations = $self->find_operations($operationId);
+  $operations = $self->find_operations({operationId => "listPets"});
+  $operations = $self->find_operations({method => "post", path => "/pets"});
+  $operations = $self->find_operations({tag => "pets"});
 
 =head2 javascript_client
 

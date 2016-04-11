@@ -84,7 +84,7 @@
     "/pets/{petId}": {
       "post": {
         "x-mojo-controller": "t::Api",
-        "tags": [ "pets" ],
+        "tags": [ "petx" ],
         "summary": "Info for a specific pet",
         "operationId": "showPetById",
         "parameters": [
