@@ -8,6 +8,9 @@ This guide will show how to expose a Swagger API over WebSockets.
 
 This feature is EXPERIMENTAL and is subject to change.
 
+See L<https://github.com/jhthorsen/swagger2/blob/master/examples/websocket.pl>
+for a working example.
+
 =head1 DISCLAIMER
 
 This way of exposing Swagger over WebSockets is in no way compatible with
