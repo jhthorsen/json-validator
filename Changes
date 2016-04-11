@@ -2,6 +2,7 @@ Revision history for perl distribution Swagger2
 
 0.77 Not Released
  - Add Swagger2->find_operations() method
+ - Remove fresh() and cache features from swagger2-client.js
 
 0.76 2016-04-09T09:52:34+0200
  - Fix new($file)->expand->validate #80
