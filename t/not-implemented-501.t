@@ -14,10 +14,13 @@ $t->get_ok('/not-implemented')->status_is(501)
   ->json_is('/errors/0/path',    '/');
 
 no warnings 'once';
-eval 'package t::NotImplemented; use Mojo::Base "Mojolicious::Controller"; $INC{"t/NotImplemented.pm"}=1;';
-$t->get_ok('/not-implemented')->status_is(501)->json_is('/errors/0/message', 'Method "no_op" not implemented.');
+eval
+  'package t::NotImplemented; use Mojo::Base "Mojolicious::Controller"; $INC{"t/NotImplemented.pm"}=1;';
+$t->get_ok('/not-implemented')->status_is(501)
+  ->json_is('/errors/0/message', 'Method "no_op" not implemented.');
 
-*t::NotImplemented::no_op = sub { my ($c, $args, $cb) = @_; $c->$cb({}); };
+Mojo::Util::monkey_patch('t::NotImplemented',
+  no_op => sub { my ($c, $args, $cb) = @_; $c->$cb({}); });
 $t->get_ok('/not-implemented')->status_is(200)->content_is('{}');
 
 done_testing;
