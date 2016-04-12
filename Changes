@@ -6,6 +6,7 @@ Revision history for perl distribution Swagger2
  - Add http() to swagger2-client.js
  - Add load() to swagger2-client.js
  - Change ws() to be a setter and getter in swagger2-client.js
+ - Mark "swagger_route_added" as DEPRECATED
  - Remove fresh() and cache features from swagger2-client.js
 
 0.76 2016-04-09T09:52:34+0200

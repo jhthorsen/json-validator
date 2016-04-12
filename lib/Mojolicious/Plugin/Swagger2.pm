@@ -77,7 +77,12 @@ sub register {
     my @errors = $swagger->validate;
     die join "\n", "Swagger2: Invalid spec:", @errors if @errors;
   }
-  if (!$app->plugins->has_subscribers('swagger_route_added')) {
+
+  if ($app->plugins->has_subscribers('swagger_route_added')) {
+    warn
+      "swagger_route_added hook will be deprecated. https://github.com/jhthorsen/swagger2/issues/65";
+  }
+  else {
     $app->hook(swagger_route_added => \&_on_route_added);
   }
 
@@ -506,15 +511,7 @@ or look at L<Swagger2::Guides::Tutorial> for an introduction.
 
 =head2 swagger_route_added
 
-  $app->hook(swagger_route_added => sub {
-    my ($app, $r) = @_;
-    my $op_spec = $r->pattern->defaults->{swagger_operation_spec};
-    # ...
-  });
-
-The "swagger_route_added" event will be emitted on the application object
-for every route that is added by this plugin. This can be useful if you
-want to do things like specifying a custom route name.
+This hook will be DEPRECATED! See L<https://github.com/jhthorsen/swagger2/issues/65>.
 
 =head1 STASH VARIABLES
 
