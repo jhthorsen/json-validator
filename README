@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.76
+    0.77
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger
@@ -73,6 +73,19 @@ METHODS
     This method returns a new "Swagger2" object, where all the references
     <https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28> are
     resolved.
+
+  find_operations
+      $operations = $self->find_operations(\%q);
+
+    Used to find a list of Operation Objects
+    <http://swagger.io/specification/#operationObject> from the
+    specification. %q can be:
+
+      $all        = $self->find_operations;
+      $operations = $self->find_operations($operationId);
+      $operations = $self->find_operations({operationId => "listPets"});
+      $operations = $self->find_operations({method => "post", path => "/pets"});
+      $operations = $self->find_operations({tag => "pets"});
 
   javascript_client
       $file = $self->javascript_client;

@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.77 Not Released
+0.77 2016-04-12T08:32:56+0200
  - Add Swagger2->find_operations() method
  - Add support for plain WebSocket object passed to ws() in swagger2-client.js
  - Add http() to swagger2-client.js
