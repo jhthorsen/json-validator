@@ -46,7 +46,7 @@ A human readable description of the error. Defaults to empty string.
 
   $str = $self->path;
 
-A JSON pointer to where the error occured. Defaults to "/".
+A JSON pointer to where the error occurred. Defaults to "/".
 
 =head1 METHODS
 
