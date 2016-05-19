@@ -42,8 +42,15 @@ $t->get_ok('/api')->status_is(200)->json_is('/info/title', 'Swagger Petstore');
 my $api_spec = $t->tx->res->json;
 like $api_spec->{host}, qr{:\d+$}, 'petstore.swagger.wordnik.com is replaced';
 ok !exists $api_spec->{'id'}, 'no id in expanded spec';
-ok !exists $api_spec->{'paths'}{'/pets'}{'x-mojo-controller'},    'no x-mojo-controller in expanded spec';
-ok !exists $api_spec->{'paths'}{'/pets'}{'x-mojo-around-action'}, 'no x-mojo-around-action in expanded spec';
+ok !exists $api_spec->{'paths'}{'/pets'}{'x-mojo-controller'},
+  'no x-mojo-controller in expanded spec';
+ok !exists $api_spec->{'paths'}{'/pets'}{'x-mojo-around-action'},
+  'no x-mojo-around-action in expanded spec';
+
+$t->get_ok('/api.html')->status_is(200)->text_is('head > title', 'Swagger Petstore')
+  ->element_exists('body h1');
+
+$t->get_ok('/api.text')->status_is(200)->content_like(qr{=head1 NAME.*Swagger Petstore}s);
 
 {
   local $TODO = 'Should rendered spec contain x-mojo-?';

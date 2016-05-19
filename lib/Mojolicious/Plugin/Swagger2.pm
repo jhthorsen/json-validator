@@ -9,6 +9,7 @@ use constant DEBUG      => $ENV{SWAGGER2_DEBUG};
 use constant IO_LOGGING => $ENV{SWAGGER2_IO_LOGGING};    # EXPERIMENTAL
 
 my $SKIP_OP_RE = qr(By|From|For|In|Of|To|With);
+my $LAYOUT = Mojo::Loader::data_section(__PACKAGE__, 'layouts/mojolicious_plugin_swagger.html.ep');
 
 has url             => '';
 has _validator      => sub { Swagger2::SchemaValidator->new; };
@@ -72,6 +73,8 @@ sub register {
   $swagger = $config->{swagger} || Swagger2->new->load($config->{url} || '"url" is missing');
   $swagger = $swagger->expand;
   $paths   = $swagger->api_spec->get('/paths') || {};
+
+  $app->plugin(PODRenderer => {no_perldoc => 1}) unless $app->renderer->helpers->{pod_to_html};
 
   if ($config->{validate} // 1) {
     my @errors = $swagger->validate;
@@ -236,12 +239,28 @@ sub _on_route_added {
 
 sub _render_spec {
   my ($c, $swagger) = @_;
-  my $spec = $swagger->api_spec->data;
+  my $format = $c->stash('format') || 'json';
+  my $spec   = $swagger->api_spec->data;
+  my $url    = $c->req->url->to_abs;
 
   local $spec->{id};
   delete $spec->{id};
-  local $spec->{host} = $c->req->url->to_abs->host_port;
-  $c->render(json => $spec);
+  local $spec->{host} = $url->host_port;
+  $swagger->base_url->host($url->host)->port($url->port);
+
+  if ($format eq 'text') {
+    $c->render(text => $swagger->pod->to_string);
+  }
+  elsif ($format eq 'html') {
+    $c->render(
+      handler => 'ep',
+      inline  => $LAYOUT,
+      pod     => $c->pod_to_html($swagger->pod->to_string)
+    );
+  }
+  else {
+    $c->render(json => $spec);
+  }
 }
 
 sub _validate_input {
@@ -644,3 +663,33 @@ the terms of the Artistic License version 2.0.
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
+
+__DATA__
+@@ layouts/mojolicious_plugin_swagger.html.ep
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= $swagger->api_spec->get('/info/title') %></title>
+    <style>
+      body {
+        background: #fefefe;
+        font-family: sans-serif;
+        font-size: 16px;
+      }
+      pre {
+        background: #f4f4f4;
+        border: 1px solid #ddd;
+        padding: 5px;
+      }
+      .container {
+        max-width: 60em;
+        margin: 3em auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <%= $pod %>
+    </div>
+  </body>
+</html>
