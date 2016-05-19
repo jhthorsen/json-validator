@@ -15,8 +15,8 @@ $t->get_ok('/api/headers' => {'x-number' => 42.3, 'x-string' => '123'})->status_
   ->json_is('/errors/0/message', 'Expected string - got number.');
 
 $t::Api::RES->{header} = '123';
-$t->get_ok('/api/headers' => {'x-number' => 42.3, 'x-string' => '123'})->status_is(200)->json_is('/x-number', 42.3)
-  ->header_is('what-ever', '123');
+$t->get_ok('/api/headers' => {'x-number' => 42.3, 'x-string' => '123'})->status_is(200)
+  ->json_is('/x-number', 42.3)->header_is('what-ever', '123');
 
 for my $bool (qw( true false 1 0 )) {
   my $s = $bool =~ /true|1/ ? 'true' : 'false';

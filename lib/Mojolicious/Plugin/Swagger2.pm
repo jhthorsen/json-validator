@@ -11,9 +11,8 @@ use constant IO_LOGGING => $ENV{SWAGGER2_IO_LOGGING};    # EXPERIMENTAL
 my $SKIP_OP_RE = qr(By|From|For|In|Of|To|With);
 my $LAYOUT = Mojo::Loader::data_section(__PACKAGE__, 'layouts/mojolicious_plugin_swagger.html.ep');
 
-has url             => '';
-has _validator      => sub { Swagger2::SchemaValidator->new; };
-has _json_validator => sub { JSON::Validator->new; };
+has url => '';
+has _validator => sub { Swagger2::SchemaValidator->new; };
 
 sub dispatch_to_swagger {
   return undef unless $_[1]->{op} and $_[1]->{id} and ref $_[1]->{params} eq 'HASH';
@@ -31,7 +30,7 @@ sub dispatch_to_swagger {
   for my $p (@{$defaults->{swagger_operation_spec}{parameters} || []}) {
     my $name  = $p->{name};
     my $value = $data->{params}{$name} // $p->{default};
-    my @e     = $self->_validate_input_value($p, $name => $value);
+    my @e     = $self->_validator->_validate_request_value($p, $name => $value);
     $input->{$name} = $value unless @e;
     push @errors, @e;
   }
@@ -49,8 +48,8 @@ sub dispatch_to_swagger {
       my $delay  = shift;
       my $data   = shift;
       my $status = shift || 200;
-      my @errors
-        = $self->_validate_response($c, $data, $defaults->{swagger_operation_spec}, $status);
+      my @errors = $self->_validator->validate_response($c, $defaults->{swagger_operation_spec},
+        $status, $data);
 
       return $c->$reply($data, $status) unless @errors;
       warn "[Swagger2] Invalid response: @errors\n" if DEBUG;
@@ -178,26 +177,26 @@ sub _generate_request_handler {
 
   my $handler = sub {
     my $c = shift;
-    my ($e, $v, $input);
+    my ($e, @errors, %input);
 
     return $c->render_swagger(_error($e), {}, 501) if $e = _find_action($c, $defaults);
     $c = $defaults->{controller}->new(%$c);
-    ($v, $input) = $self->_validate_input($c, $op_spec);
+    @errors = $self->_validator->validate_request($c, $op_spec, \%input);
 
-    _io_error($c, Input => $v->{errors}) if IO_LOGGING and @{$v->{errors}};
-    return $c->render_swagger($v, {}, 400) if @{$v->{errors}};
+    _io_error($c, Input => \@errors) if IO_LOGGING and @errors;
+    return $c->render_swagger({errors => \@errors}, {}, 400) if @errors;
     return $c->delay(
       sub {
         my $action = $defaults->{action};
         $c->app->log->debug(
           qq(Swagger2 routing to controller "$defaults->{controller}" and action "$action"));
-        $c->$action($input, shift->begin);
+        $c->$action(\%input, shift->begin);
       },
       sub {
         my $delay  = shift;
         my $data   = shift;
         my $status = shift || 200;
-        my @errors = $self->_validate_response($c, $data, $op_spec, $status);
+        my @errors = $self->_validator->validate_response($c, $op_spec, $status, $data);
 
         return $c->render_swagger({}, $data, $status) unless @errors;
         _io_error($c, Output => \@errors) if IO_LOGGING and @errors;
@@ -261,136 +260,6 @@ sub _render_spec {
   else {
     $c->render(json => $spec);
   }
-}
-
-sub _validate_input {
-  my ($self, $c, $op_spec) = @_;
-  my (%cache, %input, @errors);
-
-  for my $p (@{$op_spec->{parameters} || []}) {
-    my ($in, $name, $type) = @$p{qw(in name type)};
-    my ($exists, $value);
-
-    if ($in eq 'body') {
-      $value  = $c->req->json;
-      $exists = $c->req->body_size;
-    }
-    else {
-      $value = $cache{$in} ||= do {
-            $in eq 'query'    ? $c->req->url->query->to_hash
-          : $in eq 'path'     ? $c->match->stack->[-1]
-          : $in eq 'formData' ? $c->req->body_params->to_hash
-          : $in eq 'header'   ? $c->req->headers->to_hash
-          :                     {};
-      };
-      $exists = exists $value->{$name};
-      $value  = $value->{$name};
-    }
-
-    if (ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
-      $value = _coerce_by_collection_format($value, $p);
-    }
-
-    if ($type and defined($value //= $p->{default})) {
-      if (($type eq 'integer' or $type eq 'number') and $value =~ /^-?\d/) {
-        $value += 0;
-      }
-      elsif ($type eq 'boolean') {
-        $value = (!$value or $value eq 'false') ? Mojo::JSON->false : Mojo::JSON->true;
-      }
-    }
-
-    my @e = $self->_validate_input_value($p, $name => $value);
-    $input{$name} = $value if !@e and ($exists or exists $p->{default});
-    push @errors, @e;
-  }
-
-  return {errors => \@errors}, \%input;
-}
-
-sub _validate_input_value {
-  my ($self, $p, $name, $value) = @_;
-  my $type = $p->{type} || 'object';
-  my @e;
-
-  return if !defined $value and !Swagger2::_is_true($p->{required});
-
-  my $schema = {
-    properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p},
-    required => [$p->{required} ? ($name) : ()]
-  };
-  my $in = $p->{in};
-
-  if ($in eq 'body') {
-    warn "[Swagger2] Validate $in $name\n" if DEBUG;
-    if ($p->{'x-json-schema'}) {
-      return $self->_json_validator->validate({$name => $value}, $schema);
-    }
-    else {
-      return $self->_validator->validate_input({$name => $value}, $schema);
-    }
-  }
-  elsif (defined $value) {
-    warn "[Swagger2] Validate $in $name=$value\n" if DEBUG;
-    return $self->_validator->validate_input({$name => $value}, $schema);
-  }
-  else {
-    warn "[Swagger2] Validate $in $name=undef\n" if DEBUG;
-    return $self->_validator->validate_input({$name => $value}, $schema);
-  }
-
-  return;
-}
-
-sub _validate_response {
-  my ($self, $c, $data, $op_spec, $status) = @_;
-  my $headers = $c->res->headers;
-  my @errors;
-
-  if (my $blueprint = $op_spec->{responses}{$status} || $op_spec->{responses}{default}) {
-    my $input = $headers->to_hash(1);
-
-    for my $n (keys %{$blueprint->{headers} || {}}) {
-      my $p = $blueprint->{headers}{$n};
-
-      # jhthorsen: I think that the only way to make a header required,
-      # is by defining "array" and "minItems" >= 1.
-      if ($p->{type} eq 'array') {
-        push @errors, $self->_validator->validate($input->{$n}, $p);
-      }
-      elsif ($input->{$n}) {
-        push @errors, $self->_validator->validate($input->{$n}[0], $p);
-        $headers->header($n => $input->{$n}[0] ? 'true' : 'false')
-          if $p->{type} eq 'boolean' and !@errors;
-      }
-    }
-
-    if ($blueprint->{'x-json-schema'}) {
-      warn "[Swagger2] Validate using x-json-schema\n" if DEBUG;
-      push @errors, $self->_json_validator->validate($data, $blueprint->{'x-json-schema'});
-    }
-    elsif ($blueprint->{schema}) {
-      warn "[Swagger2] Validate using schema\n" if DEBUG;
-      push @errors, $self->_validator->validate($data, $blueprint->{schema});
-    }
-  }
-  else {
-    push @errors, $self->_validator->validate($data, {});
-  }
-
-  return @errors;
-}
-
-sub _coerce_by_collection_format {
-  my ($value, $schema) = @_;
-  my $re = $Swagger2::SchemaValidator::COLLECTION_RE{$schema->{collectionFormat}} || '';
-  my $type = $schema->{items}{type} || '';
-  my @data;
-
-  return [ref $value ? @$value : $value] unless $re;
-  defined and push @data, split /$re/ for ref $value ? @$value : $value;
-  return [map { $_ + 0 } @data] if $type eq 'integer' or $type eq 'number';
-  return \@data;
 }
 
 sub _error {
