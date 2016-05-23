@@ -29,6 +29,11 @@ sub get_headers {
   $c->$cb($args, 200);
 }
 
+sub multi_param {
+  my ($c, $args, $cb) = @_;
+  $c->$cb($args, 200);
+}
+
 sub test_file {
   my ($c, $args, $cb) = @_;
   $c->$cb($c->stash('swagger')->pod->to_string, 200);

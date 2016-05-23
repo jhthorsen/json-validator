@@ -196,8 +196,15 @@ sub _build_formats {
 
 sub _coerce_by_collection_format {
   my ($self, $data, $schema) = @_;
-  my $re = $COLLECTION_RE{$schema->{collectionFormat}} || ',';
   my $type = ($schema->{items} ? $schema->{items}{type} : $schema->{type}) || '';
+
+  if ($schema->{collectionFormat} eq 'multi') {
+    $data = [$data] unless ref $data eq 'ARRAY';
+    @$data = map { $_ + 0 } @$data if $type eq 'integer' or $type eq 'number';
+    return $data;
+  }
+
+  my $re = $COLLECTION_RE{$schema->{collectionFormat}} || ',';
   my $single = ref $data eq 'ARRAY' ? 0 : ($data = [$data]);
 
   for my $i (0 .. @$data - 1) {

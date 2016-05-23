@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.79 Not Released
+ - Fix collectionFormat "multi"
+
 0.78 2016-05-19T18:39:42+0200
  - Add EXPERIMENTAL .html and .pod handling for "spec_path" rendering
 
