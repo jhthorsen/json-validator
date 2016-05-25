@@ -19,12 +19,23 @@ is "@errors", "", "n:9";
 @errors = $validator->validate(15, $schema);
 is "@errors", "/: All of the oneOf rules match.", "n:15";
 
+@errors = $validator->validate(13, $schema);
+is "@errors", "/: oneOf failed: Not multiple of 5. Not multiple of 3.", "n:13";
+
+$schema = {oneOf => [{type => "object"}, {type => "string", multipleOf => 3}]};
+@errors = $validator->validate(13, $schema);
+is "@errors", "/: oneOf failed: Expected something else than number.", "n:13 object/string";
+
+$schema = {oneOf => [{type => "object"}, {type => "number", multipleOf => 3}]};
+@errors = $validator->validate(13, $schema);
+is "@errors", "/: oneOf failed: Not multiple of 3.";
+
 # Alternative oneOf
 # http://json-schema.org/latest/json-schema-validation.html#anchor79
 $schema
   = {type => 'object', properties => {x => {type => ['string', 'null'], format => 'date-time'}}};
 @errors = $validator->validate({x => 'foo'}, $schema);
-is "@errors", "/x: ([0] Does not match date-time format. [1] Not null.)", "foo";
+is "@errors", "/x: anyOf failed: Does not match date-time format.", "foo";
 
 @errors = $validator->validate({x => '2015-04-21T20:30:43.000Z'}, $schema);
 is "@errors", "", "YYYY-MM-DDThh:mm:ss.fffZ";

@@ -10,14 +10,15 @@ my @errors;
 is "@errors", "", "short";
 
 @errors = $validator->validate("too long", $schema);
-is "@errors", "/: anyOf failed: ([0] String is too long: 8/5. [1] Expected number - got string.)",
-  "too long";
+is "@errors", "/: anyOf failed: String is too long: 8/5.", "too long";
 
 @errors = $validator->validate(12, $schema);
 is "@errors", "", "number";
 
 @errors = $validator->validate(-1, $schema);
-is "@errors", "/: anyOf failed: ([0] Expected string - got number. [1] -1 < minimum(0))",
-  "negative";
+is "@errors", "/: anyOf failed: -1 < minimum(0)", "negative";
+
+@errors = $validator->validate({}, $schema);
+is "@errors", "/: anyOf failed: Expected something else than object.", "object";
 
 done_testing;

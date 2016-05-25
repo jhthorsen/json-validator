@@ -250,16 +250,7 @@ sub _validate {
 
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {
-    for my $type (@$type) {
-      my $method = sprintf '_validate_type_%s', $type;
-      my @e = $self->$method($data, $path, $schema);
-      warn "[JSON::Validator] type @{[$path||'/']} => $method [@e]\n" if DEBUG == 2;
-      push @errors, @e;
-      next if @e;
-      @errors = ();
-      last;
-    }
-    @errors = E $path, $self->_merge_errors($path, @errors) if @errors;
+    push @errors, $self->_validate_any_of($data, $path, [map { +{%$schema, type => $_} } @$type]);
   }
   elsif ($type) {
     my $method = sprintf '_validate_type_%s', $type;
@@ -287,99 +278,69 @@ sub _validate {
   return @errors;
 }
 
-sub _merge_errors {
-  my ($self, $root) = (shift, quotemeta shift);
-  my $i = 0;
-  my (%err, @messages);
-
-  for my $e (@_) {
-    if ($e and $e->{message} =~ m!Expected ([^\.]+)\ - got ([^\.]+)\.!) {
-      push @{$err{$e->{path}}}, [$i, $e->{message}, $1, $2];
-    }
-    elsif ($e) {
-      push @{$err{$e->{path}}}, [$i, $e->{message}];
-    }
-    $i++;
-  }
-
-  for my $p (sort keys %err) {
-    my $prefix = $p;
-    my (@e, %uniq);
-
-    @e = grep { !$uniq{$_->[1]}++ } @{$err{$p}};
-    $prefix =~ s!^$root/?!!;
-    $prefix = "/$prefix: " if $prefix;
-
-    if (@e == grep { defined $_->[2] } @e) {
-      push @messages, sprintf '%sExpected %s - got %s.', $prefix, join(', ', map { $_->[2] } @e),
-        $e[0][3];
-    }
-    else {
-      push @messages, join ' ', map {"[$_->[0]] $prefix$_->[1]"} @e;
-    }
-  }
-
-  return sprintf '(%s)', join ' ', @messages;
-}
-
 sub _validate_all_of {
   my ($self, $data, $path, $rules) = @_;
+  my $type    = _guess_data_type($data);
+  my $checked = 0;
   my @errors;
 
-  for my $rule (@$rules) {
+  for my $rule (grep { _guess_schema_type($_) eq $type } @$rules) {
     my @e = $self->_validate($data, $path, $rule);
-    push @errors, @e ? @e : (undef);
+    $checked++;
+    push @errors, [@e] if @e;
   }
 
   warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-  return E $path, sprintf 'allOf failed: %s', $self->_merge_errors($path, @errors)
-    if grep {$_} @errors;
+  return E $path, "allOf failed: Expected something else than $type." unless $checked == @$rules;
+  return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors) if @errors;
   return;
 }
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
+  my $type   = _guess_data_type($data);
   my $failed = 0;
   my @errors;
 
-  for my $rule (@$rules) {
-    my @e = $self->_validate($data, $path, $rule);
-    push @errors, @e ? @e : (undef);
-    last unless @e;
-    $failed++;
+  for my $rule (grep { _guess_schema_type($_) eq $type } @$rules) {
+    if (my @e = $self->_validate($data, $path, $rule)) {
+      push @errors, [@e];
+    }
+    else {
+      warn "[JSON::Validator] anyOf @{[$path||'/']} == success\n" if DEBUG == 2;
+      return;
+    }
   }
 
-  if ($failed < @$rules) {
-    warn "[JSON::Validator] anyOf @{[$path||'/']} == success\n" if DEBUG == 2;
-    return;
-  }
-  else {
-    warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-    return E $path, sprintf 'anyOf failed: %s', $self->_merge_errors($path, grep {$_} @errors);
-  }
+  warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
+  return E $path, "anyOf failed: Expected something else than $type." unless @errors;
+  return E $path, sprintf "anyOf failed: %s", _merge_errors(@errors);
 }
 
 sub _validate_one_of {
   my ($self, $data, $path, $rules) = @_;
-  my $failed = 0;
+  my $type = _guess_data_type($data);
+  my ($checked, $failed) = (0, 0);
   my @errors;
 
-  for my $rule (@$rules) {
+  for my $rule (grep { _guess_schema_type($_) eq $type } @$rules) {
+    $checked++;
     my @e = $self->_validate($data, $path, $rule);
-    push @errors, @e ? (@e) : (undef);
-    $failed++ if @e;
+    next unless @e;
+    push @errors, [@e];
+    $failed++;
   }
 
-  if ($failed + 1 == @$rules) {
+  if ($failed + 1 == $checked) {
     warn "[JSON::Validator] oneOf @{[$path||'/']} == success\n" if DEBUG == 2;
     return;
   }
 
   warn "[JSON::Validator] oneOf @{[$path||'/']} == failed=$failed/@{[int @$rules]} / @errors\n"
     if DEBUG == 2;
+  return E $path, "oneOf failed: Expected something else than $type." unless $checked;
   return E $path, 'All of the oneOf rules match.' unless $failed;
-  return E $path, sprintf 'oneOf failed: %s', $self->_merge_errors($path, @errors)
-    if grep {$_} @errors;
+  return E $path, sprintf 'oneOf failed: %s', _merge_errors(@errors);
 }
 
 sub _validate_type_enum {
@@ -655,6 +616,7 @@ sub _guess_data_type {
 }
 
 sub _guess_schema_type {
+  return $_[0]->{type} if $_[0]->{type};
   return _guessed_right($_[1], 'object') if $_[0]->{additionalProperties};
   return _guessed_right($_[1], 'object') if $_[0]->{patternProperties};
   return _guessed_right($_[1], 'object') if $_[0]->{properties};
@@ -727,6 +689,13 @@ sub _load_yaml {
   warn "[JSON::Validator] Using $YAML_MODULE to parse YAML\n" if DEBUG;
   Mojo::Util::monkey_patch(__PACKAGE__, _load_yaml => eval "\\\&$YAML_MODULE\::Load");
   _load_yaml(@_);
+}
+
+sub _merge_errors {
+  join ' ', map {
+    my $e = $_;
+    @$e ? $e->[0]{message} : sprintf '(%s)', join '. ', map { $_->{message} } @$e;
+  } @_;
 }
 
 sub _path {
@@ -854,7 +823,7 @@ is long, then you might want to run a smaller test with C<JSON_VALIDATOR_DEBUG=1
 Example error object:
 
   bless {
-    message => "[0] String is too long: 8/5. [1] Expected number - got string.",
+    message => "(String is too long: 8/5. String is too short: 8/12)",
     path => "/json/path/to/node",
   }, "JSON::Validator::Error"
 
