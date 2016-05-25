@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.68 2016-05-25T17:35:26+0100
+ - Remove _merge_error to clarify anyOf errors #15
+
 0.67 2016-04-11T13:49:55+0200
  - Add JSON::Validator::Error class
 

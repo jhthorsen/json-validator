@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.67
+    0.68
 
 SYNOPSIS
       use JSON::Validator;
@@ -99,7 +99,7 @@ ERROR OBJECT
     Example error object:
 
       bless {
-        message => "[0] String is too long: 8/5. [1] Expected number - got string.",
+        message => "(String is too long: 8/5. String is too short: 8/12)",
         path => "/json/path/to/node",
       }, "JSON::Validator::Error"
 
