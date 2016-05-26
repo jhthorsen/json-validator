@@ -21,4 +21,12 @@ is "@errors", "/: anyOf failed: -1 < minimum(0)", "negative";
 @errors = $validator->validate({}, $schema);
 is "@errors", "/: anyOf failed: Expected something else than object.", "object";
 
+# anyOf with schema of the same 'type'
+
+# anyOf with explicit integer (where _guess_data_type returns 'number')
+my $schemaB = {anyOf => [{type => "integer"}, {minimum => 2}]};
+
+@errors = $validator->validate(1 ,$schemaB);
+is "@errors", "", "schema 1 pass, schema 2 faili";
+
 done_testing;
