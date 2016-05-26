@@ -19,7 +19,7 @@ use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
 use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
   || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
 
-our $VERSION   = '0.68';
+our $VERSION   = '0.69';
 our @EXPORT_OK = qw(validate_json);
 
 my $HTTP_SCHEME_RE = qr{^https?:};
@@ -725,7 +725,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-0.68
+0.69
 
 =head1 SYNOPSIS
 

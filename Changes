@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.69 2016-05-26T19:36:53+0200
+ - Fix failing anyOf logic in t/swagger-validate-response-object.t
+
 0.68 2016-05-25T17:35:26+0100
  - Remove _merge_error to clarify anyOf errors #15
 
