@@ -6,7 +6,8 @@ perl:
 env:
   - "HARNESS_OPTIONS=j6"
 install:
-  - "cpanm -n Test::Pod Test::Pod::Coverage Data::Validate::Domain Data::Validate::IP YAML"
+  - "cpanm -n Test::Pod Test::Pod::Coverage Test::JSON::Schema::Acceptance"
+  - "cpanm -n Data::Validate::Domain Data::Validate::IP Cpanel::JSON::XS YAML"
   - "cpanm -n --installdeps ."
 notifications:
   email: false
