@@ -19,7 +19,7 @@ use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
 use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
   || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
 
-our $VERSION = '0.68';
+our $VERSION   = '0.68';
 our @EXPORT_OK = qw(validate_json);
 
 my $HTTP_SCHEME_RE = qr{^https?:};
@@ -280,66 +280,71 @@ sub _validate {
 
 sub _validate_all_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type    = _guess_data_type($data);
-  my $checked = 0;
-  my @errors;
+  my $type = _guess_data_type($data);
+  my (@errors, @expected);
 
-  for my $rule (grep { _guess_schema_type($_) eq $type } @$rules) {
-    my @e = $self->_validate($data, $path, $rule);
-    $checked++;
-    push @errors, [@e] if @e;
+  for my $rule (@$rules) {
+    my @e = $self->_validate($data, $path, $rule) or next;
+    my $schema_type = _guess_schema_type($rule);
+    push @errors, [@e] and next if $schema_type eq $type;
+    push @expected, $schema_type;
   }
 
   warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-  return E $path, "allOf failed: Expected something else than $type." unless $checked == @$rules;
+  my $expected = join ' or ', _uniq(@expected);
+  return E $path, "allOf failed: Expected $expected, not $type."
+    if $expected and @errors + @expected == @$rules;
   return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors) if @errors;
   return;
 }
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type   = _guess_data_type($data);
-  my $failed = 0;
-  my @errors;
+  my $type = _guess_data_type($data);
+  my (@e, @errors, @expected);
 
-  for my $rule (grep { _guess_schema_type($_) eq $type } @$rules) {
-    if (my @e = $self->_validate($data, $path, $rule)) {
-      push @errors, [@e];
-    }
-    else {
+  for my $rule (@$rules) {
+    @e = $self->_validate($data, $path, $rule);
+    if (!@e) {
       warn "[JSON::Validator] anyOf @{[$path||'/']} == success\n" if DEBUG == 2;
       return;
     }
+    my $schema_type = _guess_schema_type($rule);
+    push @errors, [@e] and next if $schema_type eq $type;
+    push @expected, $schema_type;
   }
 
   warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-  return E $path, "anyOf failed: Expected something else than $type." unless @errors;
+  my $expected = join ' or ', _uniq(@expected);
+  return E $path, "anyOf failed: Expected $expected, got $type." unless @errors;
   return E $path, sprintf "anyOf failed: %s", _merge_errors(@errors);
 }
 
 sub _validate_one_of {
   my ($self, $data, $path, $rules) = @_;
   my $type = _guess_data_type($data);
-  my ($checked, $failed) = (0, 0);
-  my @errors;
+  my (@errors, @expected);
 
-  for my $rule (grep { _guess_schema_type($_) eq $type } @$rules) {
-    $checked++;
-    my @e = $self->_validate($data, $path, $rule);
-    next unless @e;
-    push @errors, [@e];
-    $failed++;
+  for my $rule (@$rules) {
+    my @e = $self->_validate($data, $path, $rule) or next;
+    my $schema_type = _guess_schema_type($rule);
+    push @errors, [@e] and next if $schema_type eq $type;
+    push @expected, $schema_type;
   }
 
-  if ($failed + 1 == $checked) {
+  if (@errors + @expected + 1 == @$rules) {
     warn "[JSON::Validator] oneOf @{[$path||'/']} == success\n" if DEBUG == 2;
     return;
   }
 
-  warn "[JSON::Validator] oneOf @{[$path||'/']} == failed=$failed/@{[int @$rules]} / @errors\n"
-    if DEBUG == 2;
-  return E $path, "oneOf failed: Expected something else than $type." unless $checked;
-  return E $path, 'All of the oneOf rules match.' unless $failed;
+  if (DEBUG == 2) {
+    warn sprintf "[JSON::Validator] oneOf %s == failed=%s/%s / @errors\n", $path || '/',
+      @errors + @expected, int @$rules;
+  }
+
+  my $expected = join ' or ', _uniq(@expected);
+  return E $path, 'All of the oneOf rules match.' unless @errors + @expected;
+  return E $path, "oneOf failed: Expected $expected, got $type." unless @errors;
   return E $path, sprintf 'oneOf failed: %s', _merge_errors(@errors);
 }
 
@@ -703,6 +708,11 @@ sub _path {
   s!~!~0!g;
   s!/!~1!g;
   "$_[0]/$_";
+}
+
+sub _uniq {
+  my %uniq;
+  grep { !$uniq{$_}++ } @_;
 }
 
 1;

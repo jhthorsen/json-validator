@@ -9,7 +9,7 @@ my @errors;
 @errors = $validator->validate("short", $schema);
 is "@errors", "", "got string";
 @errors = $validator->validate(12, $schema);
-is "@errors", "/: allOf failed: Expected something else than number.", "got number";
+is "@errors", "/: allOf failed: Expected string, not number.", "got number";
 
 $schema = {allOf => [{type => "string", maxLength => 7}, {type => "string", maxLength => 5}]};
 @errors = $validator->validate("superlong", $schema);
