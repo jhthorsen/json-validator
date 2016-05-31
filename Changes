@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.70 Not Released
+ - Fix allowing "id" as property name in objects
+
 0.69 2016-05-26T19:36:53+0200
  - Fix failing anyOf logic in t/swagger-validate-response-object.t
 

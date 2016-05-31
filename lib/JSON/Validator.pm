@@ -517,17 +517,21 @@ sub _validate_type_object {
     push @{$rules{$_}}, $r for grep { $_ =~ /$p/ } keys %$data;
   }
 
-  # special case used internally
-  $rules{id} ||= [{type => 'string'}] if !$path and $data->{id};
   $additional = exists $schema->{additionalProperties} ? $schema->{additionalProperties} : {};
-
   if ($additional) {
     $additional = {} unless ref $additional eq 'HASH';
     $rules{$_} ||= [$additional] for keys %$data;
   }
-  elsif (my @keys = grep { !$rules{$_} } keys %$data) {
-    local $" = ', ';
-    return E $path, "Properties not allowed: @keys.";
+  else {
+    # Special case used internally when validating schemas: This module adds "id"
+    # on the top level which might conflict with very strict schemas, so we have to
+    # remove it again unless there's a rule.
+    local $rules{id} = 1 if !$path and exists $data->{id};
+
+    if (my @keys = grep { !$rules{$_} } keys %$data) {
+      local $" = ', ';
+      return E $path, "Properties not allowed: @keys.";
+    }
   }
 
   for my $k (keys %required) {
