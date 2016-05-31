@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.70 Not Released
+0.70 2016-05-31T13:38:04+0200
  - Fix allowing "id" as property name in objects
 
 0.69 2016-05-26T19:36:53+0200

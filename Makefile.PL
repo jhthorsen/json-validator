@@ -2,7 +2,7 @@
 use ExtUtils::MakeMaker;
 WriteMakefile(
   NAME          => 'JSON::Validator',
-  AUTHOR        => 'Martin Renvoize <martin.renvoize@ptfs-europe.com>',
+  AUTHOR        => 'Jan Henning Thorsen <jhthorsen@cpan.org>',
   LICENSE       => 'artistic_2',
   ABSTRACT_FROM => 'lib/JSON/Validator.pm',
   VERSION_FROM  => 'lib/JSON/Validator.pm',
