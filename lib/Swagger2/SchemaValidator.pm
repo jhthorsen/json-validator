@@ -7,6 +7,7 @@ use constant IV_SIZE => eval 'require Config;$Config::Config{ivsize}';
 
 my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
 
+has _api_spec => sub { die '_api_spec() cannot be built' };
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
 sub validate_input {
@@ -180,12 +181,22 @@ sub _validate_type_object {
 
   my ($self, $data, $path, $schema) = @_;
   my $properties = $schema->{properties} || {};
+  my $discriminator = $schema->{discriminator};
   my (%ro, @e);
 
   for my $p (keys %$properties) {
     next unless $properties->{$p}{readOnly};
     push @e, JSON::Validator::E("$path/$p", "Read-only.") if exists $data->{$p};
     $ro{$p} = 1;
+  }
+
+  if ($discriminator and !$self->{inside_discriminator}) {
+    my $name = $data->{$discriminator}
+      or return JSON::Validator::E($path, "Discriminator $discriminator has no value.");
+    my $dschema = $self->_api_spec->get("/definitions/$name")
+      or return JSON::Validator::E($path, "No definition for discriminator $name.");
+    local $self->{inside_discriminator} = 1;    # prevent recursion
+    return $self->_validate($data, $path, $dschema);
   }
 
   local $schema->{required} = [grep { !$ro{$_} } @{$schema->{required} || []}];

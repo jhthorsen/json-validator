@@ -90,6 +90,7 @@ sub register {
 
   local $config->{coerce} = $config->{coerce} || $ENV{SWAGGER_COERCE_VALUES};
   $self->_validator->coerce($config->{coerce}) if $config->{coerce};
+  $self->_validator->_api_spec($swagger->api_spec);
   $self->url($swagger->url);
   $app->helper(dispatch_to_swagger => \&dispatch_to_swagger)
     unless $app->renderer->get_helper('dispatch_to_swagger');
