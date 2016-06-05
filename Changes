@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.71 Not Released
+ - Fix setting schema() inside validate()
+
 0.70 2016-05-31T13:38:04+0200
  - Fix allowing "id" as property name in objects
 

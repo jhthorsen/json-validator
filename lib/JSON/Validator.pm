@@ -81,6 +81,7 @@ sub validate {
   local $self->{seen} = {};
   $schema ||= $self->schema->data;    # back compat with Swagger2::SchemaValidator
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
+  local $self->{schema} = Mojo::JSON::Pointer->new($schema);
   return $self->_validate($data, '', $schema);
 }
 
