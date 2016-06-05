@@ -5,6 +5,11 @@ our $ERR;
 our $RES  = {};
 our $CODE = 200;
 
+sub add_image {
+  my ($c, $args, $cb) = @_;
+  $c->$cb($args->{data}, $CODE);
+}
+
 sub authenticate {
   my ($next, $c, $config) = @_;
   return $next->($c) if $CODE eq '200';

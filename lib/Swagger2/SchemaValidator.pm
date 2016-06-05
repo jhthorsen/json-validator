@@ -27,6 +27,11 @@ sub validate_request {
       $value = $self->_extract_request_parameter($c, $in);
       $exists = length $value;
     }
+    elsif ($in eq 'formData' and $type eq 'file') {
+      $value  = $c->req->upload($name);
+      $exists = $value ? 1 : 0;
+      $value  = $value ? $value->slurp : undef;
+    }
     else {
       $value  = $cache{$in} ||= $self->_extract_request_parameter($c, $in);
       $exists = exists $value->{$name};
@@ -160,8 +165,15 @@ sub _validate_type_array {
   return $self->SUPER::_validate_type_array(@_[1, 2, 3]);
 }
 
-# always valid
-sub _validate_type_file { }
+sub _validate_type_file {
+  my ($self, $data, $path, $schema) = @_;
+
+  if ($schema->{required} and (not defined $data or not length $data)) {
+    return JSON::Validator::E($path => "Missing property.");
+  }
+
+  return;
+}
 
 sub _validate_type_object {
   return shift->SUPER::_validate_type_object(@_) unless $_[0]->{validate_input};

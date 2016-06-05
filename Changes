@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.80 Not Released
+ - Fix validating required "file" in formData
+
 0.79 2016-05-23T19:15:25+0200
  - Fix collectionFormat "multi"
 
