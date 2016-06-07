@@ -129,6 +129,7 @@ sub _paths_to_string {
 
   for my $path (keys %$paths) {
     for my $method (sort keys %{$paths->{$path}}) {
+      next if $method =~ /^x-/;
       my $operationId = $paths->{$path}{$method}{operationId} || join ' ', uc $method, $path;
       $info{$operationId} and die "Overlapping operationId in swagger specification: $operationId";
       $info{$operationId} = {%{$paths->{$path}{$method}}, _path => $path, _method => $method,};
