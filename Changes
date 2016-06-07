@@ -2,7 +2,7 @@ Revision history for perl distribution Swagger2
 
 0.80 2016-06-07T15:29:56-0500
  - Fix validating required "file" in formData
- - Add support for "discriminator"
+ - Add support for "discriminator" #72
 
 0.79 2016-05-23T19:15:25+0200
  - Fix collectionFormat "multi"
