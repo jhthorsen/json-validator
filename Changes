@@ -2,6 +2,7 @@ Revision history for perl distribution JSON-Validator
 
 0.72 Not Released
  - Fix default cache_dir() path
+ - Move Swagger2::SchemaValidator into JSON::Validator::OpenAPI
 
 0.71 2016-06-07T15:29:35-0500
  - Fix setting schema() inside validate()
