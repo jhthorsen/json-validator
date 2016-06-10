@@ -1,18 +1,19 @@
-package Swagger2::SchemaValidator;
+package JSON::Validator::OpenAPI;
 use Mojo::Base 'JSON::Validator';
 use Scalar::Util ();
 
-use constant DEBUG   => $ENV{SWAGGER2_DEBUG};
-use constant IV_SIZE => eval 'require Config;$Config::Config{ivsize}';
+use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
+use constant IV_SIZE           => eval 'require Config;$Config::Config{ivsize}';
+use constant SPECIFICATION_URL => 'http://swagger.io/v2/schema.json';
 
 my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
 
-has _api_spec => sub { die '_api_spec() cannot be built' };
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
 sub validate_input {
   my $self = shift;
   local $self->{validate_input} = 1;
+  local $self->{root}           = $self->schema;
   $self->validate(@_);
 }
 
@@ -69,11 +70,11 @@ sub validate_response {
       if $blueprint->{headers};
 
     if ($blueprint->{'x-json-schema'}) {
-      warn "[Swagger2] Validate using x-json-schema\n" if DEBUG;
+      warn "[JSON::Validator::OpenAPI] Validate using x-json-schema\n" if DEBUG;
       push @errors, $self->_json_validator->validate($data, $blueprint->{'x-json-schema'});
     }
     elsif ($blueprint->{schema}) {
-      warn "[Swagger2] Validate using schema\n" if DEBUG;
+      warn "[JSON::Validator::OpenAPI] Validate using schema\n" if DEBUG;
       push @errors, $self->validate($data, $blueprint->{schema});
     }
   }
@@ -100,16 +101,16 @@ sub _validate_request_value {
   my $type = $p->{type} || 'object';
   my @e;
 
-  return if !defined $value and !Swagger2::_is_true($p->{required});
+  return if !defined $value and !JSON::Validator::_is_true($p->{required});
 
+  my $in     = $p->{in};
   my $schema = {
     properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p},
     required => [$p->{required} ? ($name) : ()]
   };
-  my $in = $p->{in};
 
   if ($in eq 'body') {
-    warn "[Swagger2] Validate $in $name\n" if DEBUG;
+    warn "[JSON::Validator::OpenAPI] Validate $in $name\n" if DEBUG;
     if ($p->{'x-json-schema'}) {
       return $self->_json_validator->validate({$name => $value}, $schema);
     }
@@ -118,11 +119,11 @@ sub _validate_request_value {
     }
   }
   elsif (defined $value) {
-    warn "[Swagger2] Validate $in $name=$value\n" if DEBUG;
+    warn "[JSON::Validator::OpenAPI] Validate $in $name=$value\n" if DEBUG;
     return $self->validate_input({$name => $value}, $schema);
   }
   else {
-    warn "[Swagger2] Validate $in $name=undef\n" if DEBUG;
+    warn "[JSON::Validator::OpenAPI] Validate $in $name=undef\n" if DEBUG;
     return $self->validate_input({$name => $value}, $schema);
   }
 
@@ -156,21 +157,18 @@ sub _validate_response_headers {
 sub _validate_type_array {
   my ($self, $data, $path, $schema) = @_;
 
-  if (  ref $data eq 'ARRAY'
-    and ref $schema->{items} eq 'HASH'
-    and $schema->{items}{collectionFormat})
-  {
+  if (ref $schema->{items} eq 'HASH' and $schema->{items}{collectionFormat}) {
     $data = $self->_coerce_by_collection_format($data, $schema->{items});
   }
 
-  return $self->SUPER::_validate_type_array(@_[1, 2, 3]);
+  return $self->SUPER::_validate_type_array($data, $path, $schema);
 }
 
 sub _validate_type_file {
   my ($self, $data, $path, $schema) = @_;
 
   if ($schema->{required} and (not defined $data or not length $data)) {
-    return JSON::Validator::E($path => "Missing property.");
+    return JSON::Validator::E($path => 'Missing property.');
   }
 
   return;
@@ -193,7 +191,7 @@ sub _validate_type_object {
   if ($discriminator and !$self->{inside_discriminator}) {
     my $name = $data->{$discriminator}
       or return JSON::Validator::E($path, "Discriminator $discriminator has no value.");
-    my $dschema = $self->_api_spec->get("/definitions/$name")
+    my $dschema = $self->{root}->get("/definitions/$name")
       or return JSON::Validator::E($path, "No definition for discriminator $name.");
     local $self->{inside_discriminator} = 1;    # prevent recursion
     return $self->_validate($data, $path, $dschema);
@@ -213,8 +211,7 @@ sub _build_formats {
   $formats->{float}  = \&Scalar::Util::looks_like_number;
   $formats->{int32}  = sub { _is_number($_[0], 'l'); };
   $formats->{int64}  = IV_SIZE >= 8 ? sub { _is_number($_[0], 'q'); } : sub {1};
-
-  return $formats;
+  $formats;
 }
 
 sub _coerce_by_collection_format {
@@ -252,21 +249,25 @@ sub _is_number {
 
 =head1 NAME
 
-Swagger2::SchemaValidator - Sub class of JSON::Validator
+JSON::Validator::OpenAPI - OpenAPI is both a subset and superset of JSON Schema
 
 =head1 DESCRIPTION
 
-This class is used to validate Swagger specification. It is a sub class of
-L<JSON::Validator> and adds some extra functionality specific for L<Swagger2>.
+L<JSON::Validator::OpenAPI> can validate Open API (also known as "Swagger")
+requests and responses that is passed through a L<Mojolicious> powered web
+application.
+
+L<JSON::Validator::OpenAPI> is currently EXPERIMENTAL. Let me know if you are
+interested in using this class with another framework than L<Mojolicious>.
 
 =head1 ATTRIBUTES
 
-L<Swagger2::SchemaValidator> inherits all attributes from L<JSON::Validator>.
+L<JSON::Validator::OpenAPI> inherits all attributes from L<JSON::Validator>.
 
 =head2 formats
 
-Swagger support the same formats as L<Swagger2::SchemaValidator>, but adds the
-following to the set:
+Open API support the same formats as L<JSON::Validator>, but adds the following
+to the set:
 
 =over 4
 
@@ -302,9 +303,11 @@ compiled to use 64 bit integers.
 
 =head1 METHODS
 
-L<Swagger2::SchemaValidator> inherits all attributes from L<JSON::Validator>.
+L<JSON::Validator::OpenAPI> inherits all attributes from L<JSON::Validator>.
 
 =head2 validate_input
+
+  @errors = $self->validate_input($data, $schema);
 
 This method will make sure "readOnly" is taken into account, when validating
 data sent to your API.
@@ -317,13 +320,9 @@ Takes an L<Mojolicious::Controller> and a schema definition and returns a list
 of errors, if any. Validated input parameters are moved into the C<%input>
 hash.
 
-This method is EXPERIMENTAL.
-
 =head2 validate_response
 
   @errors = $self->validate_response($c, $schema, $status, $data);
-
-This method is EXPERIMENTAL.
 
 =head1 COPYRIGHT AND LICENSE
 
