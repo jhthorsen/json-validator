@@ -760,10 +760,6 @@ You might want to use this instead of L<JSON::Schema> if you need to
 validate data against L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
 of the specification.
 
-This module is currently EXPERIMENTAL. Hopefully nothing drastic will change,
-but it needs to fit together nicely with L<Swagger2> - Since this is a spin-off
-project.
-
 =head2 Supported schema formats
 
 L<JSON::Validator> can load JSON schemas in multiple formats: Plain perl data
