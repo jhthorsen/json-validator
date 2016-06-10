@@ -15,9 +15,7 @@ use Scalar::Util;
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
-use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || $ENV{SWAGGER2_DEBUG} || 0;
-use constant WARN_ON_MISSING_FORMAT => $ENV{JSON_VALIDATOR_WARN_ON_MISSING_FORMAT}
-  || $ENV{SWAGGER2_WARN_ON_MISSING_FORMAT} ? 1 : 0;
+use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
 our $VERSION   = '0.71';
 our @EXPORT_OK = qw(validate_json);
@@ -368,13 +366,9 @@ sub _validate_type_enum {
 sub _validate_format {
   my ($self, $value, $path, $schema) = @_;
   my $code = $self->formats->{$schema->{format}};
-
-  unless ($code) {
-    warn "Format rule for '$schema->{format}' is missing" if WARN_ON_MISSING_FORMAT;
-    return;
-  }
-
-  return if $code->($value);
+  return if $code and $code->($value);
+  warn "Format rule for '$schema->{format}' is missing" unless $code;
+  return unless $code;
   return E $path, "Does not match $schema->{format} format.";
 }
 
