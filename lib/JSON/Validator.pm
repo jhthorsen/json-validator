@@ -33,7 +33,7 @@ sub validate_json {
 
 has cache_dir => sub {
   $ENV{JSON_VALIDATOR_CACHE_DIR}
-    || File::Spec->catdir(File::Basename::dirname(__FILE__), qw(JSON Validator));
+    || File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
 };
 
 has formats => sub { shift->_build_formats };
@@ -149,17 +149,19 @@ sub _load_schema_from_data {
 sub _load_schema_from_text {
   return Mojo::JSON::decode_json($_[1]) if $_[1] =~ /^\s*\{/s;
   $_[0]->{coerce}{booleans} = 1;    # internal coercion
-  _load_yaml($_[1]);
+  _load_yaml($_[1]) || undef;
 }
 
 sub _load_schema_from_url {
   my ($self, $url, $namespace) = @_;
   my $cache_file = File::Spec->catfile($self->cache_dir, Mojo::Util::md5_sum($namespace));
 
+  warn "[JSON::Validator] Trying to load cached file $cache_file\n" if DEBUG;
   return Mojo::Util::slurp($cache_file) if -r $cache_file;
-  my $doc = $self->ua->get($url)->res->body;
-  Mojo::Util::spurt($doc, $cache_file) if $self->cache_dir and -w $self->cache_dir;
-  return $doc;
+  my $tx = $self->ua->get($url);
+  die $tx->error->{message} if $tx->error;
+  Mojo::Util::spurt($tx->res->body, $cache_file) if $self->cache_dir and -w $self->cache_dir;
+  return $tx->res->body;
 }
 
 sub _default_id {

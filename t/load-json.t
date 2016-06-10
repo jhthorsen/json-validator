@@ -20,4 +20,9 @@ ok eval { JSON::Validator->new->schema("$file.2") },
   or diag $@;
 unlink "$file.2";
 
+# load from cache
+is(eval { JSON::Validator->new->schema('http://swagger.io/v2/schema.json'); 42 },
+  42, 'loaded from cache')
+  or diag $@;
+
 done_testing;
