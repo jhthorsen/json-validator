@@ -102,6 +102,7 @@ HERE
 
 sub _invalid_input_res {
   my $res = Mojo::Message::Response->new;
+  $res->headers->content_type('application/json');
   $res->body(Mojo::JSON::encode_json({errors => $_[0]}));
   $res->code(400)->message($res->default_message);
   $res->error({message => 'Invalid input', code => 400});
