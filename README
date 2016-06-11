@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.80
+    0.81
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger

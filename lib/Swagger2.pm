@@ -8,7 +8,7 @@ use File::Basename ();
 use File::Spec;
 use Swagger2::SchemaValidator;
 
-our $VERSION = '0.80';
+our $VERSION = '0.81';
 
 # Should be considered internal
 our $SPEC_FILE = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'schema.json');
@@ -142,7 +142,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 =head1 VERSION
 
-0.80
+0.81
 
 =head1 DESCRIPTION
 

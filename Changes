@@ -1,7 +1,9 @@
 Revision history for perl distribution Swagger2
 
-0.81 Not Released
+0.81 2016-06-10T19:29:45-0700
  - Fix Swagger2::POD looping over "x-" HTTP methods
+ - Change Swagger2::Client to set Content-Type on faked error responses #84
+   Contributor: A.J. Lucas
 
 0.80 2016-06-07T15:29:56-0500
  - Fix validating required "file" in formData
