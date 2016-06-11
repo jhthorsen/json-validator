@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.71
+    0.72
 
 SYNOPSIS
       use JSON::Validator;
@@ -34,10 +34,6 @@ DESCRIPTION
     data against draft 4
     <https://github.com/json-schema/json-schema/tree/master/draft-04> of the
     specification.
-
-    This module is currently EXPERIMENTAL. Hopefully nothing drastic will
-    change, but it needs to fit together nicely with Swagger2 - Since this
-    is a spin-off project.
 
   Supported schema formats
     JSON::Validator can load JSON schemas in multiple formats: Plain perl
