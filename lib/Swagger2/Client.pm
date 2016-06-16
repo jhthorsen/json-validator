@@ -125,11 +125,11 @@ sub _validate_request {
   my (%data, $body, @e);
 
   for my $p (@{$op_spec->{parameters} || []}) {
-    my ($in, $name) = @$p{qw( in name )};
+    my ($in, $name, $type) = @$p{qw( in name type )};
     my $value = exists $args->{$name} ? $args->{$name} : $p->{default};
 
     if (defined $value or Swagger2::_is_true($p->{required})) {
-      my $type = $p->{type} || 'object';
+      $type ||= 'object';
 
       if (defined $value) {
         $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
@@ -155,9 +155,6 @@ sub _validate_request {
     elsif ($in eq 'query') {
       $query->param($name => $value);
     }
-    elsif ($in eq 'file') {
-      $body = $value;
-    }
     elsif ($in eq 'header') {
       $req->[1]{$name} = $value;
     }
@@ -165,7 +162,7 @@ sub _validate_request {
       $data{json} = $value;
     }
     elsif ($in eq 'formData') {
-      $data{form} = $value;
+      $data{form}{$name} = $value;
     }
   }
 
