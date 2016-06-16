@@ -137,7 +137,7 @@ sub _validate_request {
           if $type eq 'boolean';
       }
 
-      if ($in eq 'body' or $in eq 'formData') {
+      if ($in eq 'body') {
         warn "[Swagger2::Client] Validate $in\n" if DEBUG;
         push @e,
           map { $_->{path} = $_->{path} eq "/" ? "/$name" : "/$name$_->{path}"; $_; }
