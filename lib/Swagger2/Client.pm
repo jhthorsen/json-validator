@@ -143,6 +143,11 @@ sub _validate_request {
           map { $_->{path} = $_->{path} eq "/" ? "/$name" : "/$name$_->{path}"; $_; }
           $self->_validator->validate($value, $p->{schema});
       }
+      elsif ($in eq 'formData' && $type eq 'file') {
+        # if this is a file parameter and there is data then do nothing
+        # as file data cannot be validated
+        warn "[Swagger2::Client] Validate $in $name (Skipping file)\n" if DEBUG;
+      }
       else {
         warn "[Swagger2::Client] Validate $in $name=$value\n" if DEBUG;
         push @e, $self->_validator->validate({$name => $value}, {properties => {$name => $p}});
