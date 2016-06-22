@@ -5,13 +5,13 @@ use Mojo::UserAgent;
 use Mojo::Util;
 use Carp ();
 use Swagger2;
-use Swagger2::SchemaValidator;
+use JSON::Validator::OpenAPI;
 
 use constant DEBUG => $ENV{SWAGGER2_DEBUG} || 0;
 
 has base_url   => sub { Mojo::URL->new(shift->_swagger->base_url) };
 has ua         => sub { Mojo::UserAgent->new };
-has _validator => sub { Swagger2::SchemaValidator->new; };
+has _validator => sub { JSON::Validator::OpenAPI->new; };
 
 sub generate {
   my $class = shift;

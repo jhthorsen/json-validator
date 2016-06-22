@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.82 Not Released
+ - Deprecating Swagger2::SchemaValidator in favor of JSON::Validator::OpenAPI
+
 0.81 2016-06-10T19:29:45-0700
  - Fix Swagger2::POD looping over "x-" HTTP methods
  - Change Swagger2::Client to set Content-Type on faked error responses #84

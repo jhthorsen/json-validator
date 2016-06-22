@@ -6,12 +6,11 @@ use Mojo::JSON::Pointer;
 use Mojo::URL;
 use File::Basename ();
 use File::Spec;
-use Swagger2::SchemaValidator;
+use JSON::Validator::OpenAPI;
 
 our $VERSION = '0.81';
 
 # Should be considered internal
-our $SPEC_FILE = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'schema.json');
 our $JS_CLIENT
   = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'swagger2-client.js');
 
@@ -35,12 +34,9 @@ has base_url => sub {
   return $url;
 };
 
-has _specification => sub { shift->_validator->schema($SPEC_FILE)->schema };
+has _specification => sub { shift->_validator->schema('http://swagger.io/v2/schema.json')->schema };
 
-has _validator => sub {
-  Swagger2::SchemaValidator->new->cache_dir($ENV{SWAGGER2_CACHE_DIR}
-      || File::Spec->catdir(File::Basename::dirname(__FILE__), qw( Swagger2 public cache )));
-};
+has _validator => sub { JSON::Validator::OpenAPI->new };
 
 sub ua  { shift->_validator->ua(@_) }
 sub url { shift->{url} }

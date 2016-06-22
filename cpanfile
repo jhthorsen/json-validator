@@ -1,5 +1,5 @@
 # You can install this projct with curl -L http://cpanmin.us | perl - https://github.com/jhthorsen/swagger2/archive/master.tar.gz
-requires "JSON::Validator" => "0.71";
+requires "JSON::Validator" => "0.73";
 requires "Mojolicious"     => "6.00";
 
 recommends "Data::Validate::Domain" => "0.10";
