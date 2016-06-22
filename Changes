@@ -2,6 +2,7 @@ Revision history for perl distribution JSON-Validator
 
 0.73 Not Released
  - Add http://git.io/vcKD4 error schema to cache
+ - Add JSON schema for JSONPatch files
  - Updated Swagger2 spec to https://github.com/OAI/OpenAPI-Specification/blob/19fed9f0f812ccebe0fc45313fea75bb6656de1c/schemas/v2.0/schema.json
 
 0.72 2016-06-10T19:22:52-0700
