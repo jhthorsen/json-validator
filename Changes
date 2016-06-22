@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.74 Not Released
+0.74 2016-06-22T19:26:14+0200
  - Fix length($data) need be defined in 5.10
 
 0.73 2016-06-22T19:12:10+0200
