@@ -27,7 +27,7 @@ sub validate_request {
 
     if ($in eq 'body') {
       $value = $self->_extract_request_parameter($c, $in);
-      $exists = length $value;
+      $exists = length $value if defined $value;
     }
     elsif ($in eq 'formData' and $type eq 'file') {
       $value  = $c->req->upload($name);

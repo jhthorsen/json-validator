@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.74 Not Released
+ - Fix length($data) need be defined in 5.10
+
 0.73 2016-06-22T19:12:10+0200
  - Add http://git.io/vcKD4 error schema to cache
  - Add JSON schema for JSONPatch files
