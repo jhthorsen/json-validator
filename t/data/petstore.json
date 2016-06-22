@@ -107,6 +107,23 @@
           }
         }
       }
+    },
+    "/pets/avatar" : {
+      "post" : {
+        "x-mojo-controller": "t::Api",
+        "operationId" : "addImage",
+        "parameters" : [
+          { "name" : "data", "type" : "file", "in" : "formData", "required": true }
+        ],
+        "responses" : {
+          "200": {
+            "description": "pet response",
+            "schema": {
+              "type": "file"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {

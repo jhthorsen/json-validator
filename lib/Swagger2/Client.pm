@@ -125,11 +125,11 @@ sub _validate_request {
   my (%data, $body, @e);
 
   for my $p (@{$op_spec->{parameters} || []}) {
-    my ($in, $name) = @$p{qw( in name )};
+    my ($in, $name, $type) = @$p{qw( in name type )};
     my $value = exists $args->{$name} ? $args->{$name} : $p->{default};
 
     if (defined $value or Swagger2::_is_true($p->{required})) {
-      my $type = $p->{type} || 'object';
+      $type ||= 'object';
 
       if (defined $value) {
         $value += 0 if $type =~ /^(?:integer|number)/ and $value =~ /^\d/;
@@ -137,11 +137,16 @@ sub _validate_request {
           if $type eq 'boolean';
       }
 
-      if ($in eq 'body' or $in eq 'formData') {
+      if ($in eq 'body') {
         warn "[Swagger2::Client] Validate $in\n" if DEBUG;
         push @e,
           map { $_->{path} = $_->{path} eq "/" ? "/$name" : "/$name$_->{path}"; $_; }
           $self->_validator->validate($value, $p->{schema});
+      }
+      elsif ($in eq 'formData' && $type eq 'file') {
+        # if this is a file parameter and there is data then do nothing
+        # as file data cannot be validated
+        warn "[Swagger2::Client] Validate $in $name (Skipping file)\n" if DEBUG;
       }
       else {
         warn "[Swagger2::Client] Validate $in $name=$value\n" if DEBUG;
@@ -155,9 +160,6 @@ sub _validate_request {
     elsif ($in eq 'query') {
       $query->param($name => $value);
     }
-    elsif ($in eq 'file') {
-      $body = $value;
-    }
     elsif ($in eq 'header') {
       $req->[1]{$name} = $value;
     }
@@ -165,7 +167,7 @@ sub _validate_request {
       $data{json} = $value;
     }
     elsif ($in eq 'formData') {
-      $data{form} = $value;
+      $data{form}{$name} = $value;
     }
   }
 

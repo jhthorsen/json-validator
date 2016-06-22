@@ -41,6 +41,12 @@ like $@, qr{^Invalid input: /data: Expected object - got null}, 'add_pet invalid
 $res = $client->add_pet({data => {name => 'm4'}});
 is $res->json->{name}, 'm4', 'add_pet';
 
+$res = $client->add_image({data => {file => __FILE__}});
+is $res->code, 200, 'add_image ok';
+
+eval { $client->add_image({data => {bang => __FILE__}}) };
+like $@, qr{Missing property}, 'add_image invalid input';
+
 # async
 $t::Api::RES = [{id => 123, name => "kit-cat"}];
 $client->base_url->host($ua->server->nb_url->host);
@@ -61,6 +67,7 @@ Mojo::IOLoop->start;
 isa_ok($res, 'Mojo::Message::Response');
 is $res->json->{errors}[0]{message}, 'Expected integer - got string.', 'errors';
 is_deeply($err, 'Internal Server Error', 'list_pets async invalid output');
+
 
 # with path
 $t::Api::RES = {id => 123, name => "kit-cat"};

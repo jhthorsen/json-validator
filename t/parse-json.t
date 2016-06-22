@@ -18,7 +18,7 @@ like $swagger->to_string, qr{"summary":"finds pets in the system"}, 'to_string';
 like $swagger->to_string('json'), qr{"summary":"finds pets in the system"}, 'to_string json';
 
 my $operations = $swagger->find_operations;
-is int @$operations, 3, 'all operations';
+is int @$operations, 4, 'all operations';
 
 $operations = $swagger->find_operations({tag => 'petx'});
 is int @$operations, 1, 'operations with tag pets';
