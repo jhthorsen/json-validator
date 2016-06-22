@@ -1,5 +1,6 @@
 package Swagger2::Client;
 use Mojo::Base -base;
+
 use Mojo::JSON;
 use Mojo::UserAgent;
 use Mojo::Util;
@@ -125,7 +126,7 @@ sub _validate_request {
   my (%data, $body, @e);
 
   for my $p (@{$op_spec->{parameters} || []}) {
-    my ($in, $name, $type) = @$p{qw( in name type )};
+    my ($in, $name, $type) = @$p{qw(in name type)};
     my $value = exists $args->{$name} ? $args->{$name} : $p->{default};
 
     if (defined $value or Swagger2::_is_true($p->{required})) {
@@ -143,7 +144,8 @@ sub _validate_request {
           map { $_->{path} = $_->{path} eq "/" ? "/$name" : "/$name$_->{path}"; $_; }
           $self->_validator->validate($value, $p->{schema});
       }
-      elsif ($in eq 'formData' && $type eq 'file') {
+      elsif ($in eq 'formData' and $type eq 'file') {
+
         # if this is a file parameter and there is data then do nothing
         # as file data cannot be validated
         warn "[Swagger2::Client] Validate $in $name (Skipping file)\n" if DEBUG;
