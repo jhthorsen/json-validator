@@ -30,9 +30,8 @@ sub validate_request {
       $exists = length $value if defined $value;
     }
     elsif ($in eq 'formData' and $type eq 'file') {
-      $value  = $c->req->upload($name);
+      $value = $c->req->upload($name);
       $exists = $value ? 1 : 0;
-      $value  = $value ? $value->slurp : undef;
     }
     else {
       $value  = $cache{$in} ||= $self->_extract_request_parameter($c, $in);
