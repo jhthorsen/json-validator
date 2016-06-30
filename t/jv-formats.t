@@ -53,6 +53,14 @@ else {
 }
 
 {
+  $schema->{properties}{v}{format} = 'regex';
+  @errors = $validator->validate({v => '(\w+)'}, $schema);
+  is "@errors", "", "regex valid";
+  @errors = $validator->validate({v => '(\w'}, $schema);
+  is "@errors", "/v: Does not match regex format.", "ipv6 invalid";
+}
+
+{
   local $schema->{properties}{v}{format} = 'uri';
   @errors = $validator->validate({v => 'http://mojolicio.us/?ø=123'}, $schema);
   is "@errors", "", "uri valid";

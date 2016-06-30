@@ -90,6 +90,7 @@ sub _build_formats {
     'hostname'  => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
     'ipv4'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
     'ipv6'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
+    'regex'     => \&_is_regex,
     'uri'       => \&_is_uri,
   };
 }
@@ -367,8 +368,7 @@ sub _validate_format {
   my ($self, $value, $path, $schema) = @_;
   my $code = $self->formats->{$schema->{format}};
   return if $code and $code->($value);
-  warn "Format rule for '$schema->{format}' is missing" unless $code;
-  return unless $code;
+  return do { warn "Format rule for '$schema->{format}' is missing"; return } unless $code;
   return E $path, "Does not match $schema->{format} format.";
 }
 
@@ -682,6 +682,9 @@ sub _is_true {
   return 1;
 }
 
+sub _is_regex {
+  eval {qr{$_[0]}};
+}
 sub _is_uri { $_[0] =~ qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!o; }
 
 # Please report if you need to manually monkey patch this function
