@@ -78,7 +78,7 @@ sub validate_response {
     }
   }
   else {
-    push @errors, $self->validate($data, {});
+    push @errors, JSON::Validator::E('/' => "No responses rules defined for status $status.");
   }
 
   return @errors;

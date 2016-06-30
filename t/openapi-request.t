@@ -29,7 +29,13 @@ make_request(
 validate_request(
   {
     parameters => [
-      {name => 'age',      type => 'array',   in => 'formData'},
+      {
+        name             => 'age',
+        type             => 'array',
+        collectionFormat => 'multi',
+        items            => {type => 'number'},
+        in               => 'formData'
+      },
       {name => 'too_cool', type => 'boolean', in => 'formData'},
       {name => 'x' => type => 'number', required => 1, default => 33, in => 'formData'},
     ]
@@ -63,7 +69,7 @@ validate_request(
       },
     ]
   },
-  sub { is_deeply $input, {x => 24, c => [3, 1, 2]}, 'collectionFormat' }
+  sub { is_deeply $input, {x => 0, c => [3, 1, 2]}, 'collectionFormat' }
 );
 
 # json body
@@ -110,6 +116,14 @@ validate_request(
   }
 );
 
+# query
+make_request('application/json', qq([]));
+validate_request(
+  {parameters => [{name => 'x', in => 'query', type => 'boolean'}]},
+  sub { is_deeply $input, {x => false}, 'query with boolean' }
+);
+
+
 # colliding parameters should be resolved in M::P::OpenAPI
 validate_request(
   {
@@ -130,7 +144,7 @@ sub make_request {
   my ($content_type) = shift;
   my $length = length join '', @_;
   my $req = $c->tx->req(Mojo::Message::Request->new)->req;
-  $req->parse(qq(POST /whatever?c=3,1,2&x=24 HTTP/1.1\x0d\x0a));
+  $req->parse(qq(POST /whatever?c=3,1,2&x=0 HTTP/1.1\x0d\x0a));
   $req->parse(qq(Content-Type: $content_type\x0d\x0a));
   $req->parse(qq(Content-Length: $length\x0d\x0a\x0d\x0a));
   $req->parse($_) for @_;
