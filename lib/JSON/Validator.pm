@@ -898,6 +898,10 @@ fall back to a plain IPv4 IP regex.
 
 Will be validated using L<Data::Validate::IP> if installed.
 
+=item * regex
+
+EXPERIMENTAL. Will check if the string is a regex, using C<qr{...}>.
+
 =item * uri
 
 Validated against the RFC3986 spec.
