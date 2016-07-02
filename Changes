@@ -1,5 +1,9 @@
 Revision history for perl distribution Swagger2
 
+0.83 Not Released
+ - Bump JSON::Validator dependency to 0.75
+ - Change JSON::Validator will pass on uploads as Mojo::Upload objects
+
 0.82 2016-06-22T19:27:24+0200
  - Deprecating Swagger2::SchemaValidator in favor of JSON::Validator::OpenAPI
  - Fix Swagger2::Client formData parameters #87

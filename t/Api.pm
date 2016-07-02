@@ -7,7 +7,7 @@ our $CODE = 200;
 
 sub add_image {
   my ($c, $args, $cb) = @_;
-  $c->$cb($args->{data}, $CODE);
+  $c->$cb($args->{data}->slurp, $CODE);
 }
 
 sub authenticate {

@@ -44,7 +44,7 @@ is $res->json->{name}, 'm4', 'add_pet';
 $res = $client->add_image({data => {file => __FILE__}});
 is $res->code, 200, 'add_image ok';
 
-eval { $client->add_image({data => {bang => __FILE__}}) };
+eval { $client->add_image({bang => {file => __FILE__}}) };
 like $@, qr{Missing property}, 'add_image invalid input';
 
 # async

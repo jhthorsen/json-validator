@@ -145,10 +145,7 @@ sub _validate_request {
           $self->_validator->validate($value, $p->{schema});
       }
       elsif ($in eq 'formData' and $type eq 'file') {
-
-        # if this is a file parameter and there is data then do nothing
-        # as file data cannot be validated
-        warn "[Swagger2::Client] Validate $in $name (Skipping file)\n" if DEBUG;
+        warn "[Swagger2::Client] Validate $in file=$name (@{[defined $value ? 1 : 0]})\n" if DEBUG;
       }
       else {
         warn "[Swagger2::Client] Validate $in $name=$value\n" if DEBUG;

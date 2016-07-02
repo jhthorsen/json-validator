@@ -8,7 +8,8 @@ plugin Swagger2 => {url => 'data://main/empty.json'};
 
 
 my $t = Test::Mojo->new();
-$t->get_ok('/api/empty/response')->status_is(500)->json_is('/errors/0/message', 'No validation rules defined.');
+$t->get_ok('/api/empty/response')->status_is(500)
+  ->json_is('/errors/0/message', 'No responses rules defined for status 200.');
 
 $t::Api::CODE = 204;
 $t->get_ok('/api/empty/response')->status_is(204)->content_is('');
