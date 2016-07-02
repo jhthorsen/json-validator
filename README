@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.74
+    0.75
 
 SYNOPSIS
       use JSON::Validator;
@@ -153,6 +153,10 @@ ATTRIBUTES
     *   ipv6
 
         Will be validated using Data::Validate::IP if installed.
+
+    *   regex
+
+        EXPERIMENTAL. Will check if the string is a regex, using "qr{...}".
 
     *   uri
 

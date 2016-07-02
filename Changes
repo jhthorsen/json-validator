@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.75 Not Released
+0.75 2016-07-02T14:44:31+0200
  - Fix uploads must not be slurped
  - Fix reporting error on missing response status definition
  - Add warnings on invalid (Perl) regexes
