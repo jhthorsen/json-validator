@@ -703,7 +703,7 @@ sub _load_yaml {
 sub _merge_errors {
   join ' ', map {
     my $e = $_;
-    @$e ? $e->[0]{message} : sprintf '(%s)', join '. ', map { $_->{message} } @$e;
+    (@$e == 1) ? $e->[0]{message} : sprintf '(%s)', join '. ', map { $_->{message} } @$e;
   } @_;
 }
 
