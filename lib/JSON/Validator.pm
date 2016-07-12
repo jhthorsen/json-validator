@@ -319,7 +319,7 @@ sub _validate_any_of {
   warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "anyOf failed: Expected $expected, got $type." unless @errors;
-  return E $path, sprintf "anyOf failed: %s", _merge_errors(@errors);
+  return E $errors[0]->[0]{path}, $errors[0]->[0]{message};
 }
 
 sub _validate_one_of {
