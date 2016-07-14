@@ -51,4 +51,36 @@ is "@errors", "", "schema 1 pass, schema 2 fail";
 
 is "@errors", "", "anyOf test with schema from http://json-schema.org/draft-04/schema";
 
+# anyOf with nested anyOf
+my $schemaC = {
+  anyOf => [
+    {
+      anyOf => [
+        {
+          type                 => 'object',
+          properties           => {id => {type => 'integer', minimum => 1}},
+          required             => ['id'],
+          additionalProperties => Mojo::JSON->false
+        },
+        {
+          type       => 'object',
+          properties => {
+            id   => {type => 'integer', minimum => 1},
+            name => {type => 'string'},
+            role => {type => 'string'}
+          },
+          required             => ['id', 'name', 'role'],
+          additionalProperties => Mojo::JSON->false
+        }
+      ]
+    },
+    {type => 'integer', minimum => 1}
+  ]
+};
+
+@errors = $validator->validate("string not integer", $schemaC);
+
+is "@errors", "/: anyOf failed: Expected object or integer, got string.", "nesting: string not integer (or object)";
+
+#@errors = $validator->validate({id => 1, name => 'Bob'}, $schemaC);
 done_testing;

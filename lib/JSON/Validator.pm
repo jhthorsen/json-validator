@@ -312,8 +312,9 @@ sub _validate_any_of {
       return;
     }
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
-    push @expected, $schema_type;
+    push @errors, [@e] and next if defined($schema_type) && $schema_type eq $type;
+    push @expected, $schema_type and next if defined($schema_type);
+    push @expected, 'object';
   }
 
   warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
