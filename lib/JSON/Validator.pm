@@ -312,7 +312,11 @@ sub _validate_any_of {
       return;
     }
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if !defined($schema_type) || $schema_type eq $type;
+    if ( @e == 1 && $e[0]{message} =~ /^anyOf failed: Expected object, got/ ) {
+        undef @e;
+        push @expected, 'object';
+    }
+    push @errors, [@e] and next if @e && ( !defined($schema_type) || $schema_type eq $type );
     push @expected, $schema_type and next if defined($schema_type);
   }
 
@@ -326,8 +330,8 @@ sub _validate_any_of {
       $count++;
       
       for my $e (@{$error}) {
-      $message .= "[".$count.$e->path."] ";
-      $message .= $e->message. " ";
+        $message .= "[" . $count . $e->path . "] ";
+        $message .= $e->message . " ";
       }
   }
   return E $path, "anyOf failed: ".$message;
