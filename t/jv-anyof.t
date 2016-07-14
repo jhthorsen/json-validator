@@ -82,5 +82,12 @@ my $schemaC = {
 
 is "@errors", "/: anyOf failed: Expected object or integer, got string.", "nesting: string not integer (or object)";
 
-#@errors = $validator->validate({id => 1, name => 'Bob'}, $schemaC);
+@errors = $validator->validate({id => 1, name => 'Bob'}, $schemaC);
+
+is "@errors", "/: anyOf failed: [0/] Properties not allowed: name. [1/role] Missing property. ", "id and name";
+
+@errors = $validator->validate({id => 1, name => 'Bob', role => 'admin'}, $schemaC);
+
+is "@errors", "", "name and role present";
+
 done_testing;
