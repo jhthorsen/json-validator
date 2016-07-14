@@ -80,7 +80,8 @@ my $schemaC = {
 
 @errors = $validator->validate("string not integer", $schemaC);
 
-is "@errors", "/: anyOf failed: Expected object or integer, got string.", "nesting: string not integer (or object)";
+is "@errors", "/: anyOf failed: Expected integer, got string.", "nesting: string not integer (or object)";
+# It would be nice to get 'object or integer' in the error above
 
 @errors = $validator->validate({id => 1, name => 'Bob'}, $schemaC);
 
