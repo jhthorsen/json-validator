@@ -52,9 +52,17 @@ sub validate_request {
       }
     }
 
-    my @e = $self->_validate_request_value($p, $name => $value);
-    $input->{$name} = $value if !@e and ($exists or exists $p->{default});
-    push @errors, @e;
+    if (my @e = $self->_validate_request_value($p, $name => $value)) {
+      push @errors, @e;
+      next;
+    }
+
+    if ($exists or exists $p->{default}) {
+      $input->{$name} = $value;
+    }
+    if (!$exists and exists $p->{default}) {
+      $self->_set_request_parameter($c, $p, $value);
+    }
   }
 
   return @errors;
@@ -93,6 +101,31 @@ sub _extract_request_parameter {
   return $c->req->headers->to_hash     if $in eq 'header';
   return $c->req->json                 if $in eq 'body';
   return {};
+}
+
+sub _set_request_parameter {
+  my ($self, $c, $p, $value) = @_;
+  my ($in, $name) = @$p{qw(in name)};
+
+  if ($in eq 'query') {
+    $c->req->url->query([$name => $value]);
+    $c->req->params->merge($name => $value);
+  }
+  elsif ($in eq 'path') {
+    $c->match->stack->[-1] = $value;
+    $c->stash($name => $value);
+  }
+  elsif ($in eq 'formData') {
+    $c->req->params->merge($name => $value);
+    $c->req->body_params->merge($name => $value);
+  }
+  elsif ($in eq 'header') {
+    $c->req->headers->header($name => $value);
+  }
+  else {
+    die
+      "Cannot set default for $in => $name. Please submit a ticket here: https://github.com/jhthorsen/mojolicious-plugin-openapi";
+  }
 }
 
 sub _validate_request_value {
