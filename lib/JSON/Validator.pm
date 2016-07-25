@@ -543,8 +543,10 @@ sub _validate_type_object {
         $data->{$k} = $r->{default};
       }
       else {
-        push @errors, $self->_validate_type_enum($data->{$k}, _path($path, $k), $r) if $r->{enum};
-        push @errors, $self->_validate($data->{$k}, _path($path, $k), $r);
+        my @e = $self->_validate($data->{$k}, _path($path, $k), $r);
+        push @errors, @e;
+        push @errors, $self->_validate_type_enum($data->{$k}, _path($path, $k), $r)
+          if $r->{enum} and !@e;
       }
     }
   }

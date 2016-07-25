@@ -2,11 +2,10 @@ use Mojo::Base -strict;
 use Test::More;
 use JSON::Validator;
 
-my $validator = JSON::Validator->new->schema(
-  {properties => {required => {type => "boolean", enum => [Mojo::JSON->true, Mojo::JSON->false]}}});
+my $validator = JSON::Validator->new->schema({properties => {required => {type => "boolean"}}});
 
 my @errors = $validator->validate({required => '0'});
-is $errors[1]->{message}, 'Expected boolean - got string.', 'string 0 is not detected as boolean';
+is $errors[0]->{message}, 'Expected boolean - got string.', 'string 0 is not detected as boolean';
 
 $validator->coerce(booleans => 1);
 for my $value (!!1, !!0) {

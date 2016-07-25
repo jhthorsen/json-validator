@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.77 Not Released
+ - Avoid duplicate error messages with enum #22
+
 0.76 2016-07-25T14:49:27+0200
  - Will write default values into Mojolicious::Controller
 
