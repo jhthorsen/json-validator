@@ -12,7 +12,7 @@ sub add_image {
 
 sub authenticate {
   my ($next, $c, $config) = @_;
-  return $next->($c) if $CODE eq '200';
+  return $next->($c) if $CODE == 200;
   return $c->render(json => $config, status => $CODE);
 }
 
@@ -75,7 +75,7 @@ sub show_pet_by_id {
 sub get_pet {
   my ($c, $args, $cb) = @_;
   die $ERR if $ERR;
-  return $c->$cb('', 201) if $CODE eq '201';
+  return $c->$cb('', 201) if $CODE == 201;
   return $c->$cb($RES, $CODE);
 }
 
