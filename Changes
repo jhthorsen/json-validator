@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.76 Not Released
+0.76 2016-07-25T14:49:27+0200
  - Will write default values into Mojolicious::Controller
 
 0.75 2016-07-02T14:44:31+0200
