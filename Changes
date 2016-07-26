@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.77 Not Released
+0.77 2016-07-26T15:03:13+0200
  - Avoid duplicate error messages with enum #22
  - Fix "false" must be false and not true in OpenAPI
 
