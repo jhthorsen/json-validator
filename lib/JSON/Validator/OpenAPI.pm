@@ -111,7 +111,7 @@ sub _set_request_parameter {
     $c->req->params->merge($name => $value);
   }
   elsif ($in eq 'path') {
-    $c->match->stack->[-1] = $value;
+    $c->match->stack->[-1]{$name} = $value;
     $c->stash($name => $value);
   }
   elsif ($in eq 'formData') {
