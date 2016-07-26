@@ -121,6 +121,9 @@ sub _set_request_parameter {
   elsif ($in eq 'header') {
     $c->req->headers->header($name => $value);
   }
+  elsif ($in eq 'body') {
+    return;    # no need to write body back
+  }
   else {
     die
       "Cannot set default for $in => $name. Please submit a ticket here: https://github.com/jhthorsen/mojolicious-plugin-openapi";
