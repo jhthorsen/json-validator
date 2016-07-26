@@ -54,13 +54,12 @@ sub validate_request {
 
     if (my @e = $self->_validate_request_value($p, $name => $value)) {
       push @errors, @e;
-      next;
     }
-
-    if ($exists or exists $p->{default}) {
+    elsif ($exists or exists $p->{default}) {
       $input->{$name} = $value;
+      $self->_set_request_parameter($c, $p, $value);
     }
-    if (!$exists and exists $p->{default}) {
+    elsif (!$exists and exists $p->{default}) {
       $self->_set_request_parameter($c, $p, $value);
     }
   }
