@@ -25,16 +25,14 @@ my $HTTP_SCHEME_RE = qr{^https?:};
 sub E { JSON::Validator::Error->new(@_) }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
 
-sub validate_json {
-  __PACKAGE__->singleton->schema($_[1])->validate($_[0]);
-}
-
 has cache_dir => sub {
   $ENV{JSON_VALIDATOR_CACHE_DIR}
     || File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
 };
 
 has formats => sub { shift->_build_formats };
+
+has resolver => sub { \&_resolver };
 
 has ua => sub {
   require Mojo::UserAgent;
@@ -81,6 +79,10 @@ sub validate {
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
   local $self->{schema} = Mojo::JSON::Pointer->new($schema);
   return $self->_validate($data, '', $schema);
+}
+
+sub validate_json {
+  __PACKAGE__->singleton->schema($_[1])->validate($_[0]);
 }
 
 sub _build_formats {
@@ -212,8 +214,15 @@ sub _resolve_schema {
     }
   }
 
+  $self->resolver->($self, $namespace, \@refs);
+  $self->{resolved}{$namespace};
+}
+
+sub _resolver {
+  my ($self, $namespace, $refs) = @_;
+
   # Seconds step: Resolve $ref
-  for my $topic (@refs) {
+  for my $topic (@$refs) {
     my $ref = $topic->{'$ref'} or next;    # already resolved?
     $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;    # TODO: Figure out if this could be removed
     $ref = Mojo::URL->new($namespace)->fragment($ref) if $ref =~ s!^\#!!;
@@ -233,8 +242,6 @@ sub _resolve_schema {
     %$topic = %$ref;
     delete $topic->{id} unless ref $topic->{id};    # TODO: Is this correct?
   }
-
-  return $self->{resolved}{$namespace};
 }
 
 sub _validate {
@@ -909,6 +916,18 @@ EXPERIMENTAL. Will check if the string is a regex, using C<qr{...}>.
 Validated against the RFC3986 spec.
 
 =back
+
+=head2 resolver
+
+  $code = $self->resolver;
+  $self = $self->resolver(sub { my ($self, $namespace, $refs) = @_; });
+
+Set this to a sub without any logic if you want to skip resolving references,
+like this:
+
+  $self->resolver(sub {});
+
+This attribute is EXPERIMENTAL.
 
 =head2 ua
 
