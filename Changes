@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.84 Not Released
+ - Fix recurring requests with same path part #93
+
 0.83 2016-07-02T15:03:38+0200
  - Bump JSON::Validator dependency to 0.75
  - Change JSON::Validator will pass on uploads as Mojo::Upload objects
