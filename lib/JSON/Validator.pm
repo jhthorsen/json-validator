@@ -295,7 +295,7 @@ sub _validate_all_of {
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
+    push @errors, [@e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
   }
 
@@ -309,24 +309,50 @@ sub _validate_all_of {
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data);
-  my (@e, @errors, @expected);
+  my $prefix = $self->{prefix} || '';     # something like "0.1.0."
+  my $type   = _guess_data_type($data);
+  my $i      = -1;
+  my ($schema_type, @e, @errors, @expected, @keep);
 
   for my $rule (@$rules) {
-    @e = $self->_validate($data, $path, $rule);
-    if (!@e) {
-      warn "[JSON::Validator] anyOf @{[$path||'/']} == success\n" if DEBUG == 2;
-      return;
+    $i++;
+
+    if ($rule->{anyOf}) {
+
+      # Nested anyOf need to be treated together. To give a hint of this, we set
+      # $self->{prefix} to the path of which anyOf element we are handling.
+      local $self->{prefix} = "$i.";
+      @e = $self->_validate($data, $path, $rule);
     }
-    my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
-    push @expected, $schema_type;
+    else {
+
+      # We reset prefix here, since we are not inside a nested anyOf rule
+      # Any error messages generated here cannot be grouped.
+      local $self->{prefix};
+      @e = $self->_validate($data, $path, $rule);
+    }
+
+    return unless @e;    # we found a valid rule!
+    $schema_type = _guess_schema_type($rule);
+    @e = map { $_->{message} = "anyOf[$prefix$i]: $_->{message}"; $_ } @e;
+    push @errors, @e and next if !$schema_type or $schema_type eq $type;    # regular error messages
+    push @expected, $schema_type;    # sub schema "type" does not match input data
   }
 
+  # Filter out invalid paths in the anyOf tree
+  @keep = grep { !$_->{not_allowed} } @errors;
+  @errors = @keep if @keep and @keep != @errors;
+  @keep = grep { push @expected, @{$_->{expected} || []}; !$_->{expected} } @errors;
+  @errors = @keep;
+
   warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
+
+  # The regex is an ugly hack
+  return map { $_->{message} =~ s!.*anyOf!anyOf!; $_ } @errors if @errors;
+
+  # All the input was unexpected
   my $expected = join ' or ', _uniq(@expected);
-  return E $path, "anyOf failed: Expected $expected, got $type." unless @errors;
-  return E $path, sprintf "anyOf failed: %s", _merge_errors(@errors);
+  return E $path, "Expected $expected, got $type.", {expected => $prefix ? \@expected : undef};
 }
 
 sub _validate_one_of {
@@ -337,7 +363,7 @@ sub _validate_one_of {
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
+    push @errors, [@e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
   }
 
@@ -534,7 +560,7 @@ sub _validate_type_object {
 
     if (my @keys = grep { !$rules{$_} } keys %$data) {
       local $" = ', ';
-      return E $path, "Properties not allowed: @keys.";
+      return E $path, "Properties not allowed: @keys.", {not_allowed => 1};
     }
   }
 

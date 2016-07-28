@@ -34,7 +34,7 @@ is "@errors", "/: oneOf failed: Not multiple of 3.", "multipleOf";
 $schema
   = {type => 'object', properties => {x => {type => ['string', 'null'], format => 'date-time'}}};
 @errors = $validator->validate({x => 'foo'}, $schema);
-is "@errors", "/x: anyOf failed: Does not match date-time format.", "date-time";
+is "@errors", "/x: anyOf[0]: Does not match date-time format.", "date-time";
 @errors = $validator->validate({x => '2015-04-21T20:30:43.000Z'}, $schema);
 is "@errors", "", "YYYY-MM-DDThh:mm:ss.fffZ";
 @errors = $validator->validate({x => undef}, $schema);
