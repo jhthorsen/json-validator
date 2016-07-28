@@ -9,6 +9,7 @@ use overload
 sub new {
   my $self = bless {}, shift;
   @$self{qw(path message)} = ($_[0] || '/', $_[1] || '');
+  map { $self->{$_} = $_[2]->{$_} } keys %{$_[2]} if $_[2];
   $self;
 }
 

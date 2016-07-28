@@ -1,54 +1,87 @@
-use Mojo::Base -strict;
+use t::Helper;
 use Test::More;
-use JSON::Validator;
 
-my $validator = JSON::Validator->new;
 my $schema = {anyOf => [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]};
-my @errors;
-
-@errors = $validator->validate("short", $schema);
-is "@errors", "", "short";
-
-@errors = $validator->validate("too long", $schema);
-is "@errors", "/: anyOf failed: String is too long: 8/5.", "too long";
-
-@errors = $validator->validate(12, $schema);
-is "@errors", "", "number";
-
-@errors = $validator->validate(-1, $schema);
-is "@errors", "/: anyOf failed: -1 < minimum(0)", "negative";
-
-@errors = $validator->validate({}, $schema);
-is "@errors", "/: anyOf failed: Expected string or number, got object.", "object";
-
-# anyOf with schema of the same 'type'
+validate_ok $schema, 'short',    [];
+validate_ok $schema, 'too long', [E('/', 'anyOf[0]: String is too long: 8/5.')];
+validate_ok $schema, 12,         [];
+validate_ok $schema, -1,         [E('/', 'anyOf[1]: -1 < minimum(0)')];
+validate_ok $schema, {}, [E('/', 'Expected string or number, got object.')];
 
 # anyOf with explicit integer (where _guess_data_type returns 'number')
-my $schemaB = {anyOf => [{type => "integer"}, {minimum => 2}]};
+validate_ok {anyOf => [{type => "integer"}, {minimum => 2}]}, 1, [];
 
-@errors = $validator->validate(1, $schemaB);
-is "@errors", "", "schema 1 pass, schema 2 fail";
-
-@errors = $validator->validate(
-  {type => 'string'},
+# anyOf test with schema from http://json-schema.org/draft-04/schema
+validate_ok(
   {
     properties => {
-      type => {
+      whatever => {
         anyOf => [
           {'$ref' => '#/definitions/simpleTypes'},
           {
             type        => 'array',
             items       => {'$ref' => '#/definitions/simpleTypes'},
             minItems    => 1,
-            uniqueItems => Mojo::JSON::true,
+            uniqueItems => true,
           }
         ]
       },
     },
     definitions => {simpleTypes => {enum => [qw(array boolean integer null number object string)]}}
-  }
+  },
+  {whatever => ''},
+  [],
 );
 
-is "@errors", "", "anyOf test with schema from http://json-schema.org/draft-04/schema";
+# anyOf with nested anyOf
+$schema = {
+  anyOf => [
+    {
+      anyOf => [
+        {
+          type                 => 'object',
+          additionalProperties => false,
+          required             => ['id'],
+          properties           => {id => {type => 'integer', minimum => 1}},
+        },
+        {
+          type                 => 'object',
+          additionalProperties => false,
+          required             => ['id', 'name', 'role'],
+          properties           => {
+            id   => {type => 'integer', minimum => 1},
+            name => {type => 'string'},
+            role => {anyOf => [{type => 'string'}, {type => 'array'}]},
+          },
+        }
+      ]
+    },
+    {type => 'integer', minimum => 1}
+  ]
+};
+validate_ok(
+  $schema,
+  {id => 1, name => '', role => 123},
+  [E('/role', 'anyOf[0.1]: Expected string or array, got number.')]
+);
+validate_ok($schema, 'string not integer', [E('/', 'Expected object or integer, got string.')]);
+validate_ok($schema, {id => 1, name => 'Bob'}, [E('/role', 'anyOf[0.1]: Missing property.')]);
+validate_ok($schema, {id => 1, name => 'Bob', role => 'admin'}, []);
+
+validate_ok(
+  $schema,
+  {foo => 1},
+  [E('/foo', 'anyOf[0.0]: Property not allowed.'), E('/foo', 'anyOf[0.1]: Property not allowed.')]
+);
+validate_ok(
+  $schema,
+  {},
+  [
+    E('/id',   'anyOf[0.0]: Missing property.'),
+    E('/id',   'anyOf[0.1]: Missing property.'),
+    E('/name', 'anyOf[0.1]: Missing property.'),
+    E('/role', 'anyOf[0.1]: Missing property.'),
+  ]
+);
 
 done_testing;

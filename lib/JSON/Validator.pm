@@ -97,6 +97,12 @@ sub _build_formats {
   };
 }
 
+sub _flatten_rules {
+  my $i = 0;
+  return map { +{%$_, i => $i++} } @{$_[0]} unless @_ > 1;
+  return map { +{%$_, i => sprintf '%s.%s', $_[1], $i++} } @{$_[0]};
+}
+
 sub _load_schema {
   my ($self, $url, $parent) = @_;
   my ($namespace, $scheme) = ("$url", "file");
@@ -289,72 +295,69 @@ sub _validate {
 
 sub _validate_all_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data);
-  my (@errors, @expected);
+  my ($errors, $expected, $type) = $self->_validate_bag(allOf => $data, $path, $rules) or return;
 
-  for my $rule (@$rules) {
-    my @e = $self->_validate($data, $path, $rule) or next;
-    my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
-    push @expected, $schema_type;
-  }
-
-  warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-  my $expected = join ' or ', _uniq(@expected);
-  return E $path, "allOf failed: Expected $expected, not $type."
-    if $expected and @errors + @expected == @$rules;
-  return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors) if @errors;
-  return;
+  return @$errors unless @$expected;
+  return E $path, sprintf('Expected %s, got %s.', join(' or ', _uniq(@$expected)), $type),
+    {expected => $expected};
 }
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data);
-  my (@e, @errors, @expected);
+  my ($errors, $expected, $type) = $self->_validate_bag(anyOf => $data, $path, $rules) or return;
 
-  for my $rule (@$rules) {
-    @e = $self->_validate($data, $path, $rule);
-    if (!@e) {
-      warn "[JSON::Validator] anyOf @{[$path||'/']} == success\n" if DEBUG == 2;
-      return;
-    }
-    my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
-    push @expected, $schema_type;
+  if (@$errors) {
+    my @keep = grep { !$_->{not_allowed} } @$errors;
+    return @keep ? @keep : @$errors;
   }
 
-  warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG == 2;
-  my $expected = join ' or ', _uniq(@expected);
-  return E $path, "anyOf failed: Expected $expected, got $type." unless @errors;
-  return E $path, sprintf "anyOf failed: %s", _merge_errors(@errors);
+  return E $path, sprintf('Expected %s, got %s.', join(' or ', _uniq(@$expected)), $type),
+    {expected => $expected};
 }
 
 sub _validate_one_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data);
-  my (@errors, @expected);
+  my ($errors, $expected, $type) = $self->_validate_bag(oneOf => $data, $path, $rules) or return;
+  my $n_errors = int @$expected;
+  my $not_allowed;
 
-  for my $rule (@$rules) {
-    my @e = $self->_validate($data, $path, $rule) or next;
-    my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
-    push @expected, $schema_type;
+  for (@$errors) {
+    $n_errors++ unless $not_allowed and $_->{not_allowed};
+    $not_allowed = 1 if $_->{not_allowed};
   }
 
-  if (@errors + @expected + 1 == @$rules) {
-    warn "[JSON::Validator] oneOf @{[$path||'/']} == success\n" if DEBUG == 2;
-    return;
+  return if $n_errors + 1 == @$rules;
+  return E $path, 'All of the oneOf rules match.' unless @$errors + @$expected;
+  return @$errors if @$errors;
+  $expected = join ' or ', _uniq(@$expected);
+  return E $path, "Expected $expected, got $type.";
+}
+
+sub _validate_bag {
+  my ($self, $bag, $data, $path, $rules) = @_;
+  my @rules = _flatten_rules($rules);
+  my $type  = _guess_data_type($data);
+  my (@expected, %errors);
+
+  while (my $rule = shift @rules) {
+    if (ref $rule->{$bag} eq 'ARRAY') {
+      unshift @rules, _flatten_rules($rule->{$bag}, $rule->{i});
+    }
+    elsif (my @e = $self->_validate($data, $path, $rule)) {
+      my $schema_type = _guess_schema_type($rule);
+      $_->{i} = $rule->{i} for @e;
+      push @{$errors{$rule->{i}}}, @e and next if !$schema_type or $schema_type eq $type;
+      push @expected, $schema_type and next;
+    }
+    else {
+      return if $bag eq 'anyOf';
+    }
   }
 
-  if (DEBUG == 2) {
-    warn sprintf "[JSON::Validator] oneOf %s == failed=%s/%s / @errors\n", $path || '/',
-      @errors + @expected, int @$rules;
-  }
+  my @errors = map { $_->{message} = "${bag}[$_->{i}]: $_->{message}"; $_; }
+    map { @{$errors{$_}} } sort keys %errors;
 
-  my $expected = join ' or ', _uniq(@expected);
-  return E $path, 'All of the oneOf rules match.' unless @errors + @expected;
-  return E $path, "oneOf failed: Expected $expected, got $type." unless @errors;
-  return E $path, sprintf 'oneOf failed: %s', _merge_errors(@errors);
+  return \@errors, \@expected, $type;
 }
 
 sub _validate_type_enum {
@@ -532,9 +535,9 @@ sub _validate_type_object {
     # remove it again unless there's a rule.
     local $rules{id} = 1 if !$path and exists $data->{id};
 
-    if (my @keys = grep { !$rules{$_} } keys %$data) {
+    if (my @names = grep { !$rules{$_} } keys %$data) {
       local $" = ', ';
-      return E $path, "Properties not allowed: @keys.";
+      return map { E "$path/$_", "Property not allowed.", {not_allowed => 1} } @names;
     }
   }
 
@@ -707,13 +710,6 @@ sub _load_yaml {
   warn "[JSON::Validator] Using $YAML_MODULE to parse YAML\n" if DEBUG;
   Mojo::Util::monkey_patch(__PACKAGE__, _load_yaml => eval "\\\&$YAML_MODULE\::Load");
   _load_yaml(@_);
-}
-
-sub _merge_errors {
-  join ' ', map {
-    my $e = $_;
-    (@$e == 1) ? $e->[0]{message} : sprintf '(%s)', join '. ', map { $_->{message} } @$e;
-  } @_;
 }
 
 sub _path {
