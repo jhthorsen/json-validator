@@ -2,8 +2,8 @@ use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
 
-plan skip_all => 'Mojolicious::Plugin::OpenAPI is required'
-  unless eval { require Mojolicious::Plugin::OpenAPI };
+plan skip_all => 'Mojolicious::Plugin::OpenAPI 0.08 is required'
+  unless eval 'use Mojolicious::Plugin::OpenAPI 0.08; 1';
 
 use Mojolicious::Lite;
 get '/echo' => sub {
