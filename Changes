@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
-0.78 Not Released
+0.78 2016-07-28T20:51:31+0200
+ - Fix recursive dependencies #23
  - Add EXPERIMENTAL resolver attribute
  - Improved allOf, anyOf and oneOf error messages
 
