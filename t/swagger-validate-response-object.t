@@ -1,4 +1,5 @@
-use t::Helper;
+use Mojo::Base -strict;
+use Test::Mojo;
 use Test::More;
 
 #
@@ -18,10 +19,9 @@ use Test::More;
 
 plan skip_all => 'Swagger2 0.66+ is required'
   unless eval 'require Swagger2;Swagger2->VERSION >= 0.66';
-
 my $swagger = Swagger2->new('data://main/spec.json');
 my @errors  = $swagger->validate;
-is_deeply \@errors, [], "no errors in spec.json" or diag Data::Dumper::Dumper(\@errors);
+is "@errors", "", "no errors in spec.json";
 done_testing;
 
 __DATA__

@@ -48,7 +48,7 @@ my ($schema, @errors);
     = $validator->validate(
     {number => 1600, street_name => "Pennsylvania", street_type => "Avenue", direction => "NW"},
     $schema);
-  is "@errors", "/direction: Property not allowed.", "additionalProperties=0";
+  is "@errors", "/: Properties not allowed: direction.", "additionalProperties=0";
 
   $schema->{additionalProperties} = {type => "string"};
   @errors
