@@ -773,6 +773,10 @@ You might want to use this instead of L<JSON::Schema> if you need to
 validate data against L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
 of the specification.
 
+This module can be used standalone, but if you want to define a specification
+for your webserver's API, then have a look at L<Mojolicious::Plugin::OpenAPI>,
+which will replace L<Mojolicious::Plugin::Swagger2>.
+
 =head2 Supported schema formats
 
 L<JSON::Validator> can load JSON schemas in multiple formats: Plain perl data
