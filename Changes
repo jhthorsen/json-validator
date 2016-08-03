@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.80 Not Released
+0.80 2016-08-03T19:12:40+0200
  - Fix parsing recursive schema
 
 0.79 2016-07-28T21:14:47+0200
