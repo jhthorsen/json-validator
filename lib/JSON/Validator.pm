@@ -203,6 +203,7 @@ sub _resolve_schema {
     my $topic = shift @items;
     if (ref $topic eq 'HASH') {
       while (my ($k, $v) = each %$topic) {
+        next if ref $v and $self->{seen}{int($v)}++;
         $topic->{$k} = [@$v] if ref $v eq 'ARRAY';
         $topic->{$k} = {%$v} if ref $v eq 'HASH';
         push @refs, $topic if $k eq '$ref' and !ref $v;
