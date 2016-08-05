@@ -25,7 +25,7 @@ sub validate_request {
     my ($in, $name, $type) = @$p{qw(in name type)};
     my ($exists, $value);
 
-    if ($in eq 'body') {
+    if ($in eq 'path') {
       $value = $self->_extract_request_parameter($c, $in);
       $exists = length $value if defined $value;
     }
