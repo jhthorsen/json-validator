@@ -364,7 +364,9 @@ sub _validate_type_enum {
   my $m    = S $data;
 
   for my $i (@$enum) {
-    return if !$self->_validate_type_boolean($data, $path) and _is_true($data) == _is_true($i);
+    return
+      if !(defined $data and $self->_validate_type_boolean($data, $path))
+      and _is_true($data) == _is_true($i);
     return if $m eq S $i;
   }
 
