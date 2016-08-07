@@ -296,7 +296,7 @@ sub _validate_all_of {
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
+    push @errors, [@e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
   }
 
@@ -320,7 +320,7 @@ sub _validate_any_of {
       return;
     }
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
+    push @errors, [@e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
   }
 
@@ -338,7 +338,7 @@ sub _validate_one_of {
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if $schema_type eq $type;
+    push @errors, [@e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
   }
 
