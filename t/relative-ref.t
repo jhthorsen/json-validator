@@ -3,7 +3,7 @@ use Test::More;
 use JSON::Validator;
 
 my $file = File::Spec->catfile(File::Basename::dirname(__FILE__), 'spec', 'with-relative-ref.json');
-my $validator = JSON::Validator->new(cache_dir => '/i/hope/this/dir/does/not/exist')->schema($file);
+my $validator = JSON::Validator->new(cache_paths => [])->schema($file);
 is $validator->schema->get('/properties/age/type'), 'integer', 'loaded age.json from disk';
 
 use Mojolicious::Lite;

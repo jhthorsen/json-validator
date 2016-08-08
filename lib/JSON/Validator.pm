@@ -5,7 +5,7 @@ use JSON::Validator::Error;
 use Mojo::JSON;
 use Mojo::JSON::Pointer;
 use Mojo::URL;
-use Mojo::Util;
+use Mojo::Util 'deprecated';
 use B;
 use Cwd            ();
 use File::Basename ();
@@ -18,7 +18,7 @@ use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
 our $VERSION   = '0.80';
-our @EXPORT_OK = qw(validate_json);
+our @EXPORT_OK = 'validate_json';
 
 my $HTTP_SCHEME_RE = qr{^https?:};
 
@@ -26,8 +26,16 @@ sub E { JSON::Validator::Error->new(@_) }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
 
 has cache_dir => sub {
-  $ENV{JSON_VALIDATOR_CACHE_DIR}
-    || File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
+  deprecated 'cache_dir() is replaced by cache_paths()';
+  shift->cache_paths->[0];
+};
+
+has cache_paths => sub {
+  my $self = shift;
+  my @paths = split /:/, ($ENV{JSON_VALIDATOR_CACHE_DIR} || '');
+  push @paths, $self->{cache_dir} if $self->{cache_dir};
+  push @paths, File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
+  return \@paths;
 };
 
 has formats => sub { shift->_build_formats };
@@ -155,13 +163,25 @@ sub _load_schema_from_text {
 
 sub _load_schema_from_url {
   my ($self, $url, $namespace) = @_;
-  my $cache_file = File::Spec->catfile($self->cache_dir, Mojo::Util::md5_sum($namespace));
+  my $cache_dir  = $self->cache_paths->[0];
+  my $cache_file = Mojo::Util::md5_sum($namespace);
+  my $tx;
 
-  warn "[JSON::Validator] Trying to load cached file $cache_file\n" if DEBUG;
-  return Mojo::Util::slurp($cache_file) if -r $cache_file;
-  my $tx = $self->ua->get($url);
+  for (@{$self->cache_paths}) {
+    my $path = File::Spec->catfile($_, $cache_file);
+    next unless -r $path;
+    warn "[JSON::Validator] Loading cached file $path\n" if DEBUG;
+    return Mojo::Util::slurp($path);
+  }
+
+  $tx = $self->ua->get($url);
   die $tx->error->{message} if $tx->error;
-  Mojo::Util::spurt($tx->res->body, $cache_file) if $self->cache_dir and -w $self->cache_dir;
+
+  if ($cache_dir and -w $cache_dir) {
+    $cache_file = File::Spec->catfile($cache_dir, $cache_file);
+    Mojo::Util::spurt($tx->res->body, $cache_file);
+  }
+
   return $tx->res->body;
 }
 
@@ -873,12 +893,25 @@ See also L</validate> and L</ERROR OBJECT> for more details.
 
 =head2 cache_dir
 
-  $self = $self->cache_dir($path);
-  $path = $self->cache_dir;
+Deprecated in favor of L</cache_paths>.
 
-Path to where downloaded spec files should be cached. Defaults to
-C<JSON_VALIDATOR_CACHE_DIR> or the bundled spec files that are shipped
-with this distribution.
+=head2 cache_paths
+
+  $self = $self->cache_paths(\@paths);
+  $array_ref = $self->cache_paths;
+
+Search paths to where cached specifications are stored. Defaults to
+C<JSON_VALIDATOR_CACHE_DIR> and the bundled spec files that are shipped with
+this distribution.
+
+  JSON_VALIDATOR_CACHE_DIR=/cache/dir:/some/other/location perl script.pl
+
+To download a file and add it to the cache, do this:
+
+  $ curl http://swagger.io/v2/schema.json > /cache/dir/$(md5 -qs http://swagger.io/v2/schema.json)
+
+Files referenced to an URL will automatically be cached if the first path in
+L</cache_paths> is writable.
 
 =head2 formats
 
