@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.84 Not Released
+0.84 2016-08-08T10:04:28+0200
  - Fix recurring requests with same path part #93
 
 0.83 2016-07-02T15:03:38+0200
