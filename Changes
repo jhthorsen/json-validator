@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+0.81 Not Released
+ - Fix recurring requests with same path part jhthorsen/swagger2#93
+ - Fix "Use of uninitialized value $schema_type..." warnings
+
 0.80 2016-08-03T19:12:40+0200
  - Fix parsing recursive schema
 
