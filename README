@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.80
+    0.81
 
 SYNOPSIS
       use JSON::Validator;
@@ -120,12 +120,24 @@ FUNCTIONS
 
 ATTRIBUTES
   cache_dir
-      $self = $self->cache_dir($path);
-      $path = $self->cache_dir;
+    Deprecated in favor of "cache_paths".
 
-    Path to where downloaded spec files should be cached. Defaults to
-    "JSON_VALIDATOR_CACHE_DIR" or the bundled spec files that are shipped
+  cache_paths
+      $self = $self->cache_paths(\@paths);
+      $array_ref = $self->cache_paths;
+
+    Search paths to where cached specifications are stored. Defaults to
+    "JSON_VALIDATOR_CACHE_DIR" and the bundled spec files that are shipped
     with this distribution.
+
+      JSON_VALIDATOR_CACHE_DIR=/cache/dir:/some/other/location perl script.pl
+
+    To download a file and add it to the cache, do this:
+
+      $ curl http://swagger.io/v2/schema.json > /cache/dir/$(md5 -qs http://swagger.io/v2/schema.json)
+
+    Files referenced to an URL will automatically be cached if the first
+    path in "cache_paths" is writable.
 
   formats
       $hash_ref = $self->formats;

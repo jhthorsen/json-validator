@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.81 Not Released
+0.81 2016-08-08T10:03:43+0200
  - Add support for multiple cache dir search paths
  - Deperecated cache_dir()
  - Fix recurring requests with same path part jhthorsen/swagger2#93
