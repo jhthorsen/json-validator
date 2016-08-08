@@ -7,16 +7,14 @@ plan skip_all => 'Mojolicious::Plugin::OpenAPI 0.08 is required'
 
 use Mojolicious::Lite;
 get '/echo' => sub {
-  my $c = shift;
-  return if $c->openapi->invalid_input;
-  return $c->reply->openapi(200 => {bool => $c->param('bool')});
+  my $c = shift->openapi->valid_input or return;
+  $c->reply->openapi(200 => {bool => $c->param('bool')});
   },
   'echo';
 
 get '/echo/:whatever' => sub {
-  my $c = shift;
-  return if $c->openapi->invalid_input;
-  return $c->reply->openapi(
+  my $c = shift->openapi->valid_input or return;
+  $c->reply->openapi(
     200 => {this_stack => $c->match->stack->[-1], whatever => $c->param('whatever')});
   },
   'whatever';
