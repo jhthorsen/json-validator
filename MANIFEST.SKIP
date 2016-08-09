@@ -1,4 +1,3 @@
-#!start included /Users/jhthorsen/.plenv/versions/5.22.0/lib/perl5/5.22.0/ExtUtils/MANIFEST.SKIP
 # Avoid version control files.
 \bRCS\b
 \bCVS\b
@@ -68,3 +67,4 @@
 ^local/
 ^MANIFEST\.SKIP
 ^README\.pod
+^test.sh
