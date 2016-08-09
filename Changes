@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.82 Not Released
+0.82 2016-08-09T12:45:05+0200
  - Fix finding all $ref occurances #95
 
 0.81 2016-08-08T10:03:43+0200
