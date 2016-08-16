@@ -81,12 +81,13 @@ sub schema {
 sub singleton { state $validator = shift->new }
 
 sub validate {
-  my ($self, $data, $schema) = @_;
-  local $self->{seen} = {};
-  $schema ||= $self->schema->data;    # back compat with Swagger2::SchemaValidator
+  my ($self, $data, $arg) = @_;
+  my ($schema, $pointer) = ref $arg ? ($arg, undef) : ($self->schema->data, $arg);
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
   local $self->{schema} = Mojo::JSON::Pointer->new($schema);
-  return $self->_validate($data, '', $schema);
+  local $self->{seen}   = {};
+  return $self->_validate($data, '', $schema) unless $pointer;
+  return $self->_validate($data, '', Mojo::JSON::Pointer->new($schema)->get($pointer));
 }
 
 sub validate_json {
@@ -151,8 +152,9 @@ sub _load_schema {
 sub _load_schema_from_data {
   my ($self, $url, $namespace) = @_;
   require Mojo::Loader;
-  $namespace =~ m!^data://([^/]+)/(.*)$!;
-  Mojo::Loader::data_section($1 || 'main', $2 || $namespace);
+  my ($module, $file) = $namespace =~ m!^data://([^/]+)/(.*)$! or die "Invalid URL: $namespace.";
+  Mojo::Loader::data_section($module, $file)
+    || die "$file could not be found in __DATA__ section of $module.";
 }
 
 sub _load_schema_from_text {
@@ -1049,11 +1051,25 @@ Returns the L<JSON::Validator> object used by L</validate_json>.
 =head2 validate
 
   @errors = $self->validate($data);
+  @errors = $self->validate($data, $schema, $json_path);
 
 Validates C<$data> against a given JSON L</schema>. C<@errors> will
 contain validation error objects or be an empty list on success.
 
 See L</ERROR OBJECT> for details.
+
+C<$schema> is optional, but when specified, it will override schema stored in
+L</schema>. Example:
+
+  $self->validate({hero => "superwoman"}, {type => "object"});
+
+C<$json_path> is optional, but it can be used to point to a given "sub schema"
+inside of L</schema>. Example:
+
+  $self->schema({foo => {type => "object"}});
+  $self->validate({hero => "superwoman"}, "/foo");
+
+C<$json_path> is EXPERIMENTAL.
 
 =head1 COPYRIGHT AND LICENSE
 
