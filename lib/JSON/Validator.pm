@@ -157,7 +157,7 @@ sub _load_schema_from_data {
 
 sub _load_schema_from_text {
   return Mojo::JSON::decode_json($_[1]) if $_[1] =~ /^\s*\{/s;
-  $_[0]->{coerce}{booleans} = 1;    # internal coercion
+  $_[0]->coerce(1);    # need to coerce all values... because YAML is awful :(
   local $YAML::Syck::ImplicitTyping = 1;
   _load_yaml($_[1]) || undef;
 }
