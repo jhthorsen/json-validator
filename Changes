@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.83 Not Released
+ - Removed support for passing $json_path to validate()
+
 0.83 2016-08-16T19:37:04+0200
  - Fix handling of true/false in schema, when loaded with YAML::Syck #27
  - Add EXPERIMENTAL support for passing $json_path to validate()
