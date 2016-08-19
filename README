@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.83
+    0.84
 
 SYNOPSIS
       use JSON::Validator;
@@ -261,7 +261,7 @@ METHODS
 
   validate
       @errors = $self->validate($data);
-      @errors = $self->validate($data, $schema, $json_path);
+      @errors = $self->validate($data, $schema);
 
     Validates $data against a given JSON "schema". @errors will contain
     validation error objects or be an empty list on success.
@@ -272,14 +272,6 @@ METHODS
     in "schema". Example:
 
       $self->validate({hero => "superwoman"}, {type => "object"});
-
-    $json_path is optional, but it can be used to point to a given "sub
-    schema" inside of "schema". Example:
-
-      $self->schema({foo => {type => "object"}});
-      $self->validate({hero => "superwoman"}, "/foo");
-
-    $json_path is EXPERIMENTAL.
 
 COPYRIGHT AND LICENSE
     Copyright (C) 2014-2015, Jan Henning Thorsen
