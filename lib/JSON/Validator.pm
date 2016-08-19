@@ -269,16 +269,14 @@ sub _resolver {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my $type = $schema->{type} || _guess_schema_type($schema, $data);
-  my @errors;
+  my ($type, @errors);
 
   # Avoid recursion
   return if ref $data and $self->{seen}{"$schema\:$data"}++;
 
   # Make sure we validate plain data and not a perl object
-  if (UNIVERSAL::can($data, 'TO_JSON')) {
-    $data = $data->TO_JSON;
-  }
+  $data = $data->TO_JSON if UNIVERSAL::can($data, 'TO_JSON');
+  $type = $schema->{type} || _guess_schema_type($schema, $data);
 
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {

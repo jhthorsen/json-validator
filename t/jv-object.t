@@ -91,4 +91,9 @@ my ($schema, @errors);
   is "@errors", "/credit_card: Missing billing_address.", "credit_card";
 }
 
+sub TO_JSON { return {age => shift->{age}} }
+my $obj = bless {age => 'not_a_string'}, 'main';
+@errors = $validator->validate($obj, {properties => {age => {type => 'integer'}}});
+is "@errors", "/age: Expected integer - got string.", "age is not a string";
+
 done_testing;
