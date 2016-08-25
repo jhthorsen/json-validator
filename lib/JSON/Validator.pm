@@ -210,33 +210,56 @@ sub _register_document {
   return $doc;
 }
 
+# This method is used to resolve all the $ref's that we find inside JSON Schema
+# specification.
+#
+# $namespace is typically the "id" part at the top level of the schema
+# specification. Meaning some kind of URL. In the case of Swagger: Just make
+# something up instead using _default_id()
 sub _resolve_schema {
   my ($self, $schema, $namespace) = @_;
-  my (@items, @refs);
+  my (@topics, @refs);
 
+  # The if is true if we have already resolved this $namespace. This happens if
+  # the same specification has "$ref" with the same value multiple times.
+  # There's no need to resolve the same schema twice.
   return $self->{resolved}{$namespace} if $self->{resolved}{$namespace};
 
   warn "[JSON::Validator] Resolving schema $namespace\n" if DEBUG;
   $self->{resolved}{$namespace} = Mojo::JSON::Pointer->new({%{$schema->data}});
-  @items = ($self->{resolved}{$namespace}->data);
+  @topics = ($self->{resolved}{$namespace}->data);
 
-  # First step: Make copy and find $ref
-  while (@items) {
-    my $topic = shift @items;
-    if (ref $topic eq 'HASH') {
-      while (my ($k, $v) = each %$topic) {
+  # This while loop will traverse the whole specification and and track down
+  # each and every "$ref" it finds. @topics is a list of all the data
+  # structures that it finds. Note that is start out with just having one item:
+  # A hash-ref to the complete specification, but as it goes along, the while()
+  # loop will track down more objects and arrays inside the specification and
+  # then loop over those as well, util it has "visited" the whole document.
+  while (@topics) {
+    my $topic = shift @topics;
+    if (UNIVERSAL::isa($topic, 'HASH')) {
+      for my $k (sort keys %$topic) {
+        my $v = $topic->{$k};
+
+        # int($v) returns the memory address of the reference. The "if" below
+        # will not resolve the same "$ref" over again.
         next if $k eq '$ref' and ref $v and $self->{seen}{int($v)}++;
-        $topic->{$k} = [@$v] if ref $v eq 'ARRAY';
-        $topic->{$k} = {%$v} if ref $v eq 'HASH';
+
+        # Make sure we do not modify the input data structure.
+        # Changing the input makes t/expand.t in swagger2.git fail.
+        $topic->{$k} = [@$v] if UNIVERSAL::isa($v, 'ARRAY');
+        $topic->{$k} = {%$v} if UNIVERSAL::isa($v, 'HASH');
+
+        push @topics, $topic->{$k} if ref $topic->{$k};
         push @refs, $topic if $k eq '$ref' and !ref $v;
-        push @items, $topic->{$k};
       }
     }
-    elsif (ref $topic eq 'ARRAY') {
-      push @items, @$topic;
+    elsif (UNIVERSAL::isa($topic, 'ARRAY')) {
+      push @topics, @$topic;
     }
   }
 
+  # Resolve all the "$ref" we found. This will call _resolve_schema() again.
   $self->resolver->($self, $namespace, \@refs);
   $self->{resolved}{$namespace};
 }
