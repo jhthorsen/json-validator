@@ -8,7 +8,7 @@ use File::Basename ();
 use File::Spec;
 use JSON::Validator::OpenAPI;
 
-our $VERSION = '0.85';
+our $VERSION = '0.86';
 
 # Should be considered internal
 our $JS_CLIENT
@@ -138,7 +138,7 @@ Swagger2 - Swagger RESTful API Documentation
 
 =head1 VERSION
 
-0.85
+0.86
 
 =head1 DEPRECATION WARNING
 

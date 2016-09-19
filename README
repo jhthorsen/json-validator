@@ -2,7 +2,53 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.85
+    0.86
+
+DEPRECATION WARNING
+    The Swagger2 distribution is no longer actively maintained. Only severe
+    bug fixes and pull requests will move this code forward. The reason
+    behind this is that the code is too complex and hard to maintain.
+
+    So what should you use instead?
+
+    * Swagger2
+
+      Swagger2 is either not very useful or replaced by JSON::Validator.
+
+    * Swagger2::Client
+
+      No alternatives. The issue with this module is that it does not
+      understand if you have parameters with the same name. There might be a
+      OpeenAPI::Client at some point, but it is currently no plans to write
+      it.
+
+    * Swagger2::Editor
+
+      No alternatives.
+
+    * Swagger2::POD
+
+      Swagger2::POD is not very good and also very hard to maintain.
+      Mojolicious::Plugin::OpenAPI has a HTML renderer which makes
+      documentation that is much easier to read and always in sync with the
+      application.
+
+      When that is said: The renderer in Mojolicious::Plugin::OpenAPI need
+      refinement.
+
+    * Swagger2::SchemaValidator
+
+      Mojolicious::Plugin::OpenAPI has the validator built in. For other
+      purposes, use JSON::Validator or JSON::Validator::OpenAPI instead.
+
+    * Mojolicious::Command::swagger2
+
+      No alternatives.
+
+    * Mojolicious::Plugin::Swagger2
+
+      Use Mojolicious::Plugin::OpenAPI instead. Mojolicious::Plugin::OpenAPI
+      plays much nicer together with the Mojolicious framework.
 
 DESCRIPTION
     Swagger2 is a module for generating, parsing and transforming swagger
