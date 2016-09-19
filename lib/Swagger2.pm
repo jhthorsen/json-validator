@@ -140,6 +140,55 @@ Swagger2 - Swagger RESTful API Documentation
 
 0.85
 
+=head1 DEPRECATION WARNING
+
+The L<Swagger2> distribution is no longer actively maintained. Only severe bug
+fixes and pull requests will move this code forward.  The reason behind this is
+that the code is too complex and hard to maintain.
+
+So what should you use instead?
+
+=over 2
+
+=item * L<Swagger2>
+
+L<Swagger2> is either not very useful or replaced by L<JSON::Validator>.
+
+=item * L<Swagger2::Client>
+
+No alternatives. The issue with this module is that it does not understand if
+you have parameters with the same name. There might be a L<OpeenAPI::Client> at
+some point, but it is currently no plans to write it.
+
+=item * L<Swagger2::Editor>
+
+No alternatives.
+
+=item * L<Swagger2::POD>
+
+L<Swagger2::POD> is not very good and also very hard to maintain.
+L<Mojolicious::Plugin::OpenAPI> has a HTML renderer which makes documentation
+that is much easier to read and always in sync with the application.
+
+When that is said: The renderer in L<Mojolicious::Plugin::OpenAPI> need
+refinement.
+
+=item * L<Swagger2::SchemaValidator>
+
+L<Mojolicious::Plugin::OpenAPI> has the validator built in. For other purposes,
+use L<JSON::Validator> or L<JSON::Validator::OpenAPI> instead.
+
+=item * L<Mojolicious::Command::swagger2>
+
+No alternatives.
+
+=item * L<Mojolicious::Plugin::Swagger2>
+
+Use L<Mojolicious::Plugin::OpenAPI> instead. L<Mojolicious::Plugin::OpenAPI>
+plays much nicer together with the L<Mojolicious> framework.
+
+=back
+
 =head1 DESCRIPTION
 
 L<Swagger2> is a module for generating, parsing and transforming

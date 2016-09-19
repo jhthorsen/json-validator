@@ -268,6 +268,10 @@ __DATA__
 
 Swagger2::Editor - A WEB based Swagger2 API editor
 
+=head1 DEPRECATION WARNING
+
+See L<Swagger2>.
+
 =head1 DESCRIPTION
 
 L<Swagger2::Editor> is a WEB based Swagger2 API editor.

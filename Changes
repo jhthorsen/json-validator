@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.86 Not Released
+ - Deprecated distribution
+
 0.85 2016-08-09T12:48:13+0200
  - Fix finding all $ref occurances in JSON::Validator #95
 

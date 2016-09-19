@@ -377,6 +377,10 @@ sub _type_description {
 
 Swagger2::POD - Convert swagger API spec to Perl documentation
 
+=head1 DEPRECATION WARNING
+
+See L<Swagger2>.
+
 =head1 DESCRIPTION
 
 L<Swagger2::POD> is a module that can convert from L</Swagger2> to L<POD|perlpod>.

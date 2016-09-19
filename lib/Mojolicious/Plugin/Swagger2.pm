@@ -340,6 +340,10 @@ sub _load {
 
 Mojolicious::Plugin::Swagger2 - Mojolicious plugin for Swagger2
 
+=head1 DEPRECATION WARNING
+
+See L<Swagger2>.
+
 =head1 SYNOPSIS
 
   package MyApp;

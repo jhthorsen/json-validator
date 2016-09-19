@@ -190,6 +190,10 @@ HERE
 
 Mojolicious::Command::swagger2 - mojo swagger2 command
 
+=head1 DEPRECATION WARNING
+
+See L<Swagger2>.
+
 =head1 DESCRIPTION
 
 L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
