@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.85 Not Released
+0.85 2016-09-26T22:30:21+0200
  - Fix handling of collectionFormat where no input is defined
 
 0.84 2016-08-19T19:11:51+0200
