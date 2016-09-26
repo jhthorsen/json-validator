@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.85 Not Released
+ - Fix handling of collectionFormat where no input is defined
+
 0.84 2016-08-19T19:11:51+0200
  - Removed support for passing $json_path to validate()
  - Fix guessing type of objects that has TO_JSON()

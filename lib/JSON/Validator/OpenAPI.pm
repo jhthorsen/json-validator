@@ -39,7 +39,7 @@ sub validate_request {
       $value  = $value->{$name};
     }
 
-    if (ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
+    if (defined $value and ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {
       $value = $self->_coerce_by_collection_format($value, $p);
     }
 
