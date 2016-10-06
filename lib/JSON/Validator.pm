@@ -848,6 +848,52 @@ Here are some resources that are related to JSON schemas and validation:
 
 =back
 
+=head2 Bundled specifications
+
+This module comes with some JSON specifications bundled, so your application
+don't have to fetch those from the web. These specifications should be up to
+date, but please submit an issue if they are not.
+
+Note that the bundled specifications can be ignored, by customizing
+L</cache_paths>.
+
+=over 2
+
+=item * JSON schema, draft 4
+
+Web page: L<http://json-schema.org>
+
+C<$ref>: L<http://json-schema.org/draft-04/schema#>
+
+=item * JSON schema for JSONPatch files
+
+Web page: L<http://jsonpatch.com>
+
+C<$ref>: L<http://json.schemastore.org/json-patch#>
+
+=item * Swagger / OpenAPI specification, version 2
+
+Web page: L<https://openapis.org>
+
+C<$ref>: L<http://swagger.io/v2/schema.json#>
+
+=item * Custom error document
+
+There is a custom schema used by L<Mojolicious::Plugin::OpenAPI> as a default
+error document. This document might be extended later, but it will always be
+backward compatible.
+
+Specification: L<https://github.com/jhthorsen/json-validator/blob/master/lib/JSON/Validator/cache/630949337805585c8e52deea27d11419>
+
+C<$ref>: L<http://git.io/vcKD4#>.
+
+=item * Swagger Petstore
+
+This is used for unit tests, and should probably not be relied on by external
+users.
+
+=back
+
 =head1 ERROR OBJECT
 
 =head2 Overview
