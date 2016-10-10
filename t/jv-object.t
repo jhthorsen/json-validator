@@ -65,9 +65,12 @@ my ($schema, @errors);
 }
 
 {
-  $schema = {type => 'object', minProperties => 2, maxProperties => 3,};
+  $schema = {type => 'object', minProperties => 1};
+  @errors = $validator->validate({}, $schema);
+  is "@errors", "/: Not enough properties: 0/1.", "not enough properties 0/1";
+  $schema = {type => 'object', minProperties => 2, maxProperties => 3};
   @errors = $validator->validate({a => 1}, $schema);
-  is "@errors", "/: Not enough properties: 1/2.", "not enough properties";
+  is "@errors", "/: Not enough properties: 1/2.", "not enough properties 1/2";
   @errors = $validator->validate({a => 1, b => 2}, $schema);
   is "@errors", "", "object with required";
   @errors = $validator->validate({a => 1, b => 2, c => 3, d => 4}, $schema);
