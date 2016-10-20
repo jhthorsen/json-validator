@@ -298,7 +298,7 @@ sub _validate {
   return if ref $data and $self->{seen}{"$schema\:$data"}++;
 
   # Make sure we validate plain data and not a perl object
-  $data = $data->TO_JSON if UNIVERSAL::can($data, 'TO_JSON');
+  $data = $data->TO_JSON if Scalar::Util::blessed($data) and UNIVERSAL::can($data, 'TO_JSON');
   $type = $schema->{type} || _guess_schema_type($schema, $data);
 
   # Test base schema before allOf, anyOf or oneOf

@@ -31,4 +31,11 @@ SKIP: {
   ok $validator->coerce->{booleans}, 'coerce booleans';
 }
 
+SKIP: {
+  skip 'boolean not installed', 1 unless eval 'require boolean;1';
+  my @errors = $validator->validate({type => 'boolean'},
+    {type => 'object', properties => {type => {type => 'string'}}});
+  is "@errors", "", "avoid Can't use string (\"boolean\") as a SCALAR";
+}
+
 done_testing;
