@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.87 Not Released
+0.87 2016-10-20T22:59:45+0200
  - Fix validating data when boolean.pm is loaded
 
 0.86 2016-10-06T18:36:36+0200
