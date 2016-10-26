@@ -10,6 +10,33 @@ my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t}
 
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
+sub load_and_validate_spec {
+  my ($self, $spec, $args) = @_;
+  my $openapi = JSON::Validator->new->schema($args->{schema} || SPECIFICATION_URL);
+  my ($api_spec, @errors);
+
+  # 1. first check if $ref is in the right place,
+  # 2. then check if the spec is correct
+  for my $r (sub { }, undef) {
+    next if $r and $args->{allow_invalid_ref};
+    my $jv = JSON::Validator->new;
+    $jv->resolver($r) if $r;
+    $api_spec = $jv->schema($spec)->schema;
+    @errors   = $openapi->coerce($jv->coerce)->validate($api_spec->data);
+    die join "\n", "[OpenAPI] Invalid spec:", @errors if @errors;
+  }
+
+  if (my $class = $args->{version_from_class}) {
+    if (UNIVERSAL::can($class, 'VERSION') and $class->VERSION) {
+      $api_spec->data->{info}{version} = $class->VERSION;
+    }
+  }
+
+  warn "[OpenAPI] Loaded $spec\n" if DEBUG;
+  $self->{schema} = $api_spec;
+  $self;
+}
+
 sub validate_input {
   my $self = shift;
   local $self->{validate_input} = 1;
@@ -337,6 +364,54 @@ compiled to use 64 bit integers.
 =head1 METHODS
 
 L<JSON::Validator::OpenAPI> inherits all attributes from L<JSON::Validator>.
+
+=head2 load_and_validate_spec
+
+  $self = $self->load_and_validate_spec($url, \%args);
+
+Will load and validate C<$url> against the OpenAPI specification. The exapnded
+specification will be stored in L<JSON::Validator/schema> on success. See
+L<JSON::Validator/schema> for the different version of C<$url> that can be
+accepted.
+
+C<%args> can be used to further instruct the expansion and validation process:
+
+=over 2
+
+=item * allow_invalid_ref
+
+Setting this to a true value, will disable the first pass. This is useful if
+you don't like the restrictions set by OpenAPI, regarding where you can use
+C<$ref> in your specification.
+
+=item * version_from_class
+
+Setting this to a module/class name will use the version number from the
+class and overwrite the version in the specification:
+
+  {
+    "info": {
+      "version": "1.00" // <-- this value
+    }
+  }
+
+=back
+
+The validation is done with a two pass process:
+
+=over 2
+
+=item 1.
+
+First it will check if the C<$ref> is only specified on the correct places.
+This can be disabled by setting L</allow_invalid_ref> to a true value.
+
+=item 2.
+
+Validate the expanded version of the spec, (without any C<$ref>) against the
+OpenAPI schema.
+
+=back
 
 =head2 validate_input
 
