@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.88 Not Released
+ - Add JSON::Validator::OpenAPI->load_and_validate_spec()
+
 0.87 2016-10-20T22:59:45+0200
  - Fix validating data when boolean.pm is loaded
 
