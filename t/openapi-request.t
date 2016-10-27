@@ -3,12 +3,12 @@ use Test::Mojo;
 use Test::More;
 use Mojo::JSON qw(false true);
 use Mojolicious::Controller;
-use JSON::Validator::OpenAPI;
+use JSON::Validator::OpenAPI::Mojolicious;
 
 my $t = Test::Mojo->new;
 my $c = Mojolicious::Controller->new(tx => Mojo::Transaction::HTTP->new);
 
-my $openapi = JSON::Validator::OpenAPI->new;
+my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
 my $input   = {};
 
 # formData

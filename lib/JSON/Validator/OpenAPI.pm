@@ -30,7 +30,7 @@ sub validate_request {
       $exists = length $value if defined $value;
     }
     elsif ($in eq 'formData' and $type eq 'file') {
-      $value = $c->req->upload($name);
+      $value = $self->_extract_upload($c, $name);
       $exists = $value ? 1 : 0;
     }
     else {
@@ -91,44 +91,6 @@ sub validate_response {
   return @errors;
 }
 
-sub _extract_request_parameter {
-  my ($self, $c, $in) = @_;
-
-  return $c->req->url->query->to_hash  if $in eq 'query';
-  return $c->match->stack->[-1]        if $in eq 'path';
-  return $c->req->body_params->to_hash if $in eq 'formData';
-  return $c->req->headers->to_hash     if $in eq 'header';
-  return $c->req->json                 if $in eq 'body';
-  return {};
-}
-
-sub _set_request_parameter {
-  my ($self, $c, $p, $value) = @_;
-  my ($in, $name) = @$p{qw(in name)};
-
-  if ($in eq 'query') {
-    $c->req->url->query([$name => $value]);
-    $c->req->params->merge($name => $value);
-  }
-  elsif ($in eq 'path') {
-    $c->stash($name => $value);
-  }
-  elsif ($in eq 'formData') {
-    $c->req->params->merge($name => $value);
-    $c->req->body_params->merge($name => $value);
-  }
-  elsif ($in eq 'header') {
-    $c->req->headers->header($name => $value);
-  }
-  elsif ($in eq 'body') {
-    return;    # no need to write body back
-  }
-  else {
-    die
-      "Cannot set default for $in => $name. Please submit a ticket here: https://github.com/jhthorsen/mojolicious-plugin-openapi";
-  }
-}
-
 sub _validate_request_value {
   my ($self, $p, $name, $value) = @_;
   my $type = $p->{type} || 'object';
@@ -165,7 +127,7 @@ sub _validate_request_value {
 
 sub _validate_response_headers {
   my ($self, $c, $schema) = @_;
-  my $headers = $c->res->headers;
+  my $headers = $self->_extract_headers($c);
   my $input   = $headers->to_hash(1);
   my @errors;
 
