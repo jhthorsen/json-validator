@@ -26,15 +26,15 @@ sub validate_request {
     my ($exists, $value);
 
     if ($in eq 'body') {
-      $value = $self->_extract_request_parameter($c, $in);
+      $value = $self->_get_request_data($c, $in);
       $exists = length $value if defined $value;
     }
     elsif ($in eq 'formData' and $type eq 'file') {
-      $value = $self->_extract_upload($c, $name);
+      $value = $self->_get_request_uploads($c, $name);
       $exists = $value ? 1 : 0;
     }
     else {
-      $value  = $cache{$in} ||= $self->_extract_request_parameter($c, $in);
+      $value  = $cache{$in} ||= $self->_get_request_data($c, $in);
       $exists = exists $value->{$name};
       $value  = $value->{$name};
     }
@@ -57,10 +57,10 @@ sub validate_request {
     }
     elsif ($exists or exists $p->{default}) {
       $input->{$name} = $value;
-      $self->_set_request_parameter($c, $p, $value);
+      $self->_set_request_data($c, $in, $name => $value);
     }
     elsif (!$exists and exists $p->{default}) {
-      $self->_set_request_parameter($c, $p, $value);
+      $self->_set_request_data($c, $in, $name => $value);
     }
   }
 
@@ -127,8 +127,7 @@ sub _validate_request_value {
 
 sub _validate_response_headers {
   my ($self, $c, $schema) = @_;
-  my $headers = $self->_extract_headers($c);
-  my $input   = $headers->to_hash(1);
+  my $input = $self->_get_response_data($c, 'header');
   my @errors;
 
   for my $name (keys %$schema) {
@@ -141,7 +140,7 @@ sub _validate_response_headers {
     }
     elsif ($input->{$name}) {
       push @errors, $self->validate($input->{$name}[0], $p);
-      $headers->header($name => $input->{$name}[0] ? 'true' : 'false')
+      $c->_set_response_data($c, 'header', $name => $input->{$name}[0] ? 'true' : 'false')
         if $p->{type} eq 'boolean' and !@errors;
     }
   }
