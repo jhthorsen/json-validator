@@ -1,5 +1,7 @@
 package JSON::Validator::OpenAPI;
+use Carp ();
 use Mojo::Base 'JSON::Validator';
+use Mojo::Util qw(deprecated monkey_patch);
 use Scalar::Util ();
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
@@ -9,6 +11,29 @@ use constant SPECIFICATION_URL => 'http://swagger.io/v2/schema.json';
 my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
 
 has _json_validator => sub { state $v = JSON::Validator->new; };
+
+{    # proxy methods for compatibility
+  my @proxy_methods = qw(
+    _get_request_uploads
+    _get_request_data
+    _set_request_data
+    _get_response_data
+    _set_response_data
+  );
+
+  for my $method (@proxy_methods) {
+    monkey_patch(__PACKAGE__,
+      $method => sub {
+        deprecated "Using JSON::Validator::OpenAPI directly is DEPRECATED."
+          . " For the Mojolicious-specific methods use JSON::Validator::OpenAPI::Mojolicious";
+
+        shift @_;
+        require JSON::Validator::OpenAPI::Mojolicious;
+        JSON::Validator::OpenAPI::Mojolicious->$method(@_);
+      }
+    );
+  }
+}
 
 sub load_and_validate_spec {
   my ($self, $spec, $args) = @_;
@@ -53,15 +78,15 @@ sub validate_request {
     my ($exists, $value);
 
     if ($in eq 'body') {
-      $value = $self->_extract_request_parameter($c, $in);
+      $value = $self->_get_request_data($c, $in);
       $exists = length $value if defined $value;
     }
     elsif ($in eq 'formData' and $type eq 'file') {
-      $value = $c->req->upload($name);
+      ($value) = $self->_get_request_uploads($c, $name);
       $exists = $value ? 1 : 0;
     }
     else {
-      $value  = $cache{$in} ||= $self->_extract_request_parameter($c, $in);
+      $value  = $cache{$in} ||= $self->_get_request_data($c, $in);
       $exists = exists $value->{$name};
       $value  = $value->{$name};
     }
@@ -84,10 +109,10 @@ sub validate_request {
     }
     elsif ($exists or exists $p->{default}) {
       $input->{$name} = $value;
-      $self->_set_request_parameter($c, $p, $value);
+      $self->_set_request_data($c, $in, $name => $value);
     }
     elsif (!$exists and exists $p->{default}) {
-      $self->_set_request_parameter($c, $p, $value);
+      $self->_set_request_data($c, $in, $name => $value);
     }
   }
 
@@ -116,44 +141,6 @@ sub validate_response {
   }
 
   return @errors;
-}
-
-sub _extract_request_parameter {
-  my ($self, $c, $in) = @_;
-
-  return $c->req->url->query->to_hash  if $in eq 'query';
-  return $c->match->stack->[-1]        if $in eq 'path';
-  return $c->req->body_params->to_hash if $in eq 'formData';
-  return $c->req->headers->to_hash     if $in eq 'header';
-  return $c->req->json                 if $in eq 'body';
-  return {};
-}
-
-sub _set_request_parameter {
-  my ($self, $c, $p, $value) = @_;
-  my ($in, $name) = @$p{qw(in name)};
-
-  if ($in eq 'query') {
-    $c->req->url->query([$name => $value]);
-    $c->req->params->merge($name => $value);
-  }
-  elsif ($in eq 'path') {
-    $c->stash($name => $value);
-  }
-  elsif ($in eq 'formData') {
-    $c->req->params->merge($name => $value);
-    $c->req->body_params->merge($name => $value);
-  }
-  elsif ($in eq 'header') {
-    $c->req->headers->header($name => $value);
-  }
-  elsif ($in eq 'body') {
-    return;    # no need to write body back
-  }
-  else {
-    die
-      "Cannot set default for $in => $name. Please submit a ticket here: https://github.com/jhthorsen/mojolicious-plugin-openapi";
-  }
 }
 
 sub _validate_request_value {
@@ -192,8 +179,7 @@ sub _validate_request_value {
 
 sub _validate_response_headers {
   my ($self, $c, $schema) = @_;
-  my $headers = $c->res->headers;
-  my $input   = $headers->to_hash(1);
+  my $input = $self->_get_response_data($c, 'header');
   my @errors;
 
   for my $name (keys %$schema) {
@@ -206,7 +192,7 @@ sub _validate_response_headers {
     }
     elsif ($input->{$name}) {
       push @errors, $self->validate($input->{$name}[0], $p);
-      $headers->header($name => $input->{$name}[0] ? 'true' : 'false')
+      $self->_set_response_data($c, 'header', $name => $input->{$name}[0] ? 'true' : 'false')
         if $p->{type} eq 'boolean' and !@errors;
     }
   }
@@ -293,6 +279,12 @@ sub _coerce_by_collection_format {
   }
 
   return $single ? $data->[0] : $data;
+}
+
+sub _invalid_in {
+  my ($self, $in) = @_;
+  Carp::confess(
+    "Unsupported \$in: $in. Please report at https://github.com/jhthorsen/json-validator");
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/ }

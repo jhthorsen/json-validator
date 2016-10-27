@@ -1,14 +1,14 @@
 use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
-use JSON::Validator::OpenAPI;
+use JSON::Validator::OpenAPI::Mojolicious;
 
 {
   local $TODO = 'Need to be updated to openapi spec';
   is JSON::Validator::OpenAPI::SPECIFICATION_URL(), 'http://swagger.io/v2/schema.json', 'spec url';
 }
 
-my $openapi = JSON::Validator::OpenAPI->new;
+my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
 my ($schema, @errors);
 
 # standard
