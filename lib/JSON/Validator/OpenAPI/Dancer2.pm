@@ -13,7 +13,7 @@ sub _get_request_data {
   return $app->dsl->body_parameters->as_hashref_mixed  if $in eq 'formData';
   return Hash::MultiValue->new($app->dsl->request->headers->flatten)->as_hashref_mixed
     if $in eq 'header';
-  return $app->dsl->request->body if $in eq 'body';
+  return $app->dsl->request->data if $in eq 'body';
   return {};    # TODO correct?
 }
 

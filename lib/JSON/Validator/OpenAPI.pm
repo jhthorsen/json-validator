@@ -30,7 +30,7 @@ sub validate_request {
       $exists = length $value if defined $value;
     }
     elsif ($in eq 'formData' and $type eq 'file') {
-      $value = $self->_get_request_uploads($c, $name);
+      ($value) = $self->_get_request_uploads($c, $name);
       $exists = $value ? 1 : 0;
     }
     else {

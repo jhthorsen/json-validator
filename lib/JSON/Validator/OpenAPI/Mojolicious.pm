@@ -11,14 +11,14 @@ sub _get_request_data {
   return $c->match->stack->[-1]           if $in eq 'path';
   return $c->req->body_params->to_hash(1) if $in eq 'formData';
   return $c->req->headers->to_hash(1)     if $in eq 'header';
-  return $c->req->body                    if $in eq 'body';
+  return $c->req->json                    if $in eq 'body';
   return {};    # TODO correct?
 }
 
 sub _get_request_uploads {
   my ($self, $c, $name) = @_;
 
-  return $c->req->every_upload($name);
+  return @{$c->req->every_upload($name)};
 }
 
 sub _set_request_data {
