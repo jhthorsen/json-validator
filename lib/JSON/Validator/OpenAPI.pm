@@ -10,6 +10,28 @@ my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t}
 
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
+{    # proxy methods for compatibility
+  my @proxy_methods = qw<
+    _get_request_uploads
+    _get_request_data
+    _set_request_data
+    _get_response_data
+    _set_response_data
+  >;
+
+  for my $method (@proxy_methods) {
+    no strict 'refs';
+    *{__PACKAGE__ . "::$method"} = sub {
+      warn "Using JSON::Validator::OpenAPI directly is DEPRECATED."
+        . " For the Mojolicious-specific methods use JSON::Validator::OpenAPI::Mojolicious";
+
+      shift @_;
+      require JSON::Validator::OpenAPI::Mojolicious;
+      JSON::Validator::OpenAPI::Mojolicious->$method(@_);
+    };
+  }
+}
+
 sub validate_input {
   my $self = shift;
   local $self->{validate_input} = 1;
