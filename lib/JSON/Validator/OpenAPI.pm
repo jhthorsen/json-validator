@@ -1,5 +1,6 @@
 package JSON::Validator::OpenAPI;
 use Mojo::Base 'JSON::Validator';
+use Mojo::Util qw(deprecated);
 use Scalar::Util ();
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
@@ -22,7 +23,7 @@ has _json_validator => sub { state $v = JSON::Validator->new; };
   for my $method (@proxy_methods) {
     no strict 'refs';
     *{__PACKAGE__ . "::$method"} = sub {
-      warn "Using JSON::Validator::OpenAPI directly is DEPRECATED."
+      deprecated "Using JSON::Validator::OpenAPI directly is DEPRECATED."
         . " For the Mojolicious-specific methods use JSON::Validator::OpenAPI::Mojolicious";
 
       shift @_;
