@@ -1,5 +1,6 @@
 package JSON::Validator::OpenAPI::Mojolicious;
 
+use Carp qw(confess);
 use Mojo::Base 'JSON::Validator::OpenAPI';
 
 ### request ###
@@ -12,7 +13,7 @@ sub _get_request_data {
   return $c->req->body_params->to_hash(1) if $in eq 'formData';
   return $c->req->headers->to_hash(1)     if $in eq 'header';
   return $c->req->json                    if $in eq 'body';
-  return {};    # TODO correct?
+  confess "Unsupported \$in: $in. Please report at https://github.com/jhthorsen/json-validator";
 }
 
 sub _get_request_uploads {

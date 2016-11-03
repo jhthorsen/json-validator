@@ -1,5 +1,6 @@
 package JSON::Validator::OpenAPI::Dancer2;
 
+use Carp qw(confess);
 use Hash::MultiValue;
 use Mojo::Base 'JSON::Validator::OpenAPI';
 
@@ -14,7 +15,7 @@ sub _get_request_data {
   return Hash::MultiValue->new($dsl->app->request->headers->flatten)->as_hashref_mixed
     if $in eq 'header';
   return $dsl->app->request->data if $in eq 'body';
-  return {};    # TODO correct?
+  confess "Unsupported \$in: $in. Please report at https://github.com/jhthorsen/json-validator";
 }
 
 sub _get_request_uploads {
