@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+0.88 Not Released
+ - Fix number coercion #32
+   Contributor: @melhesedek
+
 0.87 2016-10-20T22:59:45+0200
  - Fix validating data when boolean.pm is loaded
 
