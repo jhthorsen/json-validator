@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.88 Not Released
+0.88 2016-11-04T23:18:26+0100
  - Fix number coercion #32
    Contributor: @melhesedek
  - Add JSON::Validator::OpenAPI->load_and_validate_spec()
