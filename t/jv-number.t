@@ -3,8 +3,10 @@ use Test::More;
 use JSON::Validator;
 
 my $validator = JSON::Validator->new;
-my $schema
-  = {type => 'object', properties => {mynumber => {type => 'number', minimum => -0.5, maximum => 2.7}}};
+my $schema    = {
+  type       => 'object',
+  properties => {mynumber => {type => 'number', minimum => -0.5, maximum => 2.7}}
+};
 
 my @errors = $validator->validate({mynumber => 1}, $schema);
 is "@errors", "", "number";
@@ -24,5 +26,9 @@ is "@errors", "/mynumber: Expected number - got string.", "a string";
 
 @errors = $validator->validate({mynumber => ".1"}, $schema);
 is "@errors", "/mynumber: Expected number - got string.", "not a JSON number";
+
+@errors = $validator->validate({validNumber => 2.01},
+  {type => "object", properties => {validNumber => {type => "number", multipleOf => 0.01}}});
+is "@errors", "", "valid float magic";
 
 done_testing;

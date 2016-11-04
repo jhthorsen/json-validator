@@ -535,7 +535,7 @@ sub _validate_type_number {
     push @errors, E $path, "$value $e maximum($schema->{maximum})";
   }
   if (my $d = $schema->{multipleOf}) {
-    unless (int($value / $d) == $value / $d) {
+    if (($value / $d) =~ /\.[^0]+$/) {
       push @errors, E $path, "Not multiple of $d.";
     }
   }
