@@ -32,7 +32,7 @@ sub _get_request_data {
 sub _get_request_uploads {
   my ($self, $dsl, $name) = @_;
 
-  return ($dsl->app->request->upload($name));    # context-aware
+  return ($dsl->app->request->upload($name));    # upload() is context-aware
 }
 
 sub _set_request_data {
