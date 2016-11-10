@@ -1,7 +1,7 @@
 package JSON::Validator::OpenAPI;
 use Carp ();
 use Mojo::Base 'JSON::Validator';
-use Mojo::Util qw(deprecated);
+use Mojo::Util qw(deprecated monkey_patch);
 use Scalar::Util ();
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
@@ -13,24 +13,25 @@ my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t}
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
 {    # proxy methods for compatibility
-  my @proxy_methods = qw<
+  my @proxy_methods = qw(
     _get_request_uploads
     _get_request_data
     _set_request_data
     _get_response_data
     _set_response_data
-  >;
+  );
 
   for my $method (@proxy_methods) {
-    no strict 'refs';
-    *{__PACKAGE__ . "::$method"} = sub {
-      deprecated "Using JSON::Validator::OpenAPI directly is DEPRECATED."
-        . " For the Mojolicious-specific methods use JSON::Validator::OpenAPI::Mojolicious";
+    monkey_patch(__PACKAGE__,
+      $method => sub {
+        deprecated "Using JSON::Validator::OpenAPI directly is DEPRECATED."
+          . " For the Mojolicious-specific methods use JSON::Validator::OpenAPI::Mojolicious";
 
-      shift @_;
-      require JSON::Validator::OpenAPI::Mojolicious;
-      JSON::Validator::OpenAPI::Mojolicious->$method(@_);
-    };
+        shift @_;
+        require JSON::Validator::OpenAPI::Mojolicious;
+        JSON::Validator::OpenAPI::Mojolicious->$method(@_);
+      }
+    );
   }
 }
 
