@@ -9,13 +9,24 @@ use Mojo::Base 'JSON::Validator::OpenAPI';
 sub _get_request_data {
   my ($self, $dsl, $in) = @_;
 
-  return $dsl->query_parameters->as_hashref_mixed if $in eq 'query';
-  return $dsl->route_parameters->as_hashref_mixed if $in eq 'path';
-  return $dsl->body_parameters->as_hashref_mixed  if $in eq 'formData';
-  return Hash::MultiValue->new($dsl->app->request->headers->flatten)->as_hashref_mixed
-    if $in eq 'header';
-  return $dsl->app->request->data if $in eq 'body';
-  confess "Unsupported \$in: $in. Please report at https://github.com/jhthorsen/json-validator";
+  if ($in eq 'query') {
+    return $dsl->query_parameters->as_hashref_mixed;
+  }
+  elsif ($in eq 'path') {
+    return $dsl->route_parameters->as_hashref_mixed;
+  }
+  elsif ($in eq 'formData') {
+    return $dsl->body_parameters->as_hashref_mixed;
+  }
+  elsif ($in eq 'header') {
+    return Hash::MultiValue->new($dsl->app->request->headers->flatten)->as_hashref_mixed;
+  }
+  elsif ($in eq 'body') {
+    return $dsl->app->request->data;
+  }
+  else {
+    $self->_invalid_in($in);
+  }
 }
 
 sub _get_request_uploads {
@@ -43,8 +54,7 @@ sub _set_request_data {
   }
   elsif ($in eq 'body') { }    # no need to write body back
   else {
-    die
-      "Cannot set default for $in => $name. Please submit a ticket here: https://github.com/jhthorsen/mojolicious-plugin-openapi";
+    $self->_invalid_in($in);
   }
 }
 
@@ -57,16 +67,20 @@ sub _get_response_data {
     my @headers = $dsl->response->headers->flatten;
     return Hash::MultiValue->new(@headers)->as_hashref_mixed;
   }
-
-  # TODO what else?
+  else {
+    $self->_invalid_in($in);
+  }
 }
 
 sub _set_response_data {
   my ($self, $dsl, $in, $name => $value) = @_;
 
-  $in eq 'header' and $dsl->response->headers->header($name => $value);
-
-  # TODO what else?
+  if ($in eq 'header') {
+    $dsl->response->headers->header($name => $value);
+  }
+  else {
+    $self->_invalid_in($in);
+  }
 }
 
 1;

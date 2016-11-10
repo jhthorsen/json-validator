@@ -13,7 +13,7 @@ sub _get_request_data {
   return $c->req->body_params->to_hash(1) if $in eq 'formData';
   return $c->req->headers->to_hash(1)     if $in eq 'header';
   return $c->req->json                    if $in eq 'body';
-  confess "Unsupported \$in: $in. Please report at https://github.com/jhthorsen/json-validator";
+  $self->_invalid_in($in);
 }
 
 sub _get_request_uploads {
@@ -41,8 +41,7 @@ sub _set_request_data {
   }
   elsif ($in eq 'body') { }    # no need to write body back
   else {
-    die
-      "Cannot set default for $in => $name. Please submit a ticket here: https://github.com/jhthorsen/mojolicious-plugin-openapi";
+    $self->_invalid_in($in);
   }
 }
 
@@ -51,17 +50,23 @@ sub _set_request_data {
 sub _get_response_data {
   my ($self, $c, $in) = @_;
 
-  $in eq 'header' and return $c->res->headers->to_hash(1);
-
-  # TODO what else?
+  if ($in eq 'header') {
+    return $c->res->headers->to_hash(1);
+  }
+  else {
+    $self->_invalid_in($in);
+  }
 }
 
 sub _set_response_data {
   my ($self, $c, $in, $name => $value) = @_;
 
-  $in eq 'header' and $c->res->headers->header($name => ref $value ? @$value : $value);
-
-  # TODO what else?
+  if ($in eq 'header') {
+    $c->res->headers->header($name => ref $value ? @$value : $value);
+  }
+  else {
+    $self->_invalid_in($in);
+  }
 }
 
 1;

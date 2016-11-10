@@ -1,4 +1,5 @@
 package JSON::Validator::OpenAPI;
+use Carp ();
 use Mojo::Base 'JSON::Validator';
 use Mojo::Util qw(deprecated);
 use Scalar::Util ();
@@ -250,6 +251,12 @@ sub _coerce_by_collection_format {
   }
 
   return $single ? $data->[0] : $data;
+}
+
+sub _invalid_in {
+  my ($self, $in) = @_;
+  Carp::confess(
+    "Unsupported \$in: $in. Please report at https://github.com/jhthorsen/json-validator");
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/ }
