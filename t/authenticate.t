@@ -2,6 +2,7 @@ use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
+use lib '.';
 use t::Api;
 
 my $spec;
@@ -25,7 +26,8 @@ my $t = Test::Mojo->new;
 $t->get_ok('/protected/pets')->status_is(401)->json_is('/error/message', 'Not authenticated');
 
 $t::Api::RES = [{id => 123, name => "kit-cat"}];
-$t->get_ok('/protected/pets?secret=whatever')->status_is(200)->json_is('/0/id', 123)->json_is('/0/name', 'kit-cat');
+$t->get_ok('/protected/pets?secret=whatever')->status_is(200)->json_is('/0/id', 123)
+  ->json_is('/0/name', 'kit-cat');
 
 # fetch expanded specification
 is $t->app->url_for('swagger_petstore'), '/protected', 'spec url';

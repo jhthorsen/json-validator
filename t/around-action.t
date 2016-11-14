@@ -3,6 +3,7 @@ use Mojolicious;
 use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
+use lib '.';
 use t::Api;
 
 for my $file (qw( around-action inherit-path inherit-global )) {
@@ -12,8 +13,10 @@ for my $file (qw( around-action inherit-path inherit-global )) {
 
   $t::Api::CODE = 401;
   $t::Api::RES = [{id => 123, name => "kit-cat"}];
-  $t->get_ok('/api/pets')->status_is(401)->json_is('/operationId', 'listPets')->json_is('/x-mojo-controller', 't::Api')
-    ->json_is('/x-mojo-around-action', 't::Api::authenticate')->json_is('/responses/200/description', 'anything');
+  $t->get_ok('/api/pets')->status_is(401)->json_is('/operationId', 'listPets')
+    ->json_is('/x-mojo-controller',         't::Api')
+    ->json_is('/x-mojo-around-action',      't::Api::authenticate')
+    ->json_is('/responses/200/description', 'anything');
 
   $t::Api::CODE = 200;
   $t->get_ok('/api/pets')->status_is(200);

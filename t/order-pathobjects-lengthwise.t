@@ -3,6 +3,7 @@ use Mojolicious;
 use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
+use lib '.';
 use t::Api;
 
 #Run this test 11 times, to make sure that we can reproduce the bug which happens 50% of time.

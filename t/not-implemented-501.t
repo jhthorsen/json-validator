@@ -3,6 +3,7 @@ use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
 use Mojolicious::Lite;
+use lib '.';
 use t::Api;
 
 plugin Swagger2 => {url => 'data://main/not-implemented.json'};

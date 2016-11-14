@@ -1,3 +1,4 @@
+use lib '.';
 use t::Api;
 use Swagger2::Client;
 use Test::More;

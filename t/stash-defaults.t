@@ -1,6 +1,7 @@
 use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
+use lib '.';
 use t::Api;
 
 my $stash;
@@ -15,7 +16,8 @@ Test::Mojo->new->get_ok('/api/pets')->status_is(200);
 ok +UNIVERSAL::isa($stash->{swagger}, 'Swagger2'), 'swagger is set in stash';
 is $stash->{swagger}->api_spec->get('/basePath'), '/api', 'basePath';
 
-ok +UNIVERSAL::isa($stash->{swagger_operation_spec}, 'HASH'), 'swagger_operation_spec is set in stash';
+ok +UNIVERSAL::isa($stash->{swagger_operation_spec}, 'HASH'),
+  'swagger_operation_spec is set in stash';
 is $stash->{swagger_operation_spec}{operationId}, 'listPets', 'operationId';
 
 done_testing;

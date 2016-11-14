@@ -2,6 +2,7 @@ use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
 use Test::Warnings;
+use lib '.';
 use t::Api;
 
 use Mojolicious::Lite;
@@ -15,12 +16,14 @@ $t->patch_ok('/api/pets' => json => {id => 123, name => "kit-cat"})->status_is(4
 
 # valid input and output
 $t::Api::RES = [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}];
-$t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])->status_is(226);
+$t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])
+  ->status_is(226);
 
 # invalid output
 $t::Api::RES = [{op => "add"}];
-$t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])->status_is(500)
-  ->json_is('/errors/0/path', '/0/path')->json_is('/errors/0/message', 'Missing property.');
+$t->patch_ok('/api/pets' => json => [{"op" => "test", "path" => "/a/b/c", "value" => "foo"}])
+  ->status_is(500)->json_is('/errors/0/path', '/0/path')
+  ->json_is('/errors/0/message', 'Missing property.');
 
 done_testing;
 

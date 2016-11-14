@@ -3,6 +3,7 @@ use Test::Mojo;
 use Test::More;
 use File::Spec::Functions;
 use Mojolicious;
+use lib '.';
 use t::Api;
 
 my $n = 0;
