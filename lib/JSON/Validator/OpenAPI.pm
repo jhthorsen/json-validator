@@ -192,7 +192,7 @@ sub _validate_response_headers {
     }
     elsif ($input->{$name}) {
       push @errors, $self->validate($input->{$name}[0], $p);
-      $c->_set_response_data($c, 'header', $name => $input->{$name}[0] ? 'true' : 'false')
+      $self->_set_response_data($c, 'header', $name => $input->{$name}[0] ? 'true' : 'false')
         if $p->{type} eq 'boolean' and !@errors;
     }
   }
