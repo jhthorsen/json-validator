@@ -1,8 +1,8 @@
 use Mojo::Base -strict;
 use Test::More;
-use JSON::Validator::OpenAPI;
+use JSON::Validator::OpenAPI::Mojolicious;
 
-my $validator = JSON::Validator::OpenAPI->new;
+my $validator = JSON::Validator::OpenAPI::Mojolicious->new;
 my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 my @errors;
 
