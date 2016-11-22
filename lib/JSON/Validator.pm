@@ -17,7 +17,7 @@ use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
-our $VERSION   = '0.87';
+our $VERSION   = '0.89';
 our @EXPORT_OK = 'validate_json';
 
 my $HTTP_SCHEME_RE = qr{^https?:};
@@ -521,7 +521,7 @@ sub _validate_type_number {
     and $value * 0 == 0)
   {
     return E $path, "Expected $expected - got string."
-      if !$self->{coerce}{numbers} or $value =~ /\D/;
+      if !$self->{coerce}{numbers} or $value !~ /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
     $_[1] = 0 + $value;    # coerce input value
   }
 
@@ -535,7 +535,7 @@ sub _validate_type_number {
     push @errors, E $path, "$value $e maximum($schema->{maximum})";
   }
   if (my $d = $schema->{multipleOf}) {
-    unless (int($value / $d) == $value / $d) {
+    if (($value / $d) =~ /\.[^0]+$/) {
       push @errors, E $path, "Not multiple of $d.";
     }
   }
@@ -784,7 +784,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-0.87
+0.89
 
 =head1 SYNOPSIS
 

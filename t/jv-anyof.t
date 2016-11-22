@@ -51,4 +51,18 @@ is "@errors", "", "schema 1 pass, schema 2 fail";
 
 is "@errors", "", "anyOf test with schema from http://json-schema.org/draft-04/schema";
 
+
+@errors = $validator->validate(
+  {age => 6},
+  {
+    '$schema'   => 'http://json-schema.org/draft-04/schema#',
+    type        => 'object',
+    title       => 'test',
+    description => 'test',
+    properties  => {age => {type => 'number', anyOf => [{multipleOf => 5}, {multipleOf => 3}]}}
+  }
+);
+
+is "@errors", "", "https://github.com/jhthorsen/json-validator/issues/28";
+
 done_testing;

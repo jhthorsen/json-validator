@@ -38,4 +38,8 @@ is "@errors", "", "coerced string into integer";
 @errors = $validator->validate({mynumber => "2xyz"}, $schema);
 is "@errors", "/mynumber: Expected integer - got string.", "a string";
 
+$schema->{properties}{mynumber}{minimum} = -3;
+@errors = $validator->validate({mynumber => "-2"}, $schema);
+is "@errors", "", "coerced negative integer";
+
 done_testing;
