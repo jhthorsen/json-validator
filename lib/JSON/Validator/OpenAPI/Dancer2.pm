@@ -1,10 +1,6 @@
 package JSON::Validator::OpenAPI::Dancer2;
-
-use Carp qw(confess);
 use Hash::MultiValue;
 use Mojo::Base 'JSON::Validator::OpenAPI';
-
-### request ###
 
 sub _get_request_data {
   my ($self, $dsl, $in) = @_;
@@ -35,6 +31,18 @@ sub _get_request_uploads {
   return ($dsl->app->request->upload($name));    # upload() is context-aware
 }
 
+sub _get_response_data {
+  my ($self, $dsl, $in) = @_;
+
+  if ($in eq 'header') {
+    my @headers = $dsl->response->headers->flatten;
+    return Hash::MultiValue->new(@headers)->as_hashref_mixed;
+  }
+  else {
+    $self->_invalid_in($in);
+  }
+}
+
 sub _set_request_data {
   my ($self, $dsl, $in, $name => $value) = @_;
 
@@ -58,20 +66,6 @@ sub _set_request_data {
   }
 }
 
-### response
-
-sub _get_response_data {
-  my ($self, $dsl, $in) = @_;
-
-  if ($in eq 'header') {
-    my @headers = $dsl->response->headers->flatten;
-    return Hash::MultiValue->new(@headers)->as_hashref_mixed;
-  }
-  else {
-    $self->_invalid_in($in);
-  }
-}
-
 sub _set_response_data {
   my ($self, $dsl, $in, $name => $value) = @_;
 
@@ -84,3 +78,26 @@ sub _set_response_data {
 }
 
 1;
+
+=encoding utf8
+
+=head1 NAME
+
+JSON::Validator::OpenAPI::Dancer2 - Request/response adapter for Dancer2
+
+=head1 SYNOPSIS
+
+See L<JSON::Validator::OpenAPI/SYNOPSIS>.
+
+=head1 DESCRIPTION
+
+This module contains private methods to get/set request/response data for
+L<Dancer2>.
+
+=head1 SEE ALSO
+
+L<Dancer2::Plugin::OpenAPI>.
+
+L<JSON::Validator>.
+
+=cut

@@ -2,22 +2,30 @@ use Mojo::Base -strict;
 
 use File::Spec;
 use Mojo::Util;
-use Test::More tests => 3;
+use Test::More;
 
 ok(
   module_calls_deprecated('JSON::Validator::OpenAPI'),
   "JSON::Validator::OpenAPI->validate_request is deprecated"
 );
 
-ok(
-  !module_calls_deprecated('JSON::Validator::OpenAPI::Dancer2'),
-  "JSON::Validator::OpenAPI::Dancer2->validate_request isn't deprecated"
-);
+
+if (eval 'require Hash::MultiValue;1') {
+  ok(
+    !module_calls_deprecated('JSON::Validator::OpenAPI::Dancer2'),
+    "JSON::Validator::OpenAPI::Dancer2->validate_request isn't deprecated"
+  );
+}
+else {
+  ok 1, 'Skipping JSON::Validator::OpenAPI::Dancer2 test';
+}
 
 ok(
   !module_calls_deprecated('JSON::Validator::OpenAPI::Mojolicious'),
   "JSON::Validator::OpenAPI::Mojolicious->validate_request isn't deprecated"
 );
+
+done_testing;
 
 sub module_calls_deprecated {
   my $module = shift;

@@ -1,9 +1,5 @@
 package JSON::Validator::OpenAPI::Mojolicious;
-
-use Carp qw(confess);
 use Mojo::Base 'JSON::Validator::OpenAPI';
-
-### request ###
 
 sub _get_request_data {
   my ($self, $c, $in) = @_;
@@ -20,6 +16,17 @@ sub _get_request_uploads {
   my ($self, $c, $name) = @_;
 
   return @{$c->req->every_upload($name)};
+}
+
+sub _get_response_data {
+  my ($self, $c, $in) = @_;
+
+  if ($in eq 'header') {
+    return $c->res->headers->to_hash(1);
+  }
+  else {
+    $self->_invalid_in($in);
+  }
 }
 
 sub _set_request_data {
@@ -45,19 +52,6 @@ sub _set_request_data {
   }
 }
 
-### response
-
-sub _get_response_data {
-  my ($self, $c, $in) = @_;
-
-  if ($in eq 'header') {
-    return $c->res->headers->to_hash(1);
-  }
-  else {
-    $self->_invalid_in($in);
-  }
-}
-
 sub _set_response_data {
   my ($self, $c, $in, $name => $value) = @_;
 
@@ -70,3 +64,26 @@ sub _set_response_data {
 }
 
 1;
+
+=encoding utf8
+
+=head1 NAME
+
+JSON::Validator::OpenAPI::Mojolicious - Request/response adapter for Mojolicious
+
+=head1 SYNOPSIS
+
+See L<JSON::Validator::OpenAPI/SYNOPSIS>.
+
+=head1 DESCRIPTION
+
+This module contains private methods to get/set request/response data for
+L<Mojolicious>.
+
+=head1 SEE ALSO
+
+L<Mojolicious::Plugin::OpenAPI>.
+
+L<JSON::Validator>.
+
+=cut
