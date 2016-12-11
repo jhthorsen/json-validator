@@ -4,7 +4,7 @@ use Mojo::JSON;
 use Mojo::Loader;
 use Mojo::Util 'decamelize';
 use Swagger2;
-use JSON::Validator::OpenAPI;
+use JSON::Validator::OpenAPI::Mojolicious;
 use constant DEBUG      => $ENV{SWAGGER2_DEBUG};
 use constant IO_LOGGING => $ENV{SWAGGER2_IO_LOGGING};    # EXPERIMENTAL
 
@@ -12,7 +12,7 @@ my $SKIP_OP_RE = qr(By|From|For|In|Of|To|With);
 my $LAYOUT = Mojo::Loader::data_section(__PACKAGE__, 'layouts/mojolicious_plugin_swagger.html.ep');
 
 has url => '';
-has _validator => sub { JSON::Validator::OpenAPI->new; };
+has _validator => sub { JSON::Validator::OpenAPI::Mojolicious->new; };
 
 sub dispatch_to_swagger {
   return undef unless $_[1]->{op} and $_[1]->{id} and ref $_[1]->{params} eq 'HASH';

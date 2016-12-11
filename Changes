@@ -1,5 +1,8 @@
 Revision history for perl distribution Swagger2
 
+0.87 Not Released
+ - Compatible with JSON::Validator 0.90
+
 0.86 2016-09-19T18:55:09+0200
  - Deprecated distribution
 
