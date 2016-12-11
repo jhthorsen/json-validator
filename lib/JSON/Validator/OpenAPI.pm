@@ -12,29 +12,6 @@ my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t}
 
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
-{    # proxy methods for compatibility
-  my @proxy_methods = qw(
-    _get_request_uploads
-    _get_request_data
-    _set_request_data
-    _get_response_data
-    _set_response_data
-  );
-
-  for my $method (@proxy_methods) {
-    monkey_patch(__PACKAGE__,
-      $method => sub {
-        deprecated "Using JSON::Validator::OpenAPI directly is DEPRECATED."
-          . " For the Mojolicious-specific methods use JSON::Validator::OpenAPI::Mojolicious";
-
-        shift @_;
-        require JSON::Validator::OpenAPI::Mojolicious;
-        JSON::Validator::OpenAPI::Mojolicious->$method(@_);
-      }
-    );
-  }
-}
-
 sub load_and_validate_spec {
   my ($self, $spec, $args) = @_;
   my $openapi = JSON::Validator->new->schema($args->{schema} || SPECIFICATION_URL);
@@ -141,6 +118,30 @@ sub validate_response {
   }
 
   return @errors;
+}
+
+{
+  my @proxy_methods = qw(
+    _get_request_uploads
+    _get_request_data
+    _set_request_data
+    _get_response_data
+    _set_response_data
+  );
+
+  for my $method (@proxy_methods) {
+    monkey_patch(__PACKAGE__,
+      $method => sub {
+        deprecated "Using JSON::Validator::OpenAPI directly is DEPRECATED."
+          . " For the Mojolicious-specific methods use JSON::Validator::OpenAPI::Mojolicious";
+
+        require JSON::Validator::OpenAPI::Mojolicious;
+        my $self = shift;
+        bless $self, 'JSON::Validator::OpenAPI::Mojolicious';
+        return $self->$method(@_);
+      }
+    );
+  }
 }
 
 sub _validate_request_value {
