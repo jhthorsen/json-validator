@@ -4,11 +4,11 @@ use Mojo::Base 'JSON::Validator::OpenAPI';
 sub _get_request_data {
   my ($self, $c, $in) = @_;
 
-  return $c->req->url->query->to_hash(1)  if $in eq 'query';
-  return $c->match->stack->[-1]           if $in eq 'path';
-  return $c->req->body_params->to_hash(1) if $in eq 'formData';
-  return $c->req->headers->to_hash(1)     if $in eq 'header';
-  return $c->req->json                    if $in eq 'body';
+  return $c->req->url->query->to_hash  if $in eq 'query';
+  return $c->match->stack->[-1]        if $in eq 'path';
+  return $c->req->body_params->to_hash if $in eq 'formData';
+  return $c->req->headers->to_hash     if $in eq 'header';
+  return $c->req->json                 if $in eq 'body';
   $self->_invalid_in($in);
 }
 
