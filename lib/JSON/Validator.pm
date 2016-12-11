@@ -1140,4 +1140,8 @@ the terms of the Artistic License version 2.0.
 
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
+Daniel Böhmer - C<post@daniel-boehmer.de>
+
+Martin Renvoize - C<martin.renvoize@gmail.com>
+
 =cut

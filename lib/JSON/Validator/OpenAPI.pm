@@ -432,8 +432,8 @@ Copyright (C) 2014-2015, Jan Henning Thorsen
 This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.
 
-=head1 AUTHOR
+=head1 SEE ALSO
 
-Jan Henning Thorsen - C<jhthorsen@cpan.org>
+L<JSON::Validator>.
 
 =cut
