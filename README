@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.89
+    0.90
 
 SYNOPSIS
       use JSON::Validator;

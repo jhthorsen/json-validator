@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.90 Not Released
+0.90 2016-12-11T11:38:38+0100
  - Add support for validating Dancer2 requset/responses #34
  - Fix invalidating integer/number path part with letters #37
 
