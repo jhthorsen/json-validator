@@ -73,7 +73,7 @@ sub validate_request {
     }
 
     if ($type and defined($value //= $p->{default})) {
-      if (($type eq 'integer' or $type eq 'number') and $value =~ /^-?\d/) {
+      if (($type eq 'integer' or $type eq 'number') and Scalar::Util::looks_like_number($value)) {
         $value += 0;
       }
       elsif ($type eq 'boolean') {
