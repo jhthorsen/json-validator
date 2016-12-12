@@ -48,7 +48,7 @@ sub validate_input {
 
 sub validate_request {
   my ($self, $c, $schema, $input) = @_;
-  my (%cache, @errors);
+  my @errors;
 
   for my $p (@{$schema->{parameters} || []}) {
     my ($in, $name, $type) = @$p{qw(in name type)};
@@ -59,11 +59,11 @@ sub validate_request {
       $exists = length $value if defined $value;
     }
     elsif ($in eq 'formData' and $type eq 'file') {
-      ($value) = $self->_get_request_uploads($c, $name);
+      $value = $self->_get_request_uploads($c, $name)->[-1];
       $exists = $value ? 1 : 0;
     }
     else {
-      $value  = $cache{$in} ||= $self->_get_request_data($c, $in);
+      $value  = $self->_get_request_data($c, $in);
       $exists = exists $value->{$name};
       $value  = $value->{$name};
     }
@@ -73,6 +73,9 @@ sub validate_request {
     }
 
     if ($type and defined($value //= $p->{default})) {
+      if ($type ne 'array' and ref $value eq 'ARRAY') {
+        $value = $value->[-1];
+      }
       if (($type eq 'integer' or $type eq 'number') and Scalar::Util::looks_like_number($value)) {
         $value += 0;
       }
@@ -282,10 +285,9 @@ sub _coerce_by_collection_format {
   return $single ? $data->[0] : $data;
 }
 
-sub _invalid_in {
-  my ($self, $in) = @_;
+sub _confess_invalid_in {
   Carp::confess(
-    "Unsupported \$in: $in. Please report at https://github.com/jhthorsen/json-validator");
+    "Unsupported \$in: $_[0]. Please report at https://github.com/jhthorsen/json-validator");
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/ }

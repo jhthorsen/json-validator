@@ -21,14 +21,13 @@ sub _get_request_data {
     return $dsl->app->request->data;
   }
   else {
-    $self->_invalid_in($in);
+    JSON::Validator::OpenAPI::_confess_invalid_in($in);
   }
 }
 
 sub _get_request_uploads {
   my ($self, $dsl, $name) = @_;
-
-  return ($dsl->app->request->upload($name));    # upload() is context-aware
+  return [$dsl->app->request->upload($name)];
 }
 
 sub _get_response_data {
@@ -39,7 +38,7 @@ sub _get_response_data {
     return Hash::MultiValue->new(@headers)->as_hashref_mixed;
   }
   else {
-    $self->_invalid_in($in);
+    JSON::Validator::OpenAPI::_confess_invalid_in($in);
   }
 }
 
@@ -62,7 +61,7 @@ sub _set_request_data {
   }
   elsif ($in eq 'body') { }    # no need to write body back
   else {
-    $self->_invalid_in($in);
+    JSON::Validator::OpenAPI::_confess_invalid_in($in);
   }
 }
 
@@ -73,7 +72,7 @@ sub _set_response_data {
     $dsl->response->headers->header($name => $value);
   }
   else {
-    $self->_invalid_in($in);
+    JSON::Validator::OpenAPI::_confess_invalid_in($in);
   }
 }
 
