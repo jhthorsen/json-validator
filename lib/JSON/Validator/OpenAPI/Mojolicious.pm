@@ -4,29 +4,23 @@ use Mojo::Base 'JSON::Validator::OpenAPI';
 sub _get_request_data {
   my ($self, $c, $in) = @_;
 
-  return $c->req->url->query->to_hash  if $in eq 'query';
-  return $c->match->stack->[-1]        if $in eq 'path';
-  return $c->req->body_params->to_hash if $in eq 'formData';
-  return $c->req->headers->to_hash     if $in eq 'header';
-  return $c->req->json                 if $in eq 'body';
-  $self->_invalid_in($in);
+  return $c->req->url->query->to_hash(1)  if $in eq 'query';
+  return $c->match->stack->[-1]           if $in eq 'path';
+  return $c->req->body_params->to_hash(1) if $in eq 'formData';
+  return $c->req->headers->to_hash(1)     if $in eq 'header';
+  return $c->req->json                    if $in eq 'body';
+  JSON::Validator::OpenAPI::_confess_invalid_in($in);
 }
 
 sub _get_request_uploads {
   my ($self, $c, $name) = @_;
-
-  return @{$c->req->every_upload($name)};
+  return $c->req->every_upload($name);
 }
 
 sub _get_response_data {
   my ($self, $c, $in) = @_;
-
-  if ($in eq 'header') {
-    return $c->res->headers->to_hash(1);
-  }
-  else {
-    $self->_invalid_in($in);
-  }
+  return $c->res->headers->to_hash(1) if $in eq 'header';
+  JSON::Validator::OpenAPI::_confess_invalid_in($in);
 }
 
 sub _set_request_data {
@@ -46,21 +40,15 @@ sub _set_request_data {
   elsif ($in eq 'header') {
     $c->req->headers->header($name => $value);
   }
-  elsif ($in eq 'body') { }    # no need to write body back
-  else {
-    $self->_invalid_in($in);
+  elsif ($in ne 'body') {    # no need to write body back
+    JSON::Validator::OpenAPI::_confess_invalid_in($in);
   }
 }
 
 sub _set_response_data {
   my ($self, $c, $in, $name => $value) = @_;
-
-  if ($in eq 'header') {
-    $c->res->headers->header($name => ref $value ? @$value : $value);
-  }
-  else {
-    $self->_invalid_in($in);
-  }
+  return $c->res->headers->header($name => ref $value ? @$value : $value) if $in eq 'header';
+  JSON::Validator::OpenAPI::_confess_invalid_in($in);
 }
 
 1;
