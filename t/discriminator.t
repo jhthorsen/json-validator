@@ -1,7 +1,6 @@
 use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
-use Test::Warnings;
 use File::Spec::Functions;
 use lib '.';
 use t::Api;

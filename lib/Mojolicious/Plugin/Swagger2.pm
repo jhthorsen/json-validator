@@ -2,11 +2,13 @@ package Mojolicious::Plugin::Swagger2;
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::JSON;
 use Mojo::Loader;
-use Mojo::Util 'decamelize';
+use Mojo::Util qw(decamelize deprecated);
 use Swagger2;
 use JSON::Validator::OpenAPI::Mojolicious;
 use constant DEBUG      => $ENV{SWAGGER2_DEBUG};
 use constant IO_LOGGING => $ENV{SWAGGER2_IO_LOGGING};    # EXPERIMENTAL
+
+deprecated "Mojolicious::Plugin::Swagger2 is deprecated in favor of Mojolicious::Plugin::OpenAPI";
 
 my $SKIP_OP_RE = qr(By|From|For|In|Of|To|With);
 my $LAYOUT = Mojo::Loader::data_section(__PACKAGE__, 'layouts/mojolicious_plugin_swagger.html.ep');
