@@ -375,33 +375,6 @@ See L<Swagger2>.
 L<Mojolicious::Plugin::Swagger2> is L<Mojolicious::Plugin> that add routes and
 input/output validation to your L<Mojolicious> application.
 
-Have a look at the L</RESOURCES> for a complete reference to what is possible
-or look at L<Swagger2::Guides::Tutorial> for an introduction.
-
-=head1 RESOURCES
-
-=over 4
-
-=item * L<Swagger2::Guides::Tutorial> - Tutorial for this plugin
-
-=item * L<Swagger2::Guides::Render> - Details about the render process
-
-=item * L<Swagger2::Guides::ProtectedApi> - Protected API Guide
-
-=item * L<Swagger2::Guides::CustomPlaceholder> - Custom placeholder for your routes
-
-=item * L<Swagger2::Guides::JSONSchemaSupport> - Adding json-schema support - EXPERIMENTAL
-
-=item * L<Swagger spec|https://github.com/jhthorsen/swagger2/blob/master/t/blog/api.json>
-
-=item * L<Application|https://github.com/jhthorsen/swagger2/blob/master/t/blog/lib/Blog.pm>
-
-=item * L<Controller|https://github.com/jhthorsen/swagger2/blob/master/t/blog/lib/Blog/Controller/Posts.pm>
-
-=item * L<Tests|https://github.com/jhthorsen/swagger2/blob/master/t/authenticate.t>
-
-=back
-
 =head1 HOOKS
 
 =head2 swagger_route_added
@@ -445,7 +418,6 @@ Holds the URL to the swagger specification file.
   $bool = $c->dispatch_to_swagger(\%data);
 
 This helper can be used to handle WebSocket requests with swagger.
-See L<Swagger2::Guides::WebSocket> for details.
 
 This helper is EXPERIMENTAL.
 
@@ -456,8 +428,6 @@ This helper is EXPERIMENTAL.
 This method is used to render C<%data> from the controller method. The C<%err>
 hash will be empty on success, but can contain input/output validation errors.
 C<$status> is used to set a proper HTTP status code such as 200, 400 or 500.
-
-See also L<Swagger2::Guides::Render> for more information.
 
 =head1 METHODS
 

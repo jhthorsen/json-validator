@@ -157,7 +157,7 @@ L<Swagger2> is either not very useful or replaced by L<JSON::Validator>.
 =item * L<Swagger2::Client>
 
 No alternatives. The issue with this module is that it does not understand if
-you have parameters with the same name. There might be a L<OpeenAPI::Client> at
+you have parameters with the same name. There might be a L<OpenAPI::Client> at
 some point, but it is currently no plans to write it.
 
 =item * L<Swagger2::Editor>
