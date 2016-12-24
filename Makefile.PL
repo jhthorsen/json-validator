@@ -14,7 +14,7 @@ WriteMakefile(
       repository => 'https://github.com/jhthorsen/swagger2.git',
     },
   },
-  BUILD_REQUIRES => {'Test::More'      => '0.88', 'Test::Warnings' => '0.016'},
-  PREREQ_PM      => {'JSON::Validator' => '0.82', 'Mojolicious'    => '6.00'},
-  test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
+  BUILD_REQUIRES => {'Test::More'      => '0.88'},
+  PREREQ_PM      => {'JSON::Validator' => '0.90', 'Mojolicious' => '6.00'},
+  test           => {TESTS             => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );

@@ -1,6 +1,6 @@
 Revision history for perl distribution Swagger2
 
-0.88 Not Released
+0.88 2016-12-24T14:35:48+0100
  - Bump required JSON::Validator version to 0.90
  - Add deprecation warning to Mojolicious::Plugin::Swagger2
  - Deleted guides, since this dist will be deprecated

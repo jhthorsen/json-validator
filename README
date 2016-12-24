@@ -2,7 +2,7 @@ NAME
     Swagger2 - Swagger RESTful API Documentation
 
 VERSION
-    0.87
+    0.88
 
 DEPRECATION WARNING
     The Swagger2 distribution is no longer actively maintained. Only severe
@@ -19,7 +19,7 @@ DEPRECATION WARNING
 
       No alternatives. The issue with this module is that it does not
       understand if you have parameters with the same name. There might be a
-      OpeenAPI::Client at some point, but it is currently no plans to write
+      OpenAPI::Client at some point, but it is currently no plans to write
       it.
 
     * Swagger2::Editor
