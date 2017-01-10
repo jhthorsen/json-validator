@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.91 Not Released
+ - Mojo::Util::slurp is DEPRECATED in favor of Mojo::File::slurp
+
 0.90 2016-12-11T11:38:38+0100
  - Add support for validating Dancer2 requset/responses #34
  - Fix invalidating integer/number path part with letters #37

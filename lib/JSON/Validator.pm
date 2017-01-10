@@ -2,6 +2,7 @@ package JSON::Validator;
 use Mojo::Base -base;
 use Exporter 'import';
 use JSON::Validator::Error;
+use Mojo::File 'path';
 use Mojo::JSON;
 use Mojo::JSON::Pointer;
 use Mojo::URL;
@@ -137,7 +138,7 @@ sub _load_schema {
     warn "[JSON::Validator] Loading schema $url namespace=$namespace scheme=$scheme\n"
       if DEBUG;
     $doc
-      = $scheme eq 'file' ? Mojo::Util::slurp($namespace)
+      = $scheme eq 'file' ? path($namespace)->slurp
       : $scheme eq 'data' ? $self->_load_schema_from_data($url, $namespace)
       :                     $self->_load_schema_from_url($url, $namespace);
     $self->_register_document($self->_load_schema_from_text($doc), $namespace);
@@ -173,7 +174,7 @@ sub _load_schema_from_url {
     my $path = File::Spec->catfile($_, $cache_file);
     next unless -r $path;
     warn "[JSON::Validator] Loading cached file $path\n" if DEBUG;
-    return Mojo::Util::slurp($path);
+    return path($path)->slurp;
   }
 
   $tx = $self->ua->get($url);
