@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.91 Not Released
+0.91 2017-01-10T23:02:36+0100
  - Mojo::Util::slurp is DEPRECATED in favor of Mojo::File::slurp
 
 0.90 2016-12-11T11:38:38+0100

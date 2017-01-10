@@ -18,7 +18,7 @@ use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
-our $VERSION   = '0.90';
+our $VERSION   = '0.91';
 our @EXPORT_OK = 'validate_json';
 
 my $HTTP_SCHEME_RE = qr{^https?:};
@@ -785,7 +785,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-0.90
+0.91
 
 =head1 SYNOPSIS
 

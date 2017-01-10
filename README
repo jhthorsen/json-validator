@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.90
+    0.91
 
 SYNOPSIS
       use JSON::Validator;
@@ -324,4 +324,8 @@ COPYRIGHT AND LICENSE
 
 AUTHOR
     Jan Henning Thorsen - "jhthorsen@cpan.org"
+
+    Daniel Böhmer - "post@daniel-boehmer.de"
+
+    Martin Renvoize - "martin.renvoize@gmail.com"
 
