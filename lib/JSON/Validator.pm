@@ -86,7 +86,8 @@ sub validate {
   $schema ||= $self->schema->data;
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
   local $self->{schema} = Mojo::JSON::Pointer->new($schema);
-  local $self->{seen}   = {};
+  local $self->{seen_ref}   = {};
+  local $self->{seen_str}   = {};
   return $self->_validate($data, '', $schema);
 }
 
@@ -244,7 +245,8 @@ sub _resolve_schema {
 
         # int($v) returns the memory address of the reference. The "if" below
         # will not resolve the same "$ref" over again.
-        next if $k eq '$ref' and ref $v and $self->{seen}{int($v)}++;
+        next if $k eq '$ref' and ref $v and $self->{seen_ref}{int($v)}++;
+        next if $k eq '$ref' and $self->{seen_str}{$v}++;
 
         # Make sure we do not modify the input data structure.
         # Changing the input makes t/expand.t in swagger2.git fail.
@@ -296,7 +298,7 @@ sub _validate {
   my ($type, @errors);
 
   # Avoid recursion
-  return if ref $data and $self->{seen}{"$schema\:$data"}++;
+  return if ref $data and $self->{seen_ref}{"$schema\:$data"}++;
 
   # Make sure we validate plain data and not a perl object
   $data = $data->TO_JSON if Scalar::Util::blessed($data) and UNIVERSAL::can($data, 'TO_JSON');
