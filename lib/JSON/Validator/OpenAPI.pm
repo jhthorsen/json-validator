@@ -436,4 +436,6 @@ the terms of the Artistic License version 2.0.
 
 L<JSON::Validator>.
 
+L<http://openapi-specification-visual-documentation.apihandyman.io/>
+
 =cut
