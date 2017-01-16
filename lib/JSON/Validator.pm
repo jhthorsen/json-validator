@@ -244,7 +244,7 @@ sub _resolve_schema {
 
         # int($v) returns the memory address of the reference. The "if" below
         # will not resolve the same "$ref" over again.
-        next if $k eq '$ref' and ref $v and $self->{seen}{int($v)}++;
+        next if ref $v and $self->{seen}{int($v)}++;
 
         # Make sure we do not modify the input data structure.
         # Changing the input makes t/expand.t in swagger2.git fail.
