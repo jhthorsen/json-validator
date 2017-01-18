@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.92 Not Released
+0.92 2017-01-18T11:54:03+0000
  - Fix infinite recursion when resolving self referencing data structures
 
 0.91 2017-01-10T23:02:36+0100
