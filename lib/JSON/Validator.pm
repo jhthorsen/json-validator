@@ -18,7 +18,7 @@ use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
-our $VERSION = '0.92';
+our $VERSION   = '0.92';
 our @EXPORT_OK = 'validate_json';
 
 my $HTTP_SCHEME_RE = qr{^https?:};
@@ -173,6 +173,12 @@ sub _load_schema_from_url {
   for (@{$self->cache_paths}) {
     my $path = File::Spec->catfile($_, $cache_file);
     next unless -r $path;
+
+    if (-r "$path.expires" and path("$path.expires")->slurp <= time) {
+      warn "[JSON::Validator] Cached file $path has expired\n" if DEBUG;
+      next;
+    }
+
     warn "[JSON::Validator] Loading cached file $path\n" if DEBUG;
     return path($path)->slurp;
   }
@@ -180,12 +186,28 @@ sub _load_schema_from_url {
   $tx = $self->ua->get($url);
   die $tx->error->{message} if $tx->error;
 
-  if ($cache_dir and -w $cache_dir) {
+  my $cache_validity = $self->_cache_seconds_validity($tx);
+
+  if ($cache_dir and -w $cache_dir && $cache_validity) {
+    warn "[JSON::Validator] Cache validity: $cache_validity seconds\n" if DEBUG;
     $cache_file = File::Spec->catfile($cache_dir, $cache_file);
-    Mojo::Util::spurt($tx->res->body, $cache_file);
+    Mojo::Util::spurt($tx->res->body,         $cache_file);
+    Mojo::Util::spurt(time + $cache_validity, "$cache_file.expires");
   }
 
   return $tx->res->body;
+}
+
+sub _cache_seconds_validity {
+  my ($self, $tx) = @_;
+  my $cache_validity = 86400 * 365 * 10;    # 10 years(ish) by default
+
+  if (my $cache_control = $tx->res->headers->header('Cache-Control')) {
+    $cache_validity = $1 if $cache_control =~ /max-age=(\d+)/i;
+    $cache_validity = 0  if $cache_control =~ /no-(?:cache|store)|private|revalidate/i;
+  }
+
+  return $cache_validity;
 }
 
 sub _default_id {
@@ -981,7 +1003,8 @@ To download a file and add it to the cache, do this:
   $ curl http://swagger.io/v2/schema.json > /cache/dir/$(md5 -qs http://swagger.io/v2/schema.json)
 
 Files referenced to an URL will automatically be cached if the first path in
-L</cache_paths> is writable.
+L</cache_paths> is writable, however the Cache-Control headers will be
+honored so those with Cache-Control of no-cache will not be cached, and so on.
 
 =head2 formats
 
