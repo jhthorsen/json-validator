@@ -963,9 +963,9 @@ See also L</validate> and L</ERROR OBJECT> for more details.
   $self = $self->cache_paths(\@paths);
   $array_ref = $self->cache_paths;
 
-Search paths to where cached specifications are stored. Defaults to
-C<JSON_VALIDATOR_CACHE_DIR> and the bundled spec files that are shipped with
-this distribution.
+A list of directories to where cached specifications are stored. Defaults to
+C<JSON_VALIDATOR_CACHE_DIR> and the bundled specs that is shipped with this
+distribution.
 
   JSON_VALIDATOR_CACHE_DIR=/cache/dir:/some/other/location perl script.pl
 
@@ -973,8 +973,13 @@ To download a file and add it to the cache, do this:
 
   $ curl http://swagger.io/v2/schema.json > /cache/dir/$(md5 -qs http://swagger.io/v2/schema.json)
 
-Files referenced to an URL will automatically be cached if the first path in
-L</cache_paths> is writable.
+If you want to automatically cache external resources, you must change the first
+item in this array to a writeable directory:
+
+  unshift @{$self->cache_paths}, "/some/writable/directory";
+
+Note that cached files does not honour any cache headers, which means that you
+must expire the files manually.
 
 =head2 formats
 
