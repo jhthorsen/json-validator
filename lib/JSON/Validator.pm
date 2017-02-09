@@ -18,9 +18,10 @@ use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
-our $VERSION = '0.92';
+our $VERSION   = '0.92';
 our @EXPORT_OK = 'validate_json';
 
+my $DEFAULT_CACHE_DIR = File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
 my $HTTP_SCHEME_RE = qr{^https?:};
 
 sub E { JSON::Validator::Error->new(@_) }
@@ -35,7 +36,7 @@ has cache_paths => sub {
   my $self = shift;
   my @paths = split /:/, ($ENV{JSON_VALIDATOR_CACHE_DIR} || '');
   push @paths, $self->{cache_dir} if $self->{cache_dir};
-  push @paths, File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
+  push @paths, $DEFAULT_CACHE_DIR;
   return \@paths;
 };
 
@@ -166,7 +167,6 @@ sub _load_schema_from_text {
 
 sub _load_schema_from_url {
   my ($self, $url, $namespace) = @_;
-  my $cache_dir  = $self->cache_paths->[0];
   my $cache_file = Mojo::Util::md5_sum($namespace);
   my $tx;
 
@@ -180,9 +180,12 @@ sub _load_schema_from_url {
   $tx = $self->ua->get($url);
   die $tx->error->{message} if $tx->error;
 
-  if ($cache_dir and -w $cache_dir) {
-    $cache_file = File::Spec->catfile($cache_dir, $cache_file);
-    Mojo::Util::spurt($tx->res->body, $cache_file);
+  for my $cache_dir (@{$self->cache_paths}) {
+    if ($cache_dir and -w $cache_dir and $cache_dir ne $DEFAULT_CACHE_DIR) {
+      $cache_file = File::Spec->catfile($cache_dir, $cache_file);
+      Mojo::Util::spurt($tx->res->body, $cache_file);
+      last;
+    }
   }
 
   return $tx->res->body;
@@ -980,8 +983,9 @@ To download a file and add it to the cache, do this:
 
   $ curl http://swagger.io/v2/schema.json > /cache/dir/$(md5 -qs http://swagger.io/v2/schema.json)
 
-Files referenced to an URL will automatically be cached if the first path in
-L</cache_paths> is writable.
+Files referenced to an URL will automatically be cached if L</cache_paths> is supplied.
+Note that the Cache-Control header for remote files is B<not> honored so you will
+manually need to remove any cached remote files should you need to refresh them.
 
 =head2 formats
 
