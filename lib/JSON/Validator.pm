@@ -27,11 +27,6 @@ my $HTTP_SCHEME_RE = qr{^https?:};
 sub E { JSON::Validator::Error->new(@_) }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
 
-has cache_dir => sub {
-  deprecated 'cache_dir() is replaced by cache_paths()';
-  shift->cache_paths->[0];
-};
-
 has cache_paths => sub {
   my $self = shift;
   my @paths = split /:/, ($ENV{JSON_VALIDATOR_CACHE_DIR} || '');
@@ -962,10 +957,6 @@ This can be useful in web applications:
 See also L</validate> and L</ERROR OBJECT> for more details.
 
 =head1 ATTRIBUTES
-
-=head2 cache_dir
-
-Deprecated in favor of L</cache_paths>.
 
 =head2 cache_paths
 
