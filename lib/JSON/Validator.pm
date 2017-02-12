@@ -34,7 +34,14 @@ has cache_dir => sub {
 
 has cache_paths => sub {
   my $self = shift;
-  my @paths = split /:/, ($ENV{JSON_VALIDATOR_CACHE_DIR} || '');
+  my @paths = split /:/, ($ENV{JSON_VALIDATOR_CACHE_PATH} || '');
+
+  if ($ENV{JSON_VALIDATOR_CACHE_DIR}) {
+    warn "JSON_VALIDATOR_CACHE_DIR is deprecated in favor of JSON_VALIDATOR_CACHE_PATH\n"
+      unless $ENV{HARNESS_ACTIVE};
+    push @paths, split /:/, ($ENV{JSON_VALIDATOR_CACHE_DIR} || '');
+  }
+
   push @paths, $self->{cache_dir} if $self->{cache_dir};
   push @paths, $BUNDLED_CACHE_DIR;
   return \@paths;
@@ -183,7 +190,7 @@ sub _load_schema_from_url {
 
   if ($cache_dir and $cache_dir ne $BUNDLED_CACHE_DIR and -w $cache_dir) {
     $cache_file = path $cache_dir, $cache_file;
-    warn "[JSON::Validator] Caching $namespace to $cache_file\n";
+    warn "[JSON::Validator] Caching $namespace to $cache_file\n" unless $ENV{HARNESS_ACTIVE};
     $cache_file->spurt($tx->res->body);
   }
 
@@ -864,7 +871,7 @@ cached file, should you need to refresh them.
 
 To download and cache an online asset, do this:
 
-  JSON_VALIDATOR_CACHE_DIR=/some/writable/directory perl myapp.pl
+  JSON_VALIDATOR_CACHE_PATH=/some/writable/directory perl myapp.pl
 
 Here is the list of the bundled specifications:
 
@@ -981,10 +988,10 @@ Deprecated in favor of L</cache_paths>.
   $array_ref = $self->cache_paths;
 
 A list of directories to where cached specifications are stored. Defaults to
-C<JSON_VALIDATOR_CACHE_DIR> environment variable and the specs that is bundled
+C<JSON_VALIDATOR_CACHE_PATH> environment variable and the specs that is bundled
 with this distribution.
 
-C<JSON_VALIDATOR_CACHE_DIR> can be a list of directories, each separated by ":".
+C<JSON_VALIDATOR_CACHE_PATH> can be a list of directories, each separated by ":".
 
 See L</Bundled specifications> for more details.
 
