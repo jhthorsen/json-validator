@@ -21,7 +21,7 @@ use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 our $VERSION   = '0.92';
 our @EXPORT_OK = 'validate_json';
 
-my $DEFAULT_CACHE_DIR = File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
+my $BUNDLED_CACHE_DIR = File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
 my $HTTP_SCHEME_RE = qr{^https?:};
 
 sub E { JSON::Validator::Error->new(@_) }
@@ -36,7 +36,7 @@ has cache_paths => sub {
   my $self = shift;
   my @paths = split /:/, ($ENV{JSON_VALIDATOR_CACHE_DIR} || '');
   push @paths, $self->{cache_dir} if $self->{cache_dir};
-  push @paths, $DEFAULT_CACHE_DIR;
+  push @paths, $BUNDLED_CACHE_DIR;
   return \@paths;
 };
 
@@ -167,6 +167,7 @@ sub _load_schema_from_text {
 
 sub _load_schema_from_url {
   my ($self, $url, $namespace) = @_;
+  my $cache_dir  = $self->cache_paths->[0];
   my $cache_file = Mojo::Util::md5_sum($namespace);
   my $tx;
 
@@ -180,12 +181,10 @@ sub _load_schema_from_url {
   $tx = $self->ua->get($url);
   die $tx->error->{message} if $tx->error;
 
-  for my $cache_dir (@{$self->cache_paths}) {
-    if ($cache_dir and -w $cache_dir and $cache_dir ne $DEFAULT_CACHE_DIR) {
-      $cache_file = File::Spec->catfile($cache_dir, $cache_file);
-      Mojo::Util::spurt($tx->res->body, $cache_file);
-      last;
-    }
+  if ($cache_dir and $cache_dir ne $BUNDLED_CACHE_DIR and -w $cache_dir) {
+    $cache_file = path $cache_dir, $cache_file;
+    warn "[JSON::Validator] Caching $namespace to $cache_file\n";
+    $cache_file->spurt($tx->res->body);
   }
 
   return $tx->res->body;
@@ -858,8 +857,16 @@ This module comes with some JSON specifications bundled, so your application
 don't have to fetch those from the web. These specifications should be up to
 date, but please submit an issue if they are not.
 
-Note that the bundled specifications can be ignored, by customizing
-L</cache_paths>.
+Files referenced to an URL will automatically be cached if the first element in
+L</cache_paths> is a writable directory. Note that the cache headers for the
+remote assets are B<not> honored, so you will manually need to remove any
+cached file, should you need to refresh them.
+
+To download and cache an online asset, do this:
+
+  JSON_VALIDATOR_CACHE_DIR=/some/writable/directory perl myapp.pl
+
+Here is the list of the bundled specifications:
 
 =over 2
 
@@ -973,19 +980,13 @@ Deprecated in favor of L</cache_paths>.
   $self = $self->cache_paths(\@paths);
   $array_ref = $self->cache_paths;
 
-Search paths to where cached specifications are stored. Defaults to
-C<JSON_VALIDATOR_CACHE_DIR> and the bundled spec files that are shipped with
-this distribution.
+A list of directories to where cached specifications are stored. Defaults to
+C<JSON_VALIDATOR_CACHE_DIR> environment variable and the specs that is bundled
+with this distribution.
 
-  JSON_VALIDATOR_CACHE_DIR=/cache/dir:/some/other/location perl script.pl
+C<JSON_VALIDATOR_CACHE_DIR> can be a list of directories, each separated by ":".
 
-To download a file and add it to the cache, do this:
-
-  $ curl http://swagger.io/v2/schema.json > /cache/dir/$(md5 -qs http://swagger.io/v2/schema.json)
-
-Files referenced to an URL will automatically be cached if L</cache_paths> is supplied.
-Note that the Cache-Control header for remote files is B<not> honored so you will
-manually need to remove any cached remote files should you need to refresh them.
+See L</Bundled specifications> for more details.
 
 =head2 formats
 
