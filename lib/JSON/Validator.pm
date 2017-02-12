@@ -1,5 +1,6 @@
 package JSON::Validator;
 use Mojo::Base -base;
+
 use Exporter 'import';
 use JSON::Validator::Error;
 use Mojo::File 'path';
@@ -8,9 +9,6 @@ use Mojo::JSON::Pointer;
 use Mojo::URL;
 use Mojo::Util 'deprecated';
 use B;
-use Cwd            ();
-use File::Basename ();
-use File::Spec;
 use Scalar::Util;
 
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
@@ -21,7 +19,7 @@ use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 our $VERSION   = '0.92';
 our @EXPORT_OK = 'validate_json';
 
-my $BUNDLED_CACHE_DIR = File::Spec->catdir(File::Basename::dirname(__FILE__), qw(Validator cache));
+my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE = qr{^https?:};
 
 sub E { JSON::Validator::Error->new(@_) }
@@ -73,7 +71,7 @@ sub schema {
     $schema = $self->_register_document($schema, $schema->{id});
   }
   else {
-    $schema = Cwd::abs_path($schema) if -e $schema;
+    $schema = path($schema)->to_abs if -e $schema;
     $schema = $self->_load_schema($schema);
   }
 
@@ -128,8 +126,8 @@ sub _load_schema {
   }
   elsif ($parent) {
     $url =~ s!#.*!!;
-    $url = File::Spec->catfile(File::Basename::dirname($parent), split '/', $url);
-    $namespace = Cwd::abs_path($url) || $url;
+    $url = path(path($parent)->dirname, split '/', $url);
+    $namespace = eval { $url->to_abs->to_string } || $url;
   }
 
   # Make sure we create the correct namespace if not already done by Mojo::URL
@@ -173,10 +171,10 @@ sub _load_schema_from_url {
   my $tx;
 
   for (@{$self->cache_paths}) {
-    my $path = File::Spec->catfile($_, $cache_file);
+    my $path = path $_, $cache_file;
     next unless -r $path;
     warn "[JSON::Validator] Loading cached file $path\n" if DEBUG;
-    return path($path)->slurp;
+    return $path->slurp;
   }
 
   $tx = $self->ua->get($url);
@@ -192,11 +190,11 @@ sub _load_schema_from_url {
 }
 
 sub _default_id {
-  my $path = Cwd::abs_path($0);
+  my $path = path($0)->to_abs;
   state $id = 0;
-  $path = File::Basename::dirname($path) if $path;
-  $path = Cwd::getcwd unless $path;
-  return File::Spec->catfile($path, sprintf 'json-validator-%s.json', ++$id);
+  $path = $path->dirname if $path;
+  $path = path() unless $path;
+  return path($path, sprintf 'json-validator-%s.json', ++$id)->to_string;
 }
 
 sub _register_document {

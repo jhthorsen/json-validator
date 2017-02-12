@@ -2,6 +2,8 @@ use Mojo::Base -strict;
 use Test::More;
 use JSON::Validator;
 
+use Carp::Always;
+
 my $file
   = File::Spec->catfile(File::Basename::dirname(__FILE__), 'spec', 'with-deep-mixed-ref.json');
 my $validator = JSON::Validator->new(cache_paths => [])->schema($file);
