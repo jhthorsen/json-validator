@@ -27,11 +27,6 @@ my $HTTP_SCHEME_RE = qr{^https?:};
 sub E { JSON::Validator::Error->new(@_) }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
 
-has cache_dir => sub {
-  deprecated 'cache_dir() is replaced by cache_paths()';
-  shift->cache_paths->[0];
-};
-
 has cache_paths => sub {
   my $self = shift;
   my @paths = split /:/, ($ENV{JSON_VALIDATOR_CACHE_PATH} || '');
@@ -42,7 +37,6 @@ has cache_paths => sub {
     push @paths, split /:/, ($ENV{JSON_VALIDATOR_CACHE_DIR} || '');
   }
 
-  push @paths, $self->{cache_dir} if $self->{cache_dir};
   push @paths, $BUNDLED_CACHE_DIR;
   return \@paths;
 };
@@ -174,7 +168,7 @@ sub _load_schema_from_text {
 
 sub _load_schema_from_url {
   my ($self, $url, $namespace) = @_;
-  my $cache_dir  = $self->cache_paths->[0];
+  my $cache_path = $self->cache_paths->[0];
   my $cache_file = Mojo::Util::md5_sum($namespace);
   my $tx;
 
@@ -188,8 +182,8 @@ sub _load_schema_from_url {
   $tx = $self->ua->get($url);
   die $tx->error->{message} if $tx->error;
 
-  if ($cache_dir and $cache_dir ne $BUNDLED_CACHE_DIR and -w $cache_dir) {
-    $cache_file = path $cache_dir, $cache_file;
+  if ($cache_path and $cache_path ne $BUNDLED_CACHE_DIR and -w $cache_path) {
+    $cache_file = path $cache_path, $cache_file;
     warn "[JSON::Validator] Caching $namespace to $cache_file\n" unless $ENV{HARNESS_ACTIVE};
     $cache_file->spurt($tx->res->body);
   }
@@ -977,10 +971,6 @@ This can be useful in web applications:
 See also L</validate> and L</ERROR OBJECT> for more details.
 
 =head1 ATTRIBUTES
-
-=head2 cache_dir
-
-Deprecated in favor of L</cache_paths>.
 
 =head2 cache_paths
 

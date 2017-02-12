@@ -2,7 +2,8 @@ Revision history for perl distribution JSON-Validator
 
 0.92 2017-01-18T11:54:03+0000
  - Fix infinite recursion when resolving self referencing data structures
- - Replaced JSON_VALIDATOR_CACHE_DIR with JSON_VALIDATOR_CACHE_PATH
+ - Replace JSON_VALIDATOR_CACHE_DIR with JSON_VALIDATOR_CACHE_PATH
+ - Remove deprecated cache_dir attribute
 
 0.91 2017-01-10T23:02:36+0100
  - Mojo::Util::slurp is DEPRECATED in favor of Mojo::File::slurp
