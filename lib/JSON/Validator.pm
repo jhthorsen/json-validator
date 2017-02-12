@@ -158,10 +158,10 @@ sub _load_schema_from_data {
 }
 
 sub _load_schema_from_text {
-  return Mojo::JSON::decode_json($_[1]) if $_[1] =~ /^\s*\{/s;
-  $_[0]->coerce(1);    # need to coerce all values... because YAML is awful :(
+  my $self = shift;
+  return Mojo::JSON::decode_json($_[0]) if $_[0] =~ /^\s*\{/s;
   local $YAML::Syck::ImplicitTyping = 1;
-  _load_yaml($_[1]) || undef;
+  return $self->_load_yaml($_[0]);
 }
 
 sub _load_schema_from_url {
@@ -747,14 +747,28 @@ sub _is_uri { $_[0] =~ qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*
 # Please report if you need to manually monkey patch this function
 # https://github.com/jhthorsen/json-validator/issues
 sub _load_yaml {
-  require List::Util;
-  my @YAML_MODULES = qw(YAML::XS YAML::Syck);    # subject to change
-  my $YAML_MODULE = (List::Util::first { eval "require $_;1" } @YAML_MODULES)[0];
-  die "Need to install one of these YAML modules: @YAML_MODULES (YAML::XS is recommended)"
-    unless $YAML_MODULE;
-  warn "[JSON::Validator] Using $YAML_MODULE to parse YAML\n" if DEBUG;
-  Mojo::Util::monkey_patch(__PACKAGE__, _load_yaml => eval "\\\&$YAML_MODULE\::Load");
-  _load_yaml(@_);
+  my $self = shift->coerce(1);
+  my $visit;
+
+  state $yaml_module = do {
+    require List::Util;
+    my @modules = qw(YAML::XS YAML::Syck);                                  # subject to change
+    my $module = (List::Util::first { eval "require $_;1" } @modules)[0];
+    die "Need to install one of these YAML modules: @modules (YAML::XS is recommended)"
+      unless $module;
+    warn "[JSON::Validator] Using $module to parse YAML\n" if DEBUG;
+    $module;
+  };
+
+  $visit = sub {
+    my $v = shift;
+    $visit->($_) for grep { ref $_ eq 'HASH' } values %$v;
+    return $v unless $v->{type} and $v->{type} eq 'boolean' and exists $v->{default};
+    %$v = (%$v, default => $v->{default} ? Mojo::JSON->true : Mojo::JSON->false);
+    return $v;
+  };
+
+  return $visit->($yaml_module->can('Load')->($_[0]));
 }
 
 sub _merge_errors {
