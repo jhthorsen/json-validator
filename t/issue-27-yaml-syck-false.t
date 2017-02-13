@@ -5,7 +5,7 @@ use JSON::Validator;
 plan skip_all => $@ unless eval 'require YAML::Syck;1';
 
 use JSON::Validator;
-Mojo::Util::monkey_patch('JSON::Validator' => _load_yaml => \&YAML::Syck::Load);
+Mojo::Util::monkey_patch('JSON::Validator' => _yaml_module => sub {'YAML::Syck'});
 
 my $validator = JSON::Validator->new->schema('data://main/yaml-syck.yml');
 my @errors = $validator->validate({firstName => 'Jan Henning', lastName => 'Thorsen', age => 42});

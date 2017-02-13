@@ -2,7 +2,7 @@ use Mojo::Base -strict;
 use Test::More;
 use JSON::Validator;
 
-plan skip_all => $@ unless eval { JSON::Validator::_load_yaml("---\nfoo: bar") };
+plan skip_all => $@ unless eval { JSON::Validator::_yaml_module() };
 
 my $validator = JSON::Validator->new;
 my @errors

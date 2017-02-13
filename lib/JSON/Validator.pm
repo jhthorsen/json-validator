@@ -141,7 +141,7 @@ sub _load_schema {
       = $scheme eq 'file' ? path($namespace)->slurp
       : $scheme eq 'data' ? $self->_load_schema_from_data($url, $namespace)
       :                     $self->_load_schema_from_url($url, $namespace);
-    $self->_register_document($self->_load_schema_from_text($doc), $namespace);
+    $self->_register_document($self->_load_schema_from_text(\$doc), $namespace);
   } || do {
     $doc ||= '';
     die "Could not load document from $url: $@ ($doc)" if DEBUG;
@@ -158,10 +158,23 @@ sub _load_schema_from_data {
 }
 
 sub _load_schema_from_text {
-  my $self = shift;
-  return Mojo::JSON::decode_json($_[0]) if $_[0] =~ /^\s*\{/s;
+  my ($self, $text) = @_;
+  my $visit;
+
+  # JSON
+  return Mojo::JSON::decode_json($$text) if $$text =~ /^\s*\{/s;
+
+  # YAML
+  $visit = sub {
+    my $v = shift;
+    $visit->($_) for grep { ref $_ eq 'HASH' } values %$v;
+    return $v unless $v->{type} and $v->{type} eq 'boolean' and exists $v->{default};
+    %$v = (%$v, default => $v->{default} ? Mojo::JSON->true : Mojo::JSON->false);
+    return $v;
+  };
+
   local $YAML::Syck::ImplicitTyping = 1;
-  return $self->_load_yaml($_[0]);
+  return $visit->($self->coerce(1)->_yaml_module->can('Load')->($$text));
 }
 
 sub _load_schema_from_url {
@@ -744,33 +757,6 @@ sub _is_regex {
 }
 sub _is_uri { $_[0] =~ qr!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!o; }
 
-# Please report if you need to manually monkey patch this function
-# https://github.com/jhthorsen/json-validator/issues
-sub _load_yaml {
-  my $self = shift->coerce(1);
-  my $visit;
-
-  state $yaml_module = do {
-    require List::Util;
-    my @modules = qw(YAML::XS YAML::Syck);                                  # subject to change
-    my $module = (List::Util::first { eval "require $_;1" } @modules)[0];
-    die "Need to install one of these YAML modules: @modules (YAML::XS is recommended)"
-      unless $module;
-    warn "[JSON::Validator] Using $module to parse YAML\n" if DEBUG;
-    $module;
-  };
-
-  $visit = sub {
-    my $v = shift;
-    $visit->($_) for grep { ref $_ eq 'HASH' } values %$v;
-    return $v unless $v->{type} and $v->{type} eq 'boolean' and exists $v->{default};
-    %$v = (%$v, default => $v->{default} ? Mojo::JSON->true : Mojo::JSON->false);
-    return $v;
-  };
-
-  return $visit->($yaml_module->can('Load')->($_[0]));
-}
-
 sub _merge_errors {
   join ' ', map {
     my $e = $_;
@@ -788,6 +774,20 @@ sub _path {
 sub _uniq {
   my %uniq;
   grep { !$uniq{$_}++ } @_;
+}
+
+# Please report if you need to manually monkey patch this function
+# https://github.com/jhthorsen/json-validator/issues
+sub _yaml_module {
+  state $yaml_module = do {
+    require List::Util;
+    my @modules = qw(YAML::XS YAML::Syck);                                  # subject to change
+    my $module = (List::Util::first { eval "require $_;1" } @modules)[0];
+    die "Need to install one of these YAML modules: @modules (YAML::XS is recommended)"
+      unless $module;
+    warn "[JSON::Validator] Using $module to parse YAML\n" if DEBUG;
+    $module;
+  };
 }
 
 1;
