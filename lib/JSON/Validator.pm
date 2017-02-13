@@ -16,7 +16,7 @@ use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
-our $VERSION   = '0.93';
+our $VERSION   = '0.94';
 our @EXPORT_OK = 'validate_json';
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
@@ -800,7 +800,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-0.93
+0.94
 
 =head1 SYNOPSIS
 
