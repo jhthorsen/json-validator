@@ -99,6 +99,12 @@ if (JSON::Validator::OpenAPI::IV_SIZE >= 8) {
 }
 
 {
+  local $schema->{properties}{v}{format} = 'password';
+  @errors = $validator->validate({v => 'whatever'}, $schema);
+  is "@errors", "", "password is always valid";
+}
+
+{
   local $schema->{properties}{v}{format} = 'unknown';
   @errors = $validator->validate({v => 'whatever'}, $schema);
   is "@errors", "", "unknown is always valid";

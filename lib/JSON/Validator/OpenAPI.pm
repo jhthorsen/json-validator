@@ -252,12 +252,13 @@ sub _validate_type_object {
 sub _build_formats {
   my $formats = shift->SUPER::_build_formats;
 
-  $formats->{byte}   = \&_is_byte_string;
-  $formats->{date}   = \&_is_date;
-  $formats->{double} = \&Scalar::Util::looks_like_number;
-  $formats->{float}  = \&Scalar::Util::looks_like_number;
-  $formats->{int32}  = sub { _is_number($_[0], 'l'); };
-  $formats->{int64}  = IV_SIZE >= 8 ? sub { _is_number($_[0], 'q'); } : sub {1};
+  $formats->{byte}     = \&_is_byte_string;
+  $formats->{date}     = \&_is_date;
+  $formats->{double}   = \&Scalar::Util::looks_like_number;
+  $formats->{float}    = \&Scalar::Util::looks_like_number;
+  $formats->{int32}    = sub { _is_number($_[0], 'l'); };
+  $formats->{int64}    = IV_SIZE >= 8 ? sub { _is_number($_[0], 'q'); } : sub {1};
+  $formats->{password} = sub {1};
   $formats;
 }
 

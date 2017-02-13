@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.95 Not Released
+ - Add support for format "password"
+
 0.94 2017-02-13T09:33:20+0100
  - Fix t/issue-27-yaml-syck-false.t
  - Removed Carp::Always #47
