@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.92
+    0.93
 
 SYNOPSIS
       use JSON::Validator;
@@ -66,8 +66,16 @@ DESCRIPTION
     application don't have to fetch those from the web. These specifications
     should be up to date, but please submit an issue if they are not.
 
-    Note that the bundled specifications can be ignored, by customizing
-    "cache_paths".
+    Files referenced to an URL will automatically be cached if the first
+    element in "cache_paths" is a writable directory. Note that the cache
+    headers for the remote assets are not honored, so you will manually need
+    to remove any cached file, should you need to refresh them.
+
+    To download and cache an online asset, do this:
+
+      JSON_VALIDATOR_CACHE_PATH=/some/writable/directory perl myapp.pl
+
+    Here is the list of the bundled specifications:
 
     * JSON schema, draft 4
 
@@ -162,25 +170,18 @@ FUNCTIONS
     See also "validate" and "ERROR OBJECT" for more details.
 
 ATTRIBUTES
-  cache_dir
-    Deprecated in favor of "cache_paths".
-
   cache_paths
       $self = $self->cache_paths(\@paths);
       $array_ref = $self->cache_paths;
 
-    Search paths to where cached specifications are stored. Defaults to
-    "JSON_VALIDATOR_CACHE_DIR" and the bundled spec files that are shipped
-    with this distribution.
+    A list of directories to where cached specifications are stored.
+    Defaults to "JSON_VALIDATOR_CACHE_PATH" environment variable and the
+    specs that is bundled with this distribution.
 
-      JSON_VALIDATOR_CACHE_DIR=/cache/dir:/some/other/location perl script.pl
+    "JSON_VALIDATOR_CACHE_PATH" can be a list of directories, each separated
+    by ":".
 
-    To download a file and add it to the cache, do this:
-
-      $ curl http://swagger.io/v2/schema.json > /cache/dir/$(md5 -qs http://swagger.io/v2/schema.json)
-
-    Files referenced to an URL will automatically be cached if the first
-    path in "cache_paths" is writable.
+    See "Bundled specifications" for more details.
 
   formats
       $hash_ref = $self->formats;
