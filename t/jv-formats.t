@@ -10,6 +10,10 @@ my @errors;
   $schema->{properties}{v}{format} = 'date-time';
   @errors = $validator->validate({v => '2014-12-09T20:49:37Z'}, $schema);
   is "@errors", "", "date-time valid";
+  @errors = $validator->validate({v => '2014-12-09 20:49:37Z'}, $schema);
+  is "@errors", "", "date-time with alternate separator valid";
+  @errors = $validator->validate({v => '2014-12-09T20:49:37.00Z'}, $schema);
+  is "@errors", "", "date-time with fractional seconds valid";
   @errors = $validator->validate({v => '20:46:02'}, $schema);
   is "@errors", "/v: Does not match date-time format.", "date-time invalid";
 }
