@@ -720,8 +720,8 @@ sub _guessed_right {
 
 sub _is_date_time {
   $_[0] =~ qr/
-    ^\d+-\d+-\d+\D+\d+:\d+:\d+(?:\.\d+)?   # Date and time
-    (?:Z|[+-]\d+:\d+)?$                    # Offset
+    ^\d{4}-\d{2}-\d{2}.\d{2}:\d{2}:\d{2}(?:\.\d+)? # Date and time
+    (?:Z|[+-]\d{2}:\d{2})?$                        # Offset
   /xi;
 }
 
