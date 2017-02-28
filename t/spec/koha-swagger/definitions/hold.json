@@ -1,0 +1,86 @@
+{
+  "type": "object",
+  "properties": {
+    "reserve_id": {
+      "$ref": "../x-primitives.json#/reserve_id"
+    },
+    "borrowernumber": {
+      "$ref": "../x-primitives.json#/borrowernumber"
+    },
+    "reservedate": {
+      "type": ["string", "null"],
+      "description": "the date the hold was placed",
+      "format": "date"
+    },
+    "biblionumber": {
+      "$ref": "../x-primitives.json#/biblionumber"
+    },
+    "branchcode": {
+      "type": ["string", "null"],
+      "description": "code of patron's home branch"
+    },
+    "notificationdate": {
+      "type": ["string", "null"],
+      "description": "currently unused",
+      "format": "date"
+    },
+    "reminderdate": {
+      "type": ["string", "null"],
+      "description": "currently unused",
+      "format": "date"
+    },
+    "cancellationdate": {
+      "type": ["string", "null"],
+      "description": "the date the hold was cancelled",
+      "format": "date"
+    },
+    "reservenotes": {
+      "type": ["string", "null"],
+      "description": "notes related to this hold"
+    },
+    "priority": {
+      "type": ["integer", "null"],
+      "description": "where in the queue the patron sits"
+    },
+    "found": {
+      "type": ["string", "null"],
+      "description": "a one letter code defining what the status of the hold is after it has been confirmed"
+    },
+    "timestamp": {
+      "type": ["string", "null"],
+      "description": "date and time the hold was last updated",
+      "format": "date-time"
+    },
+    "itemnumber": {
+      "type": ["integer", "null"],
+      "description": "foreign key from the items table defining the specific item the patron has placed on hold or the item this hold was filled with"
+    },
+    "waitingdate": {
+      "type": ["string", "null"],
+      "description": "the date the item was marked as waiting for the patron at the library",
+      "format": "date"
+    },
+    "expirationdate": {
+      "type": ["string", "null"],
+      "description": "the date the hold expires",
+      "format": "date"
+    },
+    "lowestPriority": {
+      "type": "boolean",
+      "description": ""
+    },
+    "suspend": {
+      "type": "boolean",
+      "description": ""
+    },
+    "suspend_until": {
+      "type": ["string", "null"],
+      "description": "",
+      "format": "date-time"
+    },
+    "itemtype": {
+      "type": ["string", "null"],
+      "description": "If record level hold, the optional itemtype of the item the patron is requesting"
+    }
+  }
+}
