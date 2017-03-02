@@ -9,7 +9,7 @@ use File::Spec;
 use Mojo::Util 'deprecated';
 use JSON::Validator::OpenAPI;
 
-our $VERSION = '0.88';
+our $VERSION = '0.89';
 
 # Should be considered internal
 our $JS_CLIENT
@@ -141,7 +141,7 @@ Swagger2 - Deprecated
 
 =head1 VERSION
 
-0.88
+0.89
 
 =head1 DEPRECATION WARNING
 
