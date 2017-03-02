@@ -12,7 +12,7 @@ my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t}
 
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
-sub load_and_validate_spec {
+sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
   my $openapi = JSON::Validator->new->schema($args->{schema} || SPECIFICATION_URL);
   my ($api_spec, @errors);
@@ -25,7 +25,7 @@ sub load_and_validate_spec {
     $jv->resolver($r) if $r;
     $api_spec = $jv->schema($spec)->schema;
     @errors   = $openapi->coerce($jv->coerce)->validate($api_spec->data);
-    die join "\n", "[OpenAPI] Invalid spec:", @errors if @errors;
+    Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
   }
 
   if (my $class = $args->{version_from_class}) {
@@ -38,6 +38,9 @@ sub load_and_validate_spec {
   $self->{schema} = $api_spec;
   $self;
 }
+
+# deprecated
+sub load_and_validate_spec { goto &load_and_validate_schema }
 
 sub validate_input {
   my $self = shift;
@@ -359,12 +362,13 @@ compiled to use 64 bit integers.
 
 L<JSON::Validator::OpenAPI> inherits all attributes from L<JSON::Validator>.
 
-=head2 load_and_validate_spec
+=head2 load_and_validate_schema
 
-  $self = $self->load_and_validate_spec($url, \%args);
+  $self = $self->load_and_validate_schema($schema, \%args);
 
-Will load and validate C<$url> against the OpenAPI specification. The exapnded
-specification will be stored in L<JSON::Validator/schema> on success. See
+Will load and validate C<$schema> against the OpenAPI specification. C<$schema>
+can be anything L<JSON::Validator/schema> accepts. The expanded specification
+will be stored in L<JSON::Validator/schema> on success. See
 L<JSON::Validator/schema> for the different version of C<$url> that can be
 accepted.
 

@@ -1,18 +1,20 @@
 package JSON::Validator;
 use Mojo::Base -base;
 
+use B;
+use Carp ();
 use Exporter 'import';
 use JSON::Validator::Error;
 use Mojo::File 'path';
-use Mojo::JSON;
 use Mojo::JSON::Pointer;
+use Mojo::JSON;
 use Mojo::URL;
 use Mojo::Util 'deprecated';
-use B;
 use Scalar::Util;
 
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
+use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
@@ -56,6 +58,17 @@ sub coerce {
   return $self->{coerce} ||= {} unless @_;
   $self->{coerce}
     = $_[0] eq '1' ? {booleans => 1, numbers => 1, strings => 1} : ref $_[0] ? {%{$_[0]}} : {@_};
+  $self;
+}
+
+sub load_and_validate_schema {
+  my ($self, $spec, $args) = @_;
+  my $clone = JSON::Validator->new->schema($spec)->schema->data;
+  my @errors = JSON::Validator->new->schema($args->{schema} || SPECIFICATION_URL)->validate($clone);
+
+  Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
+  warn "[JSON::Validator] Loaded $spec\n" if DEBUG;
+  $self->{schema} = $clone;
   $self;
 }
 
@@ -1092,10 +1105,32 @@ The coercion rules are EXPERIMENTAL and will be tighten/loosen if
 bugs are reported. See L<https://github.com/jhthorsen/json-validator/issues/8>
 for more details.
 
+=head2 load_and_validate_schema
+
+  $self = $self->load_and_validate_schema($schema, \%args);
+
+Will load and validate C<$schema> against the OpenAPI specification. C<$schema>
+can be anything L<JSON::Validator/schema> accepts. The expanded specification
+will be stored in L<JSON::Validator/schema> on success. See
+L<JSON::Validator/schema> for the different version of C<$url> that can be
+accepted.
+
+C<%args> can be used to further instruct the validation process:
+
+=over 2
+
+=item * schema
+
+Defaults to "http://json-schema.org/draft-04/schema#", but can be any
+structured that can be used to validate C<$schema>.
+
+=back
+
 =head2 schema
 
-  $self = $self->schema(\%schema);
+  $self = $self->schema($json_or_yaml_string);
   $self = $self->schema($url);
+  $self = $self->schema(\%schema);
   $schema = $self->schema;
 
 Used to set a schema from either a data structure or a URL.
