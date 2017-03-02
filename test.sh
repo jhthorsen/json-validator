@@ -2,8 +2,8 @@
 # Usage:
 # sh test.sh -j8
 # PROJECT=json-validator sh test.sh -j8
-# HASH_ITERATIONS=10 PROJECT=swagger2 sh test.sh -v t/plugin-yaml.t
-# PERL_HASH_SEED=8 PROJECT=swagger2 sh test.sh -v t/plugin-yaml.t
+# HASH_ITERATIONS=10 sh test.sh -v t/plugin-yaml.t
+# PERL_HASH_SEED=8 sh test.sh -v t/plugin-yaml.t
 
 export PERL5LIB=$PWD/lib;
 # export SWAGGER2_DEBUG=1;
@@ -29,7 +29,6 @@ elif [ "x$PROJECT" != "x" ]; then
   t $@;
 else
   PROJECT=json-validator t $@;
-  PROJECT=swagger2 t $@;
   PROJECT=mojolicious-plugin-openapi t $@;
 fi
 
