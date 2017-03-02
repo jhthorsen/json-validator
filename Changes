@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.96 Not Released
+ - Fix JSON::Validator::load_and_validate_schema()
+
 0.95 2017-03-02T22:22:10+0100
  - Add support for format "password"
  - Add load_and_validate_schema() to JSON::Validator #51

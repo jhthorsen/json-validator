@@ -63,8 +63,9 @@ sub coerce {
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
-  my $clone = JSON::Validator->new->schema($spec)->schema->data;
-  my @errors = JSON::Validator->new->schema($args->{schema} || SPECIFICATION_URL)->validate($clone);
+  my $clone = JSON::Validator->new->schema($spec)->schema;
+  my @errors
+    = JSON::Validator->new->schema($args->{schema} || SPECIFICATION_URL)->validate($clone->data);
 
   Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
   warn "[JSON::Validator] Loaded $spec\n" if DEBUG;
