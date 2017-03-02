@@ -375,37 +375,11 @@ sub _type_description {
 
 =head1 NAME
 
-Swagger2::POD - Convert swagger API spec to Perl documentation
+Swagger2::POD - Deprecated
 
 =head1 DEPRECATION WARNING
 
 See L<Swagger2>.
-
-=head1 DESCRIPTION
-
-L<Swagger2::POD> is a module that can convert from L</Swagger2> to L<POD|perlpod>.
-
-=head1 SYNOPSIS
-
-  use Swagger2;
-  my $swagger = Sswagger2->new("file:///path/to/api-spec.yaml");
-
-  print $swagger->pod->to_string;
-
-=head1 METHODS
-
-=head2 to_string
-
-  $str = $self->to_string;
-
-Will convert swagger API spec to plain old documentation.
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2014-2015, Jan Henning Thorsen
-
-This program is free software, you can redistribute it and/or modify it under
-the terms of the Artistic License version 2.0.
 
 =head1 AUTHOR
 

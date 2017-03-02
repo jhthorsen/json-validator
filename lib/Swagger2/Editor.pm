@@ -266,51 +266,11 @@ __DATA__
 
 =head1 NAME
 
-Swagger2::Editor - A WEB based Swagger2 API editor
+Swagger2::Editor - Deprecated
 
 =head1 DEPRECATION WARNING
 
 See L<Swagger2>.
-
-=head1 DESCRIPTION
-
-L<Swagger2::Editor> is a WEB based Swagger2 API editor.
-
-=head1 SYNOPSIS
-
-  $ mojo swagger2 edit /path/to/api.json --listen http://*:3000
-
-=head1 ATTRIBUTES
-
-=head2 specification_file
-
-Returns path to swagger specification file. Defaults to
-C<SWAGGER_API_FILE> environment variable.
-
-=head1 ROUTES
-
-=head2 GET /
-
-Will render the editor and any Swagger specification given as input.
-
-Can also just render the POD if requested as C</.txt> instead.
-
-=head2 POST /
-
-Will L<parse|Swagger/parse> the JSON/YAML in the HTTP body and render it as POD.
-
-=head1 METHODS
-
-=head2 startup
-
-Used to set up the L</ROUTES>.
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2014-2015, Jan Henning Thorsen
-
-This program is free software, you can redistribute it and/or modify it under
-the terms of the Artistic License version 2.0.
 
 =head1 AUTHOR
 

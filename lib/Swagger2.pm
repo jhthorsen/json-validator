@@ -6,6 +6,7 @@ use Mojo::JSON::Pointer;
 use Mojo::URL;
 use File::Basename ();
 use File::Spec;
+use Mojo::Util 'deprecated';
 use JSON::Validator::OpenAPI;
 
 our $VERSION = '0.88';
@@ -13,6 +14,8 @@ our $VERSION = '0.88';
 # Should be considered internal
 our $JS_CLIENT
   = File::Spec->catfile(File::Basename::dirname(__FILE__), 'Swagger2', 'swagger2-client.js');
+
+deprecated "https://metacpan.org/pod/Swagger2#DEPRECATION-WARNING";
 
 has api_spec => sub {
   my $self = shift;
@@ -134,7 +137,7 @@ sub _is_true {
 
 =head1 NAME
 
-Swagger2 - Swagger RESTful API Documentation
+Swagger2 - Deprecated
 
 =head1 VERSION
 
@@ -188,163 +191,6 @@ Use L<Mojolicious::Plugin::OpenAPI> instead. L<Mojolicious::Plugin::OpenAPI>
 plays much nicer together with the L<Mojolicious> framework.
 
 =back
-
-=head1 DESCRIPTION
-
-L<Swagger2> is a module for generating, parsing and transforming
-L<swagger|http://swagger.io/> API specification. It has support for reading
-swagger specification in JSON notation and as well YAML format.
-
-Please read L<http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html>
-for an introduction to Swagger and reasons for why you would to use it.
-
-=head2 Mojolicious server side code generator
-
-This distribution comes with a L<Mojolicious> plugin,
-L<Mojolicious::Plugin::Swagger2>, which can set up routes and perform input
-and output validation.
-
-=head2 Mojolicious client side code generator
-
-Swagger2 also comes with a L<Swagger2::Client> generator, which converts the client
-spec to perl code in memory.
-
-=head1 RECOMMENDED MODULES
-
-=over 4
-
-=item * YAML parser
-
-A L<YAML> parser is required if you want to read/write spec written in
-the YAML format. Supported modules are L<YAML::XS>, L<YAML::Syck>, L<YAML>
-and L<YAML::Tiny>.
-
-=back
-
-=head1 SYNOPSIS
-
-  use Swagger2;
-  my $swagger = Swagger2->new("/path/to/api-spec.yaml");
-
-  # Access the raw specification values
-  print $swagger->api_spec->get("/swagger");
-
-  # Returns the specification as a POD document
-  print $swagger->pod->to_string;
-
-=head1 ATTRIBUTES
-
-=head2 api_spec
-
-  $pointer = $self->api_spec;
-  $self = $self->api_spec(Mojo::JSON::Pointer->new({}));
-
-Holds a L<Mojo::JSON::Pointer> object containing your API specification.
-
-=head2 base_url
-
-  $mojo_url = $self->base_url;
-
-L<Mojo::URL> object that holds the location to the API endpoint.
-Note: This might also just be a dummy URL to L<http://example.com/>.
-
-=head2 ua
-
-  $ua = $self->ua;
-  $self = $self->ua(Mojo::UserAgent->new);
-
-A L<Mojo::UserAgent> used to fetch remote documentation.
-
-=head2 url
-
-  $mojo_url = $self->url;
-
-L<Mojo::URL> object that holds the location to the documentation file.
-This can be both a location on disk or an URL to a server. A remote
-resource will be fetched using L<Mojo::UserAgent>.
-
-=head1 METHODS
-
-=head2 expand
-
-  $swagger = $self->expand;
-
-This method returns a new C<Swagger2> object, where all the
-L<references|https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.28>
-are resolved.
-
-=head2 find_operations
-
-  $operations = $self->find_operations(\%q);
-
-Used to find a list of L<Operation Objects|http://swagger.io/specification/#operationObject>
-from the specification. C<%q> can be:
-
-  $all        = $self->find_operations;
-  $operations = $self->find_operations($operationId);
-  $operations = $self->find_operations({operationId => "listPets"});
-  $operations = $self->find_operations({method => "post", path => "/pets"});
-  $operations = $self->find_operations({tag => "pets"});
-
-=head2 javascript_client
-
-  $file = $self->javascript_client;
-
-Returns a L<Mojo::Asset::File> object which points to a file containing a
-custom JavaScript file which can communicate with
-L<Mojolicious::Plugin::Swagger2>.
-
-See L<https://github.com/jhthorsen/swagger2/blob/master/lib/Swagger2/swagger2-client.js>
-for source code.
-
-C<swagger2-client.js> is currently EXPERIMENTAL!
-
-=head2 load
-
-  $self = $self->load;
-  $self = $self->load($url);
-
-Used to load the content from C<$url> or L</url>. This method will try to
-guess the content type (JSON or YAML) by looking at the content of the C<$url>.
-
-=head2 new
-
-  $self = Swagger2->new($url);
-  $self = Swagger2->new(%attributes);
-  $self = Swagger2->new(\%attributes);
-
-Object constructor.
-
-=head2 parse
-
-  $self = $self->parse($text);
-
-Used to parse C<$text> instead of L<loading|/load> data from L</url>.
-
-The type of input text can be either JSON or YAML. It will default to YAML,
-but parse the text as JSON if it starts with "{".
-
-=head2 pod
-
-  $pod_object = $self->pod;
-
-Returns a L<Swagger2::POD> object.
-
-=head2 to_string
-
-  $json = $self->to_string;
-  $json = $self->to_string("json");
-  $yaml = $self->to_string("yaml");
-
-This method can transform this object into Swagger spec.
-
-=head2 validate
-
-  @errors = $self->validate;
-
-Will validate L</api_spec> against
-L<Swagger RESTful API Documentation Specification|https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md>,
-and return a list with all the errors found. See also L<JSON::Validator/validate>.
 
 =head1 COPYRIGHT AND LICENSE
 

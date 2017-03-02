@@ -188,59 +188,11 @@ HERE
 
 =head1 NAME
 
-Mojolicious::Command::swagger2 - mojo swagger2 command
+Mojolicious::Command::swagger2 - Deprecated
 
 =head1 DEPRECATION WARNING
 
 See L<Swagger2>.
-
-=head1 DESCRIPTION
-
-L<Mojolicious::Command::swagger2> is a command for interfacing with L<Swagger2>.
-
-=head1 SYNOPSIS
-
-  # Call a method with arguments
-  mojo swagger2 client path/to/spec.json <method> [args]
-
-  # List methods
-  mojo swagger2 client path/to/spec.json
-
-  # Get documentation for a method
-  mojo swagger2 client path/to/spec.json <method> help
-
-  # Specify spec and/or base URL from environment.
-  # Useful for shell wrappers
-  SWAGGER_API_FILE=path/to/spec.json mojo swagger2 client <method>
-  SWAGGER_BASE_URL=https://example.com/1.0 mojo swagger2 client <method>
-
-  # Example arguments
-  mojo swagger2 client path/to/spec.json list_pets '{"limit":10}'
-  mojo swagger2 client path/to/spec.json list_pets limit=10 owner=joe
-  mojo swagger2 client path/to/spec.json -b https://example.com/1.0 list_pets limit=10 owner=joe
-
-=head1 ATTRIBUTES
-
-=head2 description
-
-Returns description of this command.
-
-=head2 usage
-
-Returns usage of this command.
-
-=head1 METHODS
-
-=head2 run
-
-See L</SYNOPSIS>.
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2014-2015, Jan Henning Thorsen
-
-This program is free software, you can redistribute it and/or modify it under
-the terms of the Artistic License version 2.0.
 
 =head1 AUTHOR
 

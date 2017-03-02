@@ -7,15 +7,11 @@ warn "# Swagger2::SchemaValidator is deprecated in favor of JSON::Validator::Ope
 
 =head1 NAME
 
-Swagger2::SchemaValidator - DEPRECATED
+Swagger2::SchemaValidator - Deprecated
 
 =head1 DEPRECATION WARNING
 
 See L<Swagger2>.
-
-=head1 DESCRIPTION
-
-Use L<JSON::Validator::OpenAPI> instead.
 
 =head1 SEE ALSO
 
