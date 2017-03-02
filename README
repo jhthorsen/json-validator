@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    0.94
+    0.95
 
 SYNOPSIS
       use JSON::Validator;
@@ -271,9 +271,26 @@ METHODS
     are reported. See <https://github.com/jhthorsen/json-validator/issues/8>
     for more details.
 
+  load_and_validate_schema
+      $self = $self->load_and_validate_schema($schema, \%args);
+
+    Will load and validate $schema against the OpenAPI specification.
+    $schema can be anything "schema" in JSON::Validator accepts. The
+    expanded specification will be stored in "schema" in JSON::Validator on
+    success. See "schema" in JSON::Validator for the different version of
+    $url that can be accepted.
+
+    %args can be used to further instruct the validation process:
+
+    * schema
+
+      Defaults to "http://json-schema.org/draft-04/schema#", but can be any
+      structured that can be used to validate $schema.
+
   schema
-      $self = $self->schema(\%schema);
+      $self = $self->schema($json_or_yaml_string);
       $self = $self->schema($url);
+      $self = $self->schema(\%schema);
       $schema = $self->schema;
 
     Used to set a schema from either a data structure or a URL.
