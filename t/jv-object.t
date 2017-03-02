@@ -43,6 +43,15 @@ my ($schema, @errors);
 }
 
 {
+  local $TODO = 't/openapi-set-request.t fails because of some oneOf logic';
+  my $data = {};
+  @errors = $validator->validate($data,
+    {type => 'object', properties => {number => {type => 'number', default => 42}}});
+  is "@errors", "", "no errors";
+  is $data->{number}, 42, "default value was set";
+}
+
+{
   local $schema->{additionalProperties} = 0;
   @errors
     = $validator->validate(

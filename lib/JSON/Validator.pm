@@ -589,7 +589,7 @@ sub _validate_type_object {
   }
 
   while (my ($k, $r) = each %{$schema->{properties}}) {
-    push @{$rules{$k}}, $r if exists $data->{$k} or $required{$k};
+    push @{$rules{$k}}, $r;
   }
   while (my ($p, $r) = each %{$schema->{patternProperties}}) {
     push @{$rules{$_}}, $r for grep { $_ =~ /$p/ } keys %$data;
@@ -620,10 +620,11 @@ sub _validate_type_object {
 
   for my $k (keys %rules) {
     for my $r (@{$rules{$k}}) {
-      if (!exists $data->{$k} and exists $schema->{default}) {
-        $data->{$k} = $r->{default};
+      if (!exists $data->{$k} and (ref $r eq 'HASH' and exists $r->{default})) {
+
+        #$data->{$k} = $r->{default}; # TODO: This seems to fail when using oneOf and friends
       }
-      else {
+      elsif (exists $data->{$k}) {
         my @e = $self->_validate($data->{$k}, _path($path, $k), $r);
         push @errors, @e;
         push @errors, $self->_validate_type_enum($data->{$k}, _path($path, $k), $r)
