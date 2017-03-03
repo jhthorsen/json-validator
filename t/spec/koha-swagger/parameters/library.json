@@ -1,0 +1,15 @@
+{
+  "branchcodePathParam": {
+    "name": "branchcode",
+    "in": "path",
+    "description": "Branch identifier code",
+    "required": true,
+    "type": "string"
+  },
+  "branchcodeQueryParam": {
+    "name": "branchcode",
+    "in": "query",
+    "description": "Branch identifier code",
+    "type": "string"
+  }
+}

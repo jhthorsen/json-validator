@@ -1,0 +1,92 @@
+{
+  "/accountlines": {
+    "$ref": "paths/accountlines.json#/~1accountlines"
+  },
+  "/accountlines/{accountlines_id}": {
+    "$ref": "paths/accountlines.json#/~1accountlines~1{accountlines_id}"
+  },
+  "/accountlines/{accountlines_id}/payment": {
+    "$ref": "paths/accountlines.json#/~1accountlines~1{accountlines_id}~1payment"
+  },
+  "/auth/session": {
+    "$ref": "paths/auth.json#/~1auth~1session"
+  },
+  "/availability/biblio/hold": {
+    "$ref": "paths/availability.json#/~1availability~1biblio~1hold"
+  },
+  "/availability/biblio/search": {
+    "$ref": "paths/availability.json#/~1availability~1biblio~1search"
+  },
+  "/availability/item/checkout": {
+    "$ref": "paths/availability.json#/~1availability~1item~1checkout"
+  },
+  "/availability/item/hold": {
+    "$ref": "paths/availability.json#/~1availability~1item~1hold"
+  },
+  "/availability/item/search": {
+    "$ref": "paths/availability.json#/~1availability~1item~1search"
+  },
+  "/biblios": {
+    "$ref": "paths/biblios.json#/~1biblios"
+  },
+  "/biblios/{biblionumber}": {
+    "$ref": "paths/biblios.json#/~1biblios~1{biblionumber}"
+  },
+  "/biblios/{biblionumber}/items": {
+    "$ref": "paths/biblios.json#/~1biblios~1{biblionumber}~1items"
+  },
+  "/biblios/{biblionumber}/expanded": {
+    "$ref": "paths/biblios.json#/~1biblios~1{biblionumber}~1expanded"
+  },
+  "/cities": {
+    "$ref": "paths/cities.json#/~1cities"
+  },
+  "/cities/{cityid}": {
+    "$ref": "paths/cities.json#/~1cities~1{cityid}"
+  },
+  "/holds": {
+    "$ref": "paths/holds.json#/~1holds"
+  },
+  "/holds/{reserve_id}": {
+    "$ref": "paths/holds.json#/~1holds~1{reserve_id}"
+  },
+  "/checkouts": {
+    "$ref": "paths/checkouts.json#/~1checkouts"
+  },
+  "/checkouts/{checkout_id}": {
+    "$ref": "paths/checkouts.json#/~1checkouts~1{checkout_id}"
+  },
+  "/checkouts/{checkout_id}/renewability": {
+    "$ref": "paths/checkouts.json#/~1checkouts~1{checkout_id}~1renewability"
+  },
+  "/checkouts/history": {
+    "$ref": "paths/checkouts.json#/~1checkouts~1history"
+  },
+  "/checkouts/history/{checkout_id}": {
+    "$ref": "paths/checkouts.json#/~1checkouts~1history~1{checkout_id}"
+  },
+  "/items/{itemnumber}": {
+    "$ref": "paths/items.json#/~1items~1{itemnumber}"
+  },
+  "/libraries": {
+    "$ref": "paths/libraries.json#/~1libraries"
+  },
+  "/libraries/{branchcode}": {
+    "$ref": "paths/libraries.json#/~1libraries~1{branchcode}"
+  },
+  "/patrons": {
+    "$ref": "paths/patrons.json#/~1patrons"
+  },
+  "/patrons/{borrowernumber}": {
+    "$ref": "paths/patrons.json#/~1patrons~1{borrowernumber}"
+  },
+  "/patrons/{borrowernumber}/password": {
+    "$ref": "paths/patrons.json#/~1patrons~1{borrowernumber}~1password"
+  },
+  "/patrons/{borrowernumber}/payment": {
+    "$ref": "paths/patrons.json#/~1patrons~1{borrowernumber}~1payment"
+  },
+  "/patrons/{borrowernumber}/status": {
+    "$ref": "paths/patrons.json#/~1patrons~1{borrowernumber}~1status"
+  }
+}

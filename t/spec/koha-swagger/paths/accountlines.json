@@ -1,0 +1,226 @@
+{
+  "/accountlines": {
+    "get": {
+      "x-mojo-to": "Accountline#list",
+      "operationId": "listAccountlines",
+      "tags": ["accountlines"],
+      "parameters": [
+        {
+          "$ref": "../parameters.json#/borrowernumberQueryParam"
+        }
+      ],
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "A list of accountlines",
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "../definitions.json#/accountline"
+            }
+          }
+        },
+        "400": {
+          "description": "Bad parameter",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "allow-owner": true,
+        "allow-guarantor": true,
+        "permissions": {
+            "updatecharges": "1"
+        }
+      }
+    }
+  },
+  "/accountlines/{accountlines_id}": {
+    "put": {
+      "x-mojo-to": "Accountline#edit",
+      "operationId": "editAccountlines",
+      "tags": ["accountlines"],
+      "produces": [
+        "application/json"
+      ],
+      "parameters": [
+        { "$ref": "../parameters.json#/accountlinesIdPathParam" },
+        {
+          "name": "body",
+          "in": "body",
+          "description": "A JSON object containing fields to modify",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "description": "Amount",
+                "type": ["number", "null"]
+              },
+              "amountoutstanding": {
+                "description": "Amount outstanding",
+                "type": ["number", "null"]
+              },
+              "note": {
+                "description": "Accountline note",
+                "type": ["string", "null"]
+              }
+            }
+          }
+        }
+      ],
+      "consumes": ["application/json"],
+      "produces": ["application/json"],
+      "responses": {
+        "200": {
+          "description": "Updated accountline",
+          "schema": { "$ref": "../definitions.json#/accountline" }
+        },
+        "400": {
+          "description": "Missing or wrong parameters",
+          "schema": { "$ref": "../definitions.json#/error" }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "Accountline not found",
+          "schema": { "$ref": "../definitions.json#/error" }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": {
+          "updatecharges": "1"
+        }
+      }
+    }
+  },
+  "/accountlines/{accountlines_id}/payment": {
+    "post": {
+      "x-mojo-to": "Accountline#pay",
+      "operationId": "payAccountlines",
+      "tags": ["accountlines"],
+      "produces": [
+        "application/json"
+      ],
+      "parameters": [
+        { "$ref": "../parameters.json#/accountlinesIdPathParam" },
+        {
+          "name": "body",
+          "in": "body",
+          "required": true,
+          "description": "A JSON object containing fields to modify",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "description": "Amount to pay. If not given, the whole accountline will be paid.",
+                "type": "number",
+                "exclusiveMinimum": true,
+                "minimum": 0
+              },
+              "note": {
+                "description": "Payment note",
+                "type": "string"
+              }
+            },
+            "required": ["amount"]
+          }
+        }
+      ],
+      "consumes": ["application/json"],
+      "produces": ["application/json"],
+      "responses": {
+        "200": {
+          "description": "Paid accountline",
+          "schema": { "$ref": "../definitions.json#/accountline" }
+        },
+        "400": {
+          "description": "Missing or wrong parameters",
+          "schema": { "$ref": "../definitions.json#/error" }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "Accountline not found",
+          "schema": { "$ref": "../definitions.json#/error" }
+        },
+        "500": {
+          "description": "Internal error",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      },
+      "x-koha-authorization": {
+        "permissions": {
+          "updatecharges": "1"
+        }
+      }
+    }
+  }
+}

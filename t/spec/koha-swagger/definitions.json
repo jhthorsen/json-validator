@@ -1,0 +1,59 @@
+{
+  "accountline": {
+    "$ref": "definitions/accountline.json"
+  },
+  "availability": {
+    "$ref": "definitions/availability.json"
+  },
+  "availability/biblio": {
+    "$ref": "definitions/availability/biblio.json"
+  },
+  "availability/item": {
+    "$ref": "definitions/availability/item.json"
+  },
+  "city": {
+    "$ref": "definitions/city.json"
+  },
+  "patron": {
+    "$ref": "definitions/patron.json"
+  },
+  "patronstatus": {
+    "$ref": "definitions/patronstatus.json"
+  },
+  "session": {
+    "$ref": "definitions/session.json"
+  },
+  "checkouts": {
+    "$ref": "definitions/checkouts.json"
+  },
+  "checkout": {
+    "$ref": "definitions/checkout.json"
+  },
+  "holds": {
+    "$ref": "definitions/holds.json"
+  },
+  "hold": {
+    "$ref": "definitions/hold.json"
+  },
+  "item": {
+    "$ref": "definitions/item.json"
+  },
+  "libraries": {
+    "$ref": "definitions/libraries.json"
+  },
+  "library": {
+    "$ref": "definitions/library.json"
+  },
+  "error": {
+    "$ref": "definitions/error.json"
+  },
+  "biblios": {
+    "$ref": "definitions/biblios.json"
+  },
+  "biblio": {
+    "$ref": "definitions/biblio.json"
+  },
+  "renewability": {
+    "$ref": "definitions/renewability.json"
+  }
+}

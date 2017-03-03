@@ -1,0 +1,19 @@
+{
+  "biblionumberPathParam": {
+     "name": "biblionumber",
+     "in": "path",
+     "description": "Internal biblio identifier",
+     "required": true,
+     "type": "integer"
+  },
+  "biblionumbersQueryParam": {
+    "name": "biblionumber",
+    "in": "query",
+    "description": "Internal biblios identifier",
+    "type": "array",
+    "items": {
+      "type": "integer"
+    },
+    "collectionFormat": "ssv"
+  }
+}
