@@ -12,6 +12,20 @@ my @errors;
   is "@errors", "", "date-time valid";
   @errors = $validator->validate({v => '20:46:02'}, $schema);
   is "@errors", "/v: Does not match date-time format.", "date-time invalid";
+
+  local $TODO = "NYI strictness";
+  @errors = $validator->validate({v => '2014-12-0T20:46:02Z'}, $schema);
+  is "@errors", "/v: Does not match date-time format.", "date-time with single digit day is invalid";
+  @errors = $validator->validate({v => '2014-0-09T20:46:02Z'}, $schema);
+  is "@errors", "/v: Does not match date-time format.", "date-time with single digit month is invalid";
+  @errors = $validator->validate({v => '14-12-09T20:46:02Z'}, $schema);
+  is "@errors", "/v: Does not match date-time format.", "date-time with double digit year is invalid";
+  @errors = $validator->validate({v => '2014-12-09T20:46:0Z'}, $schema);
+  is "@errors", "/v: Does not match date-time format.", "date-time with single digit seconds is invalid";
+  @errors = $validator->validate({v => '2014-12-09T20:6:02Z'}, $schema);
+  is "@errors", "/v: Does not match date-time format.", "date-time with single digit month is invalid";
+  @errors = $validator->validate({v => '2014-12-09T0:46:02Z'}, $schema);
+  is "@errors", "/v: Does not match date-time format.", "date-time with single digit hours is invalid";
 }
 
 {

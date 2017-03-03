@@ -20,6 +20,14 @@ my @errors;
   is "@errors", "", "date valid";
   @errors = $validator->validate({v => '2014-12-09T20:49:37Z'}, $schema);
   is "@errors", "/v: Does not match date format.", "date invalid";
+
+  local $TODO = "NYI strictness";
+  @errors = $validator->validate({v => '14-12-09'}, $schema);
+  is "@errors", "/v: Does not match date format.", "Double digit year is invalid in date format";
+  @errors = $validator->validate({v => '2014-0-09'}, $schema);
+  is "@errors", "/v: Does not match date format.", "Single digit month is invalid in date format";
+  @errors = $validator->validate({v => '2014-12-0'}, $schema);
+  is "@errors", "/v: Does not match date format.", "Single digit year is invalid in date format";
 }
 
 {
