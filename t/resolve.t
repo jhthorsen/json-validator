@@ -7,7 +7,7 @@ my $validator = JSON::Validator->new;
 # from http://json-schema.org/latest/json-schema-core.html#anchor30
 $validator->schema(
   {
-    id          => 'http://my.site/myschema#',
+    id          => 'http://json-schema.example.com/myschema#',
     definitions => {
       schema1 => {id   => 'schema1', type  => 'integer'},
       schema2 => {type => 'array',   items => {'$ref' => 'schema1'}}
@@ -17,7 +17,7 @@ $validator->schema(
 
 is_deeply(
   $validator->schema->get('/definitions/schema2'),
-  {type => 'array', items => {type => 'integer'}},
+  {type => 'array', items => {id => 'schema1', type => 'integer'}},
   'expanded schema2'
 );
 
