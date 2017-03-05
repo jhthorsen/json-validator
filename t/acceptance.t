@@ -1,37 +1,46 @@
 use Mojo::Base -strict;
-use Mojo::JSON qw(encode_json decode_json );
-use Mojo::Util 'dumper';
+use JSON::Validator;
+use Mojo::File 'path';
+use Mojo::JSON qw(encode_json false decode_json true);
+use Test::Mojo;
 use Test::More;
 use JSON::Validator 'validate_json';
 
-plan skip_all => 'cpanm Test::JSON::Schema::Acceptance'
-  unless eval 'use Test::JSON::Schema::Acceptance; 1';
+my $test_suite = path(qw(t draft4-tests));
+my $remotes    = path(qw(t remotes));
+plan skip_all => 'Cannot find test files in t/draft4-tests' unless -d $test_suite;
 
-my $opts = {
-  only_test  => $ENV{ACCEPTANCE_TEST},
-  skip_tests => [
-    'Unicode code point',         # Valid unicode won't pass Mojo::JSON
-    'dependencies',               # TODO
-    'valid definition schema',    # This module does not validate the schema, it only validates data
-    'ref',                        # No way to fetch http://localhost:1234/...
-  ],
-};
+use Mojolicious::Lite;
+app->static->paths(["$remotes"]);
+my $t = Test::Mojo->new;
+$t->get_ok('/integer.json')->status_is(200);
+my $host_port = $t->ua->server->url->host_port;
 
-my @drafts = qw( 4 );             # ( 3 4 )
+my $todo_re = join('|',
+  'dependencies',
+  'change resolution scope - changed scope ref valid',
+  'remote ref, containing refs itself - remote ref invalid',
+);
 
-for my $draft (@drafts) {
-  my $accepter = Test::JSON::Schema::Acceptance->new($draft);
+for my $file (sort $test_suite->list->each) {
+  for my $group (@{decode_json($file->slurp)}) {
+    for my $test (@{$group->{tests}}) {
+      my $schema = encode_json $group->{schema};
+      my $descr  = "$group->{description} - $test->{description}";
+      $schema =~ s!http\W+localhost:1234\b!http://$host_port!g;
+      $schema = decode_json $schema;
 
-  $accepter->acceptance(
-    sub {
-      my $schema = shift;
-      my $input  = decode_json shift;
-      my @errors = validate_json $input, $schema;
-      diag dumper([$input, $schema, @errors]) if $ENV{ACCEPTANCE_TEST};
-      return @errors ? 0 : 1;
-    },
-    $opts,
-  );
+      my @errors = eval {
+        JSON::Validator->new->ua($t->ua)->load_and_validate_schema($schema)
+          ->validate($test->{data});
+      };
+
+      my $e = $@ || join ', ', @errors;
+      local $TODO = $descr =~ /$todo_re/ ? 'TODO' : undef;
+      is + ($e ? false : true), $test->{valid}, $descr or diag $e || 'no error seen';
+      note $e if $e;
+    }
+  }
 }
 
 done_testing();
