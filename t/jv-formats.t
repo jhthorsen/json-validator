@@ -8,10 +8,27 @@ my @errors;
 
 {
   $schema->{properties}{v}{format} = 'date-time';
-  @errors = $validator->validate({v => '2014-12-09T20:49:37Z'}, $schema);
-  is "@errors", "", "date-time valid";
-  @errors = $validator->validate({v => '20:46:02'}, $schema);
-  is "@errors", "/v: Does not match date-time format.", "date-time invalid";
+
+  for my $dt (
+    "2017-03-29T23:02:55.831Z",  "2017-03-29t23:02:55.01z",
+    "2017-03-29 23:02:55-12:00", "2016-02-29T23:02:55+05:00"
+    )
+  {
+    @errors = $validator->validate({v => $dt}, $schema);
+    is "@errors", "", "date-time $dt valid";
+  }
+
+  for my $dt (
+    "xxxx-xx-xxtxx:xx:xxz", "2017-03-29T23:02:60Z",
+    "2017-03-29T23:61:55Z", "2017-03-29T24:02:55Z",
+    "2017-03-32T23:02:55Z", "2017-02-30T23:02:55Z",
+    "2017-02-29T23:02:55Z", "2017-13-29T23:02:55Z",
+    "2017-03-00T23:02:55Z", "2017-00-29T23:02:55Z"
+    )
+  {
+    @errors = $validator->validate({v => $dt}, $schema);
+    is "@errors", "/v: Does not match date-time format.", "date-time $dt invalid";
+  }
 }
 
 {

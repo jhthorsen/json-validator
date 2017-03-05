@@ -11,6 +11,7 @@ use Mojo::JSON;
 use Mojo::URL;
 use Mojo::Util 'deprecated';
 use Scalar::Util;
+use Time::Local ();
 
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
@@ -730,8 +731,15 @@ sub _guessed_right {
 }
 
 sub _is_date_time {
-  $_[0] =~ qr/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$/io;
+  my @time = $_[0]
+    =~ m!^(\d{4})-(\d\d)-(\d\d)[T\s](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
+  return 0 unless @time;
+  @time = map { s/^0//; $_ } reverse @time[0 .. 5];
+  $time[4] -= 1;    # month are zero based
+  local $@;
+  return eval { Time::Local::timegm(@time); 1 } || 0;
 }
+
 sub _is_domain { warn "Data::Validate::Domain is not installed"; return; }
 
 sub _is_email {
