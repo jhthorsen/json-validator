@@ -730,8 +730,12 @@ sub _guessed_right {
 }
 
 sub _is_date_time {
-  $_[0] =~ qr/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$/io;
+  $_[0] =~ qr/
+    ^\d{4}-\d{2}-\d{2}.\d{2}:\d{2}:\d{2}(?:\.\d+)? # Date and time
+    (?:Z|[+-]\d{2}:\d{2})?$                        # Offset
+  /xi;
 }
+
 sub _is_domain { warn "Data::Validate::Domain is not installed"; return; }
 
 sub _is_email {
