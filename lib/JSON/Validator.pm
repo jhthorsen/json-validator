@@ -448,7 +448,8 @@ sub _validate_type_enum {
   }
 
   local $" = ', ';
-  return E $path, "Not in enum list: @$enum.";
+  return E $path, sprintf 'Not in enum list: %s.', join ', ',
+    map { ref $_ ? Mojo::JSON::encode_json($_) : $_ } @$enum;
 }
 
 sub _validate_format {

@@ -1,35 +1,14 @@
-use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
-use Mojo::JSON;
+use lib '.';
+use t::Helper;
 
-my $validator = JSON::Validator->new;
-my @errors;
+sub j { Mojo::JSON::decode_json(Mojo::JSON::encode_json($_[0])); }
 
-for (undef, [], {}, 123, "foo") {
-  my $type = $_;
-  @errors = $validator->validate(j($_), {type => 'any'});
-  $type //= 'null';
-  is "@errors", "", "any $type";
-}
-
-@errors = $validator->validate(j(undef), {type => 'null'});
-is "@errors", "", "null";
-@errors = $validator->validate(j(1), {type => 'null'});
-is "@errors", "/: Not null.", "not null";
-
-@errors = $validator->validate(j(Mojo::JSON->false), {type => 'boolean'});
-is "@errors", "", "boolean false";
-@errors = $validator->validate(j(Mojo::JSON->true), {type => 'boolean'});
-is "@errors", "", "boolean true";
-@errors = $validator->validate(j("foo"), {type => 'boolean'});
-is "@errors", "/: Expected boolean - got string.", "not boolean";
-
-@errors = $validator->validate(undef, {properties => {}});
-is "@errors", "/: Expected object - got null.", "undef";
+validate_ok j($_), {type => 'any'} for undef, [], {}, 123, 'foo';
+validate_ok j(undef),             {type => 'null'};
+validate_ok j(1),                 {type => 'null'}, E('/', 'Not null.');
+validate_ok j(Mojo::JSON->false), {type => 'boolean'};
+validate_ok j(Mojo::JSON->true),  {type => 'boolean'};
+validate_ok j('foo'),             {type => 'boolean'}, E('/', 'Expected boolean - got string.');
+validate_ok undef, {properties => {}}, E('/', 'Expected object - got null.');
 
 done_testing;
-
-sub j {
-  Mojo::JSON::decode_json(Mojo::JSON::encode_json($_[0]));
-}

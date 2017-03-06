@@ -1,35 +1,20 @@
-use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
+use lib '.';
+use t::Helper;
 
 my $validator = JSON::Validator->new;
 my $schema = {anyOf => [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]};
-my @errors;
 
-@errors = $validator->validate("short", $schema);
-is "@errors", "", "short";
-
-@errors = $validator->validate("too long", $schema);
-is "@errors", "/: anyOf failed: String is too long: 8/5.", "too long";
-
-@errors = $validator->validate(12, $schema);
-is "@errors", "", "number";
-
-@errors = $validator->validate(-1, $schema);
-is "@errors", "/: anyOf failed: -1 < minimum(0)", "negative";
-
-@errors = $validator->validate({}, $schema);
-is "@errors", "/: anyOf failed: Expected string or number, got object.", "object";
-
-# anyOf with schema of the same 'type'
+validate_ok 'short',    $schema;
+validate_ok 'too long', $schema, E('/', 'anyOf failed: String is too long: 8/5.');
+validate_ok 12,         $schema;
+validate_ok - 1, $schema, E('/', 'anyOf failed: -1 < minimum(0)');
+validate_ok {}, $schema, E('/', 'anyOf failed: Expected string or number, got object.');
 
 # anyOf with explicit integer (where _guess_data_type returns 'number')
 my $schemaB = {anyOf => [{type => "integer"}, {minimum => 2}]};
+validate_ok 1, $schemaB;
 
-@errors = $validator->validate(1, $schemaB);
-is "@errors", "", "schema 1 pass, schema 2 fail";
-
-@errors = $validator->validate(
+validate_ok(
   {type => 'string'},
   {
     properties => {
@@ -49,10 +34,7 @@ is "@errors", "", "schema 1 pass, schema 2 fail";
   }
 );
 
-is "@errors", "", "anyOf test with schema from http://json-schema.org/draft-04/schema";
-
-
-@errors = $validator->validate(
+validate_ok(
   {age => 6},
   {
     '$schema'   => 'http://json-schema.org/draft-04/schema#',
@@ -62,7 +44,5 @@ is "@errors", "", "anyOf test with schema from http://json-schema.org/draft-04/s
     properties  => {age => {type => 'number', anyOf => [{multipleOf => 5}, {multipleOf => 3}]}}
   }
 );
-
-is "@errors", "", "https://github.com/jhthorsen/json-validator/issues/28";
 
 done_testing;

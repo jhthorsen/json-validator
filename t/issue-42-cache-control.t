@@ -25,7 +25,6 @@ $validator->schema('https://za.payprop.com/api/docs/api_spec.yaml');
 ok @new_files > @old_files, 'remote file cached when cache_paths not the default'
   or diag join "\n", @new_files;
 
-
 done_testing;
 
 sub get_cached_files {

@@ -1,34 +1,20 @@
-use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
+use lib '.';
+use t::Helper;
 
-my $validator = JSON::Validator->new;
-my $schema    = {
+my $schema = {
   type       => 'object',
   properties => {mynumber => {type => 'number', minimum => -0.5, maximum => 2.7}}
 };
 
-my @errors = $validator->validate({mynumber => 1}, $schema);
-is "@errors", "", "number";
+validate_ok {mynumber => 1}, $schema;
+validate_ok {mynumber => '2'}, $schema, E('/mynumber', 'Expected number - got string.');
 
-@errors = $validator->validate({mynumber => "2"}, $schema);
-is "@errors", "/mynumber: Expected number - got string.", "a string";
-
-$validator->coerce(numbers => 1);
-@errors = $validator->validate({mynumber => "-0.3"}, $schema);
-is "@errors", "", "coerced string into number";
-
-@errors = $validator->validate({mynumber => "0.1e+1"}, $schema);
-is "@errors", "", "coerced scientific notation";
-
-@errors = $validator->validate({mynumber => "2xyz"}, $schema);
-is "@errors", "/mynumber: Expected number - got string.", "a string";
-
-@errors = $validator->validate({mynumber => ".1"}, $schema);
-is "@errors", "/mynumber: Expected number - got string.", "not a JSON number";
-
-@errors = $validator->validate({validNumber => 2.01},
-  {type => "object", properties => {validNumber => {type => "number", multipleOf => 0.01}}});
-is "@errors", "", "valid float magic";
+t::Helper->validator->coerce(numbers => 1);
+validate_ok {mynumber => '-0.3'},   $schema;
+validate_ok {mynumber => '0.1e+1'}, $schema;
+validate_ok {mynumber => '2xyz'},   $schema, E('/mynumber', 'Expected number - got string.');
+validate_ok {mynumber => '.1'},     $schema, E('/mynumber', 'Expected number - got string.');
+validate_ok {validNumber => 2.01},
+  {type => 'object', properties => {validNumber => {type => 'number', multipleOf => 0.01}}};
 
 done_testing;

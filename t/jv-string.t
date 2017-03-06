@@ -1,38 +1,25 @@
-use Mojo::Base -strict;
+use lib '.';
+use t::Helper;
 use Test::More;
-use JSON::Validator;
 use utf8;
 
-my $validator = JSON::Validator->new;
-my $schema    = {
+my $schema = {
   type       => 'object',
   properties => {nick => {type => 'string', minLength => 3, maxLength => 10, pattern => qr{^\w+$}}}
 };
 
-my @errors = $validator->validate({nick => 'batman'}, $schema);
-is "@errors", "", "batman";
-
-@errors = $validator->validate({nick => 1000}, $schema);
-is "@errors", "/nick: Expected string - got number.", "integer";
-
-@errors = $validator->validate({nick => '1000'}, $schema);
-is "@errors", "", "number as string";
-
-@errors = $validator->validate({nick => 'aa'}, $schema);
-is "@errors", "/nick: String is too short: 2/3.", "too short";
-
-@errors = $validator->validate({nick => 'a' x 11}, $schema);
-is "@errors", "/nick: String is too long: 11/10.", "too long";
-
-@errors = $validator->validate({nick => '[nick]'}, $schema);
-like "@errors", qr{/nick: String does not match}, "pattern";
+validate_ok {nick => 'batman'}, $schema;
+validate_ok {nick => 1000},     $schema, E('/nick', 'Expected string - got number.');
+validate_ok {nick => '1000'},   $schema;
+validate_ok {nick => 'aa'},     $schema, E('/nick', 'String is too short: 2/3.');
+validate_ok {nick => 'a' x 11}, $schema, E('/nick', 'String is too long: 11/10.');
+like +join('', t::Helper->validator->validate({nick => '[nick]'})),
+  qr{/nick: String does not match}, 'String does not match';
 
 delete $schema->{properties}{nick}{pattern};
-@errors = $validator->validate({nick => 'Déjà vu'}, $schema);
-is "@errors", "", "unicode";
+validate_ok {nick => 'Déjà vu'}, $schema;
 
-$validator->coerce(1);
-@errors = $validator->validate({nick => 1000}, $schema);
-is "@errors", "", "coerced integer into string";
+t::Helper->validator->coerce(1);
+validate_ok {nick => 1000}, $schema;
 
 done_testing;

@@ -18,7 +18,6 @@ eval {
 ok !$@, 'allow_invalid_ref=1';
 is $validator->schema->get('/info/version'), JSON::Validator->VERSION, 'version_from_class';
 
-
 done_testing;
 
 __DATA__

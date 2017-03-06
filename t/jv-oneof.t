@@ -1,43 +1,29 @@
-use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
+use lib '.';
+use t::Helper;
 
-my $validator = JSON::Validator->new;
-my $schema = {oneOf => [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]};
-my @errors;
+my $schema = {oneOf => [{type => 'string', maxLength => 5}, {type => 'number', minimum => 0}]};
 
-@errors = $validator->validate("short", $schema);
-is "@errors", "", "string";
-@errors = $validator->validate(12, $schema);
-is "@errors", "", "number";
+validate_ok 'short', $schema;
+validate_ok 12,      $schema;
 
-$schema = {oneOf => [{type => "number", multipleOf => 5}, {type => "number", multipleOf => 3}]};
-@errors = $validator->validate(10, $schema);
-is "@errors", "", "n:10";
-@errors = $validator->validate(9, $schema);
-is "@errors", "", "n:9";
-@errors = $validator->validate(15, $schema);
-is "@errors", "/: All of the oneOf rules match.", "n:15";
-@errors = $validator->validate(13, $schema);
-is "@errors", "/: oneOf failed: Not multiple of 5. Not multiple of 3.", "n:13";
+$schema = {oneOf => [{type => 'number', multipleOf => 5}, {type => 'number', multipleOf => 3}]};
+validate_ok 10, $schema;
+validate_ok 9,  $schema;
+validate_ok 15, $schema, E('/', 'All of the oneOf rules match.');
+validate_ok 13, $schema, E('/', 'oneOf failed: Not multiple of 5. Not multiple of 3.');
 
-$schema = {oneOf => [{type => "object"}, {type => "string", multipleOf => 3}]};
-@errors = $validator->validate(13, $schema);
-is "@errors", "/: oneOf failed: Expected object or string, got number.", "n:13 object/string";
+$schema = {oneOf => [{type => 'object'}, {type => 'string', multipleOf => 3}]};
+validate_ok 13, $schema, E('/', 'oneOf failed: Expected object or string, got number.');
 
-$schema = {oneOf => [{type => "object"}, {type => "number", multipleOf => 3}]};
-@errors = $validator->validate(13, $schema);
-is "@errors", "/: oneOf failed: Not multiple of 3.", "multipleOf";
+$schema = {oneOf => [{type => 'object'}, {type => 'number', multipleOf => 3}]};
+validate_ok 13, $schema, E('/', 'oneOf failed: Not multiple of 3.');
 
 # Alternative oneOf
 # http://json-schema.org/latest/json-schema-validation.html#anchor79
 $schema
   = {type => 'object', properties => {x => {type => ['string', 'null'], format => 'date-time'}}};
-@errors = $validator->validate({x => 'foo'}, $schema);
-is "@errors", "/x: anyOf failed: Does not match date-time format.", "date-time";
-@errors = $validator->validate({x => '2015-04-21T20:30:43.000Z'}, $schema);
-is "@errors", "", "YYYY-MM-DDThh:mm:ss.fffZ";
-@errors = $validator->validate({x => undef}, $schema);
-is "@errors", "", "null";
+validate_ok {x => 'foo'}, $schema, E('/x', 'anyOf failed: Does not match date-time format.');
+validate_ok {x => '2015-04-21T20:30:43.000Z'}, $schema;
+validate_ok {x => undef}, $schema;
 
 done_testing;

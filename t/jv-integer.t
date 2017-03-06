@@ -1,45 +1,25 @@
-use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
+use lib '.';
+use t::Helper;
 
-my $validator = JSON::Validator->new;
 my $schema
   = {type => 'object', properties => {mynumber => {type => 'integer', minimum => 1, maximum => 4}}};
 
-my @errors = $validator->validate({mynumber => 1}, $schema);
-is "@errors", "", "min";
-
-@errors = $validator->validate({mynumber => 4}, $schema);
-is "@errors", "", "max";
-
-@errors = $validator->validate({mynumber => 2}, $schema);
-is "@errors", "", "in the middle";
-
-@errors = $validator->validate({mynumber => 0}, $schema);
-is "@errors", "/mynumber: 0 < minimum(1)", 'too small';
-
-@errors = $validator->validate({mynumber => -1}, $schema);
-is "@errors", "/mynumber: -1 < minimum(1)", 'too small and neg';
-
-@errors = $validator->validate({mynumber => 5}, $schema);
-is "@errors", "/mynumber: 5 > maximum(4)", "too big";
-
-@errors = $validator->validate({mynumber => "2"}, $schema);
-is "@errors", "/mynumber: Expected integer - got string.", "a string";
+validate_ok {mynumber => 1},   $schema;
+validate_ok {mynumber => 4},   $schema;
+validate_ok {mynumber => 2},   $schema;
+validate_ok {mynumber => 0},   $schema, E('/mynumber', '0 < minimum(1)');
+validate_ok {mynumber => -1},  $schema, E('/mynumber', '-1 < minimum(1)');
+validate_ok {mynumber => 5},   $schema, E('/mynumber', '5 > maximum(4)');
+validate_ok {mynumber => '2'}, $schema, E('/mynumber', 'Expected integer - got string.');
 
 $schema->{properties}{mynumber}{multipleOf} = 2;
-@errors = $validator->validate({mynumber => 3}, $schema);
-is "@errors", "/mynumber: Not multiple of 2.", "multipleOf";
+validate_ok {mynumber => 3}, $schema, E('/mynumber', 'Not multiple of 2.');
 
-$validator->coerce(numbers => 1);
-@errors = $validator->validate({mynumber => "2"}, $schema);
-is "@errors", "", "coerced string into integer";
-
-@errors = $validator->validate({mynumber => "2xyz"}, $schema);
-is "@errors", "/mynumber: Expected integer - got string.", "a string";
+t::Helper->validator->coerce(numbers => 1);
+validate_ok {mynumber => '2'}, $schema;
+validate_ok {mynumber => '2xyz'}, $schema, E('/mynumber', 'Expected integer - got string.');
 
 $schema->{properties}{mynumber}{minimum} = -3;
-@errors = $validator->validate({mynumber => "-2"}, $schema);
-is "@errors", "", "coerced negative integer";
+validate_ok {mynumber => '-2'}, $schema;
 
 done_testing;

@@ -4,7 +4,7 @@ use JSON::Validator;
 
 my $validator = JSON::Validator->new;
 
-$validator->schema(File::Spec->catfile(qw( t spec petstore.json )));
+$validator->schema(File::Spec->catfile(qw(t spec petstore.json)));
 
 is_deeply(
   $validator->schema->get('/paths/~1pets/get/responses/200/schema/items'),

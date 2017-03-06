@@ -1,14 +1,9 @@
-use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
+use lib '.';
+use t::Helper;
 
-my $validator = JSON::Validator->new;
-my $schema = {not => {type => "string"}};
-my @errors;
+my $schema = {not => {type => 'string'}};
 
-@errors = $validator->validate(12, $schema);
-is "@errors", "", "not string";
-@errors = $validator->validate("str", $schema);
-is "@errors", "/: Should not match.", "is string";
+validate_ok 12, $schema;
+validate_ok 'str', $schema, E('/', 'Should not match.');
 
 done_testing;
