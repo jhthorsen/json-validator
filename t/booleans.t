@@ -1,41 +1,35 @@
-use Mojo::Base -strict;
+use lib '.';
+use t::Helper;
 use Test::More;
-use JSON::Validator;
 
-my $validator = JSON::Validator->new->schema({properties => {required => {type => 'boolean'}}});
+my $schema = {properties => {v => {type => 'boolean'}}};
 
-my @errors = $validator->validate({required => '0'});
-is $errors[0]->{message}, 'Expected boolean - got string.', 'string 0 is not detected as boolean';
+validate_ok {v => '0'},     $schema, E('/v', 'Expected boolean - got string.');
+validate_ok {v => 'false'}, $schema, E('/v', 'Expected boolean - got string.');
+validate_ok {v => Mojo::JSON->true},  $schema;
+validate_ok {v => Mojo::JSON->false}, $schema;
 
-$validator->coerce(booleans => 1);
-for my $value (!!1, !!0) {
-  my @errors = $validator->validate({required => $value});
-  ok !@errors, "boolean ($value). (@errors)";
-}
-
-for my $value (1, '1', '0', '') {
-  my @errors = $validator->validate({required => $value});
-  ok @errors, "not boolean ($value). @errors";
-}
-
-for my $value ('true', 'false') {
-  my @errors = $validator->validate({required => $value});
-  ok !@errors, "boolean ($value). (@errors)";
-}
+t::Helper->validator->coerce(booleans => 1);
+validate_ok {v => !!1},     $schema;
+validate_ok {v => !!0},     $schema;
+validate_ok {v => 'false'}, $schema;
+validate_ok {v => 'true'},  $schema;
+validate_ok {v => 1},       $schema, E('/v', 'Expected boolean - got number.');
+validate_ok {v => '1'},     $schema, E('/v', 'Expected boolean - got string.');
+validate_ok {v => '0'},     $schema, E('/v', 'Expected boolean - got string.');
+validate_ok {v => ''},      $schema, E('/v', 'Expected boolean - got string.');
 
 SKIP: {
   skip 'YAML::XS is not installed', 1 unless eval 'require YAML::XS;1';
-  $validator->coerce(booleans => 0);    # see that _load_schema_from_text() turns it back on
-  my @errors = $validator->validate($validator->_load_schema_from_text(\"---\nrequired: true\n"));
-  ok !@errors, "true in YAML::XS is boolean. (@errors)";
-  ok $validator->coerce->{booleans}, 'coerce booleans';
+  t::Helper->validator->coerce(booleans => 0);  # see that _load_schema_from_text() turns it back on
+  my $data = t::Helper->validator->_load_schema_from_text(\"---\nv: true\n");
+  validate_ok $data, $schema;
+  ok(t::Helper->validator->coerce->{booleans}, 'coerce booleans');
 }
 
 SKIP: {
   skip 'boolean not installed', 1 unless eval 'require boolean;1';
-  my @errors = $validator->validate({type => 'boolean'},
-    {type => 'object', properties => {type => {type => 'string'}}});
-  is "@errors", "", "avoid Can't use string (\"boolean\") as a SCALAR";
+  validate_ok {type => 'boolean'}, {type => 'object', properties => {type => {type => 'string'}}};
 }
 
 done_testing;
