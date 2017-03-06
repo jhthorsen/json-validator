@@ -16,8 +16,10 @@ is_deeply(\@errors, [], 'avoided recursion');
 
 # this part of the test checks that we don't go into an infite loop
 my $validator = JSON::Validator::OpenAPI->new;
-$validator->load_and_validate_spec('data://main/user.json');
-$validator->schema($validator->schema->data);
+is $validator->load_and_validate_spec('data://main/user.json'), $validator,
+  'load_and_validate_spec no recursion';
+is $validator->schema($validator->schema->data), $validator,
+  'schema() handles $schema with recursion';
 
 done_testing;
 __DATA__

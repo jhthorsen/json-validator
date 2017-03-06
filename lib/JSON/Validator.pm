@@ -260,13 +260,13 @@ sub _resolve_schema {
   # structures that it finds. Note that is start out with just having one item:
   # A hash-ref to the complete specification, but as it goes along, the while()
   # loop will track down more objects and arrays inside the specification and
-  # then loop over those as well, util it has "visited" the whole document.
+  # then loop over those as well, util it has visited the whole document.
   while (@topics) {
     my $topic = shift @topics;
+    next if ref $topic and $self->_seen(topic => $topic);    # Avoid recursion
     if (UNIVERSAL::isa($topic, 'HASH')) {
       for my $k (sort keys %$topic) {
         my $v = $topic->{$k};
-        next if ref $v and $self->{seen}{int($v)}++;
         push @topics, $topic->{$k} if ref $topic->{$k};
         unshift @refs, $topic if $k eq '$ref' and !ref $v;
       }
@@ -309,6 +309,14 @@ sub _resolver {
   }
 }
 
+# this code is from Data::Dumper::format_refaddr()
+sub _seen {
+  require Scalar::Util;
+  my $self = shift;
+  my $key = join ':', shift, map { pack 'J', Scalar::Util::refaddr($_) } @_;
+  return $self->{seen}{$key}++;
+}
+
 sub _store {
   my ($self, $key, $namespace, $schema) = @_;
   $namespace = Mojo::URL->new($namespace)->fragment(undef)->to_string;
@@ -321,7 +329,7 @@ sub _validate {
   my ($type, @errors);
 
   # Avoid recursion
-  return if ref $data and $self->{seen}{"$schema\:$data"}++;
+  return if ref $data and $self->_seen(data => $schema, $data);
 
   # Make sure we validate plain data and not a perl object
   $data = $data->TO_JSON if Scalar::Util::blessed($data) and UNIVERSAL::can($data, 'TO_JSON');
