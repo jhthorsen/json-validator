@@ -740,7 +740,7 @@ sub _guessed_right {
 
 sub _is_date_time {
   my @time = $_[0]
-    =~ m!^(\d{4})-(\d\d)-(\d\d)[T\s](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
+    =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
   return 0 unless @time;
   @time = map { s/^0//; $_ } reverse @time[0 .. 5];
   $time[4] -= 1;    # month are zero based
