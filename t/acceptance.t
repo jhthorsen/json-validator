@@ -16,6 +16,7 @@ my $t = Test::Mojo->new;
 $t->get_ok('/integer.json')->status_is(200);
 my $host_port = $t->ua->server->url->host_port;
 
+my $test_only_re = $ENV{TEST_ONLY} || '';
 my $todo_re = join('|',
   'dependencies',
   'change resolution scope - changed scope ref valid',
@@ -27,6 +28,17 @@ for my $file (sort $test_suite->list->each) {
     for my $test (@{$group->{tests}}) {
       my $schema = encode_json $group->{schema};
       my $descr  = "$group->{description} - $test->{description}";
+
+      next if $test_only_re and $descr !~ /$test_only_re/;
+      warn <<"HERE" if $test_only_re;
+# ---
+# group:        $group->{description}
+# description:  $descr
+# schema:       $schema
+# data:         @{[encode_json $test->{data}]}
+# expect_valid: @{[$test->{valid} ? 'Yes' : 'No']}
+HERE
+
       $schema =~ s!http\W+localhost:1234\b!http://$host_port!g;
       $schema = decode_json $schema;
 
@@ -38,7 +50,7 @@ for my $file (sort $test_suite->list->each) {
       my $e = $@ || join ', ', @errors;
       local $TODO = $descr =~ /$todo_re/ ? 'TODO' : undef;
       is + ($e ? false : true), $test->{valid}, $descr or diag $e || 'no error seen';
-      note $e if $e;
+      note "\$@ = $e" if $e;
     }
   }
 }
