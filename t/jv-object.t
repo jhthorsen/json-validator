@@ -75,7 +75,7 @@ my $schema;
   };
 
   validate_ok {name => 'John Doe', credit_card => 5555555555555555}, $schema,
-    E('/', 'redit_card: Missing billing_address.', 'credit_card');
+    E('/credit_card', 'Missing billing_address.', 'credit_card');
 }
 
 sub TO_JSON { return {age => shift->{age}} }

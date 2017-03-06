@@ -7,5 +7,4 @@ recommends "Data::Validate::IP"     => "0.24";
 recommends "Mojo::JSON::MaybeXS"    => "0.01";
 recommends "YAML::XS"               => "0.59";
 
-test_requires "Test::More"     => "0.88";
-test_requires "Test::Warnings" => "0.016";
+test_requires "Test::More" => "1.30";
