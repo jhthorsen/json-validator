@@ -1,7 +1,13 @@
 Revision history for perl distribution JSON-Validator
 
-0.96 Not Released
+0.96 2017-03-06T20:53:35+0100
  - Fix JSON::Validator::load_and_validate_schema()
+ - Add handling of header/formData/query as array #38
+ - Allow alternative date-time separator #49
+ - Improved recursion tracking #52
+ - More tests in t/acceptance.t are ok #52
+ - Avoid loading the same file multiple times #54
+ - Swagger2 is deprecated
 
 0.95 2017-03-02T22:22:10+0100
  - Add support for format "password"
