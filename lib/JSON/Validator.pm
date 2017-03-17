@@ -12,6 +12,7 @@ use Mojo::URL;
 use Mojo::Util 'deprecated';
 use Scalar::Util;
 use Time::Local ();
+use List::MoreUtils qw( uniq );
 
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
@@ -378,7 +379,7 @@ sub _validate_all_of {
   }
 
   warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG > 1;
-  my $expected = join ' or ', _uniq(@expected);
+  my $expected = join ' or ', uniq(@expected);
   return E $path, "allOf failed: Expected $expected, not $type."
     if $expected and @errors + @expected == @$rules;
   return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors) if @errors;
@@ -402,7 +403,7 @@ sub _validate_any_of {
   }
 
   warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG > 1;
-  my $expected = join ' or ', _uniq(@expected);
+  my $expected = join ' or ', uniq(@expected);
   return E $path, "anyOf failed: Expected $expected, got $type." unless @errors;
   return E $path, sprintf "anyOf failed: %s", _merge_errors(@errors);
 }
@@ -429,7 +430,7 @@ sub _validate_one_of {
       @errors + @expected, int @$rules;
   }
 
-  my $expected = join ' or ', _uniq(@expected);
+  my $expected = join ' or ', uniq(@expected);
   return E $path, 'All of the oneOf rules match.' unless @errors + @expected;
   return E $path, "oneOf failed: Expected $expected, got $type." unless @errors;
   return E $path, sprintf 'oneOf failed: %s', _merge_errors(@errors);
@@ -797,11 +798,6 @@ sub _path {
   s!~!~0!g;
   s!/!~1!g;
   "$_[0]/$_";
-}
-
-sub _uniq {
-  my %uniq;
-  grep { !$uniq{$_}++ } @_;
 }
 
 # Please report if you need to manually monkey patch this function
