@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+0.97 2017-03-21T23:31:27+0100
+ - Require a newer version of Test::More to build
+
 0.96 2017-03-06T20:53:35+0100
  - Fix JSON::Validator::load_and_validate_schema()
  - Add handling of header/formData/query as array #38

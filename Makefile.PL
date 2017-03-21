@@ -14,7 +14,7 @@ WriteMakefile(
       repository => 'https://github.com/jhthorsen/json-validator.git',
     },
   },
-  BUILD_REQUIRES => {'Test::More'  => '0.88', 'Test::Warnings' => '0.016'},
+  BUILD_REQUIRES => {'Test::More'  => '1.30'},
   PREREQ_PM      => {'Mojolicious' => '7.15'},
-  test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
+  test           => {TESTS         => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );
