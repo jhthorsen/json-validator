@@ -123,6 +123,7 @@ sub _build_formats {
 sub _load_schema {
   my ($self, $url, $parent) = @_;
   my ($namespace, $scheme) = ("$url", "file");
+  $namespace =~ s|\\|/|g if $^O eq 'MSWin32';
   my $doc;
 
   if ($namespace =~ $HTTP_SCHEME_RE) {
