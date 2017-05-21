@@ -455,10 +455,9 @@ sub _validate_type_enum {
 sub _validate_type_const {
   my ($self, $data, $path, $schema) = @_;
   my $const = $schema->{const};
-  my $m    = S $data;
+  my $m     = S $data;
 
   return if $m eq S $const;
-
   return E $path, sprintf 'Does not match const: %s.', Mojo::JSON::encode_json($const);
 }
 
@@ -742,7 +741,7 @@ sub _guess_schema_type {
     or defined $_[0]->{minLength};
   return _guessed_right($_[1], 'number') if $_[0]->{multipleOf};
   return _guessed_right($_[1], 'number') if defined $_[0]->{maximum} or defined $_[0]->{minimum};
-  return 'enum' if $_[0]->{enum};
+  return 'enum'  if $_[0]->{enum};
   return 'const' if $_[0]->{const};
   return undef;
 }
@@ -1219,6 +1218,8 @@ the terms of the Artistic License version 2.0.
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 Daniel Böhmer - C<post@daniel-boehmer.de>
+
+Kevin Goess - C<cpan@goess.org>
 
 Martin Renvoize - C<martin.renvoize@gmail.com>
 
