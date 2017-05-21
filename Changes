@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-0.98 Not Released
+0.98 2017-05-21T23:10:39+0200
  - Add support for "const" #62
    Contributor: Kevin Goess
 
