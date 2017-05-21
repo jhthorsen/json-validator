@@ -452,6 +452,16 @@ sub _validate_type_enum {
     map { ref $_ ? Mojo::JSON::encode_json($_) : $_ } @$enum;
 }
 
+sub _validate_type_const {
+  my ($self, $data, $path, $schema) = @_;
+  my $const = $schema->{const};
+  my $m    = S $data;
+
+  return if $m eq S $const;
+
+  return E $path, sprintf 'Does not match const: %s.', Mojo::JSON::encode_json($const);
+}
+
 sub _validate_format {
   my ($self, $value, $path, $schema) = @_;
   my $code = $self->formats->{$schema->{format}};
@@ -636,6 +646,8 @@ sub _validate_type_object {
         push @errors, @e;
         push @errors, $self->_validate_type_enum($data->{$k}, _path($path, $k), $r)
           if $r->{enum} and !@e;
+        push @errors, $self->_validate_type_const($data->{$k}, _path($path, $k), $r)
+          if $r->{const} and !@e;
       }
     }
   }
@@ -731,6 +743,7 @@ sub _guess_schema_type {
   return _guessed_right($_[1], 'number') if $_[0]->{multipleOf};
   return _guessed_right($_[1], 'number') if defined $_[0]->{maximum} or defined $_[0]->{minimum};
   return 'enum' if $_[0]->{enum};
+  return 'const' if $_[0]->{const};
   return undef;
 }
 
