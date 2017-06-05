@@ -340,10 +340,15 @@ sub _validate {
     push @errors, $self->_validate_any_of($data, $path, [map { +{%$schema, type => $_} } @$type]);
   }
   elsif ($type) {
-    my $method = sprintf '_validate_type_%s', $type;
-    @errors = $self->$method($data, $path, $schema);
-    warn "[JSON::Validator] type @{[$path||'/']} $method [@errors]\n" if DEBUG > 1;
-    return @errors if @errors;
+    if( defined $data){
+      my $method = sprintf '_validate_type_%s', $type;
+      @errors = $self->$method($data, $path, $schema);
+      warn "[JSON::Validator] type @{[$path||'/']} $method [@errors]\n" if DEBUG > 1;
+      return @errors if @errors;
+    }
+    else {
+      warn "[JSON::Validator] WARNING type @{[$path||'/']} is undefined, skip validation" if DEBUG > 1;
+    }
   }
 
   if (my $rules = $schema->{not}) {
