@@ -1,15 +1,12 @@
 use lib '.';
 use t::Helper;
-use Test::More;
-use utf8;
-use JSON;
 
 my $schema = {
   type       => 'object',
   properties => {nick => {type => 'boolean'}}
 };
 
-validate_ok {nick => JSON::true}, $schema;
+validate_ok {nick => true}, $schema;
 validate_ok {nick => 1000},       $schema, E('/nick', 'Expected boolean - got number.');
 validate_ok {nick => 0.5},        $schema, E('/nick', 'Expected boolean - got number.');
 validate_ok {nick => 'nick'},     $schema, E('/nick', 'Expected boolean - got string.');
