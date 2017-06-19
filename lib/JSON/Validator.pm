@@ -19,7 +19,7 @@ use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
-our $VERSION   = '0.99';
+our $VERSION   = '1.00';
 our @EXPORT_OK = 'validate_json';
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
@@ -527,7 +527,8 @@ sub _validate_type_boolean {
 
   if (  defined $value
     and $self->{coerce}{booleans}
-    and (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) or $value =~ /^(true|false)$/))
+    and
+    (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) or $value =~ /^(true|false)$/))
   {
     $_[1] = $value ? Mojo::JSON->true : Mojo::JSON->false;
     return;
@@ -841,7 +842,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-0.99
+1.00
 
 =head1 SYNOPSIS
 

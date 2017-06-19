@@ -316,9 +316,6 @@ L<JSON::Validator::OpenAPI> can validate Open API (also known as "Swagger")
 requests and responses that is passed through a L<Mojolicious> powered web
 application.
 
-L<JSON::Validator::OpenAPI> is currently EXPERIMENTAL. Let me know if you are
-interested in using this class with another framework than L<Mojolicious>.
-
 =head1 ATTRIBUTES
 
 L<JSON::Validator::OpenAPI> inherits all attributes from L<JSON::Validator>.

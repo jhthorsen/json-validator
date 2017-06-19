@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
-1.00 Not Released
+1.00 2017-06-20T00:02:19+0200
+ - Removed EXPERIMENTAL from JSON::Validator::OpenAPI (1.00)
  - Coerce integer numbers into booleans #67
    Contributor: @fabzzap
 
