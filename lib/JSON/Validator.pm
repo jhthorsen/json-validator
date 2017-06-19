@@ -527,7 +527,7 @@ sub _validate_type_boolean {
 
   if (  defined $value
     and $self->{coerce}{booleans}
-    and (B::svref_2object(\$value)->FLAGS & B::SVp_NOK or $value =~ /^(true|false)$/))
+    and (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) or $value =~ /^(true|false)$/))
   {
     $_[1] = $value ? Mojo::JSON->true : Mojo::JSON->false;
     return;
