@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+1.00 Not Released
+ - Coerce integer numbers into booleans #67
+   Contributor: @fabzzap
+
 0.99 2017-06-12T20:58:26+0200
  - Hopefully fixed some Windows issues #60
 
