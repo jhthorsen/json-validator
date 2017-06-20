@@ -1,5 +1,4 @@
 use Mojo::Base -strict;
-use Test::Mojo;
 use Test::More;
 use JSON::Validator 'validate_json';
 use JSON::Validator::OpenAPI;

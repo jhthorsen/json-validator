@@ -304,7 +304,7 @@ sub _resolver {
     warn Data::Dumper::Dumper($look_in->data) if DEBUG and $ref =~ /\b[c]\b/;   # follow the changes
     my $data = $ref->fragment ? $look_in->get($ref->fragment) : $look_in->data;
     die qq[Possibly a typo in schema? Could not find "$ref"] unless $data;
-    $topic->{$_} = $data->{$_} for keys %$data;
+    $topic->{$_} ||= $data->{$_} for keys %$data;                               # allow mixins
     unshift @$refs, $topic if $topic->{'$ref'} and !ref $topic->{'$ref'};
     delete $topic->{id} if !ref $topic->{id} and $self->isa('JSON::Validator::OpenAPI');
   }
