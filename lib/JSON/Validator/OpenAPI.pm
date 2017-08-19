@@ -10,18 +10,18 @@ use constant SPECIFICATION_URL => 'http://swagger.io/v2/schema.json';
 
 my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
 
-has _json_validator => sub { state $v = shift->new; };
+has _json_validator => sub { state $v = JSON::Validator->new; };
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
-  my $openapi = $self->new->schema($args->{schema} || SPECIFICATION_URL);
+  my $openapi = $self->new(%$self)->schema($args->{schema} || SPECIFICATION_URL);
   my ($api_spec, @errors);
 
   # 1. first check if $ref is in the right place,
   # 2. then check if the spec is correct
   for my $r (sub { }, undef) {
     next if $r and $args->{allow_invalid_ref};
-    my $jv = $self->new;
+    my $jv = $self->new(%$self);
     $jv->resolver($r) if $r;
     $api_spec = $jv->schema($spec)->schema;
     @errors   = $openapi->coerce($jv->coerce)->validate($api_spec->data);
