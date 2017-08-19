@@ -144,6 +144,9 @@ sub _load_schema {
     $url = path(path($parent)->dirname, split '/', $url);
     $namespace = Cwd::abs_path($url->to_string) || $url;
   }
+  elsif ($url =~ m!^/! and !-e $url and $self->ua->server->app) {
+    $scheme = 'http';
+  }
 
   # Make sure we create the correct namespace if not already done by Mojo::URL
   $namespace =~ s!#.*$!! if $namespace eq $url;
