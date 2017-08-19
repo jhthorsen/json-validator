@@ -6,7 +6,7 @@ WriteMakefile(
   LICENSE       => 'artistic_2',
   ABSTRACT_FROM => 'lib/JSON/Validator.pm',
   VERSION_FROM  => 'lib/JSON/Validator.pm',
-  EXE_FILES     => [qw(  )],
+  EXE_FILES     => [qw()],
   META_MERGE    => {
     resources => {
       bugtracker => 'https://github.com/jhthorsen/json-validator/issues',

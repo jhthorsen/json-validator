@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-1.01 Not Released
+1.01 2017-08-19T19:00:33+0200
  - Add support for fetching specification from local application
 
 1.00 2017-06-20T00:02:19+0200
