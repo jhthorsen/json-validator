@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-1.02 Not Released
+1.02 2017-09-01T09:46:20+0200
  - Fix validating "type" and "enum" #69
 
 1.01 2017-08-19T19:00:33+0200
