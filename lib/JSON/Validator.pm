@@ -350,6 +350,12 @@ sub _validate {
     return @errors if @errors;
   }
 
+  if ($schema->{enum}) {
+    @errors = $self->_validate_type_enum($data, $path, $schema);
+    warn "[JSON::Validator] type @{[$path||'/']} _validate_type_enum [@errors]\n" if DEBUG > 1;
+    return @errors if @errors;
+  }
+
   if (my $rules = $schema->{not}) {
     push @errors, $self->_validate($data, $path, $rules);
     warn "[JSON::Validator] not @{[$path||'/']} == [@errors]\n" if DEBUG > 1;
@@ -746,7 +752,6 @@ sub _guess_schema_type {
     or defined $_[0]->{minLength};
   return _guessed_right($_[1], 'number') if $_[0]->{multipleOf};
   return _guessed_right($_[1], 'number') if defined $_[0]->{maximum} or defined $_[0]->{minimum};
-  return 'enum'  if $_[0]->{enum};
   return 'const' if $_[0]->{const};
   return undef;
 }

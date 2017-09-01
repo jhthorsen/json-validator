@@ -15,4 +15,22 @@ validate_ok {name => "Eddie", chromosomes => [qw(X YY )]}, $male,
 validate_ok {name => "Steve", chromosomes => 'XY'}, $male,
   E('/chromosomes', 'Not in enum list: ["X","Y"], ["Y","X"].');
 
+# https://github.com/jhthorsen/json-validator/issues/69
+validate_ok(
+  {some_prop => ['foo']},
+  {
+    type       => 'object',
+    required   => ['some_prop'],
+    properties => {
+      some_prop => {
+        type     => 'array',
+        minItems => 1,
+        maxItems => 1,
+        items    => [{type => 'string', enum => [qw(x y)]}],
+      },
+    },
+  },
+  E('/some_prop/0', 'Not in enum list: x, y.')
+);
+
 done_testing;
