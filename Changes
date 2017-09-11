@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+1.03 Not Released
+ - Fix "uri" format validation, closes #70
+
 1.02 2017-09-01T09:46:20+0200
  - Fix validating "type" and "enum" #69
 

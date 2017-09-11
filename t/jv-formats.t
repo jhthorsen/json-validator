@@ -59,8 +59,12 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 {
   local $schema->{properties}{v}{format} = 'uri';
   validate_ok {v => 'http://mojolicio.us/?ø=123'}, $schema;
-  local $TODO = 'Not sure how to make an invalid URI';
-  validate_ok {v => 'anything'}, $schema, E('/v', 'Does not match uri format.');
+  validate_ok {v => '/relative-path'},              $schema, E('/v', 'Does not match uri format.');
+  validate_ok {v => 'example.com/no-scheme'},       $schema, E('/v', 'Does not match uri format.');
+  validate_ok {v => 'http://example.com/%z'},       $schema, E('/v', 'Does not match uri format.');
+  validate_ok {v => 'http://example.com/%a'},       $schema, E('/v', 'Does not match uri format.');
+  validate_ok {v => 'http:////'},                   $schema, E('/v', 'Does not match uri format.');
+  validate_ok {v => ''},                            $schema, E('/v', 'Does not match uri format.');
 }
 
 {
