@@ -50,6 +50,65 @@
         ]
     },
     {
+        "description": "ref within object property",
+        "schema": {
+            "type": "object",
+            "properties": {
+                 "objectInner": {
+                    "$ref":"http://localhost:1234/object.json"
+                 }
+            },
+            "additionalProperties": false
+        },
+        "tests": [
+            {
+                "description": "object with right property inside valid",
+                "data": {"objectInner" : {"okay_property" : 1}},
+                "valid": true
+            },
+            {
+                "description": "object with wrong property outside invalid",
+                "data": {"x" : {}},
+                "valid": false
+            },
+            {
+                "description": "object with wrong property outside invalid",
+                "data": { "objectInner" : {"x" : {}}},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "ref within object property with id",
+        "schema": {
+            "type": "object",
+            "id": "#objectOuter",
+            "properties": {
+                 "objectInner": {
+                    "$ref":"http://localhost:1234/object.json"
+                 }
+            },
+            "additionalProperties": false
+        },
+        "tests": [
+            {
+                "description": "object with right property inside valid",
+                "data": {"objectInner" : {"okay_property" : 1}},
+                "valid": true
+            },
+            {
+                "description": "object with wrong property outside invalid",
+                "data": {"x" : {}},
+                "valid": false
+            },
+            {
+                "description": "object with wrong property outside invalid",
+                "data": { "objectInner" : {"x" : {}}},
+                "valid": false
+            }
+        ]
+    },
+    {
         "description": "change resolution scope",
         "schema": {
             "id": "http://localhost:1234/",
