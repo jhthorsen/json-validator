@@ -221,11 +221,8 @@ sub _load_schema_from_url {
 }
 
 sub _default_id {
-  my $path = path($0)->to_abs;
   state $id = 0;
-  $path = $path->dirname if $path;
-  $path = path() unless $path;
-  return path($path, sprintf 'json-validator-%s.json', ++$id)->to_string;
+  return sprintf 'http://local/json-validator/default-id-%s', ++$id;
 }
 
 sub _register_document {
