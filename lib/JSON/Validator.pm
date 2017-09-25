@@ -19,7 +19,7 @@ use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
-our $VERSION   = '1.02';
+our $VERSION   = '1.03';
 our @EXPORT_OK = 'validate_json';
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
@@ -879,7 +879,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-1.02
+1.03
 
 =head1 SYNOPSIS
 
