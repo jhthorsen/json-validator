@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+1.04 Not Released
+ - Avoid autovivification of "patternProperties" in the input schema #47
+
 1.03 2017-09-25T18:37:24+0200
  - Fix "uri" format validation, closes #70
 

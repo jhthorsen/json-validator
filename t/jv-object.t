@@ -78,6 +78,12 @@ my $schema;
     E('/credit_card', 'Missing billing_address.', 'credit_card');
 }
 
+{
+  my $schema = {type => 'object', properties => {name => {type => 'string'}}};
+  validate_ok {}, $schema;    # does not matter
+  ok !$schema->{patternProperties}, 'patternProperties was not added issue#47';
+}
+
 sub TO_JSON { return {age => shift->{age}} }
 my $obj = bless {age => 'not_a_string'}, 'main';
 validate_ok $obj, {properties => {age => {type => 'integer'}}},
