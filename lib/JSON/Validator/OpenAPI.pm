@@ -83,7 +83,12 @@ sub validate_request {
         $value += 0;
       }
       elsif ($type eq 'boolean') {
-        $value = (!$value or $value eq 'false') ? Mojo::JSON->false : Mojo::JSON->true;
+        if (!$value or $value =~ /^(?:false|off)$/) {
+          $value = Mojo::JSON->false;
+        }
+        elsif ($value =~ /^(?:1|true|on)$/) {
+          $value = Mojo::JSON->true;
+        }
       }
     }
 
