@@ -53,6 +53,8 @@ sub validate_request {
   my ($self, $c, $schema, $input) = @_;
   my @errors;
 
+  my $headers; # for caching
+
   for my $p (@{$schema->{parameters} || []}) {
     my ($in, $name, $type) = @$p{qw(in name type)};
     my ($exists, $value);
@@ -64,6 +66,14 @@ sub validate_request {
     elsif ($in eq 'formData' and $type eq 'file') {
       $value = $self->_get_request_uploads($c, $name)->[-1];
       $exists = $value ? 1 : 0;
+    }
+    elsif ($in eq 'header') {
+      if (!defined $headers) {
+        $headers = $self->_get_request_data($c, $in);
+        $headers = {map { lc($_) => $headers->{$_} } keys %$headers};
+      }
+      $exists = exists $headers->{lc($name)};
+      $value  = $headers->{lc($name)};
     }
     else {
       $value  = $self->_get_request_data($c, $in);
