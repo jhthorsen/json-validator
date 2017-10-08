@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+1.05 Not Released
+ - Improved boolean handling #76
+
 1.04 2017-10-05T20:36:33+0200
  - Avoid autovivification of "patternProperties" in the input schema #47
 

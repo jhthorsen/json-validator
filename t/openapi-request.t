@@ -138,6 +138,31 @@ validate_request(
   }
 );
 
+# Valid booleans
+$c->tx->req(Mojo::Message::Request->new)
+  ->req->url->parse('http://127.0.0.1/?a=&b=0&c=false&x=true&y=1&z=0');
+validate_request(
+  {parameters => [map { +{name => $_, type => 'boolean', in => 'query'} } qw(a b c x y z),],},
+  sub {
+    is "@_", "", "valid request";
+    is_deeply $input, {a => false, b => false, c => false, x => true, y => true, z => false},
+      'valid booleans';
+  }
+);
+
+# Invalid booleans
+$c->tx->req(Mojo::Message::Request->new)
+  ->req->url->parse('http://127.0.0.1/?a=something&b=2&c=TRUE');
+validate_request(
+  {parameters => [map { +{name => $_, type => 'boolean', in => 'query'} } qw(a b c),],},
+  sub {
+    like "@_",
+      qr{\Q/a: Expected boolean - got string. /b: Expected boolean - got string. /c: Expected boolean - got string.\E},
+      "invalid request";
+    is_deeply $input, {}, 'nothing in input';
+  }
+);
+
 done_testing;
 
 sub make_request {
