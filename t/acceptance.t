@@ -30,9 +30,8 @@ for my $file (sort $test_suite->list->each) {
       my $descr  = "$group->{description} - $test->{description}";
 
       next if $test_only_re and $descr !~ /$test_only_re/;
-      warn <<"HERE" if $test_only_re;
+      diag <<"HERE" if $test_only_re;
 # ---
-# group:        $group->{description}
 # description:  $descr
 # schema:       $schema
 # data:         @{[encode_json $test->{data}]}
@@ -49,8 +48,8 @@ HERE
 
       my $e = $@ || join ', ', @errors;
       local $TODO = $descr =~ /$todo_re/ ? 'TODO' : undef;
-      is + ($e ? false : true), $test->{valid}, $descr or diag $e || 'no error seen';
-      note "\$@ = $e" if $e;
+      note "ERROR: $e" if $e;
+      is $e ? 'invalid' : 'valid', $test->{valid} ? 'valid' : 'invalid', $descr;
     }
   }
 }

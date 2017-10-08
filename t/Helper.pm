@@ -8,6 +8,14 @@ use Test::More;
 
 $ENV{TEST_VALIDATOR_CLASS} = 'JSON::Validator';
 
+sub dump_validator {
+  my $class = shift;
+  my $jv = shift || $class->validator;
+  local $Data::Dumper::Indent = 1;
+  local $jv->{ua} = 'Mojo::UserAgent';
+  Test::More::note(Data::Dumper::Dumper($jv));
+}
+
 sub validate_ok {
   my ($data, $schema, @expected) = @_;
   my $description ||= @expected ? "errors: @expected" : "valid: " . encode_json($data);

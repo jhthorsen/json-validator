@@ -9,7 +9,7 @@ is $validator->load_and_validate_spec('data://main/echo.json'), $validator,
 is $validator->schema->get('/info/version'), '42.0', 'version';
 
 eval { $validator->load_and_validate_spec('data://main/swagger2/issues/89.json') };
-like $@, qr{Properties not allowed.*\$ref}si, 'ref in the wrong place';
+like $@, qr{/definitions/\$ref}si, 'ref in the wrong place';
 
 eval {
   $validator->load_and_validate_spec('data://main/swagger2/issues/89.json',
