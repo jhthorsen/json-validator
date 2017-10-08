@@ -66,9 +66,10 @@ sub validate_request {
       $exists = $value ? 1 : 0;
     }
     else {
+      my $key = $in eq 'header' ? lc $name : $name;
       $value  = $self->_get_request_data($c, $in);
-      $exists = exists $value->{$name};
-      $value  = $value->{$name};
+      $exists = exists $value->{$key};
+      $value  = $value->{$key};
     }
 
     if (defined $value and ref $p->{items} eq 'HASH' and $p->{collectionFormat}) {

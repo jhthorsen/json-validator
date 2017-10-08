@@ -15,7 +15,9 @@ sub _get_request_data {
     return $dsl->body_parameters->as_hashref_mixed;
   }
   elsif ($in eq 'header') {
-    return Hash::MultiValue->new($dsl->app->request->headers->flatten)->as_hashref_mixed;
+    my $headers = $dsl->app->request->headers->flatten;
+    $headers = {map { lc($_) => $headers->{$_} } keys %$headers};
+    return Hash::MultiValue->new($headers)->as_hashref_mixed;
   }
   elsif ($in eq 'body') {
     return $dsl->app->request->data;

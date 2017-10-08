@@ -4,12 +4,25 @@ use Mojo::Base 'JSON::Validator::OpenAPI';
 sub _get_request_data {
   my ($self, $c, $in) = @_;
 
-  return $c->req->url->query->to_hash(1)  if $in eq 'query';
-  return $c->match->stack->[-1]           if $in eq 'path';
-  return $c->req->body_params->to_hash(1) if $in eq 'formData';
-  return $c->req->headers->to_hash(1)     if $in eq 'header';
-  return $c->req->json                    if $in eq 'body';
-  JSON::Validator::OpenAPI::_confess_invalid_in($in);
+  if ($in eq 'query') {
+    return $c->req->url->query->to_hash(1);
+  }
+  elsif ($in eq 'path') {
+    return $c->match->stack->[-1];
+  }
+  elsif ($in eq 'formData') {
+    return $c->req->body_params->to_hash(1);
+  }
+  elsif ($in eq 'header') {
+    my $headers = $c->req->headers->to_hash(1);
+    return {map { lc($_) => $headers->{$_} } keys %$headers};
+  }
+  elsif ($in eq 'body') {
+    return $c->req->json;
+  }
+  else {
+    JSON::Validator::OpenAPI::_confess_invalid_in($in);
+  }
 }
 
 sub _get_request_uploads {
