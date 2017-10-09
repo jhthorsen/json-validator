@@ -330,7 +330,7 @@ sub _validate {
   my ($type, @errors);
 
   # Avoid recursion
-  return if ref $data and $self->_seen(data => $schema, $data);
+  return if ref $data and !_is_blessed_boolean($data) and $self->_seen(data => $schema, $data);
 
   # Make sure we validate plain data and not a perl object
   $data = $data->TO_JSON if Scalar::Util::blessed($data) and UNIVERSAL::can($data, 'TO_JSON');
@@ -528,8 +528,7 @@ sub _validate_type_array {
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
 
-  return if UNIVERSAL::isa($value, 'JSON::PP::Boolean');
-  return if Scalar::Util::blessed($value) and ("$value" eq "1" or !$value);
+  return if _is_blessed_boolean($value);
 
   if (  defined $value
     and $self->{coerce}{booleans}
@@ -802,6 +801,12 @@ sub _is_true {
   return 0 + $_ if ref $_ and !Scalar::Util::blessed($_);
   return 0 if !$_ or /^(n|false|off)/i;
   return 1;
+}
+
+sub _is_blessed_boolean {
+  return 0 if !Scalar::Util::blessed($_[0]);
+  return 1 if UNIVERSAL::isa($_[0], 'JSON::PP::Boolean') or "$_[0]" eq "1" or !$_[0];
+  return 0;
 }
 
 sub _is_regex {
