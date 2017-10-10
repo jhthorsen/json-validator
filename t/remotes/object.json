@@ -1,0 +1,8 @@
+{
+	"type":"object",
+	"id":"#objectWithProperty",
+	"properties":{
+		"okay_property":{}
+	},
+	"additionalProperties": false
+}

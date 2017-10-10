@@ -320,7 +320,9 @@ sub _seen {
 
 sub _store {
   my ($self, $key, $namespace, $schema) = @_;
-  $namespace = Mojo::URL->new($namespace)->fragment(undef)->to_string;
+  if (Mojo::URL->new($namespace)->to_string ne "#".(Mojo::URL->new($namespace)->fragment // "")) {
+      $namespace = Mojo::URL->new($namespace)->fragment(undef)->to_string;
+  }
   return $self->{$key}{$namespace} unless $schema;
   return $self->{$key}{$namespace} = $schema;
 }
