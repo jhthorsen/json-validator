@@ -151,6 +151,12 @@ sub validate_response {
   }
 }
 
+sub _resolve_ref {
+  my ($self, $ref, $base) = @_;
+  $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;
+  return $self->SUPER::_resolve_ref($ref, $base);
+}
+
 sub _validate_request_value {
   my ($self, $p, $name, $value) = @_;
   my $type = $p->{type} || 'object';

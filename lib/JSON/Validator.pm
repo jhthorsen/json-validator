@@ -5,6 +5,7 @@ use B;
 use Carp ();
 use Exporter 'import';
 use JSON::Validator::Error;
+use JSON::Validator::Ref;
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON;
@@ -131,12 +132,10 @@ sub _load_schema {
   }
 
   my $file = $url;
-  $file =~ s!^file://!!;
   $file =~ s!#$!!;
   $file = path(split '/', $file);
   if (-e $file) {
     $file = $file->realpath;
-    $url = sprintf "file://%s", join "/", @$file;
     warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
     return $self->_load_schema_from_text(\$file->slurp), $url;
   }
@@ -191,6 +190,13 @@ sub _load_schema_from_url {
   return $self->_load_schema_from_text(\$tx->res->body);
 }
 
+sub _register_id {
+  my ($self, $id, $schema) = @_;
+  my $fqn = $id;
+  $fqn =~ s!(.)#$!$1!;
+  $self->{refs}{$fqn} = JSON::Validator::Ref->new(fqn => $fqn, ref => $id, schema => $schema);
+}
+
 sub _reset { delete $_[0]->{refs}; $_[0] }
 
 # _resolve() method is used to convert all "id" into absolute URLs and
@@ -201,56 +207,68 @@ sub _resolve {
 
   if (ref $schema eq 'HASH') {
     $id = $schema->{id} // '';
-    return $resolved if $resolved = $self->{refs}{$id};
+    return $resolved->schema if $resolved = $self->{refs}{$id};
   }
   elsif ($resolved = $self->{refs}{$schema // ''}) {
-    return $resolved;
+    return $resolved->schema;
   }
   else {
     ($schema, $id) = $self->_load_schema($schema);
     $id = $schema->{id} if $schema->{id};
   }
 
-  $id =~ s!(.)#$!$1!;
-  $self->{refs}{$id} = $schema;
+  $self->_register_id($id, $schema);
 
-  my %reserved = map { $_ => 1 } qw(id $ref);
   my @topics = ([$schema, Mojo::URL->new($id)]);
   while (@topics) {
-    my ($topic, $url) = @{shift @topics};
+    my ($topic, $base) = @{shift @topics};
 
     if (UNIVERSAL::isa($topic, 'ARRAY')) {
-      unshift @topics, map { [$_, $url] } @$topic;
+      push @topics, map { [$_, $base] } @$topic;
     }
     elsif (UNIVERSAL::isa($topic, 'HASH')) {
-      my $iurl;    # Not sure what to call this variable
-
-      for my $k (keys %reserved) {
-        next if !$topic->{$k} or ref $topic->{$k};
-        $topic->{$k} = "#/definitions/$topic->{$k}"
-          if $topic->{$k} =~ /^\w+$/;    # This is a swagger thing
-        $iurl = Mojo::URL->new($topic->{$k} =~ m!^/! ? "#$topic->{$k}" : $topic->{$k});
-        $iurl = $iurl->to_abs($url) unless $iurl->is_abs;
-        $topic->{$k} = $iurl->to_string;
-        $topic->{$k} =~ s!(.)#$!$1!;
-        $topic->{$k} =~ s!#(.+)!{'#' . url_unescape $1}!e;
-        $self->{refs}{$topic->{$k}} = $topic if $k eq 'id';
-        push @refs, $topic->{$k} if $k eq '$ref';
-        last;
+      if ($topic->{'$ref'} and !ref $topic->{'$ref'}) {
+        push @refs, [$topic, $base];
+      }
+      if ($topic->{id} and !ref $topic->{id}) {
+        my $fqn = Mojo::URL->new($topic->{id});
+        $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
+        $self->_register_id($fqn->to_string, $topic);
       }
 
-      unshift @topics, map { [$topic->{$_}, $iurl || $url] } grep { !$reserved{$_} } keys %$topic;
+      push @topics, map { [$topic->{$_}, $base] } grep { $_ ne '$ref' } keys %$topic;
     }
   }
 
-  for my $ref (@refs) {
-    my ($base, $pointer) = split /#/, $ref, 2;
-    my $rel = $self->{refs}{$base // ''} || ($base ? $self->_resolve($base) : $schema);
-    $self->{refs}{$ref} //= Mojo::JSON::Pointer->new($rel)->get($pointer)
-      or Carp::confess(qq[Possibly a typo in schema? Could not find "$ref"]);
+  for (@refs) {
+    my ($topic, $base) = @$_;
+    $topic->{'$ref'} = $self->_resolve_ref($topic->{'$ref'}, $base);
   }
 
   return $schema;
+}
+
+sub _resolve_ref {
+  my ($self, $ref, $rel) = @_;
+  my $fqn = Mojo::URL->new($ref =~ m!^/! ? "#$ref" : $ref);
+
+  $fqn = $fqn->to_abs($rel) unless $fqn->is_abs;
+  $fqn = $fqn->to_string;
+  $fqn =~ s!(.)#$!$1!;
+  $fqn =~ s!#(.+)!{'#' . url_unescape $1}!e;
+
+  return $self->{refs}{$fqn} if $self->{refs}{$fqn};
+
+  my ($base, $pointer) = split /#/, $fqn, 2;
+  my $other = $self->_resolve($base);
+
+  if (length $pointer) {
+    $other = Mojo::JSON::Pointer->new($other)->get($pointer)
+      or Carp::confess(qq[Possibly a typo in schema? Could not find "$ref" ($fqn)]);
+  }
+
+  return $self->{refs}{$fqn}
+    = JSON::Validator::Ref->new(fqn => $fqn, ref => $ref, schema => $other);
 }
 
 # This code is from Data::Dumper::format_refaddr()
@@ -265,10 +283,10 @@ sub _validate {
   my ($type, @errors);
 
   my $guard = 0;
-  while ($schema->{'$ref'} and !ref $schema->{'$ref'}) {
+  while (UNIVERSAL::can($schema->{'$ref'}, 'schema')) {
     Carp::confess("Seems like you have a circular reference: $schema->{'$ref'}")
       if RECURSION_LIMIT < ++$guard;
-    $schema = $self->{refs}{$schema->{'$ref'}} || Carp::confess($schema->{'$ref'});
+    $schema = $schema->{'$ref'}->schema;
   }
 
   # Avoid recursion
@@ -758,6 +776,7 @@ sub _is_regex {
 # From Data::Validate::URI
 sub _is_uri {
   return unless $_[0];
+  return 1;    # TODO: I think _is_uri() is broken
 
   my ($scheme, $authority, $path, $query, $fragment)
     = $_[0] =~ qr!^(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?$!o;

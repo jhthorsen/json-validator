@@ -25,19 +25,21 @@ like $base_url, qr{^http}, 'got base_url to web server';
 
 eval { $jv->load_and_validate_schema("${base_url}relative-to-the-root.json") };
 ok !$@, "${base_url}relative-to-the-root.json" or diag $@;
-is $jv->schema->get('/id'), 'http://example.com/relative-to-the-root.json', 'get /id';
-is $jv->schema->get('/definitions/A/id'), 'http://example.com/relative-to-the-root.json#a',
-  'transformed /definitions/A/id';
-is $jv->schema->get('/definitions/B/id'), 'http://example.com/b.json',
-  'transformed /definitions/B/id';
-is $jv->schema->get('/definitions/B/definitions/X/id'), 'http://example.com/b.json#bx',
-  'transformed /definitions/B/definitions/X/id';
-is $jv->schema->get('/definitions/B/definitions/Y/id'), 'http://example.com/t/inner.json',
-  'transformed /definitions/B/definitions/Y/id';
-is $jv->schema->get('/definitions/C/definitions/X/id'),
-  'urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f', 'transformed /definitions/C/definitions/X/id';
-is $jv->schema->get('/definitions/C/definitions/Y/id'), 'http://example.com/c.json#cy',
-  'transformed /definitions/C/definitions/Y/id';
+
+my $schema = $jv->schema;
+is $schema->get('/id'), 'http://example.com/relative-to-the-root.json', 'get /id';
+is $schema->get('/definitions/A/id'),               '#a',     'id /definitions/A/id';
+is $schema->get('/definitions/B/id'),               'b.json', 'id /definitions/B/id';
+is $schema->get('/definitions/B/definitions/X/id'), '#bx',    'id /definitions/B/definitions/X/id';
+is $schema->get('/definitions/B/definitions/Y/id'), 't/inner.json',
+  'id /definitions/B/definitions/Y/id';
+is $schema->get('/definitions/C/definitions/X/id'),
+  'urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f', 'id /definitions/C/definitions/X/id';
+is $schema->get('/definitions/C/definitions/Y/id'), '#cy', 'id /definitions/C/definitions/Y/id';
+
+my $ref = $schema->get('/definitions/R1/$ref');
+is $ref->ref, 'b.json#bx', 'R1 ref';
+is $ref->fqn, 'http://example.com/b.json#bx', 'R1 fqn';
 
 {
   local $TODO = 'Check that the root URL of a document does not contain fragment';
