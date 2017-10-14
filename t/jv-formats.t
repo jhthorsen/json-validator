@@ -58,13 +58,16 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 
 {
   local $schema->{properties}{v}{format} = 'uri';
+  validate_ok {v => '//example.com/no-scheme'}, $schema, E('/v', 'Scheme missing from URI.');
+  validate_ok {v => ''}, $schema, E('/v', 'Scheme, path or fragment are required.');
+  validate_ok {v => '0://mojolicio.us/?ø=123'}, $schema,
+    E('/v', 'Scheme must begin with a letter.');
+  validate_ok {v => 'http://example.com/%z'}, $schema, E('/v', 'Invalid hex escape.');
+  validate_ok {v => 'http://example.com/%a'}, $schema, E('/v', 'Hex escapes are not complete.');
+  validate_ok {v => 'http:////'},             $schema, E('/v', 'Path cannot not start with //.');
   validate_ok {v => 'http://mojolicio.us/?ø=123'}, $schema;
-  validate_ok {v => '/relative-path'},              $schema, E('/v', 'Does not match uri format.');
-  validate_ok {v => 'example.com/no-scheme'},       $schema, E('/v', 'Does not match uri format.');
-  validate_ok {v => 'http://example.com/%z'},       $schema, E('/v', 'Does not match uri format.');
-  validate_ok {v => 'http://example.com/%a'},       $schema, E('/v', 'Does not match uri format.');
-  validate_ok {v => 'http:////'},                   $schema, E('/v', 'Does not match uri format.');
-  validate_ok {v => ''},                            $schema, E('/v', 'Does not match uri format.');
+  validate_ok {v => '/relative-path'},              $schema;
+  validate_ok {v => 'relative-path'},               $schema;
 }
 
 {

@@ -20,6 +20,7 @@ use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
+our $ERR;    # ugly hack to improve validation errors
 our $VERSION   = '1.04';
 our @EXPORT_OK = 'validate_json';
 
@@ -216,7 +217,11 @@ sub _register_schema {
   $self->{schemas}{$fqn} = $schema;
 }
 
-sub _reset { delete $_[0]->{$_} for qw(refs schemas); $_[0] }
+sub _reset {
+  delete $_[0]->{$_} for qw(refs schemas);
+  $_[0]->{level} = 0;
+  $_[0];
+}
 
 # _resolve() method is used to convert all "id" into absolute URLs and
 # resolve all the $ref's that we find inside JSON Schema specification.
@@ -234,6 +239,11 @@ sub _resolve {
   else {
     ($schema, $id) = $self->_load_schema($schema);
     $id = $schema->{id} if $schema->{id};
+  }
+
+  if (!$self->{level}++ and my $id = $schema->{id}) {
+    Carp::confess("Root schema cannot have a fragment in the 'id'. ($id)") if $id =~ /\#./;
+    Carp::confess("Root schema cannot have a relative 'id'. ($id)") if $id and $id !~ /^\w+:/;
   }
 
   $self->_register_schema($schema, $id);
@@ -424,9 +434,10 @@ sub _validate_type_const {
 sub _validate_format {
   my ($self, $value, $path, $schema) = @_;
   my $code = $self->formats->{$schema->{format}};
+  local $ERR;
   return if $code and $code->($value);
   return do { warn "Format rule for '$schema->{format}' is missing"; return } unless $code;
-  return E $path, "Does not match $schema->{format} format.";
+  return E $path, $ERR || "Does not match $schema->{format} format.";
 }
 
 sub _validate_type_any { }
@@ -711,6 +722,7 @@ sub _guessed_right {
 }
 
 sub _invalid {
+  $ERR = $_[0];
   warn sprintf "[JSON::Validator] Failed validation: $_[0]\n" if DEBUG;
   return 0;
 }
@@ -766,29 +778,26 @@ sub _is_regex {
   eval {qr{$_[0]}};
 }
 
-# From Data::Validate::URI
 sub _is_uri {
-  return unless $_[0];
+  return unless defined $_[0];
+  return unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
 
-  my ($scheme, $authority, $path, $query, $fragment)
-    = $_[0] =~ qr!^(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?$!o;
+  my ($scheme, $auth_host, $path, $query, $fragment) = map { $_ // '' } ($2, $4, $5, $7, $9);
 
-  return _invalid('Scheme and path are required')
-    unless defined $scheme
-    and length $scheme
-    and defined $path;
+  return _invalid('Scheme missing from URI.') if length $auth_host and !length $scheme;
+  return _invalid('Scheme, path or fragment are required.')
+    unless length($scheme) + length($path) + length($fragment);
+  return _invalid('Scheme must begin with a letter.')
+    if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
+  return _invalid('Invalid hex escape.')           if $_[0] =~ /%[^0-9a-f]/i;
+  return _invalid('Hex escapes are not complete.') if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
 
-  return _invalid('Scheme must begin with a letter')
-    unless lc($scheme) =~ m!^[a-z][a-z0-9\+\-\.]*$!;
-
-  return _invalid('Hex escapes are not complete') if $_[0] =~ /%[^0-9a-f]/i;
-  return _invalid('Hex escapes are not complete') if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
-
-  if (defined $authority and length $authority) {
-    return _invalid('Path must be empty or begin with a /') unless !length $path or $path =~ m!^/!;
+  if (defined $auth_host and length $auth_host) {
+    return _invalid('Path cannot be empty or begin with a /')
+      unless !length $path or $path =~ m!^/!;
   }
   else {
-    return _invalid('Path must not start with //') if $path =~ m!^//!;
+    return _invalid('Path cannot not start with //.') if $path =~ m!^//!;
   }
 
   return 1;
