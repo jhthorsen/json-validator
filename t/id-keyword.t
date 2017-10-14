@@ -37,7 +37,7 @@ is $schema->get('/definitions/C/definitions/X/id'),
   'urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f', 'id /definitions/C/definitions/X/id';
 is $schema->get('/definitions/C/definitions/Y/id'), '#cy', 'id /definitions/C/definitions/Y/id';
 
-my $ref = $schema->get('/definitions/R1/$ref');
+my $ref = $schema->get('/definitions/R1');
 is $ref->ref, 'b.json#bx', 'R1 ref';
 is $ref->fqn, 'http://example.com/b.json#bx', 'R1 fqn';
 

@@ -194,10 +194,10 @@ sub _register_id {
   my ($self, $id, $schema) = @_;
   my $fqn = $id;
   $fqn =~ s!(.)#$!$1!;
-  $self->{refs}{$fqn} = JSON::Validator::Ref->new(fqn => $fqn, ref => $id, schema => $schema);
+  $self->{schemas}{$fqn} = $schema;
 }
 
-sub _reset { delete $_[0]->{refs}; $_[0] }
+sub _reset { delete $_[0]->{schemas}; $_[0] }
 
 # _resolve() method is used to convert all "id" into absolute URLs and
 # resolve all the $ref's that we find inside JSON Schema specification.
@@ -207,10 +207,10 @@ sub _resolve {
 
   if (ref $schema eq 'HASH') {
     $id = $schema->{id} // '';
-    return $resolved->schema if $resolved = $self->{refs}{$id};
+    return $resolved if $resolved = $self->{schemas}{$id};
   }
-  elsif ($resolved = $self->{refs}{$schema // ''}) {
-    return $resolved->schema;
+  elsif ($resolved = $self->{schemas}{$schema // ''}) {
+    return $resolved;
   }
   else {
     ($schema, $id) = $self->_load_schema($schema);
@@ -240,16 +240,14 @@ sub _resolve {
     }
   }
 
-  for (@refs) {
-    my ($topic, $base) = @$_;
-    $topic->{'$ref'} = $self->_resolve_ref($topic->{'$ref'}, $base);
-  }
+  $self->_resolve_ref(@$_) for @refs;
 
   return $schema;
 }
 
 sub _resolve_ref {
-  my ($self, $ref, $rel) = @_;
+  my ($self, $topic, $rel) = @_;
+  my $ref = $topic->{'$ref'};
   my $fqn = Mojo::URL->new($ref =~ m!^/! ? "#$ref" : $ref);
 
   $fqn = $fqn->to_abs($rel) unless $fqn->is_abs;
@@ -257,18 +255,16 @@ sub _resolve_ref {
   $fqn =~ s!(.)#$!$1!;
   $fqn =~ s!#(.+)!{'#' . url_unescape $1}!e;
 
-  return $self->{refs}{$fqn} if $self->{refs}{$fqn};
-
   my ($base, $pointer) = split /#/, $fqn, 2;
   my $other = $self->_resolve($base);
 
   if (length $pointer) {
     $other = Mojo::JSON::Pointer->new($other)->get($pointer)
-      or Carp::confess(qq[Possibly a typo in schema? Could not find "$ref" ($fqn)]);
+      or Carp::confess(qq[Possibly a typo in schema? Could not find "$fqn" ($ref)]);
   }
 
-  return $self->{refs}{$fqn}
-    = JSON::Validator::Ref->new(fqn => $fqn, ref => $ref, schema => $other);
+  @$topic{qw(fqn schema)} = ($fqn, $other);
+  bless $topic, 'JSON::Validator::Ref';
 }
 
 # This code is from Data::Dumper::format_refaddr()
@@ -283,10 +279,10 @@ sub _validate {
   my ($type, @errors);
 
   my $guard = 0;
-  while (UNIVERSAL::can($schema->{'$ref'}, 'schema')) {
-    Carp::confess("Seems like you have a circular reference: $schema->{'$ref'}")
+  while ($schema->{'$ref'}) {
+    Carp::confess("Seems like you have a circular reference: $schema")
       if RECURSION_LIMIT < ++$guard;
-    $schema = $schema->{'$ref'}->schema;
+    $schema = $schema->{schema};
   }
 
   # Avoid recursion

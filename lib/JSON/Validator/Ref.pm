@@ -6,12 +6,12 @@ use overload
   bool     => sub {1},
   fallback => 1;
 
-has fqn    => sub { shift->ref };
-has ref    => '';
-has schema => sub { +{} };
+sub fqn { $_[0]->{'fqn'} // $_[0]->{'$ref'} }
+sub ref { $_[0]->{'$ref'} }
+sub schema { $_[0]->{'schema'} }
 
 # jhthorsen: This cannot return schema() since it might cause circular references
-sub TO_JSON { $_[0]->ref }
+sub TO_JSON { {'$ref' => $_[0]->ref} }
 
 1;
 
