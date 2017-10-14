@@ -27,8 +27,9 @@ our @EXPORT_OK = 'validate_json';
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE = qr{^https?:};
 
+sub D { warn(Data::Dumper->new([@_])->Indent(1)->Sortkeys(1)->Useqq(1)->Dump) }
 sub E { JSON::Validator::Error->new(@_) }
-sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
+sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump) }
 
 has cache_paths => sub {
   my $self = shift;
@@ -455,6 +456,7 @@ sub _validate_type_array {
       last;
     }
   }
+
   if (ref $schema->{items} eq 'ARRAY') {
     my $additional_items = $schema->{additionalItems} // {type => 'any'};
     my @v = @{$schema->{items}};
@@ -472,7 +474,7 @@ sub _validate_type_array {
       push @errors, E $path, sprintf "Invalid number of items: %s/%s.", int(@$data), int(@v);
     }
   }
-  elsif (ref $schema->{items} eq 'HASH') {
+  elsif (UNIVERSAL::isa($schema->{items}, 'HASH')) {
     for my $i (0 .. @$data - 1) {
       push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
     }
@@ -555,7 +557,7 @@ sub _validate_type_object {
   my %required = map { ($_ => 1) } @{$schema->{required} || []};
   my ($additional, @errors, %rules);
 
-  if (ref $data ne 'HASH') {
+  if (!UNIVERSAL::isa($data, 'HASH')) {
     return E $path, _expected(object => $data);
   }
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < keys %$data) {
@@ -576,7 +578,7 @@ sub _validate_type_object {
 
   $additional = exists $schema->{additionalProperties} ? $schema->{additionalProperties} : {};
   if ($additional) {
-    $additional = {} unless ref $additional eq 'HASH';
+    $additional = {} unless UNIVERSAL::isa($additional, 'HASH');
     $rules{$_} ||= [$additional] for keys %$data;
   }
   else {
@@ -599,7 +601,7 @@ sub _validate_type_object {
 
   for my $k (keys %rules) {
     for my $r (@{$rules{$k}}) {
-      if (!exists $data->{$k} and (ref $r eq 'HASH' and exists $r->{default})) {
+      if (!exists $data->{$k} and UNIVERSAL::isa($r, 'HASH') and exists $r->{default}) {
 
         #$data->{$k} = $r->{default}; # TODO: This seems to fail when using oneOf and friends
       }
@@ -673,11 +675,10 @@ sub _expected {
 
 sub _guess_data_type {
   local $_ = $_[0];
-  my $ref     = ref;
-  my $blessed = Scalar::Util::blessed($_[0]);
-  return 'object' if $ref eq 'HASH';
-  return lc $ref if $ref and !$blessed;
-  return 'null' if !defined;
+  my $blessed = Scalar::Util::blessed($_);
+  return 'object' if UNIVERSAL::isa($_, 'HASH');
+  return 'array'  if UNIVERSAL::isa($_, 'ARRAY');
+  return 'null'   if !defined;
   return 'boolean' if $blessed and ("$_" eq "1" or !"$_");
   return 'number'
     if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
