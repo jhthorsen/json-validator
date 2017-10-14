@@ -14,28 +14,23 @@ has _json_validator => sub { state $v = JSON::Validator->new; };
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
-  my $openapi = $self->new(%$self)->schema($args->{schema} || SPECIFICATION_URL);
-  my ($api_spec, @errors);
+  my @errors;
 
-  # 1. first check if $ref is in the right place,
-  # 2. then check if the spec is correct
-  for my $r (sub { }, undef) {
-    next if $r and $args->{allow_invalid_ref};
-    my $jv = $self->new(%$self);
-    $jv->resolver($r) if $r;
-    $api_spec = $jv->schema($spec)->schema;
-    @errors   = $openapi->coerce($jv->coerce)->validate($api_spec->data);
-    Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
+  {
+    local $args->{want_errors} = 1;
+    @errors = $self->SUPER::load_and_validate_schema($spec, $args);
   }
+
+  @errors = grep { $_->{path} !~ m!/\$ref$! } @errors if $args->{allow_invalid_ref};
+  Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
 
   if (my $class = $args->{version_from_class}) {
     if (UNIVERSAL::can($class, 'VERSION') and $class->VERSION) {
-      $api_spec->data->{info}{version} = $class->VERSION;
+      $self->schema->data->{info}{version} = $class->VERSION;
     }
   }
 
   warn "[OpenAPI] Loaded $spec\n" if DEBUG;
-  $self->{schema} = $api_spec;
   $self;
 }
 
@@ -154,6 +149,12 @@ sub validate_response {
       }
     );
   }
+}
+
+sub _resolve_ref {
+  my ($self, $ref, $base) = @_;
+  $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;
+  return $self->SUPER::_resolve_ref($ref, $base);
 }
 
 sub _validate_request_value {

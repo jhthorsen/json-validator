@@ -5,19 +5,21 @@ use B;
 use Carp ();
 use Exporter 'import';
 use JSON::Validator::Error;
+use JSON::Validator::Ref;
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON;
+use Mojo::Loader;
 use Mojo::URL;
-use Mojo::Util 'deprecated';
+use Mojo::Util 'url_unescape';
 use Scalar::Util;
 use Time::Local ();
 
+use constant DEBUG           => $ENV{JSON_VALIDATOR_DEBUG}           || 0;
+use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
+use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
-use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
-
-use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 
 our $VERSION   = '1.04';
 our @EXPORT_OK = 'validate_json';
@@ -25,8 +27,9 @@ our @EXPORT_OK = 'validate_json';
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE = qr{^https?:};
 
+sub D { warn(Data::Dumper->new([@_])->Indent(1)->Sortkeys(1)->Useqq(1)->Dump) }
 sub E { JSON::Validator::Error->new(@_) }
-sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
+sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump) }
 
 has cache_paths => sub {
   my $self = shift;
@@ -42,8 +45,7 @@ has cache_paths => sub {
   return \@paths;
 };
 
-has formats  => sub { shift->_build_formats };
-has resolver => sub { \&_resolver };
+has formats => sub { shift->_build_formats };
 
 has ua => sub {
   require Mojo::UserAgent;
@@ -63,33 +65,22 @@ sub coerce {
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
-  my $clone = $self->new(%$self)->schema($spec)->schema;
-  my @errors
-    = $self->new(%$self)->schema($args->{schema} || SPECIFICATION_URL)->validate($clone->data);
+  my $clone = $self->new(%$self);
+  my @errors;
 
-  Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
-  warn "[JSON::Validator] Loaded $spec\n" if DEBUG;
-  $self->{schema} = $clone;
-  $self;
+  $spec = $self->_reset->_resolve($spec);
+  @errors = $clone->schema($args->{schema} || SPECIFICATION_URL)->validate($spec);
+  $self->{schema} = Mojo::JSON::Pointer->new($spec) if !@errors or $args->{want_errors};
+
+  return @errors if $args->{want_errors};    # internal
+  return $self unless @errors;
+  Carp::confess(join "\n", "Invalid schema:", @errors);
 }
 
 sub schema {
-  my ($self, $schema) = @_;
-
-  if (@_ == 1) {
-    return $self->{schema};
-  }
-  elsif (ref $schema eq 'HASH') {
-    $schema->{id} ||= $self->_default_id($schema);
-    warn "[JSON::Validator] Schema from hash. id=$schema->{id}\n" if DEBUG;
-    $schema = $self->_register_document($schema, $schema->{id});
-  }
-  else {
-    $schema = path($schema)->to_abs if -e $schema;
-    $schema = $self->_load_schema($schema);
-  }
-
-  $self->{schema} = $self->_resolve_schema($schema, $schema->data->{id});
+  my $self = shift;
+  my $schema = shift or return $self->{schema};
+  $self->{schema} = Mojo::JSON::Pointer->new($self->_reset->_resolve($schema));
   $self;
 }
 
@@ -121,58 +112,36 @@ sub _build_formats {
 }
 
 sub _load_schema {
-  my ($self, $url, $parent) = @_;
-  my ($namespace, $scheme) = ("$url", "file");
-  $namespace =~ s|\\|/|g if $^O eq 'MSWin32';
-  my $doc;
+  my ($self, $url) = @_;
 
-  if ($namespace =~ $HTTP_SCHEME_RE) {
-    $url = Mojo::URL->new($url);
-    ($namespace, $scheme) = ($url->clone->fragment(undef)->to_string, $url->scheme);
-  }
-  elsif ($namespace =~ m!^data://(.*)!) {
-    $scheme = 'data';
-  }
-  elsif ($parent and $parent =~ $HTTP_SCHEME_RE) {
-    $parent = Mojo::URL->new($parent);
-    $url =~ s!#.*!!;
-    $url = $parent->path($parent->path->merge($url)->canonicalize);
-    ($namespace, $scheme) = ($url->to_string, $url->scheme);
-  }
-  elsif ($parent) {
-    $url =~ s!#.*!!;
-    $url = path(path($parent)->dirname, split '/', $url);
-    $namespace = Cwd::abs_path($url->to_string) || $url;
-  }
-  elsif ($url =~ m!^/! and !-e $url and $self->ua->server->app) {
-    $scheme = 'http';
+  if ($url =~ m!^https?://!) {
+    warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
+    return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)), "$url";
   }
 
-  # Make sure we create the correct namespace if not already done by Mojo::URL
-  $namespace =~ s!#.*$!! if $namespace eq $url;
+  if ($url =~ m!^data://([^/]+)/(.*)!) {
+    my ($module, $file) = ($1, $2);
+    warn "[JSON::Validator] Loading schema from data section: $url\n" if DEBUG;
+    my $text = Mojo::Loader::data_section($module, $file)
+      || Carp::confess("$file could not be found in __DATA__ section of $module.");
+    return $self->_load_schema_from_text(\$text), "$url";
+  }
 
-  return $doc if $doc = $self->_store(cached => $namespace);
-  return eval {
-    warn "[JSON::Validator] Loading schema $url namespace=$namespace scheme=$scheme\n"
-      if DEBUG;
-    $doc
-      = $scheme eq 'file' ? path($namespace)->slurp
-      : $scheme eq 'data' ? $self->_load_schema_from_data($url, $namespace)
-      :                     $self->_load_schema_from_url($url, $namespace);
-    $self->_register_document($self->_load_schema_from_text(\$doc), $namespace);
-  } || do {
-    $doc ||= '';
-    die "Could not load document from $url: $@ ($doc)" if DEBUG;
-    die "Could not load document from $url: $@";
-  };
-}
+  if ($url =~ m!^\s*[\[\{]!) {
+    warn "[JSON::Validator] Loading schema from string.\n" if DEBUG;
+    return $self->_load_schema_from_text(\$url), '';
+  }
 
-sub _load_schema_from_data {
-  my ($self, $url, $namespace) = @_;
-  require Mojo::Loader;
-  my ($module, $file) = $namespace =~ m!^data://([^/]+)/(.*)$! or die "Invalid URL: $namespace.";
-  Mojo::Loader::data_section($module, $file)
-    || die "$file could not be found in __DATA__ section of $module.";
+  my $file = $url;
+  $file =~ s!#$!!;
+  $file = path(split '/', $file);
+  if (-e $file) {
+    $file = $file->realpath;
+    warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
+    return $self->_load_schema_from_text(\$file->slurp), $url;
+  }
+
+  Carp::confess("Unable to load schema '$url'");
 }
 
 sub _load_schema_from_text {
@@ -196,141 +165,129 @@ sub _load_schema_from_text {
 }
 
 sub _load_schema_from_url {
-  my ($self, $url, $namespace) = @_;
+  my ($self, $url) = @_;
   my $cache_path = $self->cache_paths->[0];
-  my $cache_file = Mojo::Util::md5_sum($namespace);
-  my $tx;
+  my $cache_file = Mojo::Util::md5_sum("$url");
+  my ($err, $tx);
 
   for (@{$self->cache_paths}) {
     my $path = path $_, $cache_file;
     next unless -r $path;
     warn "[JSON::Validator] Loading cached file $path\n" if DEBUG;
-    return $path->slurp;
+    return $self->_load_schema_from_text(\$path->slurp);
   }
 
   $tx = $self->ua->get($url);
-  die $tx->error->{message} if $tx->error;
+  $err = $tx->error && $tx->error->{message};
+  Carp::confess("GET $url == $err") if DEBUG and $err;
+  die "[JSON::Validator] GET $url == $err" if $err;
 
   if ($cache_path and $cache_path ne $BUNDLED_CACHE_DIR and -w $cache_path) {
     $cache_file = path $cache_path, $cache_file;
-    warn "[JSON::Validator] Caching $namespace to $cache_file\n" unless $ENV{HARNESS_ACTIVE};
+    warn "[JSON::Validator] Caching $url to $cache_file\n" unless $ENV{HARNESS_ACTIVE};
     $cache_file->spurt($tx->res->body);
   }
 
-  return $tx->res->body;
+  return $self->_load_schema_from_text(\$tx->res->body);
 }
 
-sub _default_id {
-  state $id = 0;
-  return sprintf 'http://local/json-validator/default-id-%s', ++$id;
+sub _register_id {
+  my ($self, $id, $schema) = @_;
+  my $fqn = $id;
+  $fqn =~ s!(.)#$!$1!;
+  $self->{schemas}{$fqn} = $schema;
 }
 
-sub _register_document {
-  my ($self, $doc, $namespace) = @_;
+sub _reset { delete $_[0]->{schemas}; $_[0] }
 
-  $doc = Mojo::JSON::Pointer->new($doc);
-  $namespace = Mojo::URL->new($namespace) unless ref $namespace;
-  $namespace->fragment(undef);
-  $doc->data->{id} ||= "$namespace";
-  $self->_store(cached => $namespace       => $doc);
-  $self->_store(cached => $doc->data->{id} => $doc);
+# _resolve() method is used to convert all "id" into absolute URLs and
+# resolve all the $ref's that we find inside JSON Schema specification.
+sub _resolve {
+  my ($self, $schema) = @_;
+  my ($id, $resolved, @refs);
 
-  warn "[JSON::Validator] Register id=$doc->{data}{id} namespace=$namespace\n" if DEBUG;
-  return $doc;
-}
+  if (ref $schema eq 'HASH') {
+    $id = $schema->{id} // '';
+    return $resolved if $resolved = $self->{schemas}{$id};
+  }
+  elsif ($resolved = $self->{schemas}{$schema // ''}) {
+    return $resolved;
+  }
+  else {
+    ($schema, $id) = $self->_load_schema($schema);
+    $id = $schema->{id} if $schema->{id};
+  }
 
-# This method is used to resolve all the $ref's that we find inside JSON Schema
-# specification.
-#
-# $namespace is typically the "id" part at the top level of the schema
-# specification. Meaning some kind of URL. In the case of Swagger: Just make
-# something up instead using _default_id()
-sub _resolve_schema {
-  my ($self, $schema, $namespace) = @_;
-  my ($resolved, @topics, @refs);
+  $self->_register_id($id, $schema);
 
-  # The if is true if we have already resolved this $namespace. This happens if
-  # the same specification has "$ref" with the same value multiple times.
-  # There's no need to resolve the same schema twice.
-  return $resolved if $resolved = $self->_store(resolved => $namespace);
-
-  @topics = ($self->_store(resolved => $namespace, $schema))->data;
-
-  # This while loop will traverse the whole specification and and track down
-  # each and every "$ref" it finds. @topics is a list of all the data
-  # structures that it finds. Note that is start out with just having one item:
-  # A hash-ref to the complete specification, but as it goes along, the while()
-  # loop will track down more objects and arrays inside the specification and
-  # then loop over those as well, util it has visited the whole document.
+  my @topics = ([$schema, Mojo::URL->new($id)]);
   while (@topics) {
-    my $topic = shift @topics;
-    next if ref $topic and $self->_seen(topic => $topic);    # Avoid recursion
-    if (UNIVERSAL::isa($topic, 'HASH')) {
-      for my $k (sort keys %$topic) {
-        my $v = $topic->{$k};
-        push @topics, $topic->{$k} if ref $topic->{$k};
-        unshift @refs, $topic if $k eq '$ref' and !ref $v;
-      }
+    my ($topic, $base) = @{shift @topics};
+
+    if (UNIVERSAL::isa($topic, 'ARRAY')) {
+      push @topics, map { [$_, $base] } @$topic;
     }
-    elsif (UNIVERSAL::isa($topic, 'ARRAY')) {
-      unshift @topics, @$topic;
+    elsif (UNIVERSAL::isa($topic, 'HASH')) {
+      if ($topic->{'$ref'} and !ref $topic->{'$ref'}) {
+        push @refs, [$topic, $base];
+      }
+      if ($topic->{id} and !ref $topic->{id}) {
+        my $fqn = Mojo::URL->new($topic->{id});
+        $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
+        $self->_register_id($fqn->to_string, $topic);
+      }
+
+      push @topics, map { [$topic->{$_}, $base] } grep { $_ ne '$ref' } keys %$topic;
     }
   }
 
-  # Resolve all the "$ref" we found. This will call _resolve_schema() again.
-  $self->resolver->($self, $namespace, \@refs);
+  $self->_resolve_ref(@$_) for @refs;
 
   return $schema;
 }
 
-sub _resolver {
-  my ($self, $namespace, $refs) = @_;
+sub _resolve_ref {
+  my ($self, $topic, $rel) = @_;
+  my $ref = $topic->{'$ref'};
+  my $fqn = Mojo::URL->new($ref =~ m!^/! ? "#$ref" : $ref);
 
-  # Seconds step: Resolve $ref
-  for my $topic (@$refs) {
-    my $ref = delete $topic->{'$ref'} or next;    # already resolved?
-    $ref = "#/definitions/$ref" if $ref =~ /^\w+$/;    # TODO: Figure out if this could be removed
-    $ref = Mojo::Util::url_unescape($ref || '');
-    $ref = Mojo::URL->new($namespace)->fragment($ref) if $ref =~ s!^\#!!;
-    $ref = Mojo::URL->new($ref) unless ref $ref;
+  $fqn = $fqn->to_abs($rel) unless $fqn->is_abs;
+  $fqn = $fqn->to_string;
+  $fqn =~ s!(.)#$!$1!;
+  $fqn =~ s!#(.+)!{'#' . url_unescape $1}!e;
 
-    my $look_in = $self->_store(resolved => $ref);
-    if (!$look_in) {
-      $look_in = $self->_load_schema($ref, $namespace);
-      $look_in = $self->_resolve_schema($look_in, $look_in->data->{id} || $namespace);
-    }
+  my ($base, $pointer) = split /#/, $fqn, 2;
+  my $other = $self->_resolve($base);
 
-    warn "[JSON::Validator] Resolving $ref\n" if DEBUG > 1;
-    warn Data::Dumper::Dumper($look_in->data) if DEBUG and $ref =~ /\b[c]\b/;   # follow the changes
-    my $data = $ref->fragment ? $look_in->get($ref->fragment) : $look_in->data;
-    die qq[Possibly a typo in schema? Could not find "$ref"] unless $data;
-    $topic->{$_} = $data->{$_} for keys %$data;
-    unshift @$refs, $topic if $topic->{'$ref'} and !ref $topic->{'$ref'};
-    delete $topic->{id} if !ref $topic->{id} and $self->isa('JSON::Validator::OpenAPI');
+  if (length $pointer) {
+    $other = Mojo::JSON::Pointer->new($other)->get($pointer)
+      or Carp::confess(qq[Possibly a typo in schema? Could not find "$fqn" ($ref)]);
   }
+
+  @$topic{qw(fqn schema)} = ($fqn, $other);
+  bless $topic, 'JSON::Validator::Ref';
 }
 
-# this code is from Data::Dumper::format_refaddr()
+# This code is from Data::Dumper::format_refaddr()
 sub _seen {
-  require Scalar::Util;
   my $self = shift;
   my $key = join ':', shift, map { pack 'J', Scalar::Util::refaddr($_) } @_;
   return $self->{seen}{$key}++;
-}
-
-sub _store {
-  my ($self, $key, $namespace, $schema) = @_;
-  $namespace = Mojo::URL->new($namespace)->fragment(undef)->to_string;
-  return $self->{$key}{$namespace} unless $schema;
-  return $self->{$key}{$namespace} = $schema;
 }
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
   my ($type, @errors);
 
+  my $guard = 0;
+  while ($schema->{'$ref'}) {
+    Carp::confess("Seems like you have a circular reference: $schema")
+      if RECURSION_LIMIT < ++$guard;
+    $schema = $schema->{schema};
+  }
+
   # Avoid recursion
-  return if ref $data and !_is_blessed_boolean($data) and $self->_seen(data => $schema, $data);
+  return if ref $data and !_is_blessed_boolean($data) and $self->_seen($schema, $data);
 
   # Make sure we validate plain data and not a perl object
   $data = $data->TO_JSON if Scalar::Util::blessed($data) and UNIVERSAL::can($data, 'TO_JSON');
@@ -499,6 +456,7 @@ sub _validate_type_array {
       last;
     }
   }
+
   if (ref $schema->{items} eq 'ARRAY') {
     my $additional_items = $schema->{additionalItems} // {type => 'any'};
     my @v = @{$schema->{items}};
@@ -516,7 +474,7 @@ sub _validate_type_array {
       push @errors, E $path, sprintf "Invalid number of items: %s/%s.", int(@$data), int(@v);
     }
   }
-  elsif (ref $schema->{items} eq 'HASH') {
+  elsif (UNIVERSAL::isa($schema->{items}, 'HASH')) {
     for my $i (0 .. @$data - 1) {
       push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
     }
@@ -599,7 +557,7 @@ sub _validate_type_object {
   my %required = map { ($_ => 1) } @{$schema->{required} || []};
   my ($additional, @errors, %rules);
 
-  if (ref $data ne 'HASH') {
+  if (!UNIVERSAL::isa($data, 'HASH')) {
     return E $path, _expected(object => $data);
   }
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < keys %$data) {
@@ -620,7 +578,7 @@ sub _validate_type_object {
 
   $additional = exists $schema->{additionalProperties} ? $schema->{additionalProperties} : {};
   if ($additional) {
-    $additional = {} unless ref $additional eq 'HASH';
+    $additional = {} unless UNIVERSAL::isa($additional, 'HASH');
     $rules{$_} ||= [$additional] for keys %$data;
   }
   else {
@@ -643,7 +601,7 @@ sub _validate_type_object {
 
   for my $k (keys %rules) {
     for my $r (@{$rules{$k}}) {
-      if (!exists $data->{$k} and (ref $r eq 'HASH' and exists $r->{default})) {
+      if (!exists $data->{$k} and UNIVERSAL::isa($r, 'HASH') and exists $r->{default}) {
 
         #$data->{$k} = $r->{default}; # TODO: This seems to fail when using oneOf and friends
       }
@@ -717,11 +675,10 @@ sub _expected {
 
 sub _guess_data_type {
   local $_ = $_[0];
-  my $ref     = ref;
-  my $blessed = Scalar::Util::blessed($_[0]);
-  return 'object' if $ref eq 'HASH';
-  return lc $ref if $ref and !$blessed;
-  return 'null' if !defined;
+  my $blessed = Scalar::Util::blessed($_);
+  return 'object' if UNIVERSAL::isa($_, 'HASH');
+  return 'array'  if UNIVERSAL::isa($_, 'ARRAY');
+  return 'null'   if !defined;
   return 'boolean' if $blessed and ("$_" eq "1" or !"$_");
   return 'number'
     if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
@@ -816,6 +773,7 @@ sub _is_regex {
 # From Data::Validate::URI
 sub _is_uri {
   return unless $_[0];
+  return 1;    # TODO: I think _is_uri() is broken
 
   my ($scheme, $authority, $path, $query, $fragment)
     = $_[0] =~ qr!^(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?$!o;
@@ -1124,18 +1082,6 @@ EXPERIMENTAL. Will check if the string is a regex, using C<qr{...}>.
 Validated against the RFC3986 spec.
 
 =back
-
-=head2 resolver
-
-  $code = $self->resolver;
-  $self = $self->resolver(sub { my ($self, $namespace, $refs) = @_; });
-
-Set this to a sub without any logic if you want to skip resolving references,
-like this:
-
-  $self->resolver(sub {});
-
-This attribute is EXPERIMENTAL.
 
 =head2 ua
 

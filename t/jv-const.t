@@ -31,7 +31,7 @@ my $schema = {
     people => {
       type  => 'array',
       items => {
-        oneOf => [{'$ref' => '#/definitions/chocolate'}, {'$ref' => '#/definitions/peanutbutter'},],
+        oneOf => [{'$ref' => '#/definitions/chocolate'}, {'$ref' => '#/definitions/peanutbutter'}],
       },
     },
   },
@@ -39,7 +39,7 @@ my $schema = {
     chocolate => {
       type => 'object',
       properties =>
-        {name => {type => 'string'}, age => {type => 'number'}, likes => {const => 'chocolate'},},
+        {name => {type => 'string'}, age => {type => 'number'}, likes => {const => 'chocolate'}},
     },
     peanutbutter => {
       type       => 'object',
@@ -51,7 +51,7 @@ my $schema = {
     },
   },
 };
-validate_ok {people => [{name => 'mr. chocolate fan', age => 42, likes => 'peanutbutter'},],},
+validate_ok {people => [{name => 'mr. chocolate fan', age => 42, likes => 'peanutbutter'}]},
   $schema;
 
 done_testing;
