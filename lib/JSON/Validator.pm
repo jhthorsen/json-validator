@@ -64,16 +64,11 @@ sub coerce {
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
-  my $clone = $self->new(%$self);
-  my @errors;
-
   $spec = $self->_reset->_resolve($spec);
-  @errors = $clone->schema($args->{schema} || SPECIFICATION_URL)->validate($spec);
-  $self->{schema} = Mojo::JSON::Pointer->new($spec) if !@errors or $args->{want_errors};
-
-  return @errors if $args->{want_errors};    # internal
-  return $self unless @errors;
-  Carp::confess(join "\n", "Invalid schema:", @errors);
+  my @errors = $self->new(%$self)->schema($args->{schema} || SPECIFICATION_URL)->validate($spec);
+  Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
+  $self->{schema} = Mojo::JSON::Pointer->new($spec);
+  $self;
 }
 
 sub schema {
@@ -108,6 +103,27 @@ sub _build_formats {
     'regex'     => \&_is_regex,
     'uri'       => \&_is_uri,
   };
+}
+
+sub _explode {
+  my ($self, $schema) = @_;
+  my @topics = ($schema);
+
+  while (@topics) {
+    my $topic = shift @topics;
+    if (ref $topic eq 'ARRAY') {
+      push @topics, @$topic;
+    }
+    elsif (ref $topic eq 'HASH') {
+      if ($topic->{'$ref'}) {
+        my $other = $self->_ref_to_schema($topic);
+        %$topic = %$other;
+      }
+      push @topics, values %$topic;
+    }
+  }
+
+  return $schema;
 }
 
 sub _load_schema {
@@ -190,6 +206,19 @@ sub _load_schema_from_url {
   return $self->_load_schema_from_text(\$tx->res->body);
 }
 
+sub _ref_to_schema {
+  my ($self, $schema) = @_;
+
+  my @guard;
+  while ($schema->{'$ref'}) {
+    push @guard, $schema->{'$ref'};
+    Carp::confess("Seems like you have a circular reference: @guard") if @guard > RECURSION_LIMIT;
+    $schema = $self->{refs}{refaddr($schema)} // Carp::confess("Could not lookup @guard");
+  }
+
+  return $schema;
+}
+
 sub _register_ref {
   my ($self, $topic, $schema_url) = @_;
   my $ref = $topic->{'$ref'};
@@ -208,7 +237,7 @@ sub _register_ref {
       or Carp::confess(qq[Possibly a typo in schema? Could not find "$ref" ($fqn)]);
   }
 
-  return $self->{refs}{refaddr($topic)} = $other;
+  $self->{refs}{refaddr($topic)} = $other;
 }
 
 sub _register_schema {
@@ -285,12 +314,7 @@ sub _validate {
   my ($self, $data, $path, $schema) = @_;
   my ($type, @errors);
 
-  my @guard;
-  while ($schema->{'$ref'}) {
-    push @guard, $schema->{'$ref'};
-    Carp::confess("Seems like you have a circular reference: @guard") if @guard > RECURSION_LIMIT;
-    $schema = $self->{refs}{refaddr($schema)} // Carp::confess("Could not lookup @guard");
-  }
+  $schema = $self->_ref_to_schema($schema) if $schema->{'$ref'};
 
   # Avoid recursion
   return if ref $data and !_is_blessed_boolean($data) and $self->_seen($schema, $data);

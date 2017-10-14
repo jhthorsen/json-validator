@@ -14,15 +14,10 @@ has _json_validator => sub { state $v = JSON::Validator->new; };
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
-  my @errors;
 
-  {
-    local $args->{want_errors} = 1;
-    @errors = $self->SUPER::load_and_validate_schema($spec, $args);
-  }
-
-  @errors = grep { $_->{path} !~ m!/\$ref$! } @errors if $args->{allow_invalid_ref};
-  Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
+  $spec = $self->_explode($self->_reset->_resolve($spec)) if $args->{allow_invalid_ref};
+  local $args->{schema} = $args->{schema} || SPECIFICATION_URL;
+  $self->SUPER::load_and_validate_schema($spec, $args);
 
   if (my $class = $args->{version_from_class}) {
     if (UNIVERSAL::can($class, 'VERSION') and $class->VERSION) {
@@ -30,8 +25,7 @@ sub load_and_validate_schema {
     }
   }
 
-  warn "[OpenAPI] Loaded $spec\n" if DEBUG;
-  $self;
+  return $self;
 }
 
 # deprecated
