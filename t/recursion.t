@@ -14,7 +14,7 @@ eval { @errors = validate_json {top => $data}, 'data://main/spec.json' };
 is $@, '', 'no error';
 is_deeply(\@errors, [], 'avoided recursion');
 
-# this part of the test checks that we don't go into an infite loop
+# This part of the test checks that we don't go into an infite loop
 my $validator = JSON::Validator::OpenAPI->new;
 is $validator->load_and_validate_spec('data://main/user.json'), $validator,
   'load_and_validate_spec no recursion';

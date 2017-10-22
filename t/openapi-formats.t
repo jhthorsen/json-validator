@@ -70,13 +70,6 @@ if (JSON::Validator::OpenAPI::IV_SIZE >= 8) {
 }
 
 {
-  local $schema->{properties}{v}{format} = 'uri';
-  validate_ok {v => 'http://mojolicio.us/?ø=123'}, $schema;
-  local $TODO = "Not sure how to make an invalid URI";
-  validate_ok {v => 'anything'}, $schema, E('/v', 'Does not match uri format.');
-}
-
-{
   local $schema->{properties}{v}{format} = 'password';
   validate_ok {v => 'whatever'}, $schema;
 }

@@ -1,6 +1,8 @@
 use Mojo::Base -strict;
 use Test::More;
 use JSON::Validator;
+use lib '.';
+use t::Helper ();
 
 my $should_fail = JSON::Validator->new->schema('data://main/invalid.json');
 my $json_schema = JSON::Validator->new->schema('http://json-schema.org/draft-04/schema#');

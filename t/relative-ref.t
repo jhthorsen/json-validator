@@ -1,18 +1,14 @@
-use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
+use lib '.';
+use t::Helper;
 
 my $file = File::Spec->catfile(File::Basename::dirname(__FILE__), 'spec', 'with-relative-ref.json');
-my $validator = JSON::Validator->new(cache_paths => [])->schema($file);
-is $validator->schema->get('/properties/age/type'), 'integer', 'loaded age.json from disk';
+my $validator = t::Helper->validator->cache_paths([]);
+validate_ok {age => -1}, $file, E('/age', '-1 < minimum(0)');
 
 use Mojolicious::Lite;
 push @{app->static->paths}, File::Basename::dirname(__FILE__);
 $validator->ua(app->ua);
-$validator->schema(app->ua->server->url->clone->path('/spec/with-relative-ref.json'));
-is $validator->schema->get('/properties/age/type'), 'integer', 'loaded age.json from http';
-
-my @errors = $validator->validate({age => 'not a number'});
-is int(@errors), 1, 'invalid age';
+validate_ok {age => -2}, app->ua->server->url->clone->path('/spec/with-relative-ref.json'),
+  E('/age', '-2 < minimum(0)');
 
 done_testing;

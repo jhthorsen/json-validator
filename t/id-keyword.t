@@ -1,0 +1,73 @@
+use Mojo::Base -strict;
+use Test::Mojo;
+use Test::More;
+use JSON::Validator;
+use Scalar::Util 'refaddr';
+
+my ($base_url, $jv, $t, @e);
+
+use Mojolicious::Lite;
+get '/invalid-fragment'     => 'invalid-fragment';
+get '/invalid-relative'     => 'invalid-relative';
+get '/relative-to-the-root' => 'relative-to-the-root';
+
+$t = Test::Mojo->new;
+$jv = JSON::Validator->new(ua => $t->ua);
+$t->get_ok('/relative-to-the-root.json')->status_is(200);
+
+$base_url = $t->tx->req->url->to_abs->path('/');
+like $base_url, qr{^http}, 'got base_url to web server';
+
+eval { $jv->load_and_validate_schema("${base_url}relative-to-the-root.json") };
+ok !$@, "${base_url}relative-to-the-root.json" or diag $@;
+
+my $schema = $jv->schema;
+is $schema->get('/id'), 'http://example.com/relative-to-the-root.json', 'get /id';
+is $schema->get('/definitions/B/id'),               'b.json', 'id /definitions/B/id';
+is $schema->get('/definitions/B/definitions/X/id'), '#bx',    'id /definitions/B/definitions/X/id';
+is $schema->get('/definitions/B/definitions/Y/id'), 't/inner.json',
+  'id /definitions/B/definitions/Y/id';
+is $schema->get('/definitions/C/definitions/X/id'),
+  'urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f', 'id /definitions/C/definitions/X/id';
+is $schema->get('/definitions/C/definitions/Y/id'), '#cy', 'id /definitions/C/definitions/Y/id';
+
+my $ref = $schema->get('/definitions/R1');
+ok $jv->{refs}{refaddr($ref)}, 'R1 has a schema';
+
+eval { $jv->load_and_validate_schema("${base_url}invalid-fragment.json") };
+like $@, qr{cannot have a fragment}, 'Root id cannot have a fragment' or diag $@;
+
+eval { $jv->load_and_validate_schema("${base_url}invalid-relative.json") };
+like $@, qr{cannot have a relative}, 'Root id cannot be relative' or diag $@;
+
+done_testing;
+
+__DATA__
+@@ invalid-fragment.json.ep
+{"id": "http://example.com/invalid-fragment.json#cannot_be_here"}
+@@ invalid-relative.json.ep
+{"id": "whatever"}
+@@ relative-to-the-root.json.ep
+{
+  "id": "http://example.com/relative-to-the-root.json",
+  "definitions": {
+    "A": { "id": "#a" },
+    "B": {
+      "id": "b.json",
+      "definitions": {
+        "X": { "id": "#bx" },
+        "Y": { "id": "t/inner.json" }
+      }
+    },
+    "C": {
+      "id": "c.json",
+      "definitions": {
+        "X": { "id": "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f" },
+        "Y": { "id": "#cy" }
+      }
+    },
+    "R1": { "$ref": "b.json#bx" },
+    "R2": { "$ref": "#a" },
+    "R3": { "$ref": "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f" }
+  }
+}
