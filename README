@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    1.04
+    1.05
 
 SYNOPSIS
       use JSON::Validator;
@@ -222,17 +222,6 @@ ATTRIBUTES
     *   uri
 
         Validated against the RFC3986 spec.
-
-  resolver
-      $code = $self->resolver;
-      $self = $self->resolver(sub { my ($self, $namespace, $refs) = @_; });
-
-    Set this to a sub without any logic if you want to skip resolving
-    references, like this:
-
-      $self->resolver(sub {});
-
-    This attribute is EXPERIMENTAL.
 
   ua
       $ua = $self->ua;

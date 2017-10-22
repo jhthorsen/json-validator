@@ -1,10 +1,12 @@
 Revision history for perl distribution JSON-Validator
 
-1.05 Not Released
+1.05 2017-10-22T20:18:51+0200
  - Fix validating headers regardless of case #77
    Contributor: Aleksandr Orlenko
  - Improved boolean handling #76
    Contributor: Aleksandr Orlenko
+ - Improved URI validation, fixes #74
+ - Resolving "$ref" on the fly #65 #75 #79
 
 1.04 2017-10-05T20:36:33+0200
  - Avoid autovivification of "patternProperties" in the input schema #47
