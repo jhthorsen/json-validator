@@ -14,7 +14,9 @@ use Mojo::Util 'url_unescape';
 use Scalar::Util qw(blessed refaddr);
 use Time::Local ();
 
-use constant DEBUG           => $ENV{JSON_VALIDATOR_DEBUG}           || 0;
+use constant COLORS => eval { require Term::ANSIColor };
+use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG};
+use constant REPORT => $ENV{JSON_VALIDATOR_REPORT} // $ENV{JSON_VALIDATOR_DEBUG};
 use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
@@ -27,8 +29,11 @@ our @EXPORT_OK = 'validate_json';
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE = qr{^https?:};
 
+sub D {
+  Data::Dumper->new([@_])->Sortkeys(1)->Indent(0)->Maxdepth(2)->Pair(':')->Useqq(1)->Terse(1)->Dump;
+}
 sub E { JSON::Validator::Error->new(@_) }
-sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump); }
+sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump) }
 
 has cache_paths => sub {
   my $self = shift;
@@ -84,9 +89,14 @@ sub validate {
   my ($self, $data, $schema) = @_;
   $schema ||= $self->schema->data;
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
-  local $self->{schema} = Mojo::JSON::Pointer->new($schema);
-  local $self->{seen}   = {};
-  return $self->_validate($data, '', $schema);
+
+  local $self->{grouped} = 0;
+  local $self->{schema}  = Mojo::JSON::Pointer->new($schema);
+  local $self->{seen}    = {};
+  $self->{report} = [];
+  my @errors = $self->_validate($data, '', $schema);
+  $self->_report if DEBUG and REPORT;
+  return @errors;
 }
 
 sub validate_json {
@@ -246,6 +256,32 @@ sub _register_schema {
   $self->{schemas}{$fqn} = $schema;
 }
 
+sub _report {
+  my $table = Mojo::Util::tablify($_[0]->{report});
+  $table =~ s!^(\W*)(N?OK|<<<)(.*)!{
+    my ($x, $y, $z) = ($1, $2, $3);
+    my $c = $y eq 'OK' ? 'green' : $y eq '<<<' ? 'blue' : 'magenta';
+    $c = "$c bold" if $z =~ /\s\w+Of\s/;
+    Term::ANSIColor::colored([$c], "$x$y$z")
+  }!gme if COLORS;
+  warn "---\n$table";
+}
+
+sub _report_errors {
+  my ($self, $path, $type, $errors) = @_;
+  push @{$self->{report}},
+    [
+    (('  ') x $self->{grouped}) . (@$errors ? 'NOK' : 'OK'),
+    $path || '/',
+    $type, join "\n", @$errors
+    ];
+}
+
+sub _report_schema {
+  my ($self, $path, $type, $schema) = @_;
+  push @{$self->{report}}, [(('  ') x $self->{grouped}) . ('<<<'), $path || '/', $type, D $schema];
+}
+
 sub _reset {
   delete $_[0]->{$_} for qw(refs schemas);
   $_[0]->{level} = 0;
@@ -317,7 +353,10 @@ sub _validate {
   $schema = $self->_ref_to_schema($schema) if $schema->{'$ref'};
 
   # Avoid recursion
-  return if ref $data and !_is_blessed_boolean($data) and $self->_seen($schema, $data);
+  if (ref $data and !_is_blessed_boolean($data) and $self->_seen($schema, $data)) {
+    $self->_report_schema($path || '/', 'seen', $schema) if REPORT;
+    return;
+  }
 
   # Make sure we validate plain data and not a perl object
   $data = $data->TO_JSON if blessed $data and UNIVERSAL::can($data, 'TO_JSON');
@@ -329,20 +368,21 @@ sub _validate {
   }
   elsif ($type) {
     my $method = sprintf '_validate_type_%s', $type;
+    $self->_report_schema($path || '/', $type, $schema);
     @errors = $self->$method($data, $path, $schema);
-    warn "[JSON::Validator] type @{[$path||'/']} $method [@errors]\n" if DEBUG > 1;
+    $self->_report_errors($path, $type, \@errors) if REPORT;
     return @errors if @errors;
   }
 
   if ($schema->{enum}) {
     @errors = $self->_validate_type_enum($data, $path, $schema);
-    warn "[JSON::Validator] type @{[$path||'/']} _validate_type_enum [@errors]\n" if DEBUG > 1;
+    $self->_report_errors($path, 'enum', \@errors) if REPORT;
     return @errors if @errors;
   }
 
   if (my $rules = $schema->{not}) {
     push @errors, $self->_validate($data, $path, $rules);
-    warn "[JSON::Validator] not @{[$path||'/']} == [@errors]\n" if DEBUG > 1;
+    $self->_report_errors($path, 'not', \@errors) if REPORT;
     return @errors ? () : (E $path, 'Should not match.');
   }
 
@@ -364,6 +404,9 @@ sub _validate_all_of {
   my $type = _guess_data_type($data);
   my (@errors, @expected);
 
+  $self->_report_schema($path, 'allOf', $rules) if REPORT;
+  $self->{grouped}++;
+
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
@@ -371,7 +414,9 @@ sub _validate_all_of {
     push @expected, $schema_type;
   }
 
-  warn "[JSON::Validator] allOf @{[$path||'/']} == [@errors]\n" if DEBUG > 1;
+  $self->{grouped}--;
+
+  $self->_report_errors($path, 'allOf', \@errors) if REPORT;
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "allOf failed: Expected $expected, not $type."
     if $expected and @errors + @expected == @$rules;
@@ -384,10 +429,13 @@ sub _validate_any_of {
   my $type = _guess_data_type($data);
   my (@e, @errors, @expected);
 
+  $self->_report_schema($path, 'anyOf', $rules) if REPORT;
+  $self->{grouped}++;
+
   for my $rule (@$rules) {
     @e = $self->_validate($data, $path, $rule);
     if (!@e) {
-      warn "[JSON::Validator] anyOf @{[$path||'/']} == success\n" if DEBUG > 1;
+      $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
       return;
     }
     my $schema_type = _guess_schema_type($rule);
@@ -395,7 +443,9 @@ sub _validate_any_of {
     push @expected, $schema_type;
   }
 
-  warn "[JSON::Validator] anyOf @{[$path||'/']} == [@errors]\n" if DEBUG > 1;
+  $self->{grouped}--;
+
+  $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "anyOf failed: Expected $expected, got $type." unless @errors;
   return E $path, sprintf "anyOf failed: %s", _merge_errors(@errors);
@@ -406,6 +456,9 @@ sub _validate_one_of {
   my $type = _guess_data_type($data);
   my (@errors, @expected);
 
+  $self->_report_schema($path, 'oneOf', $rules) if REPORT;
+  $self->{grouped}++;
+
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
@@ -413,18 +466,19 @@ sub _validate_one_of {
     push @expected, $schema_type;
   }
 
-  if (@errors + @expected + 1 == @$rules) {
-    warn "[JSON::Validator] oneOf @{[$path||'/']} == success\n" if DEBUG > 1;
-    return;
+  $self->{grouped}--;
+
+  if (REPORT) {
+    my @e
+      = @errors + @expected + 1 == @$rules ? ()
+      : @errors                            ? @errors
+      :                                      'All of the oneOf rules match.';
+    $self->_report_errors($path, 'oneOf', \@e);
   }
 
-  if (DEBUG > 1) {
-    warn sprintf "[JSON::Validator] oneOf %s == failed=%s/%s / @errors\n", $path || '/',
-      @errors + @expected, int @$rules;
-  }
-
+  return if @errors + @expected + 1 == @$rules;
   my $expected = join ' or ', _uniq(@expected);
-  return E $path, 'All of the oneOf rules match.' unless @errors + @expected;
+  return E $path, "All of the oneOf rules match." unless @errors + @expected;
   return E $path, "oneOf failed: Expected $expected, got $type." unless @errors;
   return E $path, sprintf 'oneOf failed: %s', _merge_errors(@errors);
 }
@@ -590,12 +644,14 @@ sub _validate_type_object {
   if (ref $data ne 'HASH') {
     return E $path, _expected(object => $data);
   }
-  if (defined $schema->{maxProperties} and $schema->{maxProperties} < keys %$data) {
-    push @errors, E $path, sprintf 'Too many properties: %s/%s.', int(keys %$data),
+
+  my @dkeys = sort keys %$data;
+  if (defined $schema->{maxProperties} and $schema->{maxProperties} < @dkeys) {
+    push @errors, E $path, sprintf 'Too many properties: %s/%s.', int @dkeys,
       $schema->{maxProperties};
   }
-  if (defined $schema->{minProperties} and $schema->{minProperties} > keys %$data) {
-    push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int(keys %$data),
+  if (defined $schema->{minProperties} and $schema->{minProperties} > @dkeys) {
+    push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int @dkeys,
       $schema->{minProperties};
   }
 
@@ -603,13 +659,13 @@ sub _validate_type_object {
     push @{$rules{$k}}, $r;
   }
   while (my ($p, $r) = each %{$schema->{patternProperties} || {}}) {
-    push @{$rules{$_}}, $r for grep { $_ =~ /$p/ } keys %$data;
+    push @{$rules{$_}}, $r for sort grep { $_ =~ /$p/ } @dkeys;
   }
 
   $additional = exists $schema->{additionalProperties} ? $schema->{additionalProperties} : {};
   if ($additional) {
     $additional = {} unless ref $additional eq 'HASH';
-    $rules{$_} ||= [$additional] for keys %$data;
+    $rules{$_} ||= [$additional] for @dkeys;
   }
   else {
     # Special case used internally when validating schemas: This module adds "id"
@@ -617,19 +673,19 @@ sub _validate_type_object {
     # remove it again unless there's a rule.
     local $rules{id} = 1 if !$path and exists $data->{id};
 
-    if (my @keys = grep { !$rules{$_} } keys %$data) {
+    if (my @k = grep { !$rules{$_} } @dkeys) {
       local $" = ', ';
-      return E $path, "Properties not allowed: @keys.";
+      return E $path, "Properties not allowed: @k.";
     }
   }
 
-  for my $k (keys %required) {
+  for my $k (sort keys %required) {
     next if exists $data->{$k};
     push @errors, E _path($path, $k), 'Missing property.';
     delete $rules{$k};
   }
 
-  for my $k (keys %rules) {
+  for my $k (sort keys %rules) {
     for my $r (@{$rules{$k}}) {
       if (!exists $data->{$k} and (ref $r eq 'HASH' and exists $r->{default})) {
 
