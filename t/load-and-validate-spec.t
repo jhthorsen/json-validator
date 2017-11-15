@@ -15,7 +15,7 @@ eval {
   $validator->load_and_validate_spec('data://main/swagger2/issues/89.json',
     {allow_invalid_ref => 1, version_from_class => 'JSON::Validator'});
 };
-ok !$@, 'allow_invalid_ref=1';
+ok !$@, 'allow_invalid_ref=1' or diag $@;
 is $validator->schema->get('/info/version'), JSON::Validator->VERSION, 'version_from_class';
 
 done_testing;

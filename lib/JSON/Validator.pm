@@ -5,6 +5,7 @@ use B;
 use Carp ();
 use Exporter 'import';
 use JSON::Validator::Error;
+use JSON::Validator::Ref;
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON;
@@ -115,27 +116,6 @@ sub _build_formats {
   };
 }
 
-sub _explode {
-  my ($self, $schema) = @_;
-  my @topics = ($schema);
-
-  while (@topics) {
-    my $topic = shift @topics;
-    if (ref $topic eq 'ARRAY') {
-      push @topics, @$topic;
-    }
-    elsif (ref $topic eq 'HASH') {
-      if ($topic->{'$ref'}) {
-        my $other = $self->_ref_to_schema($topic);
-        %$topic = %$other;
-      }
-      push @topics, values %$topic;
-    }
-  }
-
-  return $schema;
-}
-
 sub _load_schema {
   my ($self, $url) = @_;
 
@@ -220,34 +200,13 @@ sub _ref_to_schema {
   my ($self, $schema) = @_;
 
   my @guard;
-  while ($schema->{'$ref'}) {
+  while (UNIVERSAL::isa($schema, 'JSON::Validator::Ref')) {
     push @guard, $schema->{'$ref'};
     Carp::confess("Seems like you have a circular reference: @guard") if @guard > RECURSION_LIMIT;
-    $schema = $self->{refs}{refaddr($schema)} // Carp::confess("Could not lookup @guard");
+    $schema = $schema->schema;
   }
 
   return $schema;
-}
-
-sub _register_ref {
-  my ($self, $topic, $schema_url) = @_;
-  my $ref = $topic->{'$ref'};
-  my $fqn = Mojo::URL->new($ref =~ m!^/! ? "#$ref" : $ref);
-
-  $fqn = $fqn->to_abs($schema_url) unless $fqn->is_abs;
-  $fqn = $fqn->to_string;
-  $fqn =~ s!(.)#$!$1!;
-  $fqn =~ s!#(.+)!{'#' . url_unescape $1}!e;
-
-  my ($base, $pointer) = split /#/, $fqn, 2;
-  my $other = $self->_resolve($base);
-
-  if (length $pointer) {
-    $other = Mojo::JSON::Pointer->new($other)->get($pointer)
-      or Carp::confess(qq[Possibly a typo in schema? Could not find "$ref" ($fqn)]);
-  }
-
-  $self->{refs}{refaddr($topic)} = $other;
 }
 
 sub _register_schema {
@@ -283,8 +242,8 @@ sub _report_schema {
 }
 
 sub _reset {
-  delete $_[0]->{$_} for qw(refs schemas);
-  $_[0]->{level} = 0;
+  $_[0]->{level}   = 0;
+  $_[0]->{schemas} = {};
   $_[0];
 }
 
@@ -321,22 +280,55 @@ sub _resolve {
       push @topics, map { [$_, $base] } @$topic;
     }
     elsif (UNIVERSAL::isa($topic, 'HASH')) {
-      if ($topic->{'$ref'} and !ref $topic->{'$ref'}) {
-        push @refs, [$topic, $base];
-      }
+      push @refs, [$topic, $base] and next if $topic->{'$ref'} and !ref $topic->{'$ref'};
+
       if ($topic->{id} and !ref $topic->{id}) {
         my $fqn = Mojo::URL->new($topic->{id});
         $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
         $self->_register_schema($topic, $fqn->to_string);
       }
 
-      push @topics, map { [$topic->{$_}, $base] } grep { $_ ne '$ref' } keys %$topic;
+      push @topics, map { [$_, $base] } values %$topic;
     }
   }
 
-  $self->_register_ref(@$_) for @refs;
+  # Need to register "id":"..." before resolving "$ref":"..."
+  $self->_resolve_ref(@$_) for @refs;
 
   return $schema;
+}
+
+sub _resolve_ref {
+  my ($self, $topic, $url) = @_;
+  return if UNIVERSAL::isa($topic, 'JSON::Validator::Ref');
+
+  my $other = $topic;
+  my ($base, $fqn, $pointer, $ref, @guard);
+
+  while (1) {
+    $ref = $other->{'$ref'};
+    push @guard, $other->{'$ref'};
+    Carp::confess("Seems like you have a circular reference: @guard") if @guard > RECURSION_LIMIT;
+    last if !$ref or ref $ref;
+    $fqn = Mojo::URL->new($ref =~ m!^/! ? "#$ref" : $ref);
+    $fqn = $fqn->to_abs($url) unless $fqn->is_abs;
+    $url = $fqn;
+    $fqn = $fqn->to_string;
+    $fqn =~ s!(.)#$!$1!;
+    $fqn =~ s!#(.+)!{'#' . url_unescape $1}!e;
+
+    ($base, $pointer) = split /#/, $fqn, 2;
+    $other = $self->_resolve($base);
+
+    if (length $pointer) {
+      $other = Mojo::JSON::Pointer->new($other)->get($pointer)
+        or
+        Carp::confess(qq[Possibly a typo in schema? Could not find "$pointer" in "$base" ($ref)]);
+    }
+  }
+
+  @$topic{qw(fqn schema)} = ($fqn, $other);
+  bless $topic, 'JSON::Validator::Ref';
 }
 
 # This code is from Data::Dumper::format_refaddr()
@@ -558,7 +550,7 @@ sub _validate_type_array {
       push @errors, E $path, sprintf "Invalid number of items: %s/%s.", int(@$data), int(@v);
     }
   }
-  elsif (ref $schema->{items} eq 'HASH') {
+  elsif (UNIVERSAL::isa($schema->{items}, 'HASH')) {
     for my $i (0 .. @$data - 1) {
       push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
     }
@@ -664,7 +656,7 @@ sub _validate_type_object {
 
   $additional = exists $schema->{additionalProperties} ? $schema->{additionalProperties} : {};
   if ($additional) {
-    $additional = {} unless ref $additional eq 'HASH';
+    $additional = {} unless UNIVERSAL::isa($additional, 'HASH');
     $rules{$_} ||= [$additional] for @dkeys;
   }
   else {
@@ -687,7 +679,7 @@ sub _validate_type_object {
 
   for my $k (sort keys %rules) {
     for my $r (@{$rules{$k}}) {
-      if (!exists $data->{$k} and (ref $r eq 'HASH' and exists $r->{default})) {
+      if (!exists $data->{$k} and (UNIVERSAL::isa($r, 'HASH') and exists $r->{default})) {
 
         #$data->{$k} = $r->{default}; # TODO: This seems to fail when using oneOf and friends
       }
@@ -763,7 +755,7 @@ sub _guess_data_type {
   local $_ = $_[0];
   my $ref     = ref;
   my $blessed = blessed $_;
-  return 'object' if $ref eq 'HASH';
+  return 'object' if $ref eq 'HASH' or UNIVERSAL::isa($_, 'JSON::Validator::Ref');
   return lc $ref if $ref and !$blessed;
   return 'null' if !defined;
   return 'boolean' if $blessed and ("$_" eq "1" or !"$_");

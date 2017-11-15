@@ -31,11 +31,11 @@ for my $file (sort $test_suite->list->each) {
 
       next if $test_only_re and $descr !~ /$test_only_re/;
       diag <<"HERE" if $test_only_re;
-# ---
-# description:  $descr
-# schema:       $schema
-# data:         @{[encode_json $test->{data}]}
-# expect_valid: @{[$test->{valid} ? 'Yes' : 'No']}
+---
+description:  $descr
+schema:       $schema
+data:         @{[encode_json $test->{data}]}
+expect_valid: @{[$test->{valid} ? 'Yes' : 'No']}
 HERE
 
       $schema =~ s!http\W+localhost:1234\b!http://$host_port!g;

@@ -1,8 +1,8 @@
 use Mojo::Base -strict;
+use Mojo::JSON 'encode_json';
 use Test::Mojo;
 use Test::More;
 use JSON::Validator;
-use Scalar::Util 'refaddr';
 
 my ($base_url, $jv, $t, @e);
 
@@ -32,7 +32,11 @@ is $schema->get('/definitions/C/definitions/X/id'),
 is $schema->get('/definitions/C/definitions/Y/id'), '#cy', 'id /definitions/C/definitions/Y/id';
 
 my $ref = $schema->get('/definitions/R1');
-ok $jv->{refs}{refaddr($ref)}, 'R1 has a schema';
+isa_ok($ref, 'JSON::Validator::Ref');
+is encode_json($ref), '{"$ref":"b.json#bx"}', 'ref encode_json';
+is $ref->ref, 'b.json#bx', 'ref ref';
+is $ref->fqn, 'http://example.com/b.json#bx', 'ref fqn';
+ok $ref->schema->{definitions}{Y}, 'ref schema';
 
 eval { $jv->load_and_validate_schema("${base_url}invalid-fragment.json") };
 like $@, qr{cannot have a fragment}, 'Root id cannot have a fragment' or diag $@;
