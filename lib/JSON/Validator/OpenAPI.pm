@@ -15,6 +15,7 @@ has _json_validator => sub { state $v = JSON::Validator->new; };
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
 
+  $spec = $self->bundle({replace => 1, schema => $spec}) if $args->{allow_invalid_ref};
   local $args->{schema} = $args->{schema} || SPECIFICATION_URL;
   $self->SUPER::load_and_validate_schema($spec, $args);
 

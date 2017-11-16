@@ -14,9 +14,9 @@ like $@, qr{/definitions/\$ref}si, 'ref in the wrong place';
 eval {
   $validator->load_and_validate_spec('data://main/swagger2/issues/89.json',
     {allow_invalid_ref => 1, version_from_class => 'JSON::Validator'});
-};
-ok !$@, 'allow_invalid_ref=1' or diag $@;
-is $validator->schema->get('/info/version'), JSON::Validator->VERSION, 'version_from_class';
+  is $validator->schema->get('/info/version'), JSON::Validator->VERSION, 'version_from_class';
+  is_deeply $validator->schema->get('/definitions/foo/properties'), {}, 'allow_invalid_ref';
+} or diag $@;
 
 done_testing;
 

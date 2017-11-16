@@ -60,6 +60,60 @@ has ua => sub {
   $ua;
 };
 
+sub bundle {
+  my ($self, $args) = @_;
+  my $def_name_cb = $args->{definitions_name} || \&_definitions_name;
+  my @topics = ([undef, my $bundle = {}]);
+  my $cloner;
+
+  $topics[0][0] = $args->{schema} ? $self->_reset->_resolve($args->{schema}) : $self->schema->data;
+
+  if ($args->{replace}) {
+    $cloner = sub {
+      my $from = shift;
+      $from = $from->schema if UNIVERSAL::isa($from, 'JSON::Validator::Ref');
+      my $ref = ref $from;
+      my $to = $ref eq 'ARRAY' ? [] : $ref eq 'HASH' ? {} : $from;
+      push @topics, [$from, $to] if $ref;
+      return $to;
+    };
+  }
+  else {
+    $bundle->{definitions} ||= {%{$topics[0][0]{definitions} || {}}};
+    $cloner = sub {
+      my $from = shift;
+
+      if (UNIVERSAL::isa($from, 'JSON::Validator::Ref')) {
+        return $from if $from->fqn =~ m!^\#!;
+        my $name = $self->$def_name_cb($from->fqn);
+        push @topics, [$from->schema, $bundle->{definitions}{$name} = {}];
+        return JSON::Validator::Ref->new(schema => $from->schema, '$ref' => "#/definitions/$name");
+      }
+
+      my $ref = ref $from;
+      my $to = $ref eq 'ARRAY' ? [] : $ref eq 'HASH' ? {} : $from;
+      push @topics, [$from, $to] if $ref;
+      return $to;
+    };
+  }
+
+  while (@topics) {
+    my ($from, $to) = @{shift @topics};
+    if (ref $from eq 'ARRAY') {
+      for (my $i = 0; $i < @$from; $i++) {
+        $to->[$i] = $cloner->($from->[$i]);
+      }
+    }
+    elsif (ref $from eq 'HASH') {
+      while (my ($key, $value) = each %$from) {
+        $to->{$key} //= $cloner->($from->{$key});
+      }
+    }
+  }
+
+  return $bundle;
+}
+
 sub coerce {
   my $self = shift;
   return $self->{coerce} ||= {} unless @_;
@@ -72,16 +126,16 @@ sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
   $spec = $self->_reset->_resolve($spec);
   my @errors = $self->new(%$self)->schema($args->{schema} || SPECIFICATION_URL)->validate($spec);
-  Carp::confess(join "\n", "Invalid schema:", @errors) if @errors;
+  Carp::confess(join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors) if @errors;
   $self->{schema} = Mojo::JSON::Pointer->new($spec);
   $self;
 }
 
 sub schema {
   my $self = shift;
-  my $schema = shift or return $self->{schema};
-  $self->{schema} = Mojo::JSON::Pointer->new($self->_reset->_resolve($schema));
-  $self;
+  return $self->{schema} unless @_;
+  $self->{schema} = Mojo::JSON::Pointer->new($self->_reset->_resolve(shift));
+  return $self;
 }
 
 sub singleton { state $validator = shift->new }
@@ -242,8 +296,8 @@ sub _report_schema {
 }
 
 sub _reset {
-  $_[0]->{level}   = 0;
-  $_[0]->{schemas} = {};
+  delete $_[0]->{schemas}{''};
+  $_[0]->{level} = 0;
   $_[0];
 }
 
@@ -745,6 +799,13 @@ sub _cmp {
   return "";
 }
 
+sub _definitions_name {
+  local $_ = "$_[1]";
+  s!\#!-!g;
+  s![^\w-]!_!g;
+  return "_$_";
+}
+
 sub _expected {
   my $type = _guess_data_type($_[1]);
   return "Expected $_[0] - got different $type." if $_[0] =~ /\b$type\b/;
@@ -1172,6 +1233,33 @@ L<Mojo::UserAgent/max_redirects> set to 3. (These settings are EXPERIMENTAL
 and might change without a warning)
 
 =head1 METHODS
+
+=head2 bundle
+
+  $schema = $self->bundle(\%args);
+
+Used to create a new schema, where the C<$ref> are resolved. C<%args> can have:
+
+=over 2
+
+=item * C<{replace => 1}>
+
+Used if you want to replace the C<$ref> inline in the schema. This currently
+does not work if you have circular references. The default is to move all the
+C<$ref> definitions into the main schema with custom names. Here is an example
+on how a C<$ref> looks before and after:
+
+  {"$ref":"../some/place.json#/foo/bar"}
+     => {"$ref":"#/definitions/____some_place_json-_foo_bar"}
+
+  {"$ref":"http://example.com#/foo/bar"}
+     => {"$ref":"#/definitions/_http___example_com-_foo_bar"}
+
+=item * C<{schema => {...}}>
+
+Default is to use the value from the L</schema> attribute.
+
+=back
 
 =head2 coerce
 
