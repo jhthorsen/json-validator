@@ -1,11 +1,6 @@
 package JSON::Validator::Ref;
 use Mojo::Base -base;
 
-use overload
-  q("")    => sub { $_[0]->fqn },
-  bool     => sub {1},
-  fallback => 1;
-
 sub fqn { $_[0]->{'fqn'} // $_[0]->{'$ref'} }
 sub ref { $_[0]->{'$ref'} }
 sub schema { $_[0]->{'schema'} }
