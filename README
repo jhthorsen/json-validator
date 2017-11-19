@@ -2,7 +2,7 @@ NAME
     JSON::Validator - Validate data against a JSON schema
 
 VERSION
-    1.05
+    1.06
 
 SYNOPSIS
       use JSON::Validator;
@@ -235,6 +235,29 @@ ATTRIBUTES
     EXPERIMENTAL and might change without a warning)
 
 METHODS
+  bundle
+      $schema = $self->bundle(\%args);
+
+    Used to create a new schema, where the $ref are resolved. %args can
+    have:
+
+    * "{replace =" 1}>
+
+      Used if you want to replace the $ref inline in the schema. This
+      currently does not work if you have circular references. The default
+      is to move all the $ref definitions into the main schema with custom
+      names. Here is an example on how a $ref looks before and after:
+
+        {"$ref":"../some/place.json#/foo/bar"}
+           => {"$ref":"#/definitions/____some_place_json-_foo_bar"}
+
+        {"$ref":"http://example.com#/foo/bar"}
+           => {"$ref":"#/definitions/_http___example_com-_foo_bar"}
+
+    * "{schema =" {...}}>
+
+      Default is to use the value from the "schema" attribute.
+
   coerce
       $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
       $self = $self->coerce({booleans => 1, numbers => 1, strings => 1});
@@ -259,6 +282,19 @@ METHODS
     The coercion rules are EXPERIMENTAL and will be tighten/loosen if bugs
     are reported. See <https://github.com/jhthorsen/json-validator/issues/8>
     for more details.
+
+  get
+      $sub_schema = $self->get("/x/y");
+
+    Extract value from "schema" identified by the given JSON Pointer. Will
+    at the same time resolve $ref if found. Example:
+
+      $self->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
+      $self->schema->get('/x')           == undef
+      $self->schema->get('/x')->{'$ref'} == '#/y'
+      $self->get('/x')                   == {type => 'string'}
+
+    This method is EXPERIMENTAL.
 
   load_and_validate_schema
       $self = $self->load_and_validate_schema($schema, \%args);

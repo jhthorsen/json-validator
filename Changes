@@ -1,5 +1,10 @@
 Revision history for perl distribution JSON-Validator
 
+1.06 2017-11-19T20:11:26+0100
+ - Add JSON::Validator::get()
+ - Add JSON::Validator::bundle()
+ - A $ref is tied hashes, represented by JSON::Validator::Ref
+
 1.05 2017-10-22T20:18:51+0200
  - Fix validating headers regardless of case #77
    Contributor: Aleksandr Orlenko
