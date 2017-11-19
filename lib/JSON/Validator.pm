@@ -2,7 +2,7 @@ package JSON::Validator;
 use Mojo::Base -base;
 
 use B;
-use Carp ();
+use Carp 'confess';
 use Exporter 'import';
 use JSON::Validator::Error;
 use JSON::Validator::Ref;
@@ -64,15 +64,15 @@ sub bundle {
   my ($self, $args) = @_;
   my $def_name_cb = $args->{definitions_name} || \&_definitions_name;
   my @topics = ([undef, my $bundle = {}]);
-  my $cloner;
+  my ($cloner, $tied);
 
   $topics[0][0] = $args->{schema} ? $self->_reset->_resolve($args->{schema}) : $self->schema->data;
 
   if ($args->{replace}) {
     $cloner = sub {
       my $from = shift;
-      $from = $from->schema if UNIVERSAL::isa($from, 'JSON::Validator::Ref');
-      my $ref = ref $from;
+      my $ref  = ref $from;
+      $from = $tied->schema if $ref eq 'HASH' and $tied = tied %$from;
       my $to = $ref eq 'ARRAY' ? [] : $ref eq 'HASH' ? {} : $from;
       push @topics, [$from, $to] if $ref;
       return $to;
@@ -82,15 +82,16 @@ sub bundle {
     $bundle->{definitions} ||= {%{$topics[0][0]{definitions} || {}}};
     $cloner = sub {
       my $from = shift;
+      my $ref  = ref $from;
 
-      if (UNIVERSAL::isa($from, 'JSON::Validator::Ref')) {
-        return $from if $from->fqn =~ m!^\#!;
-        my $name = $self->$def_name_cb($from->fqn);
-        push @topics, [$from->schema, $bundle->{definitions}{$name} = {}];
-        return JSON::Validator::Ref->new(schema => $from->schema, '$ref' => "#/definitions/$name");
+      if ($ref eq 'HASH' and my $tied = tied %$from) {
+        return $from if $tied->fqn =~ m!^\#!;
+        my $name = $self->$def_name_cb($tied->fqn);
+        push @topics, [$tied->schema, $bundle->{definitions}{$name} = {}];
+        tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/definitions/$name";
+        return \%ref;
       }
 
-      my $ref = ref $from;
       my $to = $ref eq 'ARRAY' ? [] : $ref eq 'HASH' ? {} : $from;
       push @topics, [$from, $to] if $ref;
       return $to;
@@ -125,6 +126,7 @@ sub coerce {
 sub get {
   my ($self, $pointer) = @_;
   my $data = $self->schema->data;
+  my $tied;
 
   return $data unless ref $pointer or $pointer =~ s!^/!!;
   $pointer = [length $pointer ? (split '/', $pointer, -1) : ($pointer)] unless ref $pointer;
@@ -142,7 +144,7 @@ sub get {
       return undef;
     }
 
-    $data = $data->schema if UNIVERSAL::isa($data, 'JSON::Validator::Ref');
+    $data = $tied->schema if ref $data eq 'HASH' and $tied = tied %$data;
   }
 
   return $data;
@@ -152,7 +154,7 @@ sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
   $spec = $self->_reset->_resolve($spec);
   my @errors = $self->new(%$self)->schema($args->{schema} || SPECIFICATION_URL)->validate($spec);
-  Carp::confess(join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors) if @errors;
+  confess join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors if @errors;
   $self->{schema} = Mojo::JSON::Pointer->new($spec);
   $self;
 }
@@ -208,7 +210,7 @@ sub _load_schema {
     my ($module, $file) = ($1, $2);
     warn "[JSON::Validator] Loading schema from data section: $url\n" if DEBUG;
     my $text = Mojo::Loader::data_section($module, $file)
-      || Carp::confess("$file could not be found in __DATA__ section of $module.");
+      || confess "$file could not be found in __DATA__ section of $module.";
     return $self->_load_schema_from_text(\$text), "$url";
   }
 
@@ -226,7 +228,7 @@ sub _load_schema {
     return $self->_load_schema_from_text(\$file->slurp), $url;
   }
 
-  Carp::confess("Unable to load schema '$url'");
+  confess "Unable to load schema '$url'";
 }
 
 sub _load_schema_from_text {
@@ -264,7 +266,7 @@ sub _load_schema_from_url {
 
   $tx = $self->ua->get($url);
   $err = $tx->error && $tx->error->{message};
-  Carp::confess("GET $url == $err") if DEBUG and $err;
+  confess "GET $url == $err" if DEBUG and $err;
   die "[JSON::Validator] GET $url == $err" if $err;
 
   if ($cache_path and $cache_path ne $BUNDLED_CACHE_DIR and -w $cache_path) {
@@ -280,10 +282,10 @@ sub _ref_to_schema {
   my ($self, $schema) = @_;
 
   my @guard;
-  while (UNIVERSAL::isa($schema, 'JSON::Validator::Ref')) {
-    push @guard, $schema->{'$ref'};
-    Carp::confess("Seems like you have a circular reference: @guard") if @guard > RECURSION_LIMIT;
-    $schema = $schema->schema;
+  while (my $tied = tied %$schema) {
+    push @guard, $tied->ref;
+    confess "Seems like you have a circular reference: @guard" if @guard > RECURSION_LIMIT;
+    $schema = $tied->schema;
   }
 
   return $schema;
@@ -346,8 +348,8 @@ sub _resolve {
   }
 
   if (!$self->{level}++ and my $id = $schema->{id}) {
-    Carp::confess("Root schema cannot have a fragment in the 'id'. ($id)") if $id =~ /\#./;
-    Carp::confess("Root schema cannot have a relative 'id'. ($id)") if $id and $id !~ /^\w+:/;
+    confess "Root schema cannot have a fragment in the 'id'. ($id)" if $id =~ /\#./;
+    confess "Root schema cannot have a relative 'id'. ($id)" if $id and $id !~ /^\w+:/;
   }
 
   $self->_register_schema($schema, $id);
@@ -380,7 +382,7 @@ sub _resolve {
 
 sub _resolve_ref {
   my ($self, $topic, $url) = @_;
-  return if UNIVERSAL::isa($topic, 'JSON::Validator::Ref');
+  return if tied %$topic;
 
   my $other = $topic;
   my ($base, $fqn, $pointer, $ref, @guard);
@@ -388,7 +390,7 @@ sub _resolve_ref {
   while (1) {
     $ref = $other->{'$ref'};
     push @guard, $other->{'$ref'};
-    Carp::confess("Seems like you have a circular reference: @guard") if @guard > RECURSION_LIMIT;
+    confess "Seems like you have a circular reference: @guard" if @guard > RECURSION_LIMIT;
     last if !$ref or ref $ref;
     $fqn = Mojo::URL->new($ref =~ m!^/! ? "#$ref" : $ref);
     $fqn = $fqn->to_abs($url) unless $fqn->is_abs;
@@ -402,13 +404,11 @@ sub _resolve_ref {
 
     if (length $pointer) {
       $other = Mojo::JSON::Pointer->new($other)->get($pointer)
-        or
-        Carp::confess(qq[Possibly a typo in schema? Could not find "$pointer" in "$base" ($ref)]);
+        or confess qq[Possibly a typo in schema? Could not find "$pointer" in "$base" ($ref)];
     }
   }
 
-  @$topic{qw(fqn schema)} = ($fqn, $other);
-  bless $topic, 'JSON::Validator::Ref';
+  tie %$topic, 'JSON::Validator::Ref', $other, $topic->{'$ref'}, $fqn;
 }
 
 # This code is from Data::Dumper::format_refaddr()
@@ -842,7 +842,7 @@ sub _guess_data_type {
   local $_ = $_[0];
   my $ref     = ref;
   my $blessed = blessed $_;
-  return 'object' if $ref eq 'HASH' or UNIVERSAL::isa($_, 'JSON::Validator::Ref');
+  return 'object' if $ref eq 'HASH';
   return lc $ref if $ref and !$blessed;
   return 'null' if !defined;
   return 'boolean' if $blessed and ("$_" eq "1" or !"$_");

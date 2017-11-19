@@ -1,9 +1,26 @@
 package JSON::Validator::Ref;
-use Mojo::Base -base;
+use Mojo::Base -strict;
 
-sub fqn { $_[0]->{'fqn'} // $_[0]->{'$ref'} }
-sub ref { $_[0]->{'$ref'} }
-sub schema { $_[0]->{'schema'} }
+use Tie::Hash ();
+use base 'Tie::StdHash';
+
+my $private = '%%';
+
+sub fqn    { $_[0]->{"${private}fqn"} }
+sub ref    { $_[0]->{'$ref'} }
+sub schema { $_[0]->{"${private}schema"} }
+
+# Make it look like there is only one key in the hash
+sub FETCH { exists $_[0]->{$_[1]} ? $_[0]->{$_[1]} : $_[0]->{"${private}schema"}{$_[1]} }
+sub FIRSTKEY {'$ref'}
+sub KEYS     {'$ref'}
+sub NEXTKEY  {undef}
+sub SCALAR   {1}
+
+sub TIEHASH {
+  my ($class, $schema, $ref, $fqn) = @_;
+  bless {'$ref' => $ref, "${private}fqn" => $fqn // $ref, "${private}schema" => $schema}, $class;
+}
 
 # jhthorsen: This cannot return schema() since it might cause circular references
 sub TO_JSON { {'$ref' => $_[0]->ref} }
@@ -27,6 +44,9 @@ L<JSON::Validator::Ref> is a class representing a C<$ref> inside a JSON Schema.
 
 Note that this module should be considered internal to the L<JSON::Validator>
 project and the API is subject to change.
+
+This class is currently EXPERIMENTAL and can be replaced if a bug is
+discovered, without any warning.
 
 =head1 ATTRIBUTES
 
