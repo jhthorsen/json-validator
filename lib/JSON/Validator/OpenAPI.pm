@@ -145,10 +145,10 @@ sub validate_response {
   }
 }
 
-sub _register_ref {
-  my ($self, $topic, $schema_url) = @_;
+sub _resolve_ref {
+  my ($self, $topic, $url) = @_;
   $topic->{'$ref'} = "#/definitions/$topic->{'$ref'}" if $topic->{'$ref'} =~ /^\w+$/;
-  return $self->SUPER::_register_ref($topic, $schema_url);
+  return $self->SUPER::_resolve_ref($topic, $url);
 }
 
 sub _validate_request_value {
