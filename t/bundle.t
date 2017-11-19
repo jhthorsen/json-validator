@@ -38,4 +38,11 @@ for my $n (1 .. 3) {
   is $bundled->{name}{'$ref'}, '#/definitions/name', "[$n] name \$ref point to /definitions/name";
 }
 
+is $validator->get([qw(name type)]), 'string', 'get /name/$ref';
+is $validator->get('/name/type'), 'string', 'get /name/type';
+is $validator->get('/name/$ref'), undef,    'get /name/$ref';
+is $validator->schema->get('/name/type'), undef, 'schema get /name/type';
+is $validator->schema->get('/name/$ref'), undef, 'schema get /name/$ref';
+is $validator->schema->get('/name')->{'$ref'}, '#/definitions/name', 'schema get /name -> $ref';
+
 done_testing;

@@ -122,6 +122,32 @@ sub coerce {
   $self;
 }
 
+sub get {
+  my ($self, $pointer) = @_;
+  my $data = $self->schema->data;
+
+  return $data unless ref $pointer or $pointer =~ s!^/!!;
+  $pointer = [length $pointer ? (split '/', $pointer, -1) : ($pointer)] unless ref $pointer;
+  for my $p (@$pointer) {
+    $p =~ s!~1!/!g;
+    $p =~ s/~0/~/g;
+
+    if (ref $data eq 'HASH' and exists $data->{$p}) {
+      $data = $data->{$p};
+    }
+    elsif (ref $data eq 'ARRAY' and $p =~ /^\d+$/ and @$data > $p) {
+      $data = $data->[$p];
+    }
+    else {
+      return undef;
+    }
+
+    $data = $data->schema if UNIVERSAL::isa($data, 'JSON::Validator::Ref');
+  }
+
+  return $data;
+}
+
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
   $spec = $self->_reset->_resolve($spec);
@@ -1285,6 +1311,20 @@ as L<Mojo::JSON> or other JSON parsers.
 The coercion rules are EXPERIMENTAL and will be tighten/loosen if
 bugs are reported. See L<https://github.com/jhthorsen/json-validator/issues/8>
 for more details.
+
+=head2 get
+
+  $sub_schema = $self->get("/x/y");
+
+Extract value from L</schema> identified by the given JSON Pointer. Will at the
+same time resolve C<$ref> if found. Example:
+
+  $self->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
+  $self->schema->get('/x')           == undef
+  $self->schema->get('/x')->{'$ref'} == '#/y'
+  $self->get('/x')                   == {type => 'string'}
+
+This method is EXPERIMENTAL.
 
 =head2 load_and_validate_schema
 
