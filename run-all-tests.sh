@@ -5,7 +5,7 @@
 # HASH_ITERATIONS=10 sh test.sh -v t/plugin-yaml.t
 # PERL_HASH_SEED=8 sh test.sh -v t/plugin-yaml.t
 
-export PERL5LIB=$PWD/lib;
+export PERL5LIB="$PWD/lib:$PERL5LIB";
 # export SWAGGER2_DEBUG=1;
 
 t () {
