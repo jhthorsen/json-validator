@@ -1,16 +1,16 @@
 #!/bin/sh
 # Usage:
-# sh test.sh -j8
-# PROJECT=json-validator sh test.sh -j8
-# HASH_ITERATIONS=10 sh test.sh -v t/plugin-yaml.t
-# PERL_HASH_SEED=8 sh test.sh -v t/plugin-yaml.t
+# sh run-all-tests.sh -j8
+# PROJECT=json-validator sh run-all-tests.sh -j8
+# HASH_ITERATIONS=10 sh run-all-tests.sh -v t/plugin-yaml.t
+# PERL_HASH_SEED=8 sh run-all-tests.sh -v t/plugin-yaml.t
 
 export PERL5LIB="$PWD/lib:$PERL5LIB";
 # export SWAGGER2_DEBUG=1;
 
 t () {
-  echo "\$ cd ../$PROJECT && prove -l $@";
-  cd ../$PROJECT && prove -l $@ || exit $?;
+  echo "\$ cd ../$PROJECT && prove -l $*";
+  cd ../$PROJECT && prove -l "$@" || exit $?;
 }
 
 if [ -n "$PERL_HASH_SEED" ]; then
@@ -26,10 +26,11 @@ if [ $HASH_ITERATIONS -gt 0 ]; then
     sh $0 $@ || break
   done
 elif [ "x$PROJECT" != "x" ]; then
-  t $@;
+  t "$@";
 else
-  PROJECT=json-validator t $@;
-  PROJECT=mojolicious-plugin-openapi t $@;
+  PROJECT=json-validator t "$@";
+  PROJECT=mojolicious-plugin-openapi t "$@";
+  PROJECT=openapi-client t "$@";
 fi
 
 exit $?;
