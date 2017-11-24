@@ -1,9 +1,9 @@
 #!/bin/sh
 # Usage:
-# sh test.sh -j8
-# PROJECT=json-validator sh test.sh -j8
-# HASH_ITERATIONS=10 sh test.sh -v t/plugin-yaml.t
-# PERL_HASH_SEED=8 sh test.sh -v t/plugin-yaml.t
+# sh run-all-tests.sh -j8
+# PROJECT=json-validator sh run-all-tests.sh -j8
+# HASH_ITERATIONS=10 sh run-all-tests.sh -v t/plugin-yaml.t
+# PERL_HASH_SEED=8 sh run-all-tests.sh -v t/plugin-yaml.t
 
 export PERL5LIB="$PWD/lib:$PERL5LIB";
 # export SWAGGER2_DEBUG=1;
