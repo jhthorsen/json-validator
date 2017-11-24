@@ -30,6 +30,7 @@ elif [ "x$PROJECT" != "x" ]; then
 else
   PROJECT=json-validator t "$@";
   PROJECT=mojolicious-plugin-openapi t "$@";
+  PROJECT=openapi-client t "$@";
 fi
 
 exit $?;
