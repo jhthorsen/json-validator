@@ -1,5 +1,6 @@
 package JSON::Validator::OpenAPI::Mojolicious;
 use Mojo::Base 'JSON::Validator::OpenAPI';
+use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG};
 
 sub _get_request_data {
   my ($self, $c, $in) = @_;
@@ -62,6 +63,15 @@ sub _set_response_data {
   my ($self, $c, $in, $name => $value) = @_;
   return $c->res->headers->header($name => ref $value ? @$value : $value) if $in eq 'header';
   JSON::Validator::OpenAPI::_confess_invalid_in($in);
+}
+
+sub _load_schema {
+  my ($self, $url) = @_;
+  if ($url =~ m!^/! and !-e $url and $self->ua->server->app) {
+    warn "[".__PACKAGE__."] Loading schema from app: $url\n" if DEBUG;
+    return $self->_load_schema_from_url($url), $url;
+  }
+  $self->SUPER::_load_schema($url);
 }
 
 1;
