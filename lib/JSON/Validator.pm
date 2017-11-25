@@ -293,6 +293,7 @@ sub _ref_to_schema {
 
 sub _register_schema {
   my ($self, $schema, $fqn) = @_;
+  $fqn //= 'localhost'; # will be undef if getting schema from app
   $fqn =~ s!(.)#$!$1!;
   $self->{schemas}{$fqn} = $schema;
 }

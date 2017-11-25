@@ -63,4 +63,26 @@ is "@errors", "/huntingSkill: Missing property.", "missing property";
 
 diag join ',', @errors;
 
+{
+  require Mojolicious;
+  my $app = Mojolicious->new;
+  $app->routes->get(
+    '/api' => sub {
+      my $c   = shift;
+      $c->render(json => {
+        swagger => "2.0",
+        info => { version => "0.8", title => "Test client spec" },
+        schemes => [ "http" ],
+        host => "api.example.com",
+        basePath => "/v1",
+        paths => {},
+      });
+    }
+  );
+  my $validator = JSON::Validator::OpenAPI::Mojolicious->new;
+  $validator->ua->server->app($app);
+  eval { $validator->load_and_validate_schema('/api', {}) };
+  is $@, '', 'validator can load schema from app';
+}
+
 done_testing;
