@@ -22,6 +22,9 @@ $validator->ua->server->app->routes->get(
 );
 
 eval { $validator->load_and_validate_schema('/api') };
+
+# Some CPAN testers says: [JSON::Validator] GET http://127.0.0.1:61594/api == Service Unavailable at JSON/Validator.pm line 274.
+plan skip_all => $@ if $@ =~ /Service Unavailable/i;
 is $@, '', 'loaded valid schema from app';
 
 eval { $validator->load_and_validate_schema('/api?fail=1') };

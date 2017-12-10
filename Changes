@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+1.08 Not Released
+ - Skip load-from-app.t if "Service Unavailable"
+
 1.07 2017-11-27T17:37:51+0100
  - Can load schame from internal app #85
 
