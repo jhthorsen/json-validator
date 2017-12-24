@@ -44,7 +44,7 @@ sub validate_request {
 
   for my $p (@{$schema->{parameters} || []}) {
     my ($in, $name, $type) = @$p{qw(in name type)};
-    my ($exists, $value);
+    my ($exists, $value) = (0, undef);
 
     if ($in eq 'body') {
       $value = $self->_get_request_data($c, $in);
@@ -65,7 +65,9 @@ sub validate_request {
       $value = $self->_coerce_by_collection_format($value, $p);
     }
 
-    if ($type and defined($value //= $p->{default})) {
+    ($exists, $value) = (1, $p->{default}) if !$exists and exists $p->{default};
+
+    if ($type and defined $value) {
       if ($type ne 'array' and ref $value eq 'ARRAY') {
         $value = $value->[-1];
       }
@@ -85,12 +87,9 @@ sub validate_request {
     if (my @e = $self->_validate_request_value($p, $name => $value)) {
       push @errors, @e;
     }
-    elsif ($exists or exists $p->{default}) {
+    elsif ($exists) {
       $input->{$name} = $value;
-      $self->_set_request_data($c, $in, $name => $value);
-    }
-    elsif (!$exists and exists $p->{default}) {
-      $self->_set_request_data($c, $in, $name => $value);
+      $self->_set_request_data($c, $in, $name => $value) if defined $value;
     }
   }
 

@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 1.08 Not Released
+ - Fix setting default value from $ref jhthorsen/mojolicious-plugin-openapi#53
  - Skip load-from-app.t if "Service Unavailable"
 
 1.07 2017-11-27T17:37:51+0100
