@@ -1,5 +1,7 @@
 # You can install this projct with curl -L http://cpanmin.us | perl - https://github.com/jhthorsen/json-validator/archive/master.tar.gz
 requires "Mojolicious" => "7.15";
+requires "Hash::MultiValue";
+requires "Tie::StdHash";
 
 recommends "Cpanel::JSON::XS"       => "3.02";
 recommends "Data::Validate::Domain" => "0.10";
