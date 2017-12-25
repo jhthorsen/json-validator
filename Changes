@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+1.09 Not Released
+ - Removed deprecated method load_and_validate_spec()
+
 1.08 2017-12-24T13:25:50+0100
  - Fix setting default value from $ref jhthorsen/mojolicious-plugin-openapi#53
  - Skip load-from-app.t if "Service Unavailable"

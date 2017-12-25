@@ -4,15 +4,15 @@ use JSON::Validator::OpenAPI;
 
 my $validator = JSON::Validator::OpenAPI->new;
 
-is $validator->load_and_validate_spec('data://main/echo.json'), $validator,
-  'load_and_validate_spec no options';
+is $validator->load_and_validate_schema('data://main/echo.json'), $validator,
+  'load_and_validate_schema no options';
 is $validator->schema->get('/info/version'), '42.0', 'version';
 
-eval { $validator->load_and_validate_spec('data://main/swagger2/issues/89.json') };
+eval { $validator->load_and_validate_schema('data://main/swagger2/issues/89.json') };
 like $@, qr{/definitions/\$ref}si, 'ref in the wrong place';
 
 eval {
-  $validator->load_and_validate_spec('data://main/swagger2/issues/89.json',
+  $validator->load_and_validate_schema('data://main/swagger2/issues/89.json',
     {allow_invalid_ref => 1, version_from_class => 'JSON::Validator'});
   is $validator->schema->get('/info/version'), JSON::Validator->VERSION, 'version_from_class';
   is_deeply $validator->schema->get('/definitions/foo/properties'), {}, 'allow_invalid_ref';

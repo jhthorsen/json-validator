@@ -28,9 +28,6 @@ sub load_and_validate_schema {
   return $self;
 }
 
-# deprecated
-sub load_and_validate_spec { goto &load_and_validate_schema }
-
 sub validate_input {
   my $self = shift;
   local $self->{validate_input} = 1;
