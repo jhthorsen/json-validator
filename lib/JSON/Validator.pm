@@ -521,7 +521,7 @@ sub _validate_type_number {
     and $value * 0 == 0)
   {
     return E $path, "Expected $expected - got string."
-      if !$self->{coerce}{numbers} or $value =~ /\D/;
+      if !$self->{coerce}{numbers} or $value !~ /^-?\d+(?:[.]\d+)?(?:e[+-]\d+)?$/smxi;
     $_[1] = 0 + $value;    # coerce input value
   }
 
