@@ -16,7 +16,7 @@ use Scalar::Util qw(blessed refaddr);
 use Time::Local ();
 
 use constant COLORS => eval { require Term::ANSIColor };
-use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG};
+use constant DEBUG  => $ENV{JSON_VALIDATOR_DEBUG};
 use constant REPORT => $ENV{JSON_VALIDATOR_REPORT} // $ENV{JSON_VALIDATOR_DEBUG};
 use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';

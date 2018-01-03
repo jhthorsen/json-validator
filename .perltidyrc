@@ -10,3 +10,4 @@
 -bt=2    # High brace tightness
 -sbt=2   # High square bracket tightness
 -isbc    # Don't indent comments without leading space
+-wn      # Opening and closing containers to be "welded" together
