@@ -5,6 +5,6 @@ recommends "Cpanel::JSON::XS"       => "3.02";
 recommends "Data::Validate::Domain" => "0.10";
 recommends "Data::Validate::IP"     => "0.24";
 recommends "Mojo::JSON::MaybeXS"    => "0.01";
-recommends "YAML::XS"               => "0.59";
+recommends "YAML::XS"               => "0.67";
 
 test_requires "Test::More" => "1.30";

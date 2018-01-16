@@ -251,8 +251,10 @@ sub _load_schema_from_text {
     return $v;
   };
 
-  local $YAML::Syck::ImplicitTyping = 1;
-  return $visit->($self->coerce(1)->_yaml_module->can('Load')->($$text));
+  require YAML::XS;
+  YAML::XS->VERSION('0.67');
+  local $YAML::XS::Boolean = 'JSON::PP';
+  return $visit->(YAML::XS::Load($$text));
 }
 
 sub _load_schema_from_url {
@@ -565,15 +567,12 @@ sub _validate_type_enum {
   my $m    = S $data;
 
   for my $i (@$enum) {
-    return
-      if !(defined $data and $self->_validate_type_boolean($data, $path))
-      and _is_true($data) == _is_true($i);
     return if $m eq S $i;
   }
 
   local $" = ', ';
   return E $path, sprintf 'Not in enum list: %s.', join ', ',
-    map { ref $_ ? Mojo::JSON::encode_json($_) : $_ } @$enum;
+    map { (!defined or ref) ? Mojo::JSON::encode_json($_) : $_ } @$enum;
 }
 
 sub _validate_type_const {
@@ -924,13 +923,6 @@ sub _is_ipv4 {
 
 sub _is_ipv6 { warn "Data::Validate::IP is not installed"; return; }
 
-sub _is_true {
-  local $_ = $_[0];
-  return 0 + $_ if ref $_ and !blessed $_;
-  return 0 if !$_ or /^(n|false|off)/i;
-  return 1;
-}
-
 sub _is_blessed_boolean {
   return 0 if !blessed $_[0];
   return 1 if UNIVERSAL::isa($_[0], 'JSON::PP::Boolean') or "$_[0]" eq "1" or !$_[0];
@@ -985,20 +977,6 @@ sub _uniq {
   grep { !$uniq{$_}++ } @_;
 }
 
-# Please report if you need to manually monkey patch this function
-# https://github.com/jhthorsen/json-validator/issues
-sub _yaml_module {
-  state $yaml_module = do {
-    require List::Util;
-    my @modules = qw(YAML::XS YAML::Syck);                                  # subject to change
-    my $module = (List::Util::first { eval "require $_;1" } @modules)[0];
-    die "Need to install one of these YAML modules: @modules (YAML::XS is recommended)"
-      unless $module;
-    warn "[JSON::Validator] Using $module to parse YAML\n" if DEBUG;
-    $module;
-  };
-}
-
 1;
 
 =encoding utf8
@@ -1050,12 +1028,14 @@ which will replace L<Mojolicious::Plugin::Swagger2>.
 =head2 Supported schema formats
 
 L<JSON::Validator> can load JSON schemas in multiple formats: Plain perl data
-structured (as shown in L</SYNOPSIS>) or files on disk/web in the JSON/YAML
-format. The JSON parsing is done using L<Mojo::JSON>, while the YAML parsing
-is done with an optional modules which need to be installed manually.
-L<JSON::Validator> will look for the YAML modules in this order: L<YAML::XS>,
-L<YAML::Syck>. The order is set by which module that performs the best, so it
-might change in the future.
+structured (as shown in L</SYNOPSIS>), JSON or YAML. The JSON parsing is done
+with L<Mojo::JSON>, while YAML files require the optional module L<YAML::XS> to
+be installed.
+
+IMPORTANT! L<YAML::Syck> is not supported in L<JSON::Validator> 2.00. Only
+L<YAML::XS> is supported, since it has proper boolean handling. Look for
+C<$YAML::XS::Boolean> in the documentation to see what is recognized as
+booleans.
 
 =head2 Resources
 
