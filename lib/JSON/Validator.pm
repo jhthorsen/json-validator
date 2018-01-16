@@ -451,7 +451,7 @@ sub _validate {
   }
 
   if ($schema->{enum}) {
-    @errors = $self->_validate_type_enum($data, $path, $schema);
+    push @errors, $self->_validate_type_enum($data, $path, $schema);
     $self->_report_errors($path, 'enum', \@errors) if REPORT;
     return @errors if @errors;
   }
