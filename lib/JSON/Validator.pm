@@ -251,10 +251,9 @@ sub _load_schema_from_text {
     return $v;
   };
 
-  require YAML::XS;
-  YAML::XS->VERSION('0.67');
-  local $YAML::XS::Boolean = 'JSON::PP';
-  return $visit->(YAML::XS::Load($$text));
+  local $YAML::Syck::ImplicitTyping = 1;            # Not in use
+  local $YAML::XS::Boolean          = 'JSON::PP';
+  return $visit->($self->_yaml_module->can('Load')->($$text));
 }
 
 sub _load_schema_from_url {
@@ -976,6 +975,10 @@ sub _uniq {
   my %uniq;
   grep { !$uniq{$_}++ } @_;
 }
+
+# Please report if you need to manually monkey patch this function
+# https://github.com/jhthorsen/json-validator/issues
+sub _yaml_module { state $yaml_module = eval q[use YAML::XS 0.67; "YAML::XS"] }
 
 1;
 
