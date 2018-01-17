@@ -152,7 +152,7 @@ sub _validate_request_value {
   my $type = $p->{type} || 'object';
   my @e;
 
-  return if !defined $value and !JSON::Validator::_is_true($p->{required});
+  return if !defined $value and !$p->{required};
 
   my $in     = $p->{in};
   my $schema = {

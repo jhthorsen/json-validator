@@ -33,28 +33,26 @@ validate_ok(
   E('/some_prop/0', 'Not in enum list: x, y.')
 );
 
-# This fails, because the "enum" contains the string "nick"!
-validate_ok(
-  {name => undef},
-  {
-    type       => 'object',
-    required   => ['name'],
-    properties => {name => {type => ['string'], enum => [qw(alex nick)]}},
-  },
-  E('/name', 'anyOf failed: Expected string, got null.'),
-  E('/name', 'Not in enum list: supergirl, batboy.'),
-);
+for my $v (undef, false, true) {
+  validate_ok(
+    {name => $v},
+    {
+      type       => 'object',
+      required   => ['name'],
+      properties => {name => {type => [qw(boolean null)], enum => [undef, false, true]}},
+    },
+  );
+}
 
-# ...while this is ok
 validate_ok(
   {name => undef},
   {
     type       => 'object',
     required   => ['name'],
-    properties => {name => {type => ['string'], enum => [qw(supergirl batboy)]}},
+    properties => {name => {type => ['string'], enum => [qw(n yes true false)]}},
   },
   E('/name', 'anyOf failed: Expected string, got null.'),
-  E('/name', 'Not in enum list: supergirl, batboy.'),
+  E('/name', 'Not in enum list: n, yes, true, false.'),
 );
 
 done_testing;

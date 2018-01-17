@@ -1,6 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
-1.09 Not Released
+2.00 Not Released
+ - Fix validating against any enum value #22
+ - Require YAML::XS 0.67 for proper boolean handling
+ - Removed support for parsing YAML with YAML::Syck
  - Removed deprecated method load_and_validate_spec()
 
 1.08 2017-12-24T13:25:50+0100

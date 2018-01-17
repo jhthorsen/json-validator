@@ -23,11 +23,10 @@ validate_ok {v => '0'},     $schema, E('/v', 'Expected boolean - got string.');
 validate_ok {v => ''},      $schema, E('/v', 'Expected boolean - got string.');
 
 SKIP: {
-  skip 'YAML::XS is not installed', 1 unless eval 'require YAML::XS;1';
-  t::Helper->validator->coerce(booleans => 0);  # see that _load_schema_from_text() turns it back on
+  skip 'YAML::XS is not installed', 1 unless eval q[require YAML::XS;YAML::XS->VERSION('0.67');1];
   my $data = t::Helper->validator->_load_schema_from_text(\"---\nv: true\n");
+  isa_ok($data->{v}, 'JSON::PP::Boolean');
   validate_ok $data, $schema;
-  ok(t::Helper->validator->coerce->{booleans}, 'coerce booleans');
 }
 
 SKIP: {
