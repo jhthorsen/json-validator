@@ -1,6 +1,7 @@
 use Mojo::Base -strict;
 use Test::More;
 use JSON::Validator;
+use File::Spec;
 
 my $validator = JSON::Validator->new;
 my $bundled;
@@ -45,6 +46,16 @@ is $validator->schema->get('/name/$ref'), '#/definitions/name', 'schema get /nam
 
 $bundled = $validator->schema('data://main/api.json')->bundle;
 is_deeply [ sort keys %{ $bundled->{definitions} } ], [ 'objtype' ], 'no dup definitions';
+
+my $file
+  = File::Spec->catfile(File::Basename::dirname(__FILE__), 'spec', 'with-deep-mixed-ref.json');
+$bundled = $validator->schema($file)->bundle;
+is_deeply [ sort keys %{ $bundled->{definitions} } ], [qw(
+  _t_definitions_age_json
+  _t_definitions_unit_json
+  _t_definitions_weight_json
+  height
+)], 'right definitions in disk spec';
 
 done_testing;
 
