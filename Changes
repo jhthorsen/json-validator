@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+2.01 Not Released
+ - Fix bundle method not spotting "local" fqn when schema from URL
+
 2.00 2018-01-19T10:36:23+0100
  - Fix validating against any enum value #22
  - Require YAML::XS 0.67 for proper boolean handling

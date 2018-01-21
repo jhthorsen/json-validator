@@ -85,7 +85,7 @@ sub bundle {
       my $ref  = ref $from;
 
       if ($ref eq 'HASH' and my $tied = tied %$from) {
-        return $from if $tied->fqn =~ m!^\#!;
+        return $from if $tied->fqn =~ m!^$self->{root_schema_url}\#!;
         my $name = $self->$def_name_cb($tied->fqn);
         push @topics, [$tied->schema, $bundle->{definitions}{$name} = {}];
         tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/definitions/$name";

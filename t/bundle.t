@@ -43,4 +43,28 @@ is $validator->get('/name/$ref'), undef,    'get /name/$ref';
 is $validator->schema->get('/name/type'), 'string',             'schema get /name/type';
 is $validator->schema->get('/name/$ref'), '#/definitions/name', 'schema get /name/$ref';
 
+$bundled = $validator->schema('data://main/api.json')->bundle;
+is_deeply [ sort keys %{ $bundled->{definitions} } ], [ 'objtype' ], 'no dup definitions';
+
 done_testing;
+
+__DATA__
+
+@@ api.json
+{
+   "definitions" : {
+      "objtype" : {
+         "type" : "object",
+         "properties" : { "propname" : { "type" : "string" } }
+      }
+   },
+   "paths" : {
+      "/withdots" : {
+         "get" : {
+            "responses" : {
+               "200" : { "schema" : { "$ref" : "#/definitions/objtype" } }
+            }
+         }
+      }
+   }
+}
