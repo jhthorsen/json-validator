@@ -16,7 +16,14 @@ like "@errors", qr{Expected integer - got string}, 'string != integer';
 # readOnly
 $schema->{properties}{age}{readOnly} = Mojo::JSON->true;
 @errors = $openapi->validate_input({age => 42}, $schema);
-like "@errors", qr{Read-only}, 'ro';
+is "@errors", '/age: Read-only.', 'age is ro';
+
+$schema->{required} = ['age'];
+@errors = $openapi->validate_input({no_age => 42}, $schema);
+is "@errors", '', 'age is readOnly, so not required in input';
+
+@errors = $openapi->validate({no_age => 42}, $schema);
+is "@errors", '/age: Missing property.', 'age is missing in output';
 
 # collectionFormat
 $schema = {type => 'array', items => {collectionFormat => 'csv', type => 'integer'}};
@@ -29,23 +36,21 @@ $schema = {type => 'file', required => Mojo::JSON->true};
 like "@errors", qr{Missing property}, 'file';
 
 # discriminator
-$openapi->schema(
-  {
-    definitions => {
-      Cat => {
-        type       => 'object',
-        required   => ['huntingSkill'],
-        properties => {
-          huntingSkill => {
-            default => 'lazy',
-            enum    => ['clueless', 'lazy', 'adventurous', 'aggressive'],
-            type    => 'string',
-          }
+$openapi->schema({
+  definitions => {
+    Cat => {
+      type       => 'object',
+      required   => ['huntingSkill'],
+      properties => {
+        huntingSkill => {
+          default => 'lazy',
+          enum    => ['clueless', 'lazy', 'adventurous', 'aggressive'],
+          type    => 'string',
         }
       }
     }
   }
-);
+});
 $schema = {
   discriminator => 'petType',
   properties    => {petType => {'type' => 'string'}},
