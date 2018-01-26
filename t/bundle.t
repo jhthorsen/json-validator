@@ -1,6 +1,7 @@
 use Mojo::Base -strict;
 use Test::More;
 use JSON::Validator;
+use File::Spec;
 
 my $validator = JSON::Validator->new;
 my $bundled;
@@ -43,4 +44,38 @@ is $validator->get('/name/$ref'), undef,    'get /name/$ref';
 is $validator->schema->get('/name/type'), 'string',             'schema get /name/type';
 is $validator->schema->get('/name/$ref'), '#/definitions/name', 'schema get /name/$ref';
 
+$bundled = $validator->schema('data://main/api.json')->bundle;
+is_deeply [ sort keys %{ $bundled->{definitions} } ], [ 'objtype' ], 'no dup definitions';
+
+my $file
+  = File::Spec->catfile(File::Basename::dirname(__FILE__), 'spec', 'with-deep-mixed-ref.json');
+$bundled = $validator->schema($file)->bundle;
+is_deeply [ sort keys %{ $bundled->{definitions} } ], [qw(
+  _t_definitions_age_json
+  _t_definitions_unit_json
+  _t_definitions_weight_json
+  height
+)], 'right definitions in disk spec';
+
 done_testing;
+
+__DATA__
+
+@@ api.json
+{
+   "definitions" : {
+      "objtype" : {
+         "type" : "object",
+         "properties" : { "propname" : { "type" : "string" } }
+      }
+   },
+   "paths" : {
+      "/withdots" : {
+         "get" : {
+            "responses" : {
+               "200" : { "schema" : { "$ref" : "#/definitions/objtype" } }
+            }
+         }
+      }
+   }
+}

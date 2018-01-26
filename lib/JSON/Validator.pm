@@ -66,7 +66,7 @@ sub bundle {
   my @topics = ([undef, my $bundle = {}]);
   my ($cloner, $tied);
 
-  $topics[0][0] = $args->{schema} ? $self->_reset->_resolve($args->{schema}) : $self->schema->data;
+  $topics[0][0] = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
 
   if ($args->{replace}) {
     $cloner = sub {
@@ -85,7 +85,7 @@ sub bundle {
       my $ref  = ref $from;
 
       if ($ref eq 'HASH' and my $tied = tied %$from) {
-        return $from if $tied->fqn =~ m!^\#!;
+        return $from if $tied->fqn =~ m!^$self->{root_schema_url}\#!;
         my $name = $self->$def_name_cb($tied->fqn);
         push @topics, [$tied->schema, $bundle->{definitions}{$name} = {}];
         tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/definitions/$name";
@@ -152,7 +152,7 @@ sub get {
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
-  $spec = $self->_reset->_resolve($spec);
+  $spec = $self->_resolve($spec);
   my @errors = $self->new(%$self)->schema($args->{schema} || SPECIFICATION_URL)->validate($spec);
   confess join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors if @errors;
   $self->{schema} = Mojo::JSON::Pointer->new($spec);
@@ -162,7 +162,7 @@ sub load_and_validate_schema {
 sub schema {
   my $self = shift;
   return $self->{schema} unless @_;
-  $self->{schema} = Mojo::JSON::Pointer->new($self->_reset->_resolve(shift));
+  $self->{schema} = Mojo::JSON::Pointer->new($self->_resolve(shift));
   return $self;
 }
 
@@ -328,17 +328,14 @@ sub _report_schema {
   push @{$self->{report}}, [(('  ') x $self->{grouped}) . ('<<<'), $path || '/', $type, D $schema];
 }
 
-sub _reset {
-  delete $_[0]->{schemas}{''};
-  $_[0]->{level} = 0;
-  $_[0];
-}
-
 # _resolve() method is used to convert all "id" into absolute URLs and
 # resolve all the $ref's that we find inside JSON Schema specification.
 sub _resolve {
   my ($self, $schema) = @_;
   my ($id, $resolved, @refs);
+
+  local $self->{level} = $self->{level} || 0;
+  delete $_[0]->{schemas}{''} unless $self->{level};
 
   if (ref $schema eq 'HASH') {
     $id = $schema->{id} // '';
@@ -352,11 +349,17 @@ sub _resolve {
     $id = $schema->{id} if $schema->{id};
   }
 
-  if (!$self->{level}++ and my $id = $schema->{id}) {
-    confess "Root schema cannot have a fragment in the 'id'. ($id)" if $id =~ /\#./;
-    confess "Root schema cannot have a relative 'id'. ($id)" if $id and $id !~ /^\w+:/;
+  unless ($self->{level}) {
+    my $rid = $schema->{id} // $id;
+    if ($rid) {
+      confess "Root schema cannot have a fragment in the 'id'. ($rid)" if $rid =~ /\#./;
+      confess "Root schema cannot have a relative 'id'. ($rid)"
+        unless $rid =~ /^\w+:/ or -e $rid or $rid =~ m!^/!;
+    }
+    $self->{root_schema_url} = $rid;
   }
 
+  $self->{level}++;
   $self->_register_schema($schema, $id);
 
   my @topics = ([$schema, Mojo::URL->new($id)]);
