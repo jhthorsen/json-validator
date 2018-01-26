@@ -1,7 +1,7 @@
 package JSON::Validator::OpenAPI;
 use Carp ();
 use Mojo::Base 'JSON::Validator';
-use Mojo::Util qw(deprecated monkey_patch);
+use Mojo::Util;
 use Scalar::Util ();
 
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
@@ -115,30 +115,6 @@ sub validate_response {
   }
 
   return @errors;
-}
-
-{
-  my @proxy_methods = qw(
-    _get_request_uploads
-    _get_request_data
-    _set_request_data
-    _get_response_data
-    _set_response_data
-  );
-
-  for my $method (@proxy_methods) {
-    monkey_patch(__PACKAGE__,
-      $method => sub {
-        deprecated "Using JSON::Validator::OpenAPI directly is DEPRECATED."
-          . " For the Mojolicious-specific methods use JSON::Validator::OpenAPI::Mojolicious";
-
-        require JSON::Validator::OpenAPI::Mojolicious;
-        my $self = shift;
-        bless $self, 'JSON::Validator::OpenAPI::Mojolicious';
-        return $self->$method(@_);
-      }
-    );
-  }
 }
 
 sub _resolve_ref {
@@ -297,6 +273,20 @@ sub _is_date        { $_[0] =~ /^(\d+)-(\d+)-(\d+)$/ }
 sub _is_number {
   return unless $_[0] =~ /^-?\d+(\.\d+)?$/;
   return $_[0] eq unpack $_[1], pack $_[1], $_[0];
+}
+
+for my $method (
+  qw(
+  _get_request_uploads
+  _get_request_data
+  _set_request_data
+  _get_response_data
+  _set_response_data
+  )
+  )
+{
+  Mojo::Util::monkey_patch(__PACKAGE__,
+    $method => sub { Carp::croak(qq(Method "$method" not implemented by subclass)) });
 }
 
 1;
