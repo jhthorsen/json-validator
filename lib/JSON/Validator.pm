@@ -36,20 +36,7 @@ sub D {
 sub E { JSON::Validator::Error->new(@_) }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump) }
 
-has cache_paths => sub {
-  my $self = shift;
-  my @paths = split /:/, ($ENV{JSON_VALIDATOR_CACHE_PATH} || '');
-
-  if ($ENV{JSON_VALIDATOR_CACHE_DIR}) {
-    warn "JSON_VALIDATOR_CACHE_DIR is deprecated in favor of JSON_VALIDATOR_CACHE_PATH\n"
-      unless $ENV{HARNESS_ACTIVE};
-    push @paths, split /:/, ($ENV{JSON_VALIDATOR_CACHE_DIR} || '');
-  }
-
-  push @paths, $BUNDLED_CACHE_DIR;
-  return \@paths;
-};
-
+has cache_paths => sub { [split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''), $BUNDLED_CACHE_DIR] };
 has formats => sub { shift->_build_formats };
 
 has ua => sub {
@@ -354,7 +341,9 @@ sub _resolve {
     if ($rid) {
       confess "Root schema cannot have a fragment in the 'id'. ($rid)" if $rid =~ /\#./;
       confess "Root schema cannot have a relative 'id'. ($rid)"
-        unless $rid =~ /^\w+:/ or -e $rid or $rid =~ m!^/!;
+        unless $rid =~ /^\w+:/
+        or -e $rid
+        or $rid =~ m!^/!;
     }
     $self->{root_schema_url} = $rid;
   }

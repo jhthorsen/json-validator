@@ -2,6 +2,7 @@ Revision history for perl distribution JSON-Validator
 
 2.01 Not Released
  - Fix bundle method not spotting "local" fqn when schema from URL
+ - Forgot to remove deprecated JSON_VALIDATOR_CACHE_DIR in 2.00
 
 2.00 2018-01-19T10:36:23+0100
  - Fix validating against any enum value #22
