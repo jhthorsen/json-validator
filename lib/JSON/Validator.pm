@@ -350,12 +350,13 @@ sub _resolve {
   }
 
   unless ($self->{level}) {
-    my $rid = $self->{root_schema_url} = $schema->{id} // $id;
+    my $rid = $schema->{id} // $id;
     if ($rid) {
       confess "Root schema cannot have a fragment in the 'id'. ($rid)" if $rid =~ /\#./;
       confess "Root schema cannot have a relative 'id'. ($rid)"
         unless $rid =~ /^\w+:/ or -e $rid or $rid =~ m!^/!;
     }
+    $self->{root_schema_url} = $rid;
   }
 
   $self->{level}++;
