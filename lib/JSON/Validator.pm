@@ -558,6 +558,7 @@ sub _validate_type_enum {
   my $m    = S $data;
 
   for my $i (@$enum) {
+    return if $m eq S(undef) && S($i) eq S('null');
     return if $m eq S $i;
   }
 
