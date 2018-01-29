@@ -219,7 +219,7 @@ sub _load_schema {
     return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)), "$url";
   }
 
-  confess "Unable to load schema '$url'";
+  confess "Unable to load schema '$url' ($file)";
 }
 
 sub _load_schema_from_text {
