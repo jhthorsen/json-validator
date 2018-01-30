@@ -970,7 +970,10 @@ sub _uniq {
 
 # Please report if you need to manually monkey patch this function
 # https://github.com/jhthorsen/json-validator/issues
-sub _yaml_module { state $yaml_module = eval q[use YAML::XS 0.67; "YAML::XS"] }
+sub _yaml_module {
+  state $yaml_module = eval qq[use YAML::XS 0.67; "YAML::XS"]
+    || die "[JSON::Validator] The optional YAML::XS module is missing or could not be loaded: $@";
+}
 
 1;
 
