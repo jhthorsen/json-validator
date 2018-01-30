@@ -24,7 +24,7 @@ use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 our $ERR;    # ugly hack to improve validation errors
-our $VERSION   = '2.01';
+our $VERSION   = '2.02';
 our @EXPORT_OK = 'validate_json';
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
@@ -985,7 +985,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-2.01
+2.02
 
 =head1 SYNOPSIS
 

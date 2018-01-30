@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-2.02 Not Released
+2.02 2018-01-30T15:35:56+0100
  - Will let the user know if YAML::XS 0.67 (or later) need to be installed
 
 2.01 2018-01-26T23:05:29+0100
