@@ -3,7 +3,7 @@ use Test::More;
 use JSON::Validator;
 use Mojo::File 'path';
 
-my $file      = File::Spec->catfile(File::Basename::dirname(__FILE__), 'spec', 'person.json');
+my $file      = path(path(__FILE__)->dirname, 'spec', 'person.json');
 my $validator = JSON::Validator->new->schema($file);
 my @errors    = $validator->validate({firstName => 'yikes!'});
 

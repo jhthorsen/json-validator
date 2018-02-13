@@ -1,7 +1,7 @@
 use Mojo::Base -strict;
 use Test::More;
 use JSON::Validator;
-use File::Temp;
+use Mojo::File 'tempdir';
 
 plan skip_all => 'TEST_ONLINE=1' unless $ENV{TEST_ONLINE};
 
@@ -16,10 +16,10 @@ $validator->schema('https://za.payprop.com/api/docs/api_spec.yaml');
 my @new_files = get_cached_files($validator);
 ok @old_files == @new_files, 'remote file not cached in default cache dir';
 
-my $tmp_dir = File::Temp->newdir;
-$ENV{JSON_VALIDATOR_CACHE_PATH} = join ':', $tmp_dir->dirname, '/tmp/whatever';
+my $tempdir = tempdir;
+$ENV{JSON_VALIDATOR_CACHE_PATH} = join ':', $tempdir->dirname, '/tmp/whatever';
 $validator = JSON::Validator->new;
-is $validator->cache_paths->[0], $tmp_dir->dirname, 'env';
+is $validator->cache_paths->[0], $tempdir->dirname, 'env';
 $validator->schema('https://za.payprop.com/api/docs/api_spec.yaml');
 @new_files = get_cached_files($validator);
 ok @new_files > @old_files, 'remote file cached when cache_paths not the default'
