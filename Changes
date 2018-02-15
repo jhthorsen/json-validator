@@ -1,7 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
-2.02 2018-01-30T15:35:56+0100
+2.03 2018-02-15T22:33:36+0100
  - Will not leak file system information to bundled schema
+
+2.02 2018-01-30T15:35:56+0100
  - Will let the user know if YAML::XS 0.67 (or later) need to be installed
 
 2.01 2018-01-26T23:05:29+0100
