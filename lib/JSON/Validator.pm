@@ -66,7 +66,8 @@ sub bundle {
     };
   }
   else {
-    $bundle->{definitions} ||= {%{$topics[0][0]{definitions} || {}}};
+    my %defs = %{$topics[0][0]{definitions} || {}};
+    $bundle->{definitions} ||= \%defs if %defs;
     $cloner = sub {
       my $from = shift;
       my $ref  = ref $from;
