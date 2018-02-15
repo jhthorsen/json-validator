@@ -11,7 +11,7 @@ use Mojo::JSON::Pointer;
 use Mojo::JSON;
 use Mojo::Loader;
 use Mojo::URL;
-use Mojo::Util 'url_unescape';
+use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
 use Time::Local ();
 
@@ -49,7 +49,6 @@ has ua => sub {
 
 sub bundle {
   my ($self, $args) = @_;
-  my $def_name_cb = $args->{definitions_name} || \&_definitions_name;
   my @topics = ([undef, my $bundle = {}]);
   my ($cloner, $tied);
 
@@ -66,17 +65,26 @@ sub bundle {
     };
   }
   else {
-    my %defs = %{$topics[0][0]{definitions} || {}};
-    $bundle->{definitions} ||= \%defs if %defs;
+    my $ref_key = $args->{ref_key} || 'x-bundled';
+    $bundle->{$ref_key} = $topics[0][0]{$ref_key} || {};
     $cloner = sub {
       my $from = shift;
       my $ref  = ref $from;
 
       if ($ref eq 'HASH' and my $tied = tied %$from) {
-        return $from if $tied->fqn =~ m!^$self->{root_schema_url}\#!;
-        my $name = $self->$def_name_cb($tied->fqn);
-        push @topics, [$tied->schema, $bundle->{definitions}{$name} = {}];
-        tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/definitions/$name";
+        my $ref_name = $tied->fqn;
+        return $from if $ref_name =~ m!^$self->{root_schema_url}\#!;
+
+        if (-e $ref_name) {
+          $ref_name = sprintf '%s-%s', substr(sha1_sum($ref_name), 0, 10),
+            path($ref_name)->basename;
+        }
+        else {
+          $ref_name =~ s![^\w-]!_!g;
+        }
+
+        push @topics, [$tied->schema, $bundle->{$ref_key}{$ref_name} = {}];
+        tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/$ref_key/$ref_name";
         return \%ref;
       }
 
@@ -818,13 +826,6 @@ sub _cmp {
   return "$_[3]=" if $_[2] and $_[0] >= $_[1];
   return $_[3] if $_[0] > $_[1];
   return "";
-}
-
-sub _definitions_name {
-  local $_ = "$_[1]";
-  s!\#!-!g;
-  s![^\w-]!_!g;
-  return "_$_";
 }
 
 sub _expected {
