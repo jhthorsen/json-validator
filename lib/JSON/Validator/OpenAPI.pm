@@ -11,6 +11,7 @@ use constant SPECIFICATION_URL => 'http://swagger.io/v2/schema.json';
 my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
 
 has _json_validator => sub { state $v = JSON::Validator->new; };
+*E = \&JSON::Validator::E;
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
@@ -121,6 +122,39 @@ sub _resolve_ref {
   my ($self, $topic, $url) = @_;
   $topic->{'$ref'} = "#/definitions/$topic->{'$ref'}" if $topic->{'$ref'} =~ /^\w+$/;
   return $self->SUPER::_resolve_ref($topic, $url);
+}
+
+sub _validate {
+  my ($self, $data, $path, $schema) = @_;
+  my @errors = $self->SUPER::_validate($data, $path, $schema);
+  $schema = $self->_ref_to_schema($schema) if $schema->{'$ref'};
+  return @errors
+    if ($schema->{'$schema'}//'') ne $self->SUPER::SPECIFICATION_URL;
+  if (my $paths = $data->{paths}) {
+    push @errors, $self->_validate_paths($paths, "$path/paths");
+  }
+  return @errors;
+}
+
+sub _validate_paths {
+  my ($self, $data, $path) = @_;
+  $self->_report_schema($path, 'paths', $data) if $self->REPORT;
+  my @errors;
+  for my $rpath (sort keys %$data) {
+    next if !ref $data->{$rpath};
+    for my $method (sort keys %{$data->{$rpath}}) {
+      my $info = $data->{$rpath}{$method};
+      next if !exists $info->{parameters} or !@{$info->{parameters}};
+      my @body_params = grep $_->{in} eq 'body', @{$info->{parameters}};
+      next if @body_params <= 1;
+      (my $qpath = $rpath) =~ s!/!~1!g;
+      push @errors, E(
+        "$path/$qpath/$method",
+        "More than one 'body' parameter: @{[map $_->{name}, @body_params]}.",
+      );
+    }
+  }
+  return @errors;
 }
 
 sub _validate_request_value {
