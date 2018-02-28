@@ -221,7 +221,7 @@ sub _load_schema {
   if (-e $file) {
     $file = $file->realpath;
     warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
-    return $self->_load_schema_from_text(\$file->slurp), $url;
+    return $self->_load_schema_from_text(\$file->slurp), $file;
   }
   elsif ($file =~ m!^/!) {
     warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
@@ -354,6 +354,7 @@ sub _resolve {
         or -e $rid
         or $rid =~ m!^/!;
     }
+    warn sprintf "[JSON::Validator] Using root_schema_url of '$rid'\n" if DEBUG;
     $self->{root_schema_url} = $rid;
   }
 
