@@ -2,6 +2,7 @@ use Mojo::Base -strict;
 use Test::More;
 use JSON::Validator;
 use Mojo::File 'path';
+use JSON::Validator::OpenAPI;
 
 my $validator = JSON::Validator->new;
 my $bundled;
@@ -43,17 +44,33 @@ is $validator->schema->get('/name/$ref'), '#/definitions/name', 'schema get /nam
 $bundled = $validator->schema('data://main/api.json')->bundle({ref_key => 'definitions'});
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'], 'no dup definitions';
 
-my $file = path(path(__FILE__)->dirname, 'spec', 'with-deep-mixed-ref.json');
-$bundled = $validator->schema($file)->bundle({ref_key => 'definitions'});
-is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ } keys %{$bundled->{definitions}}], [
-  qw(
-    SHA-age.json
-    SHA-unit.json
-    SHA-weight.json
-    height
-    )
-  ],
-  'right definitions in disk spec';
+my @pathlists = (
+  [ 'spec', 'with-deep-mixed-ref.json' ],
+  [ 'spec', File::Spec->updir, 'spec', 'with-deep-mixed-ref.json' ],
+);
+for my $pathlist (@pathlists) {
+  my $file = path(path(__FILE__)->dirname, @$pathlist);
+  $bundled = $validator->schema($file)->bundle({ref_key => 'definitions'});
+  is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ } keys %{$bundled->{definitions}}], [
+    qw(
+      SHA-age.json
+      SHA-unit.json
+      SHA-weight.json
+      height
+      )
+    ],
+    'right definitions in disk spec';
+}
+
+# this test mimics what Mojolicious::Plugin::OpenAPI does when loading
+# a spec from a file that Mojolicious locates with a '..'
+# It checks that a $ref to something that's under /responses doesn't
+# get picked as remote, or if so that it doesn't make an invalid spec!
+my $openapi = JSON::Validator::OpenAPI->new;
+my $file2 = path(path(__FILE__)->dirname, 'spec', '..', 'spec', 'bundlecheck.json');
+$bundled = $openapi->schema($file2)->bundle;
+eval { $openapi->load_and_validate_schema($bundled) };
+is $@, '', 'bundled schema is valid';
 
 done_testing;
 
