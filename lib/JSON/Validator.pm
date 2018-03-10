@@ -124,24 +124,26 @@ sub get {
   my ($self, $pointer) = @_;
   $pointer = [ref $pointer ? @$pointer : length $pointer ? split('/', $pointer, -1) : $pointer];
   shift @$pointer if @$pointer and defined $pointer->[0] and !length $pointer->[0];
-  $self->_get($self->schema->data, $pointer);
+  $self->_get($self->schema->data, $pointer, '');
 }
 
 sub _get {
-  my ($self, $data, $path) = @_;
+  my ($self, $data, $path, $pos, $cb) = @_;
   my $tied;
 
   while (@$path) {
     my $p = shift @$path;
 
     unless (defined $p) {
-      return Mojo::Collection->new(map { $self->_get($_, [@$path]) }
-          ref $data eq 'ARRAY' ? @$data : ref $data eq 'HASH' ? map { $data->{$_} }
-          keys %$data : $data);
+      my $i = 0;
+      return Mojo::Collection->new(map { $self->_get($_->[0], [@$path], _path($pos, $_->[1]), $cb) }
+          ref $data eq 'ARRAY' ? map { [$_, $i++] }
+          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] } keys %$data : [$data, '']);
     }
 
     $p =~ s!~1!/!g;
     $p =~ s/~0/~/g;
+    $pos = _path($pos, $p) if $cb;
 
     if (ref $data eq 'HASH' and exists $data->{$p}) {
       $data = $data->{$p};
@@ -156,6 +158,7 @@ sub _get {
     $data = $tied->schema if ref $data eq 'HASH' and $tied = tied %$data;
   }
 
+  return $cb->($data, $pos) if $cb;
   return $data;
 }
 

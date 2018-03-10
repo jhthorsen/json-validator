@@ -1,5 +1,5 @@
 package JSON::Validator::OpenAPI;
-use Carp ();
+use Carp 'confess';
 use Mojo::Base 'JSON::Validator';
 use Mojo::Util;
 use Scalar::Util ();
@@ -7,6 +7,8 @@ use Scalar::Util ();
 use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant IV_SIZE           => eval 'require Config;$Config::Config{ivsize}';
 use constant SPECIFICATION_URL => 'http://swagger.io/v2/schema.json';
+
+sub E { JSON::Validator::Error->new(@_) }
 
 my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
 
@@ -17,6 +19,16 @@ sub load_and_validate_schema {
 
   $spec = $self->bundle({replace => 1, schema => $spec}) if $args->{allow_invalid_ref};
   local $args->{schema} = $args->{schema} || SPECIFICATION_URL;
+
+  my @errors;
+  my $gather = sub {
+    push @errors, E($_[1], 'Only one parameter can have "in":"body"')
+      if 1 < grep { $_->{in} eq 'body' } @{$_[0] || []};
+  };
+
+  $self->_get($self->_resolve($spec), ['paths', undef, undef, 'parameters'], '', $gather);
+  confess join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors if @errors;
+
   $self->SUPER::load_and_validate_schema($spec, $args);
 
   if (my $class = $args->{version_from_class}) {
@@ -263,8 +275,7 @@ sub _coerce_by_collection_format {
 }
 
 sub _confess_invalid_in {
-  Carp::confess(
-    "Unsupported \$in: $_[0]. Please report at https://github.com/jhthorsen/json-validator");
+  confess "Unsupported \$in: $_[0]. Please report at https://github.com/jhthorsen/json-validator";
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/ }
