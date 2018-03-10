@@ -8,6 +8,9 @@ is $validator->load_and_validate_schema('data://main/echo.json'), $validator,
   'load_and_validate_schema no options';
 is $validator->schema->get('/info/version'), '42.0', 'version';
 
+eval { $validator->load_and_validate_schema('data://main/twobody.json') };
+like $@, qr{More than one 'body' parameter}si, 'catch dup "body" params';
+
 eval { $validator->load_and_validate_schema('data://main/swagger2/issues/89.json') };
 like $@, qr{/definitions/\$ref}si, 'ref in the wrong place';
 
@@ -58,6 +61,26 @@ __DATA__
           "responses" : {
             "200": { "description": "response", "schema": { "type": "object" } }
           }
+        }
+      }
+    }
+  }
+}
+@@ twobody.json
+{
+  "swagger" : "2.0",
+  "info" : { "version": "42.0", "title" : "Pets" },
+  "schemes" : [ "http" ],
+  "basePath" : "/api",
+  "paths" : {
+    "/echo" : {
+      "post" : {
+        "parameters" : [
+          { "in": "body", "name": "body", "schema": { "type" : "object" } },
+          { "in": "body", "name": "body2", "schema": { "type" : "object" } }
+        ],
+        "responses" : {
+          "200": { "description": "Echo response", "schema": { "type": "object" } }
         }
       }
     }
