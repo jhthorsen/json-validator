@@ -6,6 +6,7 @@ use Carp 'confess';
 use Exporter 'import';
 use JSON::Validator::Error;
 use JSON::Validator::Ref;
+use JSON::Validator::Joi;
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON;
@@ -25,7 +26,7 @@ use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 our $ERR;    # ugly hack to improve validation errors
 our $VERSION   = '2.03';
-our @EXPORT_OK = 'validate_json';
+our @EXPORT_OK = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE = qr{^https?:};
@@ -144,6 +145,12 @@ sub get {
   }
 
   return $data;
+}
+
+sub joi {
+  return JSON::Validator::Joi->new unless @_;
+  my ($data, $joi) = @_;
+  return $joi->validate($data, $joi);
 }
 
 sub load_and_validate_schema {
@@ -1160,6 +1167,17 @@ Note that these error messages are subject for change. Any suggestions are most
 welcome!
 
 =head1 FUNCTIONS
+
+=head2 joi
+
+  use JSON::Validator "joi";
+  my $joi = joi;
+  my @errors = joi($data, $joi); # same as $joi->validate($data);
+
+Used to construct a new L<JSON::Validator::Joi> object or perform validation.
+
+Note that this function iS EXPERIMENTAL. See L<JSON::Validator::Joi> for more
+details.
 
 =head2 validate_json
 
