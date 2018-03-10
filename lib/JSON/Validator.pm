@@ -122,12 +122,24 @@ sub coerce {
 
 sub get {
   my ($self, $pointer) = @_;
-  my $data = $self->schema->data;
+  $pointer = [ref $pointer ? @$pointer : length $pointer ? split('/', $pointer, -1) : $pointer];
+  shift @$pointer if @$pointer and defined $pointer->[0] and !length $pointer->[0];
+  $self->_get($self->schema->data, $pointer);
+}
+
+sub _get {
+  my ($self, $data, $path) = @_;
   my $tied;
 
-  return $data unless ref $pointer or $pointer =~ s!^/!!;
-  $pointer = [length $pointer ? (split '/', $pointer, -1) : ($pointer)] unless ref $pointer;
-  for my $p (@$pointer) {
+  while (@$path) {
+    my $p = shift @$path;
+
+    unless (defined $p) {
+      return Mojo::Collection->new(map { $self->_get($_, [@$path]) }
+          ref $data eq 'ARRAY' ? @$data : ref $data eq 'HASH' ? map { $data->{$_} }
+          keys %$data : $data);
+    }
+
     $p =~ s!~1!/!g;
     $p =~ s/~0/~/g;
 
@@ -1318,6 +1330,8 @@ for more details.
 =head2 get
 
   $sub_schema = $self->get("/x/y");
+  $sub_schema = $self->get(["x", "y"]);
+  $sub_schema = $self->get(["x", undef, "z"]);
 
 Extract value from L</schema> identified by the given JSON Pointer. Will at the
 same time resolve C<$ref> if found. Example:
@@ -1328,6 +1342,10 @@ same time resolve C<$ref> if found. Example:
   $self->get('/x')                   == {type => 'string'}
 
 This method is EXPERIMENTAL.
+
+The argument can also be an array-ref with the different parts of the pointer
+as each elements. C<undef()> has a special case in this context: It will match
+anything.
 
 =head2 load_and_validate_schema
 
