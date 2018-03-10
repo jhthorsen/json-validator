@@ -1,5 +1,11 @@
 Revision history for perl distribution JSON-Validator
 
+2.04 2018-03-10T17:05:47+0100
+ - Add JSON::Validator::JOI and joi() #63
+ - Add support for get(|"x", undef, "y"])
+ - Will catch if more than one parameter has "in":"body" #97
+ - Fix file-path with ".." gets false negative for same-ref check #99
+
 2.03 2018-02-15T22:33:36+0100
  - Will not leak file system information to bundled schema
 
