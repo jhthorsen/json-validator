@@ -25,7 +25,7 @@ use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 our $ERR;    # ugly hack to improve validation errors
-our $VERSION   = '2.04';
+our $VERSION   = '2.05';
 our @EXPORT_OK = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
@@ -138,7 +138,7 @@ sub _get {
       my $i = 0;
       return Mojo::Collection->new(map { $self->_get($_->[0], [@$path], _path($pos, $_->[1]), $cb) }
           ref $data eq 'ARRAY' ? map { [$_, $i++] }
-          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] } keys %$data : [$data, '']);
+          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] } sort keys %$data : [$data, '']);
     }
 
     $p =~ s!~1!/!g;
@@ -1010,7 +1010,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-2.04
+2.05
 
 =head1 SYNOPSIS
 
@@ -1334,7 +1334,6 @@ for more details.
 
   $sub_schema = $self->get("/x/y");
   $sub_schema = $self->get(["x", "y"]);
-  $sub_schema = $self->get(["x", undef, "z"]);
 
 Extract value from L</schema> identified by the given JSON Pointer. Will at the
 same time resolve C<$ref> if found. Example:
@@ -1347,8 +1346,7 @@ same time resolve C<$ref> if found. Example:
 This method is EXPERIMENTAL.
 
 The argument can also be an array-ref with the different parts of the pointer
-as each elements. C<undef()> has a special case in this context: It will match
-anything.
+as each elements.
 
 =head2 load_and_validate_schema
 

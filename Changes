@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+2.05 2018-03-11T11:18:05+0100
+ - Fix hash randomization problem fot t/get.t #101
+
 2.04 2018-03-10T17:05:47+0100
  - Add JSON::Validator::JOI and joi() #63
  - Add support for get(|"x", undef, "y"])
