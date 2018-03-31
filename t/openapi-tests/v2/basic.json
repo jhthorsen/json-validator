@@ -87,5 +87,20 @@
                 "valid": true
             }
         ]
+    },
+    {
+        "description": "file",
+        "schema": {
+            "type": "file",
+            "required": true
+        },
+        "tests": [
+            {
+                "description": "omit",
+                "data": null,
+                "input": true,
+                "valid": false
+            }
+        ]
     }
 ]

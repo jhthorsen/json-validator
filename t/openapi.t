@@ -56,11 +56,6 @@ HERE
 my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
 my ($schema, @errors);
 
-# file
-$schema = {type => 'file', required => Mojo::JSON->true};
-@errors = $openapi->validate_input(undef, $schema);
-like "@errors", qr{Missing property}, 'file';
-
 # discriminator
 $openapi->schema({
   definitions => {
