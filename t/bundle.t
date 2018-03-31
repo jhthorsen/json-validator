@@ -67,7 +67,7 @@ for my $pathlist (@pathlists) {
       height
       )
     ],
-    'right definitions in disk spec';
+    'right definitions in disk spec' or diag explain $bundled->{definitions};
 }
 
 # this test mimics what Mojolicious::Plugin::OpenAPI does when loading
@@ -79,6 +79,13 @@ my $file2 = path(path(__FILE__)->dirname, 'spec', File::Spec->updir, 'spec', 'bu
 $bundled = $openapi->schema($file2)->bundle;
 eval { $openapi->load_and_validate_schema($bundled) };
 is $@, '', 'bundled schema is valid';
+
+# ensure filenames with funny characters not mangled by Mojo::URL
+my $file3 = path(__FILE__)->sibling('spec', 'space bundle.json');
+eval { $bundled = $validator->schema($file3)->bundle };
+is $@, '', 'loaded absolute filename with space';
+is $bundled->{properties}{age}{description}, 'Age in years',
+  'right definitions in disk spec' or diag explain $bundled;
 
 done_testing;
 

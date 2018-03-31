@@ -76,7 +76,7 @@ sub bundle {
 
       if ($ref eq 'HASH' and my $tied = tied %$from) {
         my $ref_name = $tied->fqn;
-        return $from if $ref_name =~ m!^$self->{root_schema_url}\#!;
+        return $from if $ref_name =~ m!^\Q$self->{root_schema_url}\E\#!;
 
         if (-e $ref_name) {
           $ref_name = sprintf '%s-%s', substr(sha1_sum($ref_name), 0, 10),
@@ -250,9 +250,9 @@ sub _load_schema {
   if (-e $file) {
     $file = $file->realpath;
     warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
-    return $self->_load_schema_from_text(\$file->slurp), CASE_TOLERANT ? lc $file : $file;
+    return $self->_load_schema_from_text(\$file->slurp), CASE_TOLERANT ? path(lc $file) : $file;
   }
-  elsif ($file =~ m!^/!) {
+  elsif ($url =~ m!^/!) {
     warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
     return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)), "$url";
   }
@@ -394,7 +394,7 @@ sub _resolve {
   $self->{level}++;
   $self->_register_schema($schema, $id);
 
-  my @topics = ([$schema, Mojo::URL->new($id)]);
+  my @topics = ([$schema, blessed($id)//'' eq 'Mojo::File' ? $id : Mojo::URL->new($id)]);
   while (@topics) {
     my ($topic, $base) = @{shift @topics};
 
@@ -423,6 +423,14 @@ sub _resolve {
 sub _absolutise_location {
   my ($location, $base) = @_;
   my $location_as_url = Mojo::URL->new($location);
+  return $location_as_url if $location_as_url->is_abs;
+  # definitely relative now
+  my $ref = blessed $base
+    or die "[JSON::Validator] \$ref location base was non-object";
+  if ($ref eq 'Mojo::File') {
+    return $base if !length $location;
+    return $base->sibling(split '/', $location)->realpath;
+  }
   return $location_as_url->to_abs($base);
 }
 
