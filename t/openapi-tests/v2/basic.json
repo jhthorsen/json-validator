@@ -1,0 +1,73 @@
+[
+    {
+        "description": "basic type validation",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"age": 42},
+                "input": true,
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"age": "42"},
+                "input": true,
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "validation of readOnly",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer",
+                    "readOnly": true
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "try overwrite",
+                "data": {"age": 42},
+                "input": true,
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "required",
+        "schema": {
+            "type": "object",
+            "required": [ "age" ],
+            "properties": {
+                "age": {
+                    "type": "integer",
+                    "readOnly": true
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "omit from input",
+                "data": {"no_age": 42},
+                "input": true,
+                "valid": true
+            },
+            {
+                "description": "omit from output",
+                "data": {"no_age": 42},
+                "valid": false
+            }
+        ]
+    }
+]
