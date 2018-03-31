@@ -57,35 +57,41 @@ my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
 my ($schema, @errors);
 
 # discriminator
-$openapi->schema({
+$schema = {
   definitions => {
+    Pet => {
+      discriminator => 'petType',
+      properties    => {petType => {'type' => 'string'}},
+      required      => ['petType'],
+      type          => 'object',
+    },
     Cat => {
-      type       => 'object',
-      required   => ['huntingSkill'],
-      properties => {
-        huntingSkill => {
-          default => 'lazy',
-          enum    => ['clueless', 'lazy', 'adventurous', 'aggressive'],
-          type    => 'string',
+      allOf => [
+        { '$ref' => '#/definitions/Pet' },
+        {
+          type       => 'object',
+          required   => ['huntingSkill'],
+          properties => {
+            huntingSkill => {
+              default => 'lazy',
+              enum    => ['clueless', 'lazy', 'adventurous', 'aggressive'],
+              type    => 'string',
+            }
+          }
         }
-      }
+      ]
     }
   }
-});
-$schema = {
-  discriminator => 'petType',
-  properties    => {petType => {'type' => 'string'}},
-  required      => ['petType'],
-  type          => 'object',
 };
-@errors = $openapi->validate_input({}, $schema);
+$openapi->schema($schema);
+@errors = $openapi->validate_input({}, $schema->{definitions}{Pet});
 is "@errors", "/: Discriminator petType has no value.", "petType has no value";
 
-@errors = $openapi->validate_input({petType => 'Bat'}, $schema);
+@errors = $openapi->validate_input({petType => 'Bat'}, $schema->{definitions}{Pet});
 is "@errors", "/: No definition for discriminator Bat.", "no definition for discriminator";
 
-@errors = $openapi->validate_input({petType => 'Cat'}, $schema);
-is "@errors", "/huntingSkill: Missing property.", "missing property"
+@errors = $openapi->validate_input({petType => 'Cat'}, $schema->{definitions}{Pet});
+is "@errors", "/: allOf failed: Missing property.", "missing property"
   or diag join ',', @errors;
 
 done_testing;
