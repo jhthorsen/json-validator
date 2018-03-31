@@ -54,11 +54,7 @@ HERE
 }
 
 my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
-
-# collectionFormat
-my $schema = {type => 'array', items => {collectionFormat => 'csv', type => 'integer'}};
-my @errors = $openapi->validate_input('1,2,3', $schema);
-is "@errors", '', 'csv data';
+my ($schema, @errors);
 
 # file
 $schema = {type => 'file', required => Mojo::JSON->true};
