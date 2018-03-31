@@ -16,9 +16,7 @@ my $host_port = $t->ua->server->url->host_port;
 
 my $test_only_re = $ENV{TEST_ONLY} || '';
 my $todo_re = join('|',
-  'dependencies',
-  'change resolution scope - changed scope ref valid',
-  'remote ref, containing refs itself - remote ref invalid',
+  'discriminator - missing property but default',
 );
 
 for my $file (sort $test_suite->list->each) {
@@ -38,9 +36,13 @@ HERE
       $schema = decode_json $schema;
       my $method = $test->{input} ? 'validate_input' : 'validate';
       my @errors = eval {
-        JSON::Validator::OpenAPI::Mojolicious->new
-          ->ua($t->ua)
-          ->$method($test->{data}, $schema);
+        my $openapi = JSON::Validator::OpenAPI::Mojolicious->new
+          ->schema($schema) # needed because validate_input relies on copying to $self->{root}
+          ;
+        my $subschema = $test->{schemapointer}
+          ? Mojo::JSON::Pointer->new($schema)->get($test->{schemapointer})
+          : $schema;
+        $openapi->ua($t->ua)->$method($test->{data}, $subschema);
       };
       my $e = $@ || join ', ', @errors;
       local $TODO = $descr =~ /$todo_re/ ? 'TODO' : undef;
@@ -52,46 +54,5 @@ HERE
     }
   }
 }
-
-my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
-my ($schema, @errors);
-
-# discriminator
-$schema = {
-  definitions => {
-    Pet => {
-      discriminator => 'petType',
-      properties    => {petType => {'type' => 'string'}},
-      required      => ['petType'],
-      type          => 'object',
-    },
-    Cat => {
-      allOf => [
-        { '$ref' => '#/definitions/Pet' },
-        {
-          type       => 'object',
-          required   => ['huntingSkill'],
-          properties => {
-            huntingSkill => {
-              default => 'lazy',
-              enum    => ['clueless', 'lazy', 'adventurous', 'aggressive'],
-              type    => 'string',
-            }
-          }
-        }
-      ]
-    }
-  }
-};
-$openapi->schema($schema);
-@errors = $openapi->validate_input({}, $schema->{definitions}{Pet});
-is "@errors", "/: Discriminator petType has no value.", "petType has no value";
-
-@errors = $openapi->validate_input({petType => 'Bat'}, $schema->{definitions}{Pet});
-is "@errors", "/: No definition for discriminator Bat.", "no definition for discriminator";
-
-@errors = $openapi->validate_input({petType => 'Cat'}, $schema->{definitions}{Pet});
-is "@errors", "/: allOf failed: Missing property.", "missing property"
-  or diag join ',', @errors;
 
 done_testing;

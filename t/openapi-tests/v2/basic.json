@@ -102,5 +102,71 @@
                 "valid": false
             }
         ]
+    },
+    {
+        "description": "discriminator",
+        "schema": {
+            "definitions" : {
+                "Cat" : {
+                    "allOf" : [
+                        { "$ref" : "#/definitions/Pet" },
+                        {
+                            "type" : "object",
+                            "properties" : {
+                                "huntingSkill" : {
+                                    "enum" : [
+                                        "clueless",
+                                        "lazy",
+                                        "adventurous",
+                                        "aggressive"
+                                    ],
+                                    "default" : "lazy",
+                                    "type" : "string"
+                                }
+                            },
+                            "required" : [ "huntingSkill" ]
+                        }
+                    ]
+                },
+                "Pet" : {
+                    "properties" : {
+                        "petType" : { "type" : "string" }
+                    },
+                    "type" : "object",
+                    "required" : [ "petType" ],
+                    "discriminator" : "petType"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "omit discriminator",
+                "data": {},
+                "schemapointer": "/definitions/Pet",
+                "input": true,
+                "valid": false
+            },
+            {
+                "description": "invalid discriminator",
+                "data": { "petType": "Bat" },
+                "schemapointer": "/definitions/Pet",
+                "input": true,
+                "valid": false
+            },
+            {
+                "description": "missing property but default",
+                "data": { "petType": "Cat" },
+                "schemapointer": "/definitions/Pet",
+                "input": true,
+                "valid": true
+            },
+            {
+                "description": "valid",
+                "data": { "petType": "Cat", "huntingSkill": "lazy" },
+                "schemapointer": "/definitions/Pet",
+                "input": true,
+                "valid": true
+            }
+        ]
     }
 ]
