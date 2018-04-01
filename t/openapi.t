@@ -17,6 +17,7 @@ my $host_port = $t->ua->server->url->host_port;
 my $test_only_re = $ENV{TEST_ONLY} || '';
 my $todo_re = join('|',
   'discriminator - missing property but default',
+  'number float - not match',
 );
 
 for my $file (sort $test_suite->list->each) {
