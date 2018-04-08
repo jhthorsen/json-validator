@@ -431,7 +431,7 @@ sub _resolve_ref {
     ($base, $pointer) = split /#/, $fqn, 2;
     $other = $self->_resolve($base);
 
-    if (length $pointer) {
+    if (defined $pointer and length $pointer) {
       $other = Mojo::JSON::Pointer->new($other)->get($pointer)
         or confess qq[Possibly a typo in schema? Could not find "$pointer" in "$base" ($ref)];
     }
