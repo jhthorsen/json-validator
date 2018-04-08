@@ -16,10 +16,11 @@ use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
 use Time::Local ();
 
-use constant COLORS => eval { require Term::ANSIColor };
-use constant DEBUG  => $ENV{JSON_VALIDATOR_DEBUG};
-use constant REPORT => $ENV{JSON_VALIDATOR_REPORT} // $ENV{JSON_VALIDATOR_DEBUG};
-use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
+use constant CASE_TOLERANT     => File::Spec->case_tolerant;
+use constant COLORS            => eval { require Term::ANSIColor };
+use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG};
+use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // $ENV{JSON_VALIDATOR_DEBUG};
+use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
@@ -243,7 +244,7 @@ sub _load_schema {
   if (-e $file) {
     $file = $file->realpath;
     warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
-    return $self->_load_schema_from_text(\$file->slurp), $file;
+    return $self->_load_schema_from_text(\$file->slurp), CASE_TOLERANT ? lc $file : $file;
   }
   elsif ($file =~ m!^/!) {
     warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;

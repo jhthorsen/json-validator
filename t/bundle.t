@@ -1,8 +1,8 @@
 use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
 use Mojo::File 'path';
+use Test::More;
 use JSON::Validator::OpenAPI;
+use JSON::Validator;
 
 my $validator = JSON::Validator->new;
 my $bundled;
@@ -45,8 +45,8 @@ $bundled = $validator->schema('data://main/api.json')->bundle({ref_key => 'defin
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'], 'no dup definitions';
 
 my @pathlists = (
-  [ 'spec', 'with-deep-mixed-ref.json' ],
-  [ 'spec', File::Spec->updir, 'spec', 'with-deep-mixed-ref.json' ],
+  ['spec', 'with-deep-mixed-ref.json'],
+  ['spec', File::Spec->updir, 'spec', 'with-deep-mixed-ref.json'],
 );
 for my $pathlist (@pathlists) {
   my $file = path(path(__FILE__)->dirname, @$pathlist);
@@ -67,7 +67,7 @@ for my $pathlist (@pathlists) {
 # It checks that a $ref to something that's under /responses doesn't
 # get picked as remote, or if so that it doesn't make an invalid spec!
 my $openapi = JSON::Validator::OpenAPI->new;
-my $file2 = path(path(__FILE__)->dirname, 'spec', '..', 'spec', 'bundlecheck.json');
+my $file2 = path(path(__FILE__)->dirname, 'spec', File::Spec->updir, 'spec', 'bundlecheck.json');
 $bundled = $openapi->schema($file2)->bundle;
 eval { $openapi->load_and_validate_schema($bundled) };
 is $@, '', 'bundled schema is valid';
