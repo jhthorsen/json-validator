@@ -1,5 +1,10 @@
 Revision history for perl distribution JSON-Validator
 
+2.06 2018-04-09T11:24:02-0700
+ - Fix normalising file names on windows #102
+ - Prevent "Use of uninitialized value $pointer in length..." for older Perls #104
+ - Removed warning about coercion now, since it works well
+
 2.05 2018-03-11T11:18:05+0100
  - Fix hash randomization problem fot t/get.t #101
 
