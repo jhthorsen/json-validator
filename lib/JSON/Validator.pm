@@ -1316,12 +1316,6 @@ Set the given type to coerce. Before enabling coercion this module is very
 strict when it comes to validating types. Example: The string C<"1"> is not
 the same as the number C<1>, unless you have coercion enabled.
 
-WARNING! Enabling coercion might hide bugs in your api, which would have been
-detected if you were strict. For example JavaScript is very picky on a number
-being an actual number. This module tries it best to convert the data on the
-fly into the proper value, but this means that you unit tests might be ok,
-but the client side libraries (that care about types) might break.
-
 Loading a YAML document will enable "booleans" automatically. This feature is
 experimental, but was added since YAML has no real concept of booleans, such
 as L<Mojo::JSON> or other JSON parsers.
