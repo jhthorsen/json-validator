@@ -1310,7 +1310,6 @@ Default is to use the value from the L</schema> attribute.
 
   $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
   $self = $self->coerce({booleans => 1, numbers => 1, strings => 1});
-  $self = $self->coerce(1) # enable all
   $hash = $self->coerce;
 
 Set the given type to coerce. Before enabling coercion this module is very
