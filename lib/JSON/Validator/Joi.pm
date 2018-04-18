@@ -98,7 +98,7 @@ sub _compile_object {
   my $self = shift;
   my $json = {type => $self->type};
 
-  $json->{additionalItems}   = false               if $self->{strict};
+  $json->{additionalProperties}   = false               if $self->{strict};
   $json->{maxProperties}     = $self->{max}        if defined $self->{max};
   $json->{minProperties}     = $self->{min}        if defined $self->{min};
   $json->{patternProperties} = $self->{regex}      if $self->{regex};

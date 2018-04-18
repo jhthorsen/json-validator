@@ -5,7 +5,7 @@ use Test::More;
 
 is_deeply(
   edj(
-    joi->object->props(
+    joi->object->strict->props(
       age       => joi->integer->min(0)->max(200),
       alphanum  => joi->alphanum->length(12),
       color     => joi->string->min(2)->max(12)->pattern('^\w+$'),
@@ -37,6 +37,7 @@ is_deeply(
       uc        => {type => 'string', pattern   => '^\p{Uppercase}*$'},
       uri       => {type => 'string', format    => 'uri'},
     },
+    additionalProperties => false
   },
   'generated correct object schema'
 );
