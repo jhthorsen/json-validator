@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+2.07 2018-04-18T09:54:21+0200
+ - Fix joi->object->strict()
+   Contributor: Pierre-Aymeric Masse
+
 2.06 2018-04-09T11:24:02-0700
  - Fix normalising file names on windows #102
  - Prevent "Use of uninitialized value $pointer in length..." for older Perls #104
