@@ -243,6 +243,8 @@ sub _load_schema {
   $file = path(split '/', $file);
   if (-e $file) {
     $file = $file->realpath;
+    confess "Unable to load schema due to potential XXE attack vector: $file"
+      if $file =~ m!^/dev/!;
     warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
     return $self->_load_schema_from_text(\$file->slurp), CASE_TOLERANT ? lc $file : $file;
   }
