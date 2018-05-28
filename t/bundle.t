@@ -24,7 +24,7 @@ for my $n (1 .. 3) {
     name        => {'$ref' => '#/definitions/name'},
     age         => {'$ref' => 'b.json#/definitions/age'},
     definitions => {name   => {type => 'string'}},
-    B           => {id     => 'b.json', definitions => {age => {type => 'integer'}}},
+    B           => {'$id'  => 'b.json', definitions => {age => {type => 'integer'}}},
   })->bundle({ref_key => 'definitions'});
   is $bundled->{definitions}{name}{type}, 'string', "[$n] name still in definitions";
   is $bundled->{definitions}{b_json__definitions_age}{type}, 'integer', "[$n] added to definitions";

@@ -357,7 +357,7 @@ sub _resolve {
   delete $_[0]->{schemas}{''} unless $self->{level};
 
   if (ref $schema eq 'HASH') {
-    $id = $schema->{id} // '';
+    $id = $schema->{'$id'} // '';
     return $resolved if $resolved = $self->{schemas}{$id};
   }
   elsif ($resolved = $self->{schemas}{$schema // ''}) {
@@ -365,11 +365,11 @@ sub _resolve {
   }
   else {
     ($schema, $id) = $self->_load_schema($schema);
-    $id = $schema->{id} if $schema->{id};
+    $id = $schema->{'$id'} if $schema->{'$id'};
   }
 
   unless ($self->{level}) {
-    my $rid = $schema->{id} // $id;
+    my $rid = $schema->{'$id'} // $id;
     if ($rid) {
       confess "Root schema cannot have a fragment in the 'id'. ($rid)" if $rid =~ /\#./;
       confess "Root schema cannot have a relative 'id'. ($rid)"
@@ -394,8 +394,8 @@ sub _resolve {
     elsif (UNIVERSAL::isa($topic, 'HASH')) {
       push @refs, [$topic, $base] and next if $topic->{'$ref'} and !ref $topic->{'$ref'};
 
-      if ($topic->{id} and !ref $topic->{id}) {
-        my $fqn = Mojo::URL->new($topic->{id});
+      if ($topic->{'$id'} and !ref $topic->{'$id'}) {
+        my $fqn = Mojo::URL->new($topic->{'$id'});
         $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
         $self->_register_schema($topic, $fqn->to_string);
       }
@@ -770,7 +770,7 @@ sub _validate_type_object {
     # Special case used internally when validating schemas: This module adds "id"
     # on the top level which might conflict with very strict schemas, so we have to
     # remove it again unless there's a rule.
-    local $rules{id} = 1 if !$path and exists $data->{id};
+    local $rules{'$id'} = 1 if !$path and exists $data->{'$id'};
 
     if (my @k = grep { !$rules{$_} } @dkeys) {
       local $" = ', ';
