@@ -498,6 +498,7 @@ sub _validate {
     return @errors ? () : (E $path, 'Should not match.');
   }
 
+  local $self->{seen} = {};    # Need to reset when going inside allOf, anyOf or oneOf
   if (my $rules = $schema->{allOf}) {
     push @errors, $self->_validate_all_of($data, $path, $rules);
   }
@@ -592,7 +593,7 @@ sub _validate_one_of {
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "All of the oneOf rules match." unless @errors + @expected;
   return E $path, "oneOf failed: Expected $expected, got $type." unless @errors;
-  return E $path, sprintf 'oneOf failed: %s', _merge_errors(@errors);
+  return E $path, sprintf 'oneOf failed: (%s)', _merge_errors(@errors);
 }
 
 sub _validate_type_enum {
