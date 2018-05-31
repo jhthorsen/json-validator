@@ -39,7 +39,8 @@ sub E { JSON::Validator::Error->new(@_) }
 sub S { Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump) }
 
 has cache_paths => sub { [split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''), $BUNDLED_CACHE_DIR] };
-has formats => sub { shift->_build_formats };
+has formats     => sub { shift->_build_formats };
+has version     => 4;
 
 has ua => sub {
   require Mojo::UserAgent;
@@ -171,8 +172,10 @@ sub joi {
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
+  my $schema = $args->{schema} || SPECIFICATION_URL;
+  $self->version($1) if !$self->{version} and $schema =~ /draft-0+(\w+)/;
   $spec = $self->_resolve($spec);
-  my @errors = $self->new(%$self)->schema($args->{schema} || SPECIFICATION_URL)->validate($spec);
+  my @errors = $self->new(%$self)->schema($schema)->validate($spec);
   confess join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors if @errors;
   $self->{schema} = Mojo::JSON::Pointer->new($spec);
   $self;
@@ -207,15 +210,18 @@ sub validate_json {
 
 sub _build_formats {
   return {
-    'date-time' => \&_is_date_time,
-    'email'     => \&_is_email,
-    'hostname'  => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
-    'ipv4'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
-    'ipv6'      => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
-    'regex'     => \&_is_regex,
-    'uri'       => \&_is_uri,
+    'date-time'     => \&_is_date_time,
+    'email'         => \&_is_email,
+    'hostname'      => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
+    'ipv4'          => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
+    'ipv6'          => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
+    'regex'         => \&_is_regex,
+    'uri'           => \&_is_uri,
+    'uri-reference' => \&_is_uri_reference,
   };
 }
+
+sub _id_key { $_[0]->version < 7 ? 'id' : '$id' }
 
 sub _load_schema {
   my ($self, $url) = @_;
@@ -354,13 +360,14 @@ sub _report_schema {
 # resolve all the $ref's that we find inside JSON Schema specification.
 sub _resolve {
   my ($self, $schema) = @_;
+  my $id_key = $self->_id_key;
   my ($id, $resolved, @refs);
 
   local $self->{level} = $self->{level} || 0;
   delete $_[0]->{schemas}{''} unless $self->{level};
 
   if (ref $schema eq 'HASH') {
-    $id = $schema->{id} // '';
+    $id = $schema->{$id_key} // '';
     return $resolved if $resolved = $self->{schemas}{$id};
   }
   elsif ($resolved = $self->{schemas}{$schema // ''}) {
@@ -368,11 +375,11 @@ sub _resolve {
   }
   else {
     ($schema, $id) = $self->_load_schema($schema);
-    $id = $schema->{id} if $schema->{id};
+    $id = $schema->{$id_key} if $schema->{$id_key};
   }
 
   unless ($self->{level}) {
-    my $rid = $schema->{id} // $id;
+    my $rid = $schema->{$id_key} // $id;
     if ($rid) {
       confess "Root schema cannot have a fragment in the 'id'. ($rid)" if $rid =~ /\#./;
       confess "Root schema cannot have a relative 'id'. ($rid)"
@@ -397,8 +404,8 @@ sub _resolve {
     elsif (UNIVERSAL::isa($topic, 'HASH')) {
       push @refs, [$topic, $base] and next if $topic->{'$ref'} and !ref $topic->{'$ref'};
 
-      if ($topic->{id} and !ref $topic->{id}) {
-        my $fqn = Mojo::URL->new($topic->{id});
+      if ($topic->{$id_key} and !ref $topic->{$id_key}) {
+        my $fqn = Mojo::URL->new($topic->{$id_key});
         $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
         $self->_register_schema($topic, $fqn->to_string);
       }
@@ -773,7 +780,8 @@ sub _validate_type_object {
     # Special case used internally when validating schemas: This module adds "id"
     # on the top level which might conflict with very strict schemas, so we have to
     # remove it again unless there's a rule.
-    local $rules{id} = 1 if !$path and exists $data->{id};
+    my $id_key = $self->_id_key;
+    local $rules{$id_key} = 1 if !$path and exists $data->{$id_key};
 
     if (my @k = grep { !$rules{$_} } @dkeys) {
       local $" = ', ';
@@ -975,6 +983,17 @@ sub _is_uri {
     return _invalid('Path cannot not start with //.') if $path =~ m!^//!;
   }
 
+  return 1;
+}
+
+sub _is_uri_reference {
+  return unless defined $_[0];
+  return unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
+
+  my ($scheme, $auth_host, $path, $query, $fragment) = map { $_ // '' } ($2, $4, $5, $7, $9);
+  return _invalid('Path cannot not start with //.') if $path =~ m!^//!;
+  return 1 if length $path;
+  return _is_uri($_[0]);
   return 1;
 }
 
@@ -1281,6 +1300,16 @@ from remote location.
 Note that the default L<Mojo::UserAgent> will detect proxy settings and have
 L<Mojo::UserAgent/max_redirects> set to 3. (These settings are EXPERIMENTAL
 and might change without a warning)
+
+=head2 version
+
+  $int = $self->version;
+  $self = $self->version(7);
+
+Used to set the JSON Schema version to use. Will be set automatically when
+using L</load_and_validate_schema>, unless already set.
+
+Note that this attribute is EXPERIMENTAL and might change without a warning.
 
 =head1 METHODS
 

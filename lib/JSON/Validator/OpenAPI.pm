@@ -4,7 +4,7 @@ use Mojo::Base 'JSON::Validator';
 use Mojo::Util;
 use Scalar::Util ();
 
-use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
+use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant IV_SIZE           => eval 'require Config;$Config::Config{ivsize}';
 use constant SPECIFICATION_URL => 'http://swagger.io/v2/schema.json';
 
@@ -12,6 +12,7 @@ sub E { JSON::Validator::Error->new(@_) }
 
 my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
 
+has version => 2;
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
 sub load_and_validate_schema {
@@ -145,7 +146,7 @@ sub _validate_request_value {
   my $in     = $p->{in};
   my $schema = {
     properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p},
-    required => [$p->{required} ? ($name) : ()]
+    required   => [$p->{required} ? ($name) : ()]
   };
 
   if ($in eq 'body') {
@@ -354,6 +355,10 @@ A signed 64 bit integer. Note: This check is only available if Perl is
 compiled to use 64 bit integers.
 
 =back
+
+=head2 version
+
+See L<JSON::Validator/version>.
 
 =head1 METHODS
 
