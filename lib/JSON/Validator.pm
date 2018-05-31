@@ -293,7 +293,10 @@ sub _load_schema_from_url {
   confess "GET $url == $err" if DEBUG and $err;
   die "[JSON::Validator] GET $url == $err" if $err;
 
-  if ($cache_path and $cache_path ne $BUNDLED_CACHE_DIR and -w $cache_path) {
+  if (  $cache_path
+    and ($cache_path ne $BUNDLED_CACHE_DIR or $ENV{JSON_VALIDATOR_CACHE_ANYWAYS})
+    and -w $cache_path)
+  {
     $cache_file = path $cache_path, $cache_file;
     warn "[JSON::Validator] Caching $url to $cache_file\n" unless $ENV{HARNESS_ACTIVE};
     $cache_file->spurt($tx->res->body);
@@ -1096,11 +1099,13 @@ Here is the list of the bundled specifications:
 
 =over 2
 
-=item * JSON schema, draft 4
+=item * JSON schema, draft 4, 6, 7
 
 Web page: L<http://json-schema.org>
 
-C<$ref>: L<http://json-schema.org/draft-04/schema#>
+C<$ref>: L<http://json-schema.org/draft-04/schema#>,
+L<http://json-schema.org/draft-06/schema#>,
+L<http://json-schema.org/draft-07/schema#>.
 
 =item * JSON schema for JSONPatch files
 

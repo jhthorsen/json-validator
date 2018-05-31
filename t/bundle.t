@@ -7,6 +7,14 @@ use JSON::Validator;
 my $validator = JSON::Validator->new;
 my $bundled;
 
+# Bundle files
+{
+  local $ENV{JSON_VALIDATOR_CACHE_ANYWAYS} = 1;
+  $validator->_load_schema_from_url("http://json-schema.org/draft-04/schema");
+  $validator->_load_schema_from_url("http://json-schema.org/draft-06/schema");
+  $validator->_load_schema_from_url("http://json-schema.org/draft-07/schema");
+}
+
 # Run multiple times to make sure _reset() works
 for my $n (1 .. 3) {
   note "[$n] replace=1";
