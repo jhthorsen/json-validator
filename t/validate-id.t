@@ -1,9 +1,10 @@
-use Mojo::Base -strict;
-use Test::More;
-use JSON::Validator;
+use lib '.';
+use t::Helper;
 
-my $validator = JSON::Validator->new;
-my @errors = $validator->validate({id => 1}, {type => 'object'});
-is "@errors", "", "object";
+validate_ok {id => 1}, {type => 'object'};
+
+validate_ok {id => 1, message => 'cannot exclude "id" #111'},
+  {type => 'object', additionalProperties => 0, properties => {message => {type => "string"}}},
+  E('/', 'Properties not allowed: id.');
 
 done_testing;

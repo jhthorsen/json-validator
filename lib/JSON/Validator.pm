@@ -773,17 +773,9 @@ sub _validate_type_object {
     $additional = {} unless UNIVERSAL::isa($additional, 'HASH');
     $rules{$_} ||= [$additional] for @dkeys;
   }
-  else {
-    # Special case used internally when validating schemas: This module adds "id"
-    # on the top level which might conflict with very strict schemas, so we have to
-    # remove it again unless there's a rule.
-    my $id_key = $self->_id_key;
-    local $rules{$id_key} = 1 if !$path and exists $data->{$id_key};
-
-    if (my @k = grep { !$rules{$_} } @dkeys) {
-      local $" = ', ';
-      return E $path, "Properties not allowed: @k.";
-    }
+  elsif (my @k = grep { !$rules{$_} } @dkeys) {
+    local $" = ', ';
+    return E $path, "Properties not allowed: @k.";
   }
 
   for my $k (sort keys %required) {
