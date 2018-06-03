@@ -593,12 +593,7 @@ sub _validate_one_of {
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "All of the oneOf rules match." unless @errors + @expected;
   return E $path, "oneOf failed: Expected $expected, got $type." unless @errors;
-  return _prefix_errors(oneOf => $path => @errors);
-}
-
-sub _prefix_errors {
-  my ($type, $path) = (shift, shift);
-  return map { $_->message(sprintf '[%s %s] %s', $type, $path, $_->message); $_ } map {@$_} @_;
+  return E $path, sprintf 'oneOf failed: (%s)', _merge_errors(@errors);
 }
 
 sub _validate_type_enum {

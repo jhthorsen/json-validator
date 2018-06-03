@@ -12,9 +12,8 @@ sub new {
   $self;
 }
 
-has message => '';
-has path    => '/';
-
+sub message { shift->{message} }
+sub path    { shift->{path} }
 sub TO_JSON { {message => $_[0]->{message}, path => $_[0]->{path}} }
 
 1;
