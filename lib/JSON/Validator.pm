@@ -451,24 +451,21 @@ sub _resolve_ref {
   tie %$topic, 'JSON::Validator::Ref', $other, $topic->{'$ref'}, $fqn;
 }
 
-# This code is from Data::Dumper::format_refaddr()
-sub _seen {
-  my $self = shift;
-  my $key = join ':', shift, map { pack 'J', refaddr $_ } @_;
-  return $self->{seen}{$key}++;
-}
-
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my ($type, @errors);
+  my ($seen_addr, $type, @errors);
 
   $schema = $self->_ref_to_schema($schema) if $schema->{'$ref'};
+  $seen_addr = refaddr $schema;
+  $seen_addr .= ':' . (ref $data ? refaddr $data : "s:$data") if defined $data;
 
   # Avoid recursion
-  if (ref $data and !_is_blessed_boolean($data) and $self->_seen($schema, $data)) {
+  if ($self->{seen}{$seen_addr}) {
     $self->_report_schema($path || '/', 'seen', $schema) if REPORT;
-    return;
+    return @{$self->{seen}{$seen_addr}};
   }
+
+  $self->{seen}{$seen_addr} = \@errors;
 
   # Make sure we validate plain data and not a perl object
   $data = $data->TO_JSON if blessed $data and UNIVERSAL::can($data, 'TO_JSON');
@@ -498,7 +495,6 @@ sub _validate {
     return @errors ? () : (E $path, 'Should not match.');
   }
 
-  local $self->{seen} = {};    # Need to reset when going inside allOf, anyOf or oneOf
   if (my $rules = $schema->{allOf}) {
     push @errors, $self->_validate_all_of($data, $path, $rules);
   }
@@ -593,7 +589,7 @@ sub _validate_one_of {
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "All of the oneOf rules match." unless @errors + @expected;
   return E $path, "oneOf failed: Expected $expected, got $type." unless @errors;
-  return E $path, sprintf 'oneOf failed: (%s)', _merge_errors(@errors);
+  return E $path, sprintf 'oneOf failed: %s', _merge_errors(@errors);
 }
 
 sub _validate_type_enum {
@@ -798,18 +794,13 @@ sub _validate_type_object {
 
   for my $k (sort keys %rules) {
     for my $r (@{$rules{$k}}) {
-      if (!exists $data->{$k} and (UNIVERSAL::isa($r, 'HASH') and exists $r->{default})) {
-
-        #$data->{$k} = $r->{default}; # TODO: This seems to fail when using oneOf and friends
-      }
-      elsif (exists $data->{$k}) {
-        my @e = $self->_validate($data->{$k}, _path($path, $k), $r);
-        push @errors, @e;
-        push @errors, $self->_validate_type_enum($data->{$k}, _path($path, $k), $r)
-          if $r->{enum} and !@e;
-        push @errors, $self->_validate_type_const($data->{$k}, _path($path, $k), $r)
-          if $r->{const} and !@e;
-      }
+      next unless exists $data->{$k};
+      my @e = $self->_validate($data->{$k}, _path($path, $k), $r);
+      push @errors, @e;
+      push @errors, $self->_validate_type_enum($data->{$k}, _path($path, $k), $r)
+        if $r->{enum} and !@e;
+      push @errors, $self->_validate_type_const($data->{$k}, _path($path, $k), $r)
+        if $r->{const} and !@e;
     }
   }
 
