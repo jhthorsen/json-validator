@@ -2,70 +2,58 @@ use Mojo::Base -strict;
 use Test::Mojo;
 use Test::More;
 use JSON::Validator::OpenAPI::Mojolicious;
+use Mojo::File 'path';
+use Mojo::JSON qw(encode_json decode_json);
+use Mojolicious::Lite;
+
+my $test_suite = path(qw(t openapi-tests v2));
+plan skip_all => "Cannot find test files in $test_suite" unless -d $test_suite;
 
 is JSON::Validator::OpenAPI::SPECIFICATION_URL(), 'http://swagger.io/v2/schema.json', 'spec url';
 
-my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
-my ($schema, @errors);
+my $t = Test::Mojo->new;
+my $host_port = $t->ua->server->url->host_port;
 
-# standard
-$schema = {type => 'object', properties => {age => {type => 'integer'}}};
-@errors = $openapi->validate_input({age => '42'}, $schema);
-like "@errors", qr{Expected integer - got string}, 'string != integer';
+my $test_only_re = $ENV{TEST_ONLY} || '';
+my $todo_re = join('|',
+  'discriminator - missing property but default',
+  'number float - not match',
+);
 
-# readOnly
-$schema->{properties}{age}{readOnly} = Mojo::JSON->true;
-@errors = $openapi->validate_input({age => 42}, $schema);
-is "@errors", '/age: Read-only.', 'age is ro';
-
-$schema->{required} = ['age'];
-@errors = $openapi->validate_input({no_age => 42}, $schema);
-is "@errors", '', 'age is readOnly, so not required in input';
-
-@errors = $openapi->validate({no_age => 42}, $schema);
-is "@errors", '/age: Missing property.', 'age is missing in output';
-
-# collectionFormat
-$schema = {type => 'array', items => {collectionFormat => 'csv', type => 'integer'}};
-@errors = $openapi->validate_input('1,2,3', $schema);
-is "@errors", '', 'csv data';
-
-# file
-$schema = {type => 'file', required => Mojo::JSON->true};
-@errors = $openapi->validate_input(undef, $schema);
-like "@errors", qr{Missing property}, 'file';
-
-# discriminator
-$openapi->schema({
-  definitions => {
-    Cat => {
-      type       => 'object',
-      required   => ['huntingSkill'],
-      properties => {
-        huntingSkill => {
-          default => 'lazy',
-          enum    => ['clueless', 'lazy', 'adventurous', 'aggressive'],
-          type    => 'string',
-        }
-      }
+for my $file (sort $test_suite->list->each) {
+  for my $group (@{decode_json($file->slurp)}) {
+    for my $test (@{$group->{tests}}) {
+      my $schema = encode_json $group->{schema};
+      my $descr  = "$group->{description} - $test->{description}";
+      next if $test_only_re and $descr !~ /$test_only_re/;
+      diag <<"HERE" if $test_only_re;
+---
+description:  $descr
+schema:       $schema
+data:         @{[encode_json $test->{data}]}
+expect_valid: @{[$test->{valid} ? 'Yes' : 'No']}
+HERE
+      $schema =~ s!http\W+localhost:1234\b!http://$host_port!g;
+      $schema = decode_json $schema;
+      my $method = $test->{input} ? 'validate_input' : 'validate';
+      my @errors = eval {
+        my $openapi = JSON::Validator::OpenAPI::Mojolicious->new
+          ->schema($schema) # needed because validate_input relies on copying to $self->{root}
+          ;
+        my $subschema = $test->{schemapointer}
+          ? Mojo::JSON::Pointer->new($schema)->get($test->{schemapointer})
+          : $schema;
+        $openapi->ua($t->ua)->$method($test->{data}, $subschema);
+      };
+      my $e = $@ || join ', ', @errors;
+      local $TODO = $descr =~ /$todo_re/ ? 'TODO' : undef;
+      is
+        $e ? 'invalid' : 'valid',
+        $test->{valid} ? 'valid' : 'invalid',
+        $descr
+        or diag "Error: $e";
     }
   }
-});
-$schema = {
-  discriminator => 'petType',
-  properties    => {petType => {'type' => 'string'}},
-  required      => ['petType'],
-  type          => 'object',
-};
-@errors = $openapi->validate_input({}, $schema);
-is "@errors", "/: Discriminator petType has no value.", "petType has no value";
-
-@errors = $openapi->validate_input({petType => 'Bat'}, $schema);
-is "@errors", "/: No definition for discriminator Bat.", "no definition for discriminator";
-
-@errors = $openapi->validate_input({petType => 'Cat'}, $schema);
-is "@errors", "/huntingSkill: Missing property.", "missing property";
-
-diag join ',', @errors;
+}
 
 done_testing;

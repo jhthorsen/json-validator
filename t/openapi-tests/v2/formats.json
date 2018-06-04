@@ -1,0 +1,266 @@
+[
+    {
+        "description": "byte",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "byte",
+                    "type": "string"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": "amh0aG9yc2Vu"},
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"v": "\u0000"},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "date",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "date",
+                    "type": "string"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": "2014-12-09"},
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"v": "2014-12-09T20:49:37Z"},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "date-time",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "date-time",
+                    "type": "string"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": "2014-12-09T20:49:37Z"},
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"v": "20:46:02"},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "number double",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "double",
+                    "type": "number"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": 1.1000000238418599085576943252817727625370025634765626},
+                "valid": true
+            }
+        ]
+    },
+    {
+        "description": "email",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "email",
+                    "type": "string"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": "etj@cpan.org"},
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"v": "foo"},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "number float",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "float",
+                    "type": "number"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": -1.10000002384186},
+                "valid": true
+            },
+            {
+                "description": "match",
+                "data": {"v": 1.10000002384186},
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"v": 0.10000000000000},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "ipv4",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "ipv4",
+                    "type": "string"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": "255.100.30.1"},
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"v": "300.0.0.0"},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "int32",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "int32",
+                    "type": "integer"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": -2147483648},
+                "valid": true
+            },
+            {
+                "description": "match",
+                "data": {"v": 2147483647},
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"v": 2147483648},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "int64",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "int64",
+                    "type": "integer"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": -9223372036854775808},
+                "valid": true
+            },
+            {
+                "description": "match",
+                "data": {"v": 9223372036854775807},
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"v": 9223372036854775808},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "password",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "password",
+                    "type": "string"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": "whatever"},
+                "valid": true
+            }
+        ]
+    },
+    {
+        "description": "unknown",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "v": {
+                    "format": "unknown",
+                    "type": "string"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"v": "whatever"},
+                "valid": true
+            }
+        ]
+    }
+]

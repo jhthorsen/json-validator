@@ -80,6 +80,13 @@ $bundled = $openapi->schema($file2)->bundle;
 eval { $openapi->load_and_validate_schema($bundled) };
 is $@, '', 'bundled schema is valid';
 
+# ensure filenames with funny characters not mangled by Mojo::URL
+$openapi = JSON::Validator::OpenAPI->new;
+my $file3 = path(path(__FILE__)->dirname, 'spec', 'space bundle.json');
+$bundled = $openapi->schema($file3)->bundle;
+eval { $openapi->load_and_validate_schema($bundled) };
+is $@, '', 'loaded filename with space';
+
 done_testing;
 
 __DATA__

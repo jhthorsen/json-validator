@@ -1,0 +1,172 @@
+[
+    {
+        "description": "basic type validation",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "match",
+                "data": {"age": 42},
+                "input": true,
+                "valid": true
+            },
+            {
+                "description": "not match",
+                "data": {"age": "42"},
+                "input": true,
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "validation of readOnly",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer",
+                    "readOnly": true
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "try overwrite",
+                "data": {"age": 42},
+                "input": true,
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "required",
+        "schema": {
+            "type": "object",
+            "required": [ "age" ],
+            "properties": {
+                "age": {
+                    "type": "integer",
+                    "readOnly": true
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "omit from input",
+                "data": {"no_age": 42},
+                "input": true,
+                "valid": true
+            },
+            {
+                "description": "omit from output",
+                "data": {"no_age": 42},
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "collectionFormat CSV",
+        "schema": {
+            "type": "array",
+            "items": {
+                "collectionFormat": "csv",
+                "type": "integer"
+            }
+        },
+        "tests": [
+            {
+                "description": "valid",
+                "data": "1,2,3",
+                "input": true,
+                "valid": true
+            }
+        ]
+    },
+    {
+        "description": "file",
+        "schema": {
+            "type": "file",
+            "required": true
+        },
+        "tests": [
+            {
+                "description": "omit",
+                "data": null,
+                "input": true,
+                "valid": false
+            }
+        ]
+    },
+    {
+        "description": "discriminator",
+        "schema": {
+            "definitions" : {
+                "Cat" : {
+                    "allOf" : [
+                        { "$ref" : "#/definitions/Pet" },
+                        {
+                            "type" : "object",
+                            "properties" : {
+                                "huntingSkill" : {
+                                    "enum" : [
+                                        "clueless",
+                                        "lazy",
+                                        "adventurous",
+                                        "aggressive"
+                                    ],
+                                    "default" : "lazy",
+                                    "type" : "string"
+                                }
+                            },
+                            "required" : [ "huntingSkill" ]
+                        }
+                    ]
+                },
+                "Pet" : {
+                    "properties" : {
+                        "petType" : { "type" : "string" }
+                    },
+                    "type" : "object",
+                    "required" : [ "petType" ],
+                    "discriminator" : "petType"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "omit discriminator",
+                "data": {},
+                "schemapointer": "/definitions/Pet",
+                "input": true,
+                "valid": false
+            },
+            {
+                "description": "invalid discriminator",
+                "data": { "petType": "Bat" },
+                "schemapointer": "/definitions/Pet",
+                "input": true,
+                "valid": false
+            },
+            {
+                "description": "missing property but default",
+                "data": { "petType": "Cat" },
+                "schemapointer": "/definitions/Pet",
+                "input": true,
+                "valid": true
+            },
+            {
+                "description": "valid",
+                "data": { "petType": "Cat", "huntingSkill": "lazy" },
+                "schemapointer": "/definitions/Pet",
+                "input": true,
+                "valid": true
+            }
+        ]
+    }
+]
