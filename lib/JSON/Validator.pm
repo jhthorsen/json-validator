@@ -1344,6 +1344,12 @@ Default is to use the value from the L</schema> attribute.
 
 =back
 
+=head2 errors_conf
+
+  $self = $self->errors_conf( complex_as_list => 1 );
+
+Set how to return the errors of C<validate> if it's a complex structure (all/any/oneOf and nested). The default is just one JSON::Validator::Error with C<message> concatenated.
+
 =head2 coerce
 
   $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
