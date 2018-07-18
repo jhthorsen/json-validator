@@ -114,6 +114,14 @@ sub bundle {
   return $bundle;
 }
 
+# $self->errors_conf( complex_as_list => 1 );
+sub errors_conf {
+  my $self = shift;
+  return $self->{errors_conf} ||= {} unless @_;
+  $self->{errors_conf} = ref $_[0] ? {%{$_[0]}} : {@_};
+  $self;
+}
+
 sub coerce {
   my $self = shift;
   return $self->{coerce} ||= {} unless @_;
@@ -529,7 +537,16 @@ sub _validate_all_of {
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "allOf failed: Expected $expected, not $type."
     if $expected and @errors + @expected == @$rules;
-  return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors) if @errors;
+
+  if (@errors) {
+    if ( $self->{errors_conf}->{complex_as_list} ) {
+        my @e = map {@$_} @errors;
+        return @e;
+    } else {
+      return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors);
+    }
+  }
+
   return;
 }
 
