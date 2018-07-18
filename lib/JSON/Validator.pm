@@ -540,8 +540,7 @@ sub _validate_all_of {
 
   if (@errors) {
     if ( $self->{errors_conf}->{complex_as_list} ) {
-        my @e = map {@$_} @errors;
-        return @e;
+        return _flatten(@errors);
     } else {
       return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors);
     }
@@ -1015,6 +1014,10 @@ sub _path {
 sub _uniq {
   my %uniq;
   grep { !$uniq{$_}++ } @_;
+}
+
+sub _flatten {
+  map { ref $_ eq 'ARRAY' ? _flatten(@{$_}) : $_ } @_;
 }
 
 # Please report if you need to manually monkey patch this function
