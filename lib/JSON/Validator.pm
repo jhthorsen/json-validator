@@ -420,6 +420,12 @@ sub _resolve {
   return $schema;
 }
 
+sub _absolutise_location {
+  my ($location, $base) = @_;
+  my $location_as_url = Mojo::URL->new($location);
+  return $location_as_url->to_abs($base);
+}
+
 sub _resolve_ref {
   my ($self, $topic, $url) = @_;
   return if tied %$topic;
@@ -432,14 +438,12 @@ sub _resolve_ref {
     push @guard, $other->{'$ref'};
     confess "Seems like you have a circular reference: @guard" if @guard > RECURSION_LIMIT;
     last if !$ref or ref $ref;
-    $fqn = Mojo::URL->new($ref =~ m!^/! ? "#$ref" : $ref);
-    $fqn = $fqn->to_abs($url) unless $fqn->is_abs;
-    $url = $fqn;
-    $fqn = $fqn->to_string;
-    $fqn =~ s!(.)#$!$1!;
-    $fqn =~ s!#(.+)!{'#' . url_unescape $1}!e;
-
+    $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
     ($base, $pointer) = split /#/, $fqn, 2;
+    $url = $base = _absolutise_location($base, $url);
+    $pointer = undef if length $base and !length $pointer;
+    $pointer = url_unescape $pointer if defined $pointer;
+    $fqn = join '#', grep defined, $base, $pointer;
     $other = $self->_resolve($base);
 
     if (defined $pointer and length $pointer) {
