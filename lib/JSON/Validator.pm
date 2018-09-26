@@ -26,7 +26,7 @@ use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
 use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
 our $ERR;    # ugly hack to improve validation errors
-our $VERSION   = '2.09';
+our $VERSION   = '2.10';
 our @EXPORT_OK = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
@@ -424,6 +424,7 @@ sub _location_to_abs {
   my ($location, $base) = @_;
   my $location_as_url = Mojo::URL->new($location);
   return $location_as_url if $location_as_url->is_abs;
+
   # definitely relative now
   if ($base->isa('Mojo::File')) {
     return $base if !length $location;
@@ -1027,7 +1028,7 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 VERSION
 
-2.09
+2.10
 
 =head1 SYNOPSIS
 
@@ -1456,6 +1457,8 @@ the terms of the Artistic License version 2.0.
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 Daniel Böhmer - C<post@daniel-boehmer.de>
+
+Ed J - C<mohawk2@users.noreply.github.com>
 
 Kevin Goess - C<cpan@goess.org>
 
