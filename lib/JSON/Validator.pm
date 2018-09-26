@@ -394,7 +394,7 @@ sub _resolve {
   $self->{level}++;
   $self->_register_schema($schema, $id);
 
-  my @topics = ([$schema, blessed($id)//'' eq 'Mojo::File' ? $id : Mojo::URL->new($id)]);
+  my @topics = ([$schema, UNIVERSAL::isa($id, 'Mojo::File') ? $id : Mojo::URL->new($id)]);
   while (@topics) {
     my ($topic, $base) = @{shift @topics};
 
@@ -420,14 +420,12 @@ sub _resolve {
   return $schema;
 }
 
-sub _absolutise_location {
+sub _location_to_abs {
   my ($location, $base) = @_;
   my $location_as_url = Mojo::URL->new($location);
   return $location_as_url if $location_as_url->is_abs;
   # definitely relative now
-  my $ref = blessed $base
-    or die "[JSON::Validator] \$ref location base was non-object";
-  if ($ref eq 'Mojo::File') {
+  if ($base->isa('Mojo::File')) {
     return $base if !length $location;
     return $base->sibling(split '/', $location)->realpath;
   }
@@ -448,7 +446,7 @@ sub _resolve_ref {
     last if !$ref or ref $ref;
     $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
     ($base, $pointer) = split /#/, $fqn, 2;
-    $url = $base = _absolutise_location($base, $url);
+    $url = $base = _location_to_abs($base, $url);
     $pointer = undef if length $base and !length $pointer;
     $pointer = url_unescape $pointer if defined $pointer;
     $fqn = join '#', grep defined, $base, $pointer;
