@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+2.09 Not Released
+ - Skip "remote ref" tests when running through cpantesters
+
 2.08 2018-06-03T19:19:22+0800
  - Fix validating oneOf correctly #103
  - Fix validating "id" property #111

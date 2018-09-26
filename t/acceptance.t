@@ -17,10 +17,12 @@ $t->get_ok('/integer.json')->status_is(200);
 my $host_port = $t->ua->server->url->host_port;
 
 my $test_only_re = $ENV{TEST_ONLY} || '';
-my $todo_re = join('|',
-  'dependencies',
-  'change resolution scope - changed scope ref valid',
+my $todo_re = join(
+  '|', 'dependencies', 'change resolution scope - changed scope ref valid',
   'remote ref, containing refs itself - remote ref invalid',
+  $ENV{AUTOMATED_TESTING}
+  ? ('remote ref')
+  : (),    # http://cpantesters.org/cpan/report/76ae6b92-af70-11e8-8fb1-ef5133556b3f
 );
 
 for my $file (sort $test_suite->list->each) {
