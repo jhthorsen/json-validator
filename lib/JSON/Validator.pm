@@ -437,7 +437,7 @@ sub _resolve_ref {
   return if tied %$topic;
 
   my $other = $topic;
-  my ($base, $fqn, $pointer, $ref, @guard);
+  my ($location, $fqn, $pointer, $ref, @guard);
 
   while (1) {
     $ref = $other->{'$ref'};
@@ -445,16 +445,16 @@ sub _resolve_ref {
     confess "Seems like you have a circular reference: @guard" if @guard > RECURSION_LIMIT;
     last if !$ref or ref $ref;
     $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
-    ($base, $pointer) = split /#/, $fqn, 2;
-    $url = $base = _location_to_abs($base, $url);
-    $pointer = undef if length $base and !length $pointer;
+    ($location, $pointer) = split /#/, $fqn, 2;
+    $url = $location = _location_to_abs($location, $url);
+    $pointer = undef if length $location and !length $pointer;
     $pointer = url_unescape $pointer if defined $pointer;
-    $fqn = join '#', grep defined, $base, $pointer;
-    $other = $self->_resolve($base);
+    $fqn = join '#', grep defined, $location, $pointer;
+    $other = $self->_resolve($location);
 
     if (defined $pointer and length $pointer) {
       $other = Mojo::JSON::Pointer->new($other)->get($pointer)
-        or confess qq[Possibly a typo in schema? Could not find "$pointer" in "$base" ($ref)];
+        or confess qq[Possibly a typo in schema? Could not find "$pointer" in "$location" ($ref)];
     }
   }
 
