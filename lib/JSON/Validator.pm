@@ -114,6 +114,14 @@ sub bundle {
   return $bundle;
 }
 
+# $self->errors_conf( complex_as_list => 1 );
+sub errors_conf {
+  my $self = shift;
+  return $self->{errors_conf} ||= {} unless @_;
+  $self->{errors_conf} = ref $_[0] ? {%{$_[0]}} : {@_};
+  $self;
+}
+
 sub coerce {
   my $self = shift;
   return $self->{coerce} ||= {} unless @_;
@@ -540,7 +548,15 @@ sub _validate_all_of {
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "allOf failed: Expected $expected, not $type."
     if $expected and @errors + @expected == @$rules;
-  return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors) if @errors;
+
+  if (@errors) {
+    if ( $self->{errors_conf}->{complex_as_list} ) {
+        return _flatten(@errors);
+    } else {
+      return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors);
+    }
+  }
+
   return;
 }
 
@@ -1011,6 +1027,10 @@ sub _uniq {
   grep { !$uniq{$_}++ } @_;
 }
 
+sub _flatten {
+  map { ref $_ eq 'ARRAY' ? _flatten(@{$_}) : $_ } @_;
+}
+
 # Please report if you need to manually monkey patch this function
 # https://github.com/jhthorsen/json-validator/issues
 sub _yaml_module {
@@ -1334,6 +1354,12 @@ on how a C<$ref> looks before and after:
 Default is to use the value from the L</schema> attribute.
 
 =back
+
+=head2 errors_conf
+
+  $self = $self->errors_conf( complex_as_list => 1 );
+
+Set how to return the errors of C<validate> if it's a complex structure (all/any/oneOf and nested). The default is just one JSON::Validator::Error with C<message> concatenated.
 
 =head2 coerce
 
