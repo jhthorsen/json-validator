@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+2.12 2018-10-03T16:02:35+0900
+ - Improved error message when $ref is pointing to a non-existing file
+
 2.11 2018-09-30T21:51:52+0900
  - Skipping load-from-app.t on "Gateway Timeout" as well
 
