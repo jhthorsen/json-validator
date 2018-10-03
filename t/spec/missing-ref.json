@@ -1,0 +1,6 @@
+{
+  "type": "object",
+  "properties": {
+    "missing": { "$ref": "../definitions/missing.json#" }
+  }
+}
