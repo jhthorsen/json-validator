@@ -5,8 +5,9 @@ use Mojo::JSON qw(false true);
 use Mojolicious::Controller;
 use JSON::Validator::OpenAPI::Mojolicious;
 
-my $t = Test::Mojo->new;
-my $c = Mojolicious::Controller->new(tx => Mojo::Transaction::HTTP->new);
+my $t  = Test::Mojo->new;
+my $tx = Mojo::Transaction::HTTP->new;
+my $c  = Mojolicious::Controller->new(tx => $tx);
 
 my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
 my ($schema, @errors);

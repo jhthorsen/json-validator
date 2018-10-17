@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+2.13 Not Released
+ - Compatible with weak attrs in Mojolicious 8.03
+
 2.12 2018-10-03T16:02:35+0900
  - Improved error message when $ref is pointing to a non-existing file
 
