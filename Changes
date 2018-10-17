@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-2.13 Not Released
+2.13 2018-10-17T23:10:54+0900
  - Compatible with weak attrs in Mojolicious 8.03
 
 2.12 2018-10-03T16:02:35+0900
