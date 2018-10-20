@@ -527,20 +527,24 @@ sub _validate_all_of {
   $self->_report_schema($path, 'allOf', $rules) if REPORT;
   $self->{grouped}++;
 
+  my $i = 0;
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if !$schema_type or $schema_type eq $type;
+    push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
+  }
+  continue {
+    $i++;
   }
 
   $self->{grouped}--;
 
   $self->_report_errors($path, 'allOf', \@errors) if REPORT;
   my $expected = join ' or ', _uniq(@expected);
-  return E $path, "allOf failed: Expected $expected, not $type."
+  return E $path, "/allOf Expected $expected, not $type."
     if $expected and @errors + @expected == @$rules;
-  return E $path, sprintf 'allOf failed: %s', _merge_errors(@errors) if @errors;
+  return _flatten_errors(allOf => @errors) if @errors;
   return;
 }
 
@@ -552,6 +556,7 @@ sub _validate_any_of {
   $self->_report_schema($path, 'anyOf', $rules) if REPORT;
   $self->{grouped}++;
 
+  my $i = 0;
   for my $rule (@$rules) {
     @e = $self->_validate($data, $path, $rule);
     if (!@e) {
@@ -559,16 +564,19 @@ sub _validate_any_of {
       return;
     }
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if !$schema_type or $schema_type eq $type;
+    push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
+  }
+  continue {
+    $i++;
   }
 
   $self->{grouped}--;
 
   $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
   my $expected = join ' or ', _uniq(@expected);
-  return E $path, "anyOf failed: Expected $expected, got $type." unless @errors;
-  return E $path, sprintf "anyOf failed: %s", _merge_errors(@errors);
+  return E $path, "/anyOf Expected $expected, got $type." unless @errors;
+  return _flatten_errors(anyOf => @errors);
 }
 
 sub _validate_one_of {
@@ -579,11 +587,15 @@ sub _validate_one_of {
   $self->_report_schema($path, 'oneOf', $rules) if REPORT;
   $self->{grouped}++;
 
+  my $i = 0;
   for my $rule (@$rules) {
     my @e = $self->_validate($data, $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [@e] and next if !$schema_type or $schema_type eq $type;
+    push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
+  }
+  continue {
+    $i++;
   }
 
   $self->{grouped}--;
@@ -598,9 +610,9 @@ sub _validate_one_of {
 
   return if @errors + @expected + 1 == @$rules;
   my $expected = join ' or ', _uniq(@expected);
-  return E $path, "All of the oneOf rules match." unless @errors + @expected;
-  return E $path, "oneOf failed: Expected $expected, got $type." unless @errors;
-  return E $path, sprintf 'oneOf failed: %s', _merge_errors(@errors);
+  return E $path, "All of the oneOf rules match."         unless @errors + @expected;
+  return E $path, "/oneOf Expected $expected, got $type." unless @errors;
+  return _flatten_errors(oneOf => @errors);
 }
 
 sub _validate_type_enum {
@@ -864,6 +876,22 @@ sub _expected {
   return "Expected $_[0] - got $type.";
 }
 
+sub _flatten_errors {
+  my ($type, @nested) = @_;
+  my @flatten;
+
+  for my $e (@nested) {
+    my $i = shift @$e;
+    push @flatten, map {
+      my $msg = sprintf '/%s/%s %s', $type, $i, $_->{message};
+      $msg =~ s!(\d+)\s/!$1/!g;
+      E $_->path, $msg;
+    } @$e;
+  }
+
+  return @flatten;
+}
+
 sub _guess_data_type {
   local $_ = $_[0];
   my $ref     = ref;
@@ -991,13 +1019,6 @@ sub _is_uri_reference {
   return 1 if length $path;
   return _is_uri($_[0]);
   return 1;
-}
-
-sub _merge_errors {
-  join ' ', map {
-    my $e = $_;
-    (@$e == 1) ? $e->[0]{message} : sprintf '(%s)', join '. ', map { $_->{message} } @$e;
-  } @_;
 }
 
 sub _path {

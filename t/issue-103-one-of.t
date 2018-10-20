@@ -1,14 +1,10 @@
 use lib '.';
 use t::Helper;
-use Test::More;
 
-my $validator = JSON::Validator->new->schema('data://main/example.json');
-
-my @errors
-  = $validator->validate({who_id => 'WHO', expire => '2018-01-01', amount => 1000, desc => 'foo'});
-
-like "@errors", qr{oneOf failed}, "missing sym is not detected (@errors)";
-note map {"\$errors[] = $_\n"} @errors;
+validate_ok {who_id => 'WHO', expire => '2018-01-01', amount => 1000, desc => 'foo'},
+  'data://main/example.json', E('/sym', '/oneOf/0/allOf/0/allOf/0 Missing property.'),
+  E('/template', '/oneOf/0/allOf/2 Missing property.'),
+  E('/sym',      '/oneOf/1/allOf/0 Missing property.');
 
 done_testing;
 

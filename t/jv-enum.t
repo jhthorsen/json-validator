@@ -51,7 +51,7 @@ validate_ok(
     required   => ['name'],
     properties => {name => {type => ['string'], enum => [qw(n yes true false)]}},
   },
-  E('/name', 'anyOf failed: Expected string, got null.'),
+  E('/name', '/anyOf Expected string, got null.'),
   E('/name', 'Not in enum list: n, yes, true, false.'),
 );
 

@@ -1,17 +1,16 @@
 use lib '.';
 use t::Helper;
 
-my $validator = JSON::Validator->new;
 my $schema = {anyOf => [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]};
 
 validate_ok 'short',    $schema;
-validate_ok 'too long', $schema, E('/', 'anyOf failed: String is too long: 8/5.');
+validate_ok 'too long', $schema, E('/', '/anyOf/0 String is too long: 8/5.');
 validate_ok 12,         $schema;
-validate_ok - 1, $schema, E('/', 'anyOf failed: -1 < minimum(0)');
-validate_ok {}, $schema, E('/', 'anyOf failed: Expected string or number, got object.');
+validate_ok int(-1), $schema, E('/', '/anyOf/1 -1 < minimum(0)');
+validate_ok {}, $schema, E('/', '/anyOf Expected string or number, got object.');
 
 # anyOf with explicit integer (where _guess_data_type returns 'number')
-my $schemaB = {anyOf => [{type => "integer"}, {minimum => 2}]};
+my $schemaB = {anyOf => [{type => 'integer'}, {minimum => 2}]};
 validate_ok 1, $schemaB;
 
 validate_ok(
@@ -52,7 +51,8 @@ validate_ok(
     properties => {a => {type => 'number'}, b => {type => 'string'}},
     anyOf      => [{required => ['a']}, {required => ['b']}],
   },
-  E('/', 'anyOf failed: Missing property. Missing property.'),
+  E('/a', '/anyOf/0 Missing property.'),
+  E('/b', '/anyOf/1 Missing property.'),
 );
 
 done_testing;
