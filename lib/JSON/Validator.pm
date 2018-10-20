@@ -884,6 +884,7 @@ sub _guess_schema_type {
   return _guessed_right($_[1], 'object') if $_[0]->{additionalProperties};
   return _guessed_right($_[1], 'object') if $_[0]->{patternProperties};
   return _guessed_right($_[1], 'object') if $_[0]->{properties};
+  return _guessed_right($_[1], 'object') if $_[0]->{required};
   return _guessed_right($_[1], 'object')
     if defined $_[0]->{maxProperties}
     or defined $_[0]->{minProperties};

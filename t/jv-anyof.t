@@ -45,4 +45,14 @@ validate_ok(
   }
 );
 
+validate_ok(
+  {c => 'c present, a or b is missing'},
+  {
+    type       => 'object',
+    properties => {a => {type => 'number'}, b => {type => 'string'}},
+    anyOf      => [{required => ['a']}, {required => ['b']}],
+  },
+  E('/', 'anyOf failed: Missing property. Missing property.'),
+);
+
 done_testing;
