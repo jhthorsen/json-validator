@@ -2,6 +2,7 @@ Revision history for perl distribution JSON-Validator
 
 2.14 Not Released
  - Fix guessing schema type from "required" key #118
+ - Improved error return values from allOf, anyOf and oneOf validation
  - Will not overwrite OpenAPI "/info/version" from "version_from_class"
 
 2.13 2018-10-17T23:10:54+0900

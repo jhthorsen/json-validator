@@ -544,7 +544,7 @@ sub _validate_all_of {
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "/allOf Expected $expected, not $type."
     if $expected and @errors + @expected == @$rules;
-  return _flatten_errors(allOf => @errors) if @errors;
+  return _add_path_to_error_messages(allOf => @errors) if @errors;
   return;
 }
 
@@ -576,7 +576,7 @@ sub _validate_any_of {
   $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "/anyOf Expected $expected, got $type." unless @errors;
-  return _flatten_errors(anyOf => @errors);
+  return _add_path_to_error_messages(anyOf => @errors);
 }
 
 sub _validate_one_of {
@@ -612,7 +612,7 @@ sub _validate_one_of {
   my $expected = join ' or ', _uniq(@expected);
   return E $path, "All of the oneOf rules match."         unless @errors + @expected;
   return E $path, "/oneOf Expected $expected, got $type." unless @errors;
-  return _flatten_errors(oneOf => @errors);
+  return _add_path_to_error_messages(oneOf => @errors);
 }
 
 sub _validate_type_enum {
@@ -863,6 +863,22 @@ sub _validate_type_string {
 
 # FUNCTIONS ==================================================================
 
+sub _add_path_to_error_messages {
+  my ($type, @errors_with_index) = @_;
+  my @errors;
+
+  for my $e (@errors_with_index) {
+    my $index = shift @$e;
+    push @errors, map {
+      my $msg = sprintf '/%s/%s %s', $type, $index, $_->{message};
+      $msg =~ s!(\d+)\s/!$1/!g;
+      E $_->path, $msg;
+    } @$e;
+  }
+
+  return @errors;
+}
+
 sub _cmp {
   return undef if !defined $_[0] or !defined $_[1];
   return "$_[3]=" if $_[2] and $_[0] >= $_[1];
@@ -874,22 +890,6 @@ sub _expected {
   my $type = _guess_data_type($_[1]);
   return "Expected $_[0] - got different $type." if $_[0] =~ /\b$type\b/;
   return "Expected $_[0] - got $type.";
-}
-
-sub _flatten_errors {
-  my ($type, @nested) = @_;
-  my @flatten;
-
-  for my $e (@nested) {
-    my $i = shift @$e;
-    push @flatten, map {
-      my $msg = sprintf '/%s/%s %s', $type, $i, $_->{message};
-      $msg =~ s!(\d+)\s/!$1/!g;
-      E $_->path, $msg;
-    } @$e;
-  }
-
-  return @flatten;
 }
 
 sub _guess_data_type {
