@@ -34,7 +34,7 @@ sub load_and_validate_schema {
 
   if (my $class = $args->{version_from_class}) {
     if (UNIVERSAL::can($class, 'VERSION') and $class->VERSION) {
-      $self->schema->data->{info}{version} = $class->VERSION;
+      $self->schema->data->{info}{version} ||= $class->VERSION;
     }
   }
 

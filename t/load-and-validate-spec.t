@@ -48,7 +48,7 @@ __DATA__
 @@ swagger2/issues/89.json
 {
   "swagger" : "2.0",
-  "info" : { "version": "0.8", "title" : "Test auto response" },
+  "info" : { "version": "0", "title" : "Test auto response" },
   "paths" : { "$ref": "#/x-def/paths" },
   "definitions": { "$ref": "#/x-def/defs" },
   "x-def": {
