@@ -5,9 +5,8 @@ use Mojo::JSON qw(false true);
 use Mojolicious::Controller;
 use JSON::Validator::OpenAPI::Mojolicious;
 
-my $t  = Test::Mojo->new;
-my $tx = Mojo::Transaction::HTTP->new;
-my $c  = Mojolicious::Controller->new(tx => $tx);
+my $t = Test::Mojo->new;
+my ($c, $req, $tx);
 
 my $openapi = JSON::Validator::OpenAPI::Mojolicious->new;
 my $input   = {};
@@ -72,6 +71,8 @@ validate_request(
   },
   sub { is_deeply $input, {x => 0, c => [3, 1, 2]}, 'collectionFormat' }
 );
+
+is_deeply $c->req->url->query->to_hash->{x}, 0, 'query is not appended';
 
 # json body
 make_request('application/json', qq([1,2,3]));
@@ -195,7 +196,8 @@ done_testing;
 sub make_request {
   my ($content_type) = shift;
   my $length = length join '', @_;
-  my $req = $c->tx->req(Mojo::Message::Request->new)->req;
+  $c = Mojolicious::Controller->new(tx => ($tx = Mojo::Transaction::HTTP->new));
+  $req = $c->tx->req(Mojo::Message::Request->new)->req;
   $req->parse(qq(POST /whatever?c=3,1,2&x=0 HTTP/1.1\x0d\x0a));
   $req->parse(qq(Content-Type: $content_type\x0d\x0a));
   $req->parse(qq(Content-Length: $length\x0d\x0a\x0d\x0a));

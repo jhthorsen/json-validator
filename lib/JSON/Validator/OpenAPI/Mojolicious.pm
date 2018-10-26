@@ -40,7 +40,7 @@ sub _set_request_data {
   my ($self, $c, $in, $name => $value) = @_;
 
   if ($in eq 'query') {
-    $c->req->url->query([$name => $value]);
+    $c->req->url->query->merge($name => $value);
     $c->req->params->merge($name => $value);
   }
   elsif ($in eq 'path') {
