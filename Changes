@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+2.15 2018-11-07T15:57:14+0900
+ - Did not need to bump Mojolicious version in 2.15 #122
+   Contributor: Dagfinn Ilmari Mannsåker
+
 2.14 2018-10-26T11:39:05+0900
  - Fix guessing schema type from "required" key #118
  - Fix appending parameters for Mojolicious 8.00 #119 #120
