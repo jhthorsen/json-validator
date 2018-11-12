@@ -2,6 +2,7 @@ package JSON::Validator::OpenAPI;
 use Carp 'confess';
 use Mojo::Base 'JSON::Validator';
 use Mojo::Util;
+use Time::Local;
 use Scalar::Util ();
 
 use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
@@ -289,7 +290,7 @@ sub _is_date {
   if (my ($year, $month, $day) = $date =~ m/^(\d{4})-(\d\d)-(\d\d)?$/) {
     $month--;
     local $@;
-    $validDate = eval { Time::Local::timegm(undef, undef, undef, $day, $month, $year); 1} || 0;
+    $validDate = eval { timegm(0, 0, 0, $day, $month, $year); 1} || 0;
   }
 
   return $validDate;
