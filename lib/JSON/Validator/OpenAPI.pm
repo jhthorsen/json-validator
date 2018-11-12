@@ -280,7 +280,20 @@ sub _confess_invalid_in {
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/ }
-sub _is_date        { $_[0] =~ /^(\d+)-(\d+)-(\d+)$/ }
+
+sub _is_date {
+  my ($date) = @_;
+
+  my $validDate = 0;
+
+  if (my ($year, $month, $day) = $date =~ m/^(\d{4})-(\d\d)-(\d\d)?$/) {
+    $month--;
+    local $@;
+    $validDate = eval { Time::Local::timegm(undef, undef, undef, $day, $month, $year); 1} || 0;
+  }
+
+  return $validDate;
+}
 
 sub _is_number {
   return unless $_[0] =~ /^-?\d+(\.\d+)?$/;

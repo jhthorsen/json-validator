@@ -17,6 +17,10 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
   $schema->{properties}{v}{format} = 'date';
   validate_ok {v => '2014-12-09'}, $schema;
   validate_ok {v => '2014-12-09T20:49:37Z'}, $schema, E('/v', 'Does not match date format.');
+  validate_ok {v => '09-12-2014'}, $schema, E('/v', 'Does not match date format.');
+  validate_ok {v => '09-DEC-2014'}, $schema, E('/v', 'Does not match date format.');
+  validate_ok {v => '09-DEC-14'}, $schema, E('/v', 'Does not match date format.');
+  validate_ok {v => '09/12/2014'}, $schema, E('/v', 'Does not match date format.');
 }
 
 {
