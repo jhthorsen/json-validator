@@ -285,15 +285,15 @@ sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/ }
 sub _is_date {
   my ($date) = @_;
 
-  my $validDate = 0;
+  my $valid_date = 0;
 
   if (my ($year, $month, $day) = $date =~ m/^(\d{4})-(\d\d)-(\d\d)?$/) {
     $month--;
     local $@;
-    $validDate = eval { timegm(0, 0, 0, $day, $month, $year); 1} || 0;
+    $valid_date = eval { timegm(0, 0, 0, $day, $month, $year); 1} || 0;
   }
 
-  return $validDate;
+  return $valid_date;
 }
 
 sub _is_number {
