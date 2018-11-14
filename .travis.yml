@@ -7,7 +7,7 @@ env:
   - "HARNESS_OPTIONS=j6"
 install:
   - "cpanm -n Test::Pod Test::Pod::Coverage"
-  - "cpanm -n Data::Validate::Domain Data::Validate::IP Cpanel::JSON::XS YAML::XS Swagger2"
+  - "cpanm -n Data::Validate::Domain Data::Validate::IP Cpanel::JSON::XS YAML::XS"
   - "cpanm -n --installdeps ."
 notifications:
   email: false
