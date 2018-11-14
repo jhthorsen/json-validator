@@ -1,6 +1,14 @@
 package JSON::Validator::OpenAPI::Mojolicious;
 use Mojo::Base 'JSON::Validator::OpenAPI';
 
+sub _detect_content_type {
+  my ($self, $c, $header) = @_;
+  my %types;
+  /^\s*([^,; ]+)(?:\s*\;\s*q\s*=\s*(\d+(?:\.\d+)?))?\s*$/i and $types{lc $1} = $2 // 1
+    for split ',', $c->req->headers->$header // '';
+  return [sort { $types{$b} <=> $types{$a} } sort keys %types];
+}
+
 sub _get_request_data {
   my ($self, $c, $in) = @_;
 
@@ -12,6 +20,9 @@ sub _get_request_data {
   }
   elsif ($in eq 'formData') {
     return $c->req->body_params->to_hash(1);
+  }
+  elsif ($in eq 'cookie') {
+    return {map { ($_->name, $_->value) } @{$c->req->cookies}};
   }
   elsif ($in eq 'header') {
     my $headers = $c->req->headers->to_hash(1);
@@ -49,6 +60,9 @@ sub _set_request_data {
   elsif ($in eq 'formData') {
     $c->req->params->merge($name => $value);
     $c->req->body_params->merge($name => $value);
+  }
+  elsif ($in eq 'cookie') {
+    $c->req->cookie($name => $value);
   }
   elsif ($in eq 'header') {
     $c->req->headers->header($name => $value);

@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+2.17 Not Released
+ - Add basic support for OpenAPI v3
+
 2.16 2018-11-14T10:51:02+0900
  - Improved openapi "date" format validation #123
    Contributor: Jason Cooper

@@ -6,22 +6,28 @@ use Mojo::Util;
 use Scalar::Util ();
 use Time::Local  ();
 
-use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
-use constant IV_SIZE           => eval 'require Config;$Config::Config{ivsize}';
-use constant SPECIFICATION_URL => 'http://swagger.io/v2/schema.json';
+use constant DEBUG => $ENV{JSON_VALIDATOR_DEBUG} || 0;
+use constant IV_SIZE => eval 'require Config;$Config::Config{ivsize}';
 
 sub E { JSON::Validator::Error->new(@_) }
 
 my %COLLECTION_RE = (pipes => qr{\|}, csv => qr{,}, ssv => qr{\s}, tsv => qr{\t});
 
 has version => 2;
+
+our %VERSIONS
+  = (v2 => 'http://swagger.io/v2/schema.json', v3 => 'http://swagger.io/v3/schema.yaml');
+
 has _json_validator => sub { state $v = JSON::Validator->new; };
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
 
   $spec = $self->bundle({replace => 1, schema => $spec}) if $args->{allow_invalid_ref};
-  local $args->{schema} = $args->{schema} || SPECIFICATION_URL;
+  local $args->{schema}
+    = $args->{schema} ? $VERSIONS{$args->{schema}} || $args->{schema} : $VERSIONS{v2};
+
+  $self->version($1) if !$self->{version} and $args->{schema} =~ m!/v(\d+)/!;
 
   my @errors;
   my $gather = sub {
@@ -31,7 +37,6 @@ sub load_and_validate_schema {
 
   $self->_get($self->_resolve($spec), ['paths', undef, undef, 'parameters'], '', $gather);
   confess join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors if @errors;
-
   $self->SUPER::load_and_validate_schema($spec, $args);
 
   if (my $class = $args->{version_from_class}) {
@@ -53,6 +58,24 @@ sub validate_input {
 sub validate_request {
   my ($self, $c, $schema, $input) = @_;
   my @errors;
+
+  if (my $body_schema = $schema->{requestBody}) {
+    my $types = $self->_detect_content_type($c, 'content_type');
+    my $validated;
+    for my $type (@$types) {
+      next unless my $type_spec = $body_schema->{content}{$type};
+      my $body = $self->_get_request_data($c, $type =~ /\bform\b/ ? 'formData' : 'body');
+      push @errors, $self->_validate_request_value($type_spec, body => $body);
+      $validated = 1;
+    }
+
+    if (!$validated and $body_schema->{required}) {
+      push @errors,
+        JSON::Validator::E('/' => @$types
+        ? "No requestBody rules defined for type @$types."
+        : "Invalid Content-Type.");
+    }
+  }
 
   for my $p (@{$schema->{parameters} || []}) {
     my ($in, $name, $type) = @$p{qw(in name type)};
@@ -110,23 +133,31 @@ sub validate_request {
 
 sub validate_response {
   my ($self, $c, $schema, $status, $data) = @_;
-  my @errors;
+  my ($blueprint, @errors);
 
-  if (my $blueprint = $schema->{responses}{$status} || $schema->{responses}{default}) {
-    push @errors, $self->_validate_response_headers($c, $blueprint->{headers})
-      if $blueprint->{headers};
-
-    if ($blueprint->{'x-json-schema'}) {
-      warn "[JSON::Validator::OpenAPI] Validate using x-json-schema\n" if DEBUG;
-      push @errors, $self->_json_validator->validate($data, $blueprint->{'x-json-schema'});
-    }
-    elsif ($blueprint->{schema}) {
-      warn "[JSON::Validator::OpenAPI] Validate using schema\n" if DEBUG;
-      push @errors, $self->validate($data, $blueprint->{schema});
-    }
+  if ($self->version eq '3') {
+    my $accept = $self->_detect_content_type($c, 'accept');
+    my $for_status = $schema->{responses}{$status} || $schema->{responses}{default}
+      or return JSON::Validator::E('/' => "No responses rules defined for status $status.");
+    $blueprint = $for_status if $status eq '201';
+    $blueprint ||= $for_status->{content}{$_} and last for @$accept;
+    $blueprint or return JSON::Validator::E('/' => "No responses rules defined for type @$accept.");
   }
   else {
-    push @errors, JSON::Validator::E('/' => "No responses rules defined for status $status.");
+    $blueprint = $schema->{responses}{$status} || $schema->{responses}{default}
+      or return JSON::Validator::E('/' => "No responses rules defined for status $status.");
+  }
+
+  push @errors, $self->_validate_response_headers($c, $blueprint->{headers})
+    if $blueprint->{headers};
+
+  if ($blueprint->{'x-json-schema'}) {
+    warn "[JSON::Validator::OpenAPI] Validate using x-json-schema\n" if DEBUG;
+    push @errors, $self->_json_validator->validate($data, $blueprint->{'x-json-schema'});
+  }
+  elsif ($blueprint->{schema}) {
+    warn "[JSON::Validator::OpenAPI] Validate using schema\n" if DEBUG;
+    push @errors, $self->validate($data, $blueprint->{schema});
   }
 
   return @errors;
@@ -145,7 +176,7 @@ sub _validate_request_value {
 
   return if !defined $value and !$p->{required};
 
-  my $in     = $p->{in};
+  my $in     = $p->{in} // 'body';
   my $schema = {
     properties => {$name => $p->{'x-json-schema'} || $p->{schema} || $p},
     required   => [$p->{required} ? ($name) : ()]
@@ -175,10 +206,12 @@ sub _validate_request_value {
 sub _validate_response_headers {
   my ($self, $c, $schema) = @_;
   my $input = $self->_get_response_data($c, 'header');
+  my $version = $self->version;
   my @errors;
 
   for my $name (keys %$schema) {
     my $p = $schema->{$name};
+    $p = $p->{schema} if $version eq '3';
 
     # jhthorsen: I think that the only way to make a header required,
     # is by defining "array" and "minItems" >= 1.
@@ -244,7 +277,12 @@ sub _validate_type_object {
 }
 
 sub _build_formats {
-  my $formats = shift->SUPER::_build_formats;
+  my $self    = shift;
+  my $formats = $self->SUPER::_build_formats;
+
+  if ($self->version eq '3') {
+    $formats->{uriref} = sub {'TODO'};
+  }
 
   $formats->{byte}     = \&_is_byte_string;
   $formats->{date}     = \&_is_date;
@@ -253,7 +291,8 @@ sub _build_formats {
   $formats->{int32}    = sub { _is_number($_[0], 'l'); };
   $formats->{int64}    = IV_SIZE >= 8 ? sub { _is_number($_[0], 'q'); } : sub {1};
   $formats->{password} = sub {1};
-  $formats;
+
+  return $formats;
 }
 
 sub _coerce_by_collection_format {
@@ -291,6 +330,7 @@ sub _is_number {
 
 for my $method (
   qw(
+  _detect_content_type
   _get_request_uploads
   _get_request_data
   _set_request_data
@@ -316,6 +356,15 @@ JSON::Validator::OpenAPI - OpenAPI is both a subset and superset of JSON Schema
 L<JSON::Validator::OpenAPI> can validate Open API (also known as "Swagger")
 requests and responses that is passed through a L<Mojolicious> powered web
 application.
+
+Currently v2 should be fully supported, while v3 should be considered higly
+EXPERIMENTAL.
+
+Please report in L<issues|https://github.com/jhthorsen/json-validator/issues>
+or open pull requests to enhance the 3.0 support.
+
+See also L<Mojolicious::Plugin::OpenAPI> for more details about how to use this
+module.
 
 =head1 ATTRIBUTES
 
@@ -360,7 +409,11 @@ compiled to use 64 bit integers.
 
 =head2 version
 
-See L<JSON::Validator/version>.
+  $str = $self->version;
+
+Used to get the OpenAPI Schema version to use. Will be set automatically when
+using L</load_and_validate_schema>, unless already set. Supported values are
+"2" an "3".
 
 =head1 METHODS
 
