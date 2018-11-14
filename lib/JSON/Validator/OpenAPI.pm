@@ -1,8 +1,10 @@
 package JSON::Validator::OpenAPI;
-use Carp 'confess';
 use Mojo::Base 'JSON::Validator';
+
+use Carp 'confess';
 use Mojo::Util;
 use Scalar::Util ();
+use Time::Local  ();
 
 use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant IV_SIZE           => eval 'require Config;$Config::Config{ivsize}';
@@ -280,7 +282,7 @@ sub _confess_invalid_in {
 }
 
 sub _is_byte_string { $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/ }
-sub _is_date        { $_[0] =~ /^(\d+)-(\d+)-(\d+)$/ }
+sub _is_date { $_[0] && JSON::Validator::_is_date_time("$_[0]T00:00:00") }
 
 sub _is_number {
   return unless $_[0] =~ /^-?\d+(\.\d+)?$/;

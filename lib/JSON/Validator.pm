@@ -948,7 +948,11 @@ sub _is_date_time {
   @time = map { s/^0//; $_ } reverse @time[0 .. 5];
   $time[4] -= 1;    # month are zero based
   local $@;
-  return eval { Time::Local::timegm(@time); 1 } || 0;
+  return 1 if eval { Time::Local::timegm(@time); 1 };
+  $JSON::Validator::ERR = (split / at /, $@)[0];
+  $JSON::Validator::ERR =~ s!('-?\d+'\s|\s[\d\.]+)!!g;
+  $JSON::Validator::ERR .= '.';
+  return 0;
 }
 
 sub _is_domain { warn "Data::Validate::Domain is not installed"; return; }

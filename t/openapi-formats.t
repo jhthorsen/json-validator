@@ -15,14 +15,22 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 
 {
   $schema->{properties}{v}{format} = 'date';
-  validate_ok {v => '2014-12-09'}, $schema;
+  validate_ok {v => '2014-12-09'},           $schema;
+  validate_ok {v => '0000-00-00'},           $schema, E('/v', 'Month out of range.');
+  validate_ok {v => '0000-01-00'},           $schema, E('/v', 'Day out of range.');
   validate_ok {v => '2014-12-09T20:49:37Z'}, $schema, E('/v', 'Does not match date format.');
+  validate_ok {v => '0-0-0'},                $schema, E('/v', 'Does not match date format.');
+  validate_ok {v => '09-12-2014'},           $schema, E('/v', 'Does not match date format.');
+  validate_ok {v => '09-DEC-2014'},          $schema, E('/v', 'Does not match date format.');
+  validate_ok {v => '09/12/2014'},           $schema, E('/v', 'Does not match date format.');
 }
 
 {
   $schema->{properties}{v}{format} = 'date-time';
   validate_ok {v => '2014-12-09T20:49:37Z'}, $schema;
-  validate_ok {v => '20:46:02'}, $schema, E('/v', 'Does not match date-time format.');
+  validate_ok {v => '0000-00-00T00:00:00Z'}, $schema, E('/v', 'Month out of range.');
+  validate_ok {v => '0000-01-00T00:00:00Z'}, $schema, E('/v', 'Day out of range.');
+  validate_ok {v => '20:46:02'},             $schema, E('/v', 'Does not match date-time format.');
 }
 
 {

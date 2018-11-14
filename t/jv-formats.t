@@ -14,14 +14,18 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
     '2017-03-29 23:02:55-12:00', '2016-02-29T23:02:55+05:00'
     );
 
-  validate_ok {v => $_}, $schema,
-    E('/v', 'Does not match date-time format.')
-    for (
-    'xxxx-xx-xxtxx:xx:xxz', '2017-03-29T23:02:60Z', '2017-03-29T23:61:55Z',
-    '2017-03-29T24:02:55Z', '2017-03-32T23:02:55Z', '2017-02-30T23:02:55Z',
-    '2017-02-29T23:02:55Z', '2017-13-29T23:02:55Z', '2017-03-00T23:02:55Z',
-    '2017-00-29T23:02:55Z', '2017-03-29\t23:02:55-12:00',
-    );
+  validate_ok {v => 'xxxx-xx-xxtxx:xx:xxz'}, $schema, E('/v', 'Does not match date-time format.');
+  validate_ok {v => '2017-03-29\t23:02:55-12:00'}, $schema,
+    E('/v', 'Does not match date-time format.');
+  validate_ok {v => '2017-03-29T23:02:60Z'}, $schema, E('/v', 'Second out of range.');
+  validate_ok {v => '2017-03-29T23:61:55Z'}, $schema, E('/v', 'Minute out of range.');
+  validate_ok {v => '2017-03-29T24:02:55Z'}, $schema, E('/v', 'Hour out of range.');
+  validate_ok {v => '2017-03-32T23:02:55Z'}, $schema, E('/v', 'Day out of range.');
+  validate_ok {v => '2017-02-30T23:02:55Z'}, $schema, E('/v', 'Day out of range.');
+  validate_ok {v => '2017-02-29T23:02:55Z'}, $schema, E('/v', 'Day out of range.');
+  validate_ok {v => '2017-03-00T23:02:55Z'}, $schema, E('/v', 'Day out of range.');
+  validate_ok {v => '2017-13-29T23:02:55Z'}, $schema, E('/v', 'Month out of range.');
+  validate_ok {v => '2017-00-29T23:02:55Z'}, $schema, E('/v', 'Month out of range.');
 }
 
 {
