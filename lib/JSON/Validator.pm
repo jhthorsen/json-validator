@@ -289,8 +289,8 @@ sub _load_schema_from_url {
 
   for (@{$self->cache_paths}) {
     my $path = path $_, $cache_file;
+    warn "[JSON::Validator] Looking for cached spec $path ($url)\n" if DEBUG;
     next unless -r $path;
-    warn "[JSON::Validator] Loading cached file $path\n" if DEBUG;
     return $self->_load_schema_from_text(\$path->slurp);
   }
 
