@@ -18,8 +18,8 @@ use Time::Local ();
 
 use constant CASE_TOLERANT     => File::Spec->case_tolerant;
 use constant COLORS            => eval { require Term::ANSIColor };
-use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG};
-use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // $ENV{JSON_VALIDATOR_DEBUG};
+use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
+use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
@@ -231,12 +231,15 @@ sub _load_schema {
     return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)), "$url";
   }
 
-  if ($url =~ m!^data://([^/]+)/(.*)!) {
-    my ($module, $file) = ($1, $2);
-    warn "[JSON::Validator] Loading schema from data section: $url\n" if DEBUG;
-    my $text = Mojo::Loader::data_section($module, $file)
-      || confess "$file could not be found in __DATA__ section of $module.";
-    return $self->_load_schema_from_text(\$text), "$url";
+  if ($url =~ m!^data://([^/]*)/(.*)!) {
+    my ($file, @modules) = ($2, ($1));
+    @modules = _stack() unless $modules[0];
+    for my $module (@modules) {
+      warn "[JSON::Validator] Looking for $file in $module\n" if DEBUG;
+      my $text = Mojo::Loader::data_section($module, $file);
+      return $self->_load_schema_from_text(\$text), "$url" if $text;
+    }
+    confess "$file could not be found in __DATA__ section of @modules.";
   }
 
   if ($url =~ m!^\s*[\[\{]!) {
@@ -460,6 +463,17 @@ sub _resolve_ref {
   }
 
   tie %$topic, 'JSON::Validator::Ref', $other, $topic->{'$ref'}, $fqn;
+}
+
+sub _stack {
+  my @classes;
+  my $i = 2;
+  while (my $pkg = caller($i++)) {
+    no strict 'refs';
+    push @classes, grep { !/(^JSON::Validator$|^Mojo::Base$|^Mojolicious$|\w+::_Dynamic)/ } $pkg,
+      @{"$pkg\::ISA"};
+  }
+  return @classes;
 }
 
 sub _validate {
@@ -1441,8 +1455,11 @@ A web resource will be fetched using the L<Mojo::UserAgent>, stored in L</ua>.
 
 =item * data://Some::Module/file.name
 
-This version will use L<Mojo::Loader/data_section> to load "file.name" from
-the module "Some::Module".
+This version will use L<Mojo::Loader/data_section> to load "file.name" from the
+module "Some::Module".
+
+It is also EXPERIMENTAL support for omitting C<Some::Module>. This will result
+in searching up the C<caller()>-tree for the file.
 
 =item * /path/to/file
 

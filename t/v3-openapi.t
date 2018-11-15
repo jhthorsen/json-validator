@@ -24,7 +24,7 @@ post '/pets' => sub {
   },
   'createPets';
 
-eval { plugin OpenAPI => {url => 'data://main/petstore.json', schema => 'v3'} };
+eval { plugin OpenAPI => {url => 'data:///petstore.json', schema => 'v3'} };
 ok !$@, 'valid openapi v3 schema' or diag $@;
 
 my $t = Test::Mojo->new;
