@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-2.18 Not Released
+2.18 2018-11-15T16:04:18+0900
  - Add EXPERIMETNAL support for data:// without a package
 
 2.17 2018-11-14T13:04:03+0900
