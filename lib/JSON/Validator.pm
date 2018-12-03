@@ -1075,7 +1075,7 @@ JSON::Validator - Validate data against a JSON schema
   use JSON::Validator;
   my $validator = JSON::Validator->new;
 
-  # Define a schema - http://json-schema.org/examples.html
+  # Define a schema - http://json-schema.org/learn/miscellaneous-examples.html
   # You can also load schema from disk or web
   $validator->schema(
     {
