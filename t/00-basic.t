@@ -27,7 +27,6 @@ find(
   -e 'blib' ? 'blib' : 'lib',
 );
 
-@files = grep { !/Dancer/ } @files unless eval 'require Hash::MultiValue;1';
 plan tests => @files * 3 + 4;
 
 for my $file (@files) {
