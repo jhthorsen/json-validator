@@ -539,7 +539,7 @@ sub _validate_all_of {
   my (@errors, @expected);
 
   $self->_report_schema($path, 'allOf', $rules) if REPORT;
-  $self->{grouped}++;
+  local $self->{grouped} = $self->{grouped} + 1;
 
   my $i = 0;
   for my $rule (@$rules) {
@@ -551,8 +551,6 @@ sub _validate_all_of {
   continue {
     $i++;
   }
-
-  $self->{grouped}--;
 
   $self->_report_errors($path, 'allOf', \@errors) if REPORT;
   my $expected = join ' or ', _uniq(@expected);
@@ -568,15 +566,12 @@ sub _validate_any_of {
   my (@e, @errors, @expected);
 
   $self->_report_schema($path, 'anyOf', $rules) if REPORT;
-  $self->{grouped}++;
+  local $self->{grouped} = $self->{grouped} + 1;
 
   my $i = 0;
   for my $rule (@$rules) {
     @e = $self->_validate($data, $path, $rule);
-    if (!@e) {
-      $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
-      return;
-    }
+    return unless @e;
     my $schema_type = _guess_schema_type($rule);
     push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
@@ -584,8 +579,6 @@ sub _validate_any_of {
   continue {
     $i++;
   }
-
-  $self->{grouped}--;
 
   $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
   my $expected = join ' or ', _uniq(@expected);
@@ -599,7 +592,7 @@ sub _validate_one_of {
   my (@errors, @expected);
 
   $self->_report_schema($path, 'oneOf', $rules) if REPORT;
-  $self->{grouped}++;
+  local $self->{grouped} = $self->{grouped} + 1;
 
   my $i = 0;
   for my $rule (@$rules) {
@@ -611,8 +604,6 @@ sub _validate_one_of {
   continue {
     $i++;
   }
-
-  $self->{grouped}--;
 
   if (REPORT) {
     my @e
