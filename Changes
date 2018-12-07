@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 2.19 Not Released
+ - Fix random errors when "type" is a list #126
  - Moved JSON::Validator::OpenAPI::Mojolicious to Mojolicious-Plugin-OpenAPI
  - Removed JSON::Validator::OpenAPI::Dancer2
 

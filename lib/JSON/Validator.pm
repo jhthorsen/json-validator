@@ -198,6 +198,7 @@ sub validate {
   local $self->{grouped} = 0;
   local $self->{schema}  = Mojo::JSON::Pointer->new($schema);
   local $self->{seen}    = {};
+  local $self->{temp_schema} = [];    # make sure random-errors.t does not fail
   $self->{report} = [];
   my @errors = $self->_validate($data, '', $schema);
   $self->_report if DEBUG and REPORT;
@@ -478,11 +479,11 @@ sub _stack {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my ($seen_addr, $type, @errors);
+  my ($seen_addr, $type);
 
   $schema = $self->_ref_to_schema($schema) if $schema->{'$ref'};
-  $seen_addr = refaddr $schema;
-  $seen_addr .= ':' . (ref $data ? refaddr $data : "s:$data") if defined $data;
+  $seen_addr = join ':', refaddr($schema),
+    (!defined $data ? 'c:undef' : ref $data ? refaddr $data : "s:$data");
 
   # Avoid recursion
   if ($self->{seen}{$seen_addr}) {
@@ -490,7 +491,7 @@ sub _validate {
     return @{$self->{seen}{$seen_addr}};
   }
 
-  $self->{seen}{$seen_addr} = \@errors;
+  $self->{seen}{$seen_addr} = \my @errors;
 
   # Make sure we validate plain data and not a perl object
   $data = $data->TO_JSON if blessed $data and UNIVERSAL::can($data, 'TO_JSON');
@@ -498,7 +499,8 @@ sub _validate {
 
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {
-    push @errors, $self->_validate_any_of($data, $path, [map { +{%$schema, type => $_} } @$type]);
+    push @{$self->{temp_schema}}, [map { +{%$schema, type => $_} } @$type];
+    push @errors, $self->_validate_any_of($data, $path, $self->{temp_schema}[-1]);
   }
   elsif ($type) {
     my $method = sprintf '_validate_type_%s', $type;
