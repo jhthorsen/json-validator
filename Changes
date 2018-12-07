@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 2.19 Not Released
+ - Moved JSON::Validator::OpenAPI::Mojolicious to Mojolicious-Plugin-OpenAPI
  - Removed JSON::Validator::OpenAPI::Dancer2
 
 2.18 2018-11-15T16:04:18+0900

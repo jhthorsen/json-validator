@@ -1,9 +1,9 @@
 use lib '.';
-use JSON::Validator::OpenAPI::Mojolicious;
+use JSON::Validator::OpenAPI;
 use t::Helper;
 use Test::More;
 
-$ENV{TEST_VALIDATOR_CLASS} = 'JSON::Validator::OpenAPI::Mojolicious';
+$ENV{TEST_VALIDATOR_CLASS} = 'JSON::Validator::OpenAPI';
 
 my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 
