@@ -1,0 +1,12 @@
+% layout 'blog', title => 'Blog';
+% unless (@$posts) {
+  <h2>No posts</h2>
+% }
+% for my $post (@$posts) {
+  <article class="blog">
+    <h1><%= link_to $post->{title} => show_post => {id => $post->{id}} %></h1>
+    %= $post->{published} ? markdown $post->{body} : 'Not published yet.'
+  </article>
+% }
+<div class="divider text-center" data-content="Actions"></div>
+%= link_to 'New post' => 'create_post', class => 'btn btn-primary'

@@ -1,0 +1,103 @@
+%= form_for $target => 'data-action' => $target, begin
+  <div class="form-group">
+    %= label_for author => 'Author'
+    %= email_field author => $post->{author}, class => 'form-input', placeholder => 'supergirl@example.com'
+    <p class="form-input-hint hide"></p>
+  </div>
+  <div class="form-group">
+    %= label_for title => 'Title'
+    %= text_field title => $post->{title}, class => 'form-input input-lg', placeholder => 'A cool post!'
+    <p class="form-input-hint hide"></p>
+  </div>
+  <div class="form-group">
+    %= label_for body => 'Body'
+    %= text_area body => $post->{body}, class => 'form-input input-lg', rows => 10
+    <p class="form-input-hint hide"></p>
+  </div>
+  <div class="form-group">
+    %= label_for tags => 'Tags'
+    %= text_field tags => join(', ', @{$post->{tags} || []}), class => 'form-input', placeholder => 'mojo, perl, web, ...'
+    <p class="form-input-hint hide"></p>
+  </div>
+  <div class="form-group">
+    %= label_for form_published => class => 'form-switch', begin
+      %= check_box published => 1, id => 'form_published', $post->{published} ? (checked => undef) : ()
+      <i class="form-icon"></i> Published
+    % end
+  </div>
+  <div class="form-group">
+    <button class="btn btn-primary">Save</button>
+    <button class="btn btn-success js-view">View</button>
+    <button class="btn btn-error js-delete">Remove</button>
+  </div>
+% end
+
+<script>
+(function(d, w) {
+  var form = d.querySelector("form");
+
+  form.querySelector(".js-delete").addEventListener("click", e => {
+    form._method = "DELETE";
+  });
+
+  form.querySelector(".js-view").addEventListener("click", e => {
+    e.preventDefault();
+    location.href = form.action;
+  });
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+
+    var req = {
+      cache: "no-cache",
+      credentials: "same-origin",
+      method: form._method || "POST",
+    };
+
+    if (req.method == "POST") {
+      req.body = {};
+      ["author", "body", "published", "tags", "title"].forEach(k => {
+        var hintEl = form[k].parentNode.querySelector(".form-input-hint");
+        if (hintEl) hintEl.classList.add("hide");
+        form[k].parentNode.classList.remove("has-error");
+        req.body[k] = form[k].value;
+      });
+      req.body.tags = req.body.tags.split(/\W+/);
+      req.body.published = req.body.published ? true : false;
+      req.body = JSON.stringify(req.body);
+    }
+
+    fetch(form.action, req).then(res => {
+      return res.text();
+    }).then(text => {
+      var json = JSON.parse(text);
+
+      if (json.errors) {
+        json.errors.forEach(e => {
+          var el = form[e.path.replace(/\W/g, "")];
+          if (!el) return;
+          el.parentNode.classList.add("has-error");
+          var hintEl = el.parentNode.querySelector(".form-input-hint");
+          hintEl.textContent = e.message;
+          hintEl.classList.remove("hide");
+        });
+      }
+      else {
+        if (req.method == "DELETE") {
+          form.dataset.action = "store_post";
+        }
+        else if (form.dataset.action == "store_post") {
+          form.dataset.action = "update_post";
+        }
+      }
+    }).catch(e => {
+      console.log(e);
+    }).finally(() => {
+      form._method = "POST";
+      form.querySelector(".btn").disabled = false;
+    });
+
+    form.querySelector(".btn").disabled = true;
+  });
+})(document, window);
+</script>
