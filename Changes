@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
-2.20 Not Released
+3.00 Not Released
+ - Changed how format validation is done
  - Removed JSON::Validator::OpenAPI
 
 2.19 2018-12-07T13:53:25+0900

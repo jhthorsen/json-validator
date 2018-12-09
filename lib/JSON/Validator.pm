@@ -22,10 +22,7 @@ use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
-use constant VALIDATE_HOSTNAME => eval 'require Data::Validate::Domain;1';
-use constant VALIDATE_IP       => eval 'require Data::Validate::IP;1';
 
-our $ERR;    # ugly hack to improve validation errors
 our $VERSION   = '2.19';
 our @EXPORT_OK = qw(joi validate_json);
 
@@ -211,14 +208,14 @@ sub validate_json {
 
 sub _build_formats {
   return {
-    'date-time'     => \&_is_date_time,
-    'email'         => \&_is_email,
-    'hostname'      => VALIDATE_HOSTNAME ? \&Data::Validate::Domain::is_domain : \&_is_domain,
-    'ipv4'          => VALIDATE_IP ? \&Data::Validate::IP::is_ipv4 : \&_is_ipv4,
-    'ipv6'          => VALIDATE_IP ? \&Data::Validate::IP::is_ipv6 : \&_is_ipv6,
-    'regex'         => \&_is_regex,
-    'uri'           => \&_is_uri,
-    'uri-reference' => \&_is_uri_reference,
+    'date-time'     => \&_match_date_time,
+    'email'         => \&_match_email,
+    'hostname'      => _matcher(hostname => 'Data::Validate::Domain', 'is_domain'),
+    'ipv4'          => _matcher(ipv4 => 'Data::Validate::IP', 'is_ipv4'),
+    'ipv6'          => _matcher(ipv6 => 'Data::Validate::IP', 'is_ipv6'),
+    'regex'         => \&_match_regex,
+    'uri'           => \&_match_uri,
+    'uri-reference' => \&_match_uri_reference,
   };
 }
 
@@ -313,6 +310,15 @@ sub _load_schema_from_url {
   }
 
   return $self->_load_schema_from_text(\$tx->res->body);
+}
+
+sub _matcher {
+  my ($format, $module, $method) = @_;
+  my $e = eval "require $module;1" ? undef : $@;
+  return sub { warn "$module is not available: $e"; return undef }
+    if $e;
+  my $m = $module->can($method);
+  return sub { $m->($_[0]) ? undef : "Does not match $format format." };
 }
 
 sub _ref_to_schema {
@@ -648,10 +654,9 @@ sub _validate_type_const {
 sub _validate_format {
   my ($self, $value, $path, $schema) = @_;
   my $code = $self->formats->{$schema->{format}};
-  local $ERR;
-  return if $code and $code->($value);
   return do { warn "Format rule for '$schema->{format}' is missing"; return } unless $code;
-  return E $path, $ERR || "Does not match $schema->{format} format.";
+  return unless my $err = $code->($value);
+  return E $path, $err;
 }
 
 sub _validate_type_any { }
@@ -706,8 +711,12 @@ sub _validate_type_array {
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
 
-  return if _is_blessed_boolean($value);
+  # Object representing a boolean
+  if (blessed $value and ($value->isa('JSON::PP::Boolean') or "$value" eq "1" or !$value)) {
+    return;
+  }
 
+  # String that looks like a boolean
   if (  defined $value
     and $self->{coerce}{booleans}
     and
@@ -942,29 +951,21 @@ sub _guessed_right {
   return _guess_data_type($_[0]) eq $_[1] ? $_[1] : undef;
 }
 
-sub _invalid {
-  $ERR = $_[0];
-  warn sprintf "[JSON::Validator] Failed validation: $_[0]\n" if DEBUG;
-  return 0;
-}
-
-sub _is_date_time {
+sub _match_date_time {
   my @time = $_[0]
     =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
-  return 0 unless @time;
+  return 'Does not match date-time format.' unless @time;
   @time = map { s/^0//; $_ } reverse @time[0 .. 5];
   $time[4] -= 1;    # month are zero based
   local $@;
-  return 1 if eval { Time::Local::timegm(@time); 1 };
-  $JSON::Validator::ERR = (split / at /, $@)[0];
-  $JSON::Validator::ERR =~ s!('-?\d+'\s|\s[\d\.]+)!!g;
-  $JSON::Validator::ERR .= '.';
-  return 0;
+  return undef if eval { Time::Local::timegm(@time); 1 };
+  my $err = (split / at /, $@)[0];
+  $err =~ s!('-?\d+'\s|\s[\d\.]+)!!g;
+  $err .= '.';
+  return $err;
 }
 
-sub _is_domain { warn "Data::Validate::Domain is not installed"; return; }
-
-sub _is_email {
+sub _match_email {
   state $email_rfc5322_re = do {
     my $atom           = qr;[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+;o;
     my $quoted_string  = qr/"(?:\\[^\r\n]|[^\\"])*"/o;
@@ -976,60 +977,52 @@ sub _is_email {
     qr/$local_part\@$domain/o;
   };
 
-  return $_[0] =~ $email_rfc5322_re;
+  return $_[0] =~ $email_rfc5322_re ? undef : 'Does not match email format.';
 }
 
-sub _is_ipv4 {
+sub _match_ipv4 {
   my (@octets) = $_[0] =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  return 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ } @octets;
+  return 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ }
+    @octets ? undef : 'Does not match ipv4 format.';
 }
 
-sub _is_ipv6 { warn "Data::Validate::IP is not installed"; return; }
-
-sub _is_blessed_boolean {
-  return 0 if !blessed $_[0];
-  return 1 if UNIVERSAL::isa($_[0], 'JSON::PP::Boolean') or "$_[0]" eq "1" or !$_[0];
-  return 0;
+sub _match_regex {
+  eval {qr{$_[0]}} ? undef : 'Does not match regex format.';
 }
 
-sub _is_regex {
-  eval {qr{$_[0]}};
-}
-
-sub _is_uri {
-  return unless defined $_[0];
-  return unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
+sub _match_uri {
+  return 'Does not match uri format.'
+    unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
 
   my ($scheme, $auth_host, $path, $query, $fragment) = map { $_ // '' } ($2, $4, $5, $7, $9);
 
-  return _invalid('Scheme missing from URI.') if length $auth_host and !length $scheme;
-  return _invalid('Scheme, path or fragment are required.')
+  return 'Scheme missing from URI.' if length $auth_host and !length $scheme;
+  return 'Scheme, path or fragment are required.'
     unless length($scheme) + length($path) + length($fragment);
-  return _invalid('Scheme must begin with a letter.')
+  return 'Scheme must begin with a letter.'
     if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
-  return _invalid('Invalid hex escape.')           if $_[0] =~ /%[^0-9a-f]/i;
-  return _invalid('Hex escapes are not complete.') if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
+  return 'Invalid hex escape.'           if $_[0] =~ /%[^0-9a-f]/i;
+  return 'Hex escapes are not complete.' if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
 
   if (defined $auth_host and length $auth_host) {
-    return _invalid('Path cannot be empty or begin with a /')
-      unless !length $path or $path =~ m!^/!;
+    return 'Path cannot be empty or begin with a /' unless !length $path or $path =~ m!^/!;
   }
   else {
-    return _invalid('Path cannot not start with //.') if $path =~ m!^//!;
+    return 'Path cannot not start with //.' if $path =~ m!^//!;
   }
 
-  return 1;
+  return undef;
 }
 
-sub _is_uri_reference {
-  return unless defined $_[0];
-  return unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
+sub _match_uri_reference {
+  return 'Does not match uri format.'
+    unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
 
   my ($scheme, $auth_host, $path, $query, $fragment) = map { $_ // '' } ($2, $4, $5, $7, $9);
-  return _invalid('Path cannot not start with //.') if $path =~ m!^//!;
-  return 1 if length $path;
-  return _is_uri($_[0]);
-  return 1;
+  return 'Path cannot not start with //.' if $path =~ m!^//!;
+  return undef if length $path;
+  return _match_uri($_[0]);
+  return undef;
 }
 
 sub _path {
