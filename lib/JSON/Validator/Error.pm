@@ -38,13 +38,13 @@ L<JSON::Validator>.
 
 =head2 message
 
-  $str = $self->message;
+  $str = $error->message;
 
 A human readable description of the error. Defaults to empty string.
 
 =head2 path
 
-  $str = $self->path;
+  $str = $error->path;
 
 A JSON pointer to where the error occurred. Defaults to "/".
 
@@ -52,7 +52,7 @@ A JSON pointer to where the error occurred. Defaults to "/".
 
 =head2 new
 
-  $self = JSON::Validator::Error->new($path, $message);
+  $error = JSON::Validator::Error->new($path, $message);
 
 Object constructor.
 

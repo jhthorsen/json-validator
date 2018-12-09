@@ -1262,8 +1262,8 @@ See also L</validate> and L</ERROR OBJECT> for more details.
 
 =head2 cache_paths
 
-  $self = $self->cache_paths(\@paths);
-  $array_ref = $self->cache_paths;
+  $validator = $validator->cache_paths(\@paths);
+  $array_ref = $validator->cache_paths;
 
 A list of directories to where cached specifications are stored. Defaults to
 C<JSON_VALIDATOR_CACHE_PATH> environment variable and the specs that is bundled
@@ -1275,8 +1275,8 @@ See L</Bundled specifications> for more details.
 
 =head2 formats
 
-  $hash_ref = $self->formats;
-  $self = $self->formats(\%hash);
+  $hash_ref = $validator->formats;
+  $validator = $validator->formats(\%hash);
 
 Holds a hash-ref, where the keys are supported JSON type "formats", and
 the values holds a code block which can validate a given format.
@@ -1319,8 +1319,8 @@ Validated against the RFC3986 spec.
 
 =head2 ua
 
-  $ua = $self->ua;
-  $self = $self->ua(Mojo::UserAgent->new);
+  $ua = $validator->ua;
+  $validator = $validator->ua(Mojo::UserAgent->new);
 
 Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
 from remote location.
@@ -1331,8 +1331,8 @@ and might change without a warning)
 
 =head2 version
 
-  $int = $self->version;
-  $self = $self->version(7);
+  $int = $validator->version;
+  $validator = $validator->version(7);
 
 Used to set the JSON Schema version to use. Will be set automatically when
 using L</load_and_validate_schema>, unless already set.
@@ -1343,7 +1343,7 @@ Note that this attribute is EXPERIMENTAL and might change without a warning.
 
 =head2 bundle
 
-  $schema = $self->bundle(\%args);
+  $schema = $validator->bundle(\%args);
 
 Used to create a new schema, where the C<$ref> are resolved. C<%args> can have:
 
@@ -1370,9 +1370,9 @@ Default is to use the value from the L</schema> attribute.
 
 =head2 coerce
 
-  $self = $self->coerce(booleans => 1, numbers => 1, strings => 1);
-  $self = $self->coerce({booleans => 1, numbers => 1, strings => 1});
-  $hash = $self->coerce;
+  $validator = $validator->coerce(booleans => 1, numbers => 1, strings => 1);
+  $validator = $validator->coerce({booleans => 1, numbers => 1, strings => 1});
+  $hash = $validator->coerce;
 
 Set the given type to coerce. Before enabling coercion this module is very
 strict when it comes to validating types. Example: The string C<"1"> is not
@@ -1388,16 +1388,16 @@ for more details.
 
 =head2 get
 
-  $sub_schema = $self->get("/x/y");
-  $sub_schema = $self->get(["x", "y"]);
+  $sub_schema = $validator->get("/x/y");
+  $sub_schema = $validator->get(["x", "y"]);
 
 Extract value from L</schema> identified by the given JSON Pointer. Will at the
 same time resolve C<$ref> if found. Example:
 
-  $self->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
-  $self->schema->get('/x')           == undef
-  $self->schema->get('/x')->{'$ref'} == '#/y'
-  $self->get('/x')                   == {type => 'string'}
+  $validator->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
+  $validator->schema->get('/x')           == undef
+  $validator->schema->get('/x')->{'$ref'} == '#/y'
+  $validator->get('/x')                   == {type => 'string'}
 
 This method is EXPERIMENTAL.
 
@@ -1406,7 +1406,7 @@ as each elements.
 
 =head2 load_and_validate_schema
 
-  $self = $self->load_and_validate_schema($schema, \%args);
+  $validator = $validator->load_and_validate_schema($schema, \%args);
 
 Will load and validate C<$schema> against the OpenAPI specification. C<$schema>
 can be anything L<JSON::Validator/schema> accepts. The expanded specification
@@ -1427,10 +1427,10 @@ structured that can be used to validate C<$schema>.
 
 =head2 schema
 
-  $self = $self->schema($json_or_yaml_string);
-  $self = $self->schema($url);
-  $self = $self->schema(\%schema);
-  $schema = $self->schema;
+  $validator = $validator->schema($json_or_yaml_string);
+  $validator = $validator->schema($url);
+  $validator = $validator->schema(\%schema);
+  $schema = $validator->schema;
 
 Used to set a schema from either a data structure or a URL.
 
@@ -1462,14 +1462,14 @@ An URL (without a recognized scheme) will be loaded from disk.
 
 =head2 singleton
 
-  $self = $class->singleton;
+  $validator = $class->singleton;
 
 Returns the L<JSON::Validator> object used by L</validate_json>.
 
 =head2 validate
 
-  @errors = $self->validate($data);
-  @errors = $self->validate($data, $schema);
+  @errors = $validator->validate($data);
+  @errors = $validator->validate($data, $schema);
 
 Validates C<$data> against a given JSON L</schema>. C<@errors> will
 contain validation error objects or be an empty list on success.
@@ -1479,7 +1479,7 @@ See L</ERROR OBJECT> for details.
 C<$schema> is optional, but when specified, it will override schema stored in
 L</schema>. Example:
 
-  $self->validate({hero => "superwoman"}, {type => "object"});
+  $validator->validate({hero => "superwoman"}, {type => "object"});
 
 =head1 COPYRIGHT AND LICENSE
 
