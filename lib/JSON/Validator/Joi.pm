@@ -166,16 +166,16 @@ find it useful.
 
 =head2 format
 
-  $joi = $joi->format("email");
-  $str = $joi->format;
+  my $joi = $joi->format("email");
+  my $str = $joi->format;
 
 Used to set the format of the L</string>.
 See also L</iso_date>, L</email> and L</uri>.
 
 =head2 max
 
-  $joi = $joi->max(10);
-  $int = $joi->max;
+  my $joi = $joi->max(10);
+  my $int = $joi->max;
 
 =over 2
 
@@ -199,8 +199,8 @@ Defines how long the string can be.
 
 =head2 min
 
-  $joi = $joi->min(10);
-  $int = $joi->min;
+  my $joi = $joi->min(10);
+  my $int = $joi->min;
 
 =over 2
 
@@ -224,22 +224,22 @@ Defines how short the string can be.
 
 =head2 multiple_of
 
-  $joi = $joi->multiple_of(3);
-  $int = $joi->multiple_of;
+  my $joi = $joi->multiple_of(3);
+  my $int = $joi->multiple_of;
 
 Used by L</integer> and L</number> to define what the number must be a multiple
 of.
 
 =head2 regex
 
-  $joi = $joi->regex("^\w+$");
-  $str = $joi->regex;
+  my $joi = $joi->regex("^\w+$");
+  my $str = $joi->regex;
 
 Defines a pattern that L</string> will be validated against.
 
 =head2 type
 
-  $str = $joi->type;
+  my $str = $joi->type;
 
 Set by L</array>, L</integer>, L</object> or L</string>.
 
@@ -251,44 +251,44 @@ Alias for L</compile>.
 
 =head2 alphanum
 
-  $joi = $joi->alphanum;
+  my $joi = $joi->alphanum;
 
 Sets L</regex> to "^\w*$".
 
 =head2 array
 
-  $joi = $joi->array;
+  my $joi = $joi->array;
 
 Sets L</type> to "array".
 
 =head2 boolean
 
-  $joi = $joi->boolean;
+  my $joi = $joi->boolean;
 
 Sets L</type> to "boolean".
 
 =head2 compile
 
-  $hash_ref = $joi->compile;
+  my $hash_ref = $joi->compile;
 
 Will convert this object into a JSON-Schema data structure that
 L<JSON::Validator/schema> understands.
 
 =head2 date_time
 
-  $joi = $joi->date_time;
+  my $joi = $joi->date_time;
 
 Sets L</format> to L<date-time|JSON::Validator/date-time>.
 
 =head2 email
 
-  $joi = $joi->email;
+  my $joi = $joi->email;
 
 Sets L</format> to L<email|JSON::Validator/email>.
 
 =head2 extend
 
-  $new_joi = $joi->extend($joi);
+  my $new_joi = $joi->extend($joi);
 
 Will extend C<$joi> with the definitions in C<$joi> and return a new object.
 
@@ -298,44 +298,44 @@ Alias for L</date_time>.
 
 =head2 integer
 
-  $joi = $joi->integer;
+  my $joi = $joi->integer;
 
 Sets L</type> to "integer".
 
 =head2 items
 
-  $joi = $joi->items($joi);
-  $joi = $joi->items([$joi, ...]);
+  my $joi = $joi->items($joi);
+  my $joi = $joi->items([$joi, ...]);
 
 Defines a list of items for the L</array> type.
 
 =head2 length
 
-  $joi = $joi->length(10);
+  my $joi = $joi->length(10);
 
 Sets both L</min> and L</max> to the number provided.
 
 =head2 lowercase
 
-  $joi = $joi->lowercase;
+  my $joi = $joi->lowercase;
 
 Will set L</regex> to only match lower case strings.
 
 =head2 negative
 
-  $joi = $joi->negative;
+  my $joi = $joi->negative;
 
 Sets L</max> to C<0>.
 
 =head2 number
 
-  $joi = $joi->number;
+  my $joi = $joi->number;
 
 Sets L</type> to "number".
 
 =head2 object
 
-  $joi = $joi->object;
+  my $joi = $joi->object;
 
 Sets L</type> to "object".
 
@@ -345,44 +345,44 @@ Alias for L</regex>.
 
 =head2 positive
 
-  $joi = $joi->positive;
+  my $joi = $joi->positive;
 
 Sets L</min> to C<0>.
 
 =head2 props
 
-  $joi = $joi->props(name => JSON::Validator::Joi->new->string, ...);
+  my $joi = $joi->props(name => JSON::Validator::Joi->new->string, ...);
 
 Used to define properties for an L</object> type. Each key is the name of the
 parameter and the values must be a L<JSON::Validator::Joi> object.
 
 =head2 required
 
-  $joi = $joi->required;
+  my $joi = $joi->required;
 
 Marks the current property as required.
 
 =head2 strict
 
-  $joi = $joi->strict;
+  my $joi = $joi->strict;
 
 Sets L</array> and L</object> to not allow any more items/keys than what is defined.
 
 =head2 string
 
-  $joi = $joi->string;
+  my $joi = $joi->string;
 
 Sets L</type> to "string".
 
 =head2 token
 
-  $joi = $joi->token;
+  my $joi = $joi->token;
 
 Sets L</regex> to C<^[a-zA-Z0-9_]+$>.
 
 =head2 validate
 
-  @errors = $joi->validate($data);
+  my @errors = $joi->validate($data);
 
 Used to validate C<$data> using L<JSON::Validator/validate>. Returns a list of
 L<JSON::Validator::Error|JSON::Validator/ERROR OBJECT> objects on invalid
@@ -390,19 +390,19 @@ input.
 
 =head2 unique
 
-  $joi = $joi->unique;
+  my $joi = $joi->unique;
 
 Used to force the L</array> to only contain unique items.
 
 =head2 uppercase
 
-  $joi = $joi->uppercase;
+  my $joi = $joi->uppercase;
 
 Will set L</regex> to only match upper case strings.
 
 =head2 uri
 
-  $joi = $joi->uri;
+  my $joi = $joi->uri;
 
 Sets L</format> to L<uri|JSON::Validator/uri>.
 
