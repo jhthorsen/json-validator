@@ -63,7 +63,8 @@ sub uri       { shift->_type('string')->format('uri') }
 
 sub validate {
   my ($self, $data) = @_;
-  return JSON::Validator->new->validate($data, $self->compile);
+  state $validator = JSON::Validator->new->coerce(1);
+  return $validator->validate($data, $self->compile);
 }
 
 sub _compile_array {
@@ -133,7 +134,7 @@ sub TO_JSON { shift->compile }
 
 =head1 NAME
 
-JSON::Validator::Joi - Joi adapter for JSON::Validator
+JSON::Validator::Joi - Joi validation sugar for JSON::Validator
 
 =head1 SYNOPSIS
 
