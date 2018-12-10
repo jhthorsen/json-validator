@@ -5,8 +5,8 @@ use B;
 use Carp 'confess';
 use Exporter 'import';
 use JSON::Validator::Error;
-use JSON::Validator::Ref;
 use JSON::Validator::Joi;
+use JSON::Validator::Ref;
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON;
@@ -197,7 +197,7 @@ sub validate {
   local $self->{seen}    = {};
   local $self->{temp_schema} = [];    # make sure random-errors.t does not fail
   $self->{report} = [];
-  my @errors = $self->_validate($data, '', $schema);
+  my @errors = $self->_validate($_[1], '', $schema);
   $self->_report if DEBUG and REPORT;
   return @errors;
 }
@@ -484,7 +484,7 @@ sub _stack {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my ($seen_addr, $type);
+  my ($seen_addr, $to_json, $type);
 
   $schema = $self->_ref_to_schema($schema) if $schema->{'$ref'};
   $seen_addr = join ':', refaddr($schema),
@@ -497,44 +497,44 @@ sub _validate {
   }
 
   $self->{seen}{$seen_addr} = \my @errors;
-
-  # Make sure we validate plain data and not a perl object
-  $data = $data->TO_JSON if blessed $data and UNIVERSAL::can($data, 'TO_JSON');
+  $to_json = (blessed $data and $data->can('TO_JSON')) ? \$data->TO_JSON : undef;
+  $data = $$to_json if $to_json;
   $type = $schema->{type} || _guess_schema_type($schema, $data);
 
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {
     push @{$self->{temp_schema}}, [map { +{%$schema, type => $_} } @$type];
-    push @errors, $self->_validate_any_of($data, $path, $self->{temp_schema}[-1]);
+    push @errors,
+      $self->_validate_any_of($to_json ? $$to_json : $_[1], $path, $self->{temp_schema}[-1]);
   }
   elsif ($type) {
     my $method = sprintf '_validate_type_%s', $type;
     $self->_report_schema($path || '/', $type, $schema);
-    @errors = $self->$method($data, $path, $schema);
+    @errors = $self->$method($to_json ? $$to_json : $_[1], $path, $schema);
     $self->_report_errors($path, $type, \@errors) if REPORT;
     return @errors if @errors;
   }
 
   if ($schema->{enum}) {
-    push @errors, $self->_validate_type_enum($data, $path, $schema);
+    push @errors, $self->_validate_type_enum($to_json ? $$to_json : $_[1], $path, $schema);
     $self->_report_errors($path, 'enum', \@errors) if REPORT;
     return @errors if @errors;
   }
 
   if (my $rules = $schema->{not}) {
-    push @errors, $self->_validate($data, $path, $rules);
+    push @errors, $self->_validate($to_json ? $$to_json : $_[1], $path, $rules);
     $self->_report_errors($path, 'not', \@errors) if REPORT;
     return @errors ? () : (E $path, 'Should not match.');
   }
 
   if (my $rules = $schema->{allOf}) {
-    push @errors, $self->_validate_all_of($data, $path, $rules);
+    push @errors, $self->_validate_all_of($to_json ? $$to_json : $_[1], $path, $rules);
   }
   elsif ($rules = $schema->{anyOf}) {
-    push @errors, $self->_validate_any_of($data, $path, $rules);
+    push @errors, $self->_validate_any_of($to_json ? $$to_json : $_[1], $path, $rules);
   }
   elsif ($rules = $schema->{oneOf}) {
-    push @errors, $self->_validate_one_of($data, $path, $rules);
+    push @errors, $self->_validate_one_of($to_json ? $$to_json : $_[1], $path, $rules);
   }
 
   return @errors;
@@ -550,7 +550,7 @@ sub _validate_all_of {
 
   my $i = 0;
   for my $rule (@$rules) {
-    my @e = $self->_validate($data, $path, $rule) or next;
+    my @e = $self->_validate($_[1], $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
     push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
@@ -577,7 +577,7 @@ sub _validate_any_of {
 
   my $i = 0;
   for my $rule (@$rules) {
-    @e = $self->_validate($data, $path, $rule);
+    @e = $self->_validate($_[1], $path, $rule);
     return unless @e;
     my $schema_type = _guess_schema_type($rule);
     push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
@@ -603,7 +603,7 @@ sub _validate_one_of {
 
   my $i = 0;
   for my $rule (@$rules) {
-    my @e = $self->_validate($data, $path, $rule) or next;
+    my @e = $self->_validate($_[1], $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
     push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
@@ -683,19 +683,19 @@ sub _validate_type_array {
   }
   if (ref $schema->{items} eq 'ARRAY') {
     my $additional_items = $schema->{additionalItems} // {type => 'any'};
-    my @v = @{$schema->{items}};
+    my @rules = @{$schema->{items}};
 
     if ($additional_items) {
-      push @v, $additional_items while @v < @$data;
+      push @rules, $additional_items while @rules < @$data;
     }
 
-    if (@v == @$data) {
-      for my $i (0 .. @v - 1) {
-        push @errors, $self->_validate($data->[$i], "$path/$i", $v[$i]);
+    if (@rules == @$data) {
+      for my $i (0 .. @rules - 1) {
+        push @errors, $self->_validate($data->[$i], "$path/$i", $rules[$i]);
       }
     }
     elsif (!$additional_items) {
-      push @errors, E $path, sprintf "Invalid number of items: %s/%s.", int(@$data), int(@v);
+      push @errors, E $path, sprintf "Invalid number of items: %s/%s.", int(@$data), int(@rules);
     }
   }
   elsif (UNIVERSAL::isa($schema->{items}, 'HASH')) {
@@ -730,7 +730,7 @@ sub _validate_type_boolean {
 
 sub _validate_type_integer {
   my ($self, $value, $path, $schema) = @_;
-  my @errors = $self->_validate_type_number($value, $path, $schema, 'integer');
+  my @errors = $self->_validate_type_number($_[1], $path, $schema, 'integer');
 
   return @errors if @errors;
   return if $value =~ /^-?\d+$/;

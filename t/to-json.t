@@ -3,54 +3,47 @@ use Test::More;
 use JSON::Validator 'validate_json';
 
 my @errors = validate_json(bless({path => '', message => 'yikes'}, 'JSON::Validator::Error'),
-  'data://main/spec.json');
+  'data://main/error_object.json');
 ok !@errors, 'TO_JSON on objects' or diag join ', ', @errors;
 
-@errors = validate_json(
-  {
-    valid  => Mojo::JSON->false,
-    errors => [
-      bless({path => '', message => 'foo'}, 'JSON::Validator::Error'),
-      bless({path => '', message => 'bar'}, 'JSON::Validator::Error')
-    ]
-  },
-  'data://main/spec_array.json'
-);
+my $input = {
+  errors => [JSON::Validator::Error->new('/', 'foo'), JSON::Validator::Error->new('/', 'bar')],
+  valid  => Mojo::JSON->false,
+};
+@errors = validate_json $input, 'data://main/error_array.json';
 ok !@errors, 'TO_JSON on objects inside arrays' or diag join ', ', @errors;
+is_deeply $input,
+  {
+  errors => [JSON::Validator::Error->new('/', 'foo'), JSON::Validator::Error->new('/', 'bar')],
+  valid  => Mojo::JSON->false,
+  },
+  'input objects are not changed';
 
 done_testing;
 __DATA__
-@@ spec.json
+@@ error_object.json
 {
   "type": "object",
   "properties": { "message": { "type": "string" } },
   "required": ["message"]
 }
 
-@@ spec_array.json
+@@ error_array.json
 {
   "type": "object",
+  "required": [ "errors" ],
   "properties": {
-    "valid": {
-      "type": "boolean"
-    },
+    "valid": { "type": "boolean" },
     "errors": {
       "type": "array",
       "items": {
         "type": "object",
+        "required": [ "message" ],
         "properaties": {
-          "message": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          }
-        },
-        "required": [ "message" ]
+          "message": { "type": "string" },
+          "path": { "type": "string" }
+        }
       }
     }
-  },
-  "required": [
-    "errors"
-  ]
+  }
 }
