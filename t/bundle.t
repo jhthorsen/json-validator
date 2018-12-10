@@ -1,7 +1,6 @@
 use Mojo::Base -strict;
 use Mojo::File 'path';
 use Test::More;
-use JSON::Validator::OpenAPI;
 use JSON::Validator;
 
 my $validator = JSON::Validator->new;
@@ -67,25 +66,16 @@ for my $pathlist (@pathlists) {
       height
       )
     ],
-    'right definitions in disk spec' or diag explain $bundled->{definitions};
+    'right definitions in disk spec'
+    or diag explain $bundled->{definitions};
 }
-
-# this test mimics what Mojolicious::Plugin::OpenAPI does when loading
-# a spec from a file that Mojolicious locates with a '..'
-# It checks that a $ref to something that's under /responses doesn't
-# get picked as remote, or if so that it doesn't make an invalid spec!
-my $openapi = JSON::Validator::OpenAPI->new;
-my $file2 = path(path(__FILE__)->dirname, 'spec', File::Spec->updir, 'spec', 'bundlecheck.json');
-$bundled = $openapi->schema($file2)->bundle;
-eval { $openapi->load_and_validate_schema($bundled) };
-is $@, '', 'bundled schema is valid';
 
 # ensure filenames with funny characters not mangled by Mojo::URL
 my $file3 = path(__FILE__)->sibling('spec', 'space bundle.json');
 eval { $bundled = $validator->schema($file3)->bundle };
 is $@, '', 'loaded absolute filename with space';
-is $bundled->{properties}{age}{description}, 'Age in years',
-  'right definitions in disk spec' or diag explain $bundled;
+is $bundled->{properties}{age}{description}, 'Age in years', 'right definitions in disk spec'
+  or diag explain $bundled;
 
 done_testing;
 

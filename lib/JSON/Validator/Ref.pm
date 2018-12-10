@@ -53,19 +53,19 @@ discovered, without any warning.
 
 =head2 fqn
 
-  $str = $self->fqn;
+  $str = $ref->fqn;
 
 The fully qualified version of L</ref>.
 
 =head2 ref
 
-  $str = $self->ref;
+  $str = $ref->ref;
 
 The original C<$ref> from the document.
 
 =head2 schema
 
-  $hash_ref = $self->schema;
+  $hash_ref = $ref->schema;
 
 A reference to the schema that the C</fqn> points to.
 

@@ -1,10 +1,7 @@
 package JSON::Validator::Error;
 use Mojo::Base -base;
 
-use overload
-  q("")    => sub { sprintf '%s: %s', @{$_[0]}{qw(path message)} },
-  bool     => sub {1},
-  fallback => 1;
+use overload q("") => \&to_string, bool => sub {1}, fallback => 1;
 
 sub new {
   my $self = bless {}, shift;
@@ -12,9 +9,10 @@ sub new {
   $self;
 }
 
-sub message { shift->{message} }
-sub path    { shift->{path} }
-sub TO_JSON { {message => $_[0]->{message}, path => $_[0]->{path}} }
+sub message   { shift->{message} }
+sub path      { shift->{path} }
+sub to_string { sprintf '%s: %s', @{$_[0]}{qw(path message)} }
+sub TO_JSON   { {message => $_[0]->{message}, path => $_[0]->{path}} }
 
 1;
 
@@ -38,13 +36,13 @@ L<JSON::Validator>.
 
 =head2 message
 
-  $str = $self->message;
+  my $str = $error->message;
 
 A human readable description of the error. Defaults to empty string.
 
 =head2 path
 
-  $str = $self->path;
+  my $str = $error->path;
 
 A JSON pointer to where the error occurred. Defaults to "/".
 
@@ -52,9 +50,31 @@ A JSON pointer to where the error occurred. Defaults to "/".
 
 =head2 new
 
-  $self = JSON::Validator::Error->new($path, $message);
+  my $error = JSON::Validator::Error->new($path, $message);
 
 Object constructor.
+
+=head2 to_string
+
+  my $str = $error->to_string;
+
+Returns the "path" and "message" part as a string: "$path: $message".
+
+=head1 OPERATORS
+
+L<JSON::Validator::Error> overloads the following operators:
+
+=head2 bool
+
+  my $bool = !!$error;
+
+Always true.
+
+=head2 stringify
+
+  my $str = "$error";
+
+Alias for L</to_string>.
 
 =head1 SEE ALSO
 

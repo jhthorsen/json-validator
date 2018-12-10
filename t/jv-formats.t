@@ -35,7 +35,6 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 }
 
 {
-  local $TODO = JSON::Validator::VALIDATE_HOSTNAME ? undef : 'Install Data::Validate::Domain';
   local $schema->{properties}{v}{format} = 'hostname';
   validate_ok {v => 'mojolicio.us'}, $schema;
   validate_ok {v => '[]'}, $schema, E('/v', 'Does not match hostname format.');
@@ -48,7 +47,6 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 }
 
 {
-  local $TODO = JSON::Validator::VALIDATE_IP ? undef : 'Install Data::Validate::IP';
   local $schema->{properties}{v}{format} = 'ipv6';
   validate_ok {v => '::1'}, $schema;
   validate_ok {v => '300.0.0.0'}, $schema, E('/v', 'Does not match ipv6 format.');
