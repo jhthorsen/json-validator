@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+    <style>
+      body > .container {
+        max-width: 40rem;
+        padding: 2rem;
+      }
+
+      form[data-action="store_post"] .js-delete,
+      form[data-action="store_post"] .js-view {
+        display: none;
+      }
+
+      .blog header {
+        margin-bottom: 1rem;
+      }
+
+      .blog header h2 {
+        margin-bottom: 0;
+      }
+
+      .blog_updated:after {
+        content: " - ";
+      }
+
+      .hide {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container p-centered">
+      <h1><%= link_to 'Blog' => 'posts' %></h1>
+      <div class="divider"></div>
+      %= content
+    </div>
+  </body>
+</html>
