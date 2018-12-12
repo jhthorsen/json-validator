@@ -11,7 +11,7 @@ validate_ok {name => "Caesar", constancy => "as the northern star"}, $faithful;
 validate_ok {name => "Brutus", constancy => "there is a tide in the affairs of men"}, $ambitious;
 
 validate_ok {name => "Cassius", constancy => "Cassius from bondage will deliver Cassius"},
-  $faithful, E('/constancy', q{Does not match const: "as the northern star".});
+  $faithful, E('/constancy', q{Does not match constant: "as the northern star".});
 
 validate_ok(
   {
@@ -19,7 +19,7 @@ validate_ok(
     constancy => "Do not go forth today. Call it my fear That keeps you in the house"
   },
   $ambitious,
-  E('/constancy', q{Does not match const: "there is a tide in the affairs of men".})
+  E('/constancy', q{Does not match constant: "there is a tide in the affairs of men".})
 );
 
 # Now oneOf should work right

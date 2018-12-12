@@ -317,7 +317,7 @@ sub _matcher {
   return sub { warn "$module is not available: $e"; return undef }
     if $e;
   my $m = $module->can($method);
-  return sub { $m->($_[0]) ? undef : "Does not match $format format." };
+  return sub { $m->($_[0]) ? undef : ['Does not match %1 format.', $format] };
 }
 
 sub _ref_to_schema {
@@ -560,8 +560,8 @@ sub _validate_all_of {
   }
 
   $self->_report_errors($path, 'allOf', \@errors) if REPORT;
-  my $expected = join ' or ', _uniq(@expected);
-  return E $path, "/allOf Expected $expected, not $type."
+  my $expected = join '/', _uniq(@expected);
+  return E $path, '/allOf Expected %1 - got %2.', $expected, $type
     if $expected and @errors + @expected == @$rules;
   return _add_path_to_error_messages(allOf => @errors) if @errors;
   return;
@@ -588,8 +588,8 @@ sub _validate_any_of {
   }
 
   $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
-  my $expected = join ' or ', _uniq(@expected);
-  return E $path, "/anyOf Expected $expected, got $type." unless @errors;
+  my $expected = join '/', _uniq(@expected);
+  return E $path, '/anyOf Expected %1 - got %2.', $expected, $type unless @errors;
   return _add_path_to_error_messages(anyOf => @errors);
 }
 
@@ -621,9 +621,9 @@ sub _validate_one_of {
   }
 
   return if @errors + @expected + 1 == @$rules;
-  my $expected = join ' or ', _uniq(@expected);
-  return E $path, "All of the oneOf rules match."         unless @errors + @expected;
-  return E $path, "/oneOf Expected $expected, got $type." unless @errors;
+  my $expected = join '/', _uniq(@expected);
+  return E $path, 'All of the oneOf rules match.' unless @errors + @expected;
+  return E $path, '/oneOf Expected %1 - got %2.', $expected, $type unless @errors;
   return _add_path_to_error_messages(oneOf => @errors);
 }
 
@@ -637,7 +637,7 @@ sub _validate_type_enum {
   }
 
   local $" = ', ';
-  return E $path, sprintf 'Not in enum list: %s.', join ', ',
+  return E $path, 'Not in enum list: %1.', join ', ',
     map { (!defined or ref) ? Mojo::JSON::encode_json($_) : $_ } @$enum;
 }
 
@@ -647,7 +647,7 @@ sub _validate_type_const {
   my $m     = S $data;
 
   return if $m eq S $const;
-  return E $path, sprintf 'Does not match const: %s.', Mojo::JSON::encode_json($const);
+  return E $path, 'Does not match constant: %1.', Mojo::JSON::encode_json($const);
 }
 
 sub _validate_format {
@@ -655,7 +655,7 @@ sub _validate_format {
   my $code = $self->formats->{$schema->{format}};
   return do { warn "Format rule for '$schema->{format}' is missing"; return } unless $code;
   return unless my $err = $code->($value);
-  return E $path, $err;
+  return E $path, @$err;
 }
 
 sub _validate_type_any { }
@@ -668,10 +668,10 @@ sub _validate_type_array {
     return E $path, _expected(array => $data);
   }
   if (defined $schema->{minItems} and $schema->{minItems} > @$data) {
-    push @errors, E $path, sprintf 'Not enough items: %s/%s.', int @$data, $schema->{minItems};
+    push @errors, E $path, 'Not enough items: %1/%2.', int @$data, $schema->{minItems};
   }
   if (defined $schema->{maxItems} and $schema->{maxItems} < @$data) {
-    push @errors, E $path, sprintf 'Too many items: %s/%s.', int @$data, $schema->{maxItems};
+    push @errors, E $path, 'Too many items: %1/%2.', int @$data, $schema->{maxItems};
   }
   if ($schema->{uniqueItems}) {
     my %uniq;
@@ -695,7 +695,7 @@ sub _validate_type_array {
       }
     }
     elsif (!$additional_items) {
-      push @errors, E $path, sprintf "Invalid number of items: %s/%s.", int(@$data), int(@rules);
+      push @errors, E $path, 'Invalid number of items: %1/%2.', int(@$data), int(@rules);
     }
   }
   elsif (UNIVERSAL::isa($schema->{items}, 'HASH')) {
@@ -734,7 +734,7 @@ sub _validate_type_integer {
 
   return @errors if @errors;
   return if $value =~ /^-?\d+$/;
-  return E $path, "Expected integer - got number.";
+  return E $path, 'Expected %1 - got %2.', qw(integer number);
 }
 
 sub _validate_type_null {
@@ -757,7 +757,7 @@ sub _validate_type_number {
     and 0 + $value eq $value
     and $value * 0 == 0)
   {
-    return E $path, "Expected $expected - got string."
+    return E $path, 'Expected %1 - got %2.', $expected, 'string'
       if !$self->{coerce}{numbers} or $value !~ /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
     $_[1] = 0 + $value;    # coerce input value
   }
@@ -766,14 +766,14 @@ sub _validate_type_number {
     push @errors, $self->_validate_format($value, $path, $schema);
   }
   if (my $e = _cmp($schema->{minimum}, $value, $schema->{exclusiveMinimum}, '<')) {
-    push @errors, E $path, "$value $e minimum($schema->{minimum})";
+    push @errors, E $path, '%1 %2 minimum(%3)', $value, $e, $schema->{minimum};
   }
   if (my $e = _cmp($value, $schema->{maximum}, $schema->{exclusiveMaximum}, '>')) {
-    push @errors, E $path, "$value $e maximum($schema->{maximum})";
+    push @errors, E $path, '%1 %2 maximum(%3)', $value, $e, $schema->{maximum};
   }
   if (my $d = $schema->{multipleOf}) {
     if (($value / $d) =~ /\.[^0]+$/) {
-      push @errors, E $path, "Not multiple of $d.";
+      push @errors, E $path, 'Not multiple of %1.', $d;
     }
   }
 
@@ -791,12 +791,10 @@ sub _validate_type_object {
 
   my @dkeys = sort keys %$data;
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < @dkeys) {
-    push @errors, E $path, sprintf 'Too many properties: %s/%s.', int @dkeys,
-      $schema->{maxProperties};
+    push @errors, E $path, 'Too many properties: %1/%2.', int @dkeys, $schema->{maxProperties};
   }
   if (defined $schema->{minProperties} and $schema->{minProperties} > @dkeys) {
-    push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int @dkeys,
-      $schema->{minProperties};
+    push @errors, E $path, 'Not enough properties: %1/%2.', int @dkeys, $schema->{minProperties};
   }
 
   while (my ($k, $r) = each %{$schema->{properties}}) {
@@ -812,8 +810,7 @@ sub _validate_type_object {
     $rules{$_} ||= [$additional] for @dkeys;
   }
   elsif (my @k = grep { !$rules{$_} } @dkeys) {
-    local $" = ', ';
-    return E $path, "Properties not allowed: @k.";
+    return E $path, 'Properties not allowed: %1.', join ', ', @k;
   }
 
   for my $k (sort keys %required) {
@@ -848,7 +845,7 @@ sub _validate_type_string {
     and 0 + $value eq $value
     and $value * 0 == 0)
   {
-    return E $path, "Expected string - got number." unless $self->{coerce}{strings};
+    return E $path, 'Expected %1 - got %2.', qw(string number) unless $self->{coerce}{strings};
     $_[1] = "$value";    # coerce input value
   }
   if ($schema->{format}) {
@@ -856,20 +853,18 @@ sub _validate_type_string {
   }
   if (defined $schema->{maxLength}) {
     if (length($value) > $schema->{maxLength}) {
-      push @errors, E $path, sprintf "String is too long: %s/%s.", length($value),
-        $schema->{maxLength};
+      push @errors, E $path, 'String is too long: %1/%2.', length($value), $schema->{maxLength};
     }
   }
   if (defined $schema->{minLength}) {
     if (length($value) < $schema->{minLength}) {
-      push @errors, E $path, sprintf "String is too short: %s/%s.", length($value),
-        $schema->{minLength};
+      push @errors, E $path, 'String is too short: %1/%2.', length($value), $schema->{minLength};
     }
   }
   if (defined $schema->{pattern}) {
     my $p = $schema->{pattern};
     unless ($value =~ /$p/) {
-      push @errors, E $path, "String does not match '$p'";
+      push @errors, E $path, 'String does not match %1.', $p;
     }
   }
 
@@ -885,9 +880,9 @@ sub _add_path_to_error_messages {
   for my $e (@errors_with_index) {
     my $index = shift @$e;
     push @errors, map {
-      my $msg = sprintf '/%s/%s %s', $type, $index, $_->{message};
+      my $msg = sprintf '/%s/%s %s', $type, $index, $_->message;
       $msg =~ s!(\d+)\s/!$1/!g;
-      E $_->path, $msg;
+      E $_->path, '%1 %2', $msg =~ m!^(\S+)\s(.*)!;
     } @$e;
   }
 
@@ -903,8 +898,8 @@ sub _cmp {
 
 sub _expected {
   my $type = _guess_data_type($_[1]);
-  return "Expected $_[0] - got different $type." if $_[0] =~ /\b$type\b/;
-  return "Expected $_[0] - got $type.";
+  return 'Expected %1 - got different %2.', $_[0], $type if $_[0] =~ /\b$type\b/;
+  return 'Expected %1 - got %2.', $_[0], $type;
 }
 
 sub _guess_data_type {
@@ -953,7 +948,7 @@ sub _guessed_right {
 sub _match_date_time {
   my @time = $_[0]
     =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
-  return 'Does not match date-time format.' unless @time;
+  return ['Does not match %1 format.', 'date-time'] unless @time;
   @time = map { s/^0//; $_ } reverse @time[0 .. 5];
   $time[4] -= 1;    # month are zero based
   local $@;
@@ -961,7 +956,7 @@ sub _match_date_time {
   my $err = (split / at /, $@)[0];
   $err =~ s!('-?\d+'\s|\s[\d\.]+)!!g;
   $err .= '.';
-  return $err;
+  return [$err];
 }
 
 sub _match_email {
@@ -976,49 +971,49 @@ sub _match_email {
     qr/$local_part\@$domain/o;
   };
 
-  return $_[0] =~ $email_rfc5322_re ? undef : 'Does not match email format.';
+  return $_[0] =~ $email_rfc5322_re ? undef : ['Does not match %1 format.', 'email'];
 }
 
 sub _match_ipv4 {
   my (@octets) = $_[0] =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
   return 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ }
-    @octets ? undef : 'Does not match ipv4 format.';
+    @octets ? undef : ['Does not match %1 format.', 'ipv4'];
 }
 
 sub _match_regex {
-  eval {qr{$_[0]}} ? undef : 'Does not match regex format.';
+  eval {qr{$_[0]}} ? undef : ['Does not match %1 format.', 'regex'];
 }
 
 sub _match_uri {
-  return 'Does not match uri format.'
+  return ['Does not match %1 format.', 'uri']
     unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
 
   my ($scheme, $auth_host, $path, $query, $fragment) = map { $_ // '' } ($2, $4, $5, $7, $9);
 
-  return 'Scheme missing from URI.' if length $auth_host and !length $scheme;
-  return 'Scheme, path or fragment are required.'
+  return ['Scheme missing from URI.'] if length $auth_host and !length $scheme;
+  return ['Scheme, path or fragment are required.']
     unless length($scheme) + length($path) + length($fragment);
-  return 'Scheme must begin with a letter.'
+  return ['Scheme must begin with a letter.']
     if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
-  return 'Invalid hex escape.'           if $_[0] =~ /%[^0-9a-f]/i;
-  return 'Hex escapes are not complete.' if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
+  return ['Invalid hex escape.']           if $_[0] =~ /%[^0-9a-f]/i;
+  return ['Hex escapes are not complete.'] if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
 
   if (defined $auth_host and length $auth_host) {
-    return 'Path cannot be empty or begin with a /' unless !length $path or $path =~ m!^/!;
+    return ['Path cannot be empty or begin with a /'] unless !length $path or $path =~ m!^/!;
   }
   else {
-    return 'Path cannot not start with //.' if $path =~ m!^//!;
+    return ['Path cannot not start with //.'] if $path =~ m!^//!;
   }
 
   return undef;
 }
 
 sub _match_uri_reference {
-  return 'Does not match uri format.'
+  return ['Does not match %1 format.', 'uri']
     unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
 
   my ($scheme, $auth_host, $path, $query, $fragment) = map { $_ // '' } ($2, $4, $5, $7, $9);
-  return 'Path cannot not start with //.' if $path =~ m!^//!;
+  return ['Path cannot not start with //.'] if $path =~ m!^//!;
   return undef if length $path;
   return _match_uri($_[0]);
   return undef;
@@ -1214,9 +1209,9 @@ See L</Bundled specifications> for more details.
 
 Holds a hash-ref, where the keys are supported JSON type "formats", and
 the values holds a code block which can validate a given format. A code
-block should return C<undef> on success and an error string on error:
+block should return C<undef> on success and an array on error:
 
-  sub { return defined $_[0] && $_[0] eq "42" ? undef : "Not the answer." };
+  sub { return defined $_[0] && $_[0] eq "42" ? undef : ["Not the answer."] };
 
 Note! The modules mentioned below are optional.
 
