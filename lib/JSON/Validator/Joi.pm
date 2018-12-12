@@ -10,7 +10,8 @@ has [qw(format max min multiple_of regex)] => undef;
 has type => 'object';
 
 for my $attr (qw(required strict unique)) {
-  Mojo::Util::monkey_patch(__PACKAGE__, $attr => sub { $_[0]->{$attr} = $_[1] // 1; $_[0]; });
+  Mojo::Util::monkey_patch(__PACKAGE__,
+    $attr => sub { $_[0]->{$attr} = $_[1] // 1; $_[0]; });
 }
 
 sub alphanum  { shift->_type('string')->regex('^\w*$') }
@@ -21,12 +22,14 @@ sub email     { shift->_type('string')->format('email') }
 
 sub extend {
   my ($self, $by) = @_;
-  die "Cannot extend joi '@{[$self->type]}' by '@{[$by->type]}'" unless $self->type eq $by->type;
+  die "Cannot extend joi '@{[$self->type]}' by '@{[$by->type]}'"
+    unless $self->type eq $by->type;
 
   my $clone = shift->new(%$self, %$by);
 
   if ($self->type eq 'object') {
-    $clone->{properties}{$_} ||= $self->{properties}{$_} for keys %{$self->{properties} || {}};
+    $clone->{properties}{$_} ||= $self->{properties}{$_}
+      for keys %{$self->{properties} || {}};
   }
 
   return $clone;
@@ -99,12 +102,13 @@ sub _compile_object {
   my $self = shift;
   my $json = {type => $self->type};
 
-  $json->{additionalProperties} = false               if $self->{strict};
-  $json->{maxProperties}        = $self->{max}        if defined $self->{max};
-  $json->{minProperties}        = $self->{min}        if defined $self->{min};
-  $json->{patternProperties}    = $self->{regex}      if $self->{regex};
-  $json->{properties}           = $self->{properties} if ref $self->{properties} eq 'HASH';
-  $json->{required}             = $self->{required}   if ref $self->{required} eq 'ARRAY';
+  $json->{additionalProperties} = false          if $self->{strict};
+  $json->{maxProperties}        = $self->{max}   if defined $self->{max};
+  $json->{minProperties}        = $self->{min}   if defined $self->{min};
+  $json->{patternProperties}    = $self->{regex} if $self->{regex};
+  $json->{properties}           = $self->{properties}
+    if ref $self->{properties} eq 'HASH';
+  $json->{required} = $self->{required} if ref $self->{required} eq 'ARRAY';
 
   return $json;
 }

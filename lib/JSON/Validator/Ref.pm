@@ -11,8 +11,13 @@ sub ref    { $_[0]->{'$ref'} }
 sub schema { $_[0]->{"${private}schema"} }
 
 # Make it look like there is only one key in the hash
-sub EXISTS { exists $_[0]->{$_[1]} || exists $_[0]->{"${private}schema"}{$_[1]} }
-sub FETCH { exists $_[0]->{$_[1]} ? $_[0]->{$_[1]} : $_[0]->{"${private}schema"}{$_[1]} }
+sub EXISTS {
+  exists $_[0]->{$_[1]} || exists $_[0]->{"${private}schema"}{$_[1]};
+}
+
+sub FETCH {
+  exists $_[0]->{$_[1]} ? $_[0]->{$_[1]} : $_[0]->{"${private}schema"}{$_[1]};
+}
 sub FIRSTKEY {'$ref'}
 sub KEYS     {'$ref'}
 sub NEXTKEY  {undef}
@@ -20,7 +25,11 @@ sub SCALAR   {1}
 
 sub TIEHASH {
   my ($class, $schema, $ref, $fqn) = @_;
-  bless {'$ref' => $ref, "${private}fqn" => $fqn // $ref, "${private}schema" => $schema}, $class;
+  bless {
+    '$ref'             => $ref,
+    "${private}fqn"    => $fqn // $ref,
+    "${private}schema" => $schema
+  }, $class;
 }
 
 # jhthorsen: This cannot return schema() since it might cause circular references

@@ -1,7 +1,14 @@
 language: perl
 perl:
+  - "5.28"
+  - "5.26"
+  - "5.24"
+  - "5.22"
   - "5.20"
+  - "5.18"
   - "5.16"
+  - "5.14"
+  - "5.12"
   - "5.10"
 env:
   - "HARNESS_OPTIONS=j6 TEST_RANDOM_ITERATIONS=5000"
@@ -9,5 +16,6 @@ install:
   - "cpanm -n Test::Pod Test::Pod::Coverage"
   - "cpanm -n Data::Validate::Domain Data::Validate::IP Cpanel::JSON::XS YAML::XS"
   - "cpanm -n --installdeps ."
+sudo: false
 notifications:
   email: false
