@@ -6,7 +6,7 @@
 ```perl
 use Mojolicious::Lite -signatures;
 use JSON::Validator 'joi';
-use Mojo::JSON qw(false true);
+use Mojo::JSON qw(false to_json true);
 
 post '/users' => sub ($c) {
   my $user = $c->req->json;
@@ -24,11 +24,11 @@ post '/users' => sub ($c) {
   # Report back on invalid input
   return $c->render(json => {errors => \@errors}, status => 400) if @errors;
 
-  # Handle the $user in some way, like adding the user to a database
-  my $created = $c->db->insert('users', $user);
+  # Handle the $user in some way
+  $c->app->log->info(to_json $user);
 
   # Report back the status
-  return $c->render(json => {created => $created ? true : false}, status => 201);
+  return $c->render(json => {accepted => true}, status => 201);
 };
 
 app->start;
