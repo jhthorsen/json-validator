@@ -9,11 +9,11 @@ validate_ok {name => "Dave",  chromosomes => [qw(X Y)]}, $male;
 validate_ok {name => "Arnie", chromosomes => [qw(Y X)]}, $male;
 
 validate_ok {name => "Kate", chromosomes => [qw(X X)]}, $male,
-  E('/chromosomes', 'Not in enum list: ["X","Y"], ["Y","X"].');
-validate_ok {name => "Eddie", chromosomes => [qw(X YY )]}, $male,
-  E('/chromosomes', 'Not in enum list: ["X","Y"], ["Y","X"].');
+  E('/chromosomes', 'Not in enum list (["X","X"]): ["X","Y"], ["Y","X"].');
+validate_ok {name => "Eddie", chromosomes => [qw(X YY)]}, $male,
+  E('/chromosomes', 'Not in enum list (["X","YY"]): ["X","Y"], ["Y","X"].');
 validate_ok {name => "Steve", chromosomes => 'XY'}, $male,
-  E('/chromosomes', 'Not in enum list: ["X","Y"], ["Y","X"].');
+  E('/chromosomes', 'Not in enum list ("XY"): ["X","Y"], ["Y","X"].');
 
 # https://github.com/jhthorsen/json-validator/issues/69
 validate_ok(
@@ -30,7 +30,7 @@ validate_ok(
       },
     },
   },
-  E('/some_prop/0', 'Not in enum list: x, y.')
+  E('/some_prop/0', 'Not in enum list ("foo"): x, y.')
 );
 
 for my $v (undef, false, true) {
@@ -52,7 +52,7 @@ validate_ok(
     properties => {name => {type => ['string'], enum => [qw(n yes true false)]}},
   },
   E('/name', '/anyOf Expected string, got null.'),
-  E('/name', 'Not in enum list: n, yes, true, false.'),
+  E('/name', 'Not in enum list (null): n, yes, true, false.'),
 );
 
 done_testing;
