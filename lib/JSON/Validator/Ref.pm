@@ -52,11 +52,8 @@ JSON::Validator::Ref - JSON::Validator $ref representation
 
 L<JSON::Validator::Ref> is a class representing a C<$ref> inside a JSON Schema.
 
-Note that this module should be considered internal to the L<JSON::Validator>
-project and the API is subject to change.
-
-This class is currently EXPERIMENTAL and can be replaced if a bug is
-discovered, without any warning.
+This module SHOULD be considered internal to the L<JSON::Validator> project and
+the API is subject to change.
 
 =head1 ATTRIBUTES
 

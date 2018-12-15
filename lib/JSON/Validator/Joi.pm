@@ -161,11 +161,9 @@ JSON::Validator::Joi - Joi validation sugar for JSON::Validator
 
 =head1 DESCRIPTION
 
-L<JSON::Validator::Joi> tries to mimic the JavaScript library
-L<https://github.com/hapijs/joi>.
-
-This module is EXPERIMENTAL and can change without warning. Let me know if you
-find it useful.
+L<JSON::Validator::Joi> is an elegant DSL schema-builder. The main purpose is
+to build a L<JSON Schema|https://json-schema.org/> for L<JSON::Validator>, but
+it can also validate data directly with sane defaults.
 
 =head1 ATTRIBUTES
 
@@ -414,5 +412,7 @@ Sets L</format> to L<uri|JSON::Validator/uri>.
 =head1 SEE ALSO
 
 L<JSON::Validator>
+
+L<https://github.com/hapijs/joi>.
 
 =cut

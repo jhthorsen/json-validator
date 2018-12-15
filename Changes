@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 3.00 Not Released
+ - JSON::Validator is now a Mojolicious spin-off project
  - Fix cases where input was not coerced
  - Changed how format validation is done
  - Changed Joi to always coerce values

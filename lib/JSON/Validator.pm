@@ -39,10 +39,11 @@ sub S {
   Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump);
 }
 
-has cache_paths =>
-  sub { [
-  split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''), $BUNDLED_CACHE_DIR
-  ] };
+has cache_paths => sub {
+  return [split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''),
+    $BUNDLED_CACHE_DIR];
+};
+
 has formats => sub { shift->_build_formats };
 has version => 4;
 
@@ -1156,16 +1157,31 @@ JSON::Validator - Validate data against a JSON schema
   # Do something if any errors was found
   die "@errors" if @errors;
 
+  # Use joi() to build the schema
+  use JSON::Validator 'joi';
+
+  $validator->schema(joi->object->props({
+    firstName => joi->string->required,
+    lastName  => joi->string->required,
+    age       => joi->integer->min(0),
+  }));
+
+  # joi() can also validate directly
+  my @errors = joi(
+    {firstName => "Jan Henning", lastName => "Thorsen", age => -42},
+    joi->object->props({
+      firstName => joi->string->required,
+      lastName  => joi->string->required,
+      age       => joi->integer->min(0),
+    });
+  );
+
 =head1 DESCRIPTION
 
-L<JSON::Validator> is a class for validating data against JSON schemas.
-You might want to use this instead of L<JSON::Schema> if you need to
-validate data against JSON Schema
-L<draft 4|https://github.com/json-schema/json-schema/tree/master/draft-04>
-or later.
-
-This module can be used standalone, but if you want to define a specification
-for your webserver's API, then have a look at L<Mojolicious::Plugin::OpenAPI>.
+L<JSON::Validator> is a data structure validation library based around
+L<JSON Schema|https://json-schema.org/>. This module can be used directly with
+a JSON schema or you can use the elegant DSL schema-builder
+L<JSON::Validator::joi> to define the schema programmatically.
 
 =head2 Supported schema formats
 
@@ -1233,7 +1249,7 @@ Web page: L<https://openapis.org>
 
 C<$ref>: L<http://swagger.io/v3/schema.yaml#>
 
-Note: This is still EXPERIMENTAL.
+This specification is still EXPERIMENTAL.
 
 =item * Swagger Petstore
 
@@ -1255,9 +1271,6 @@ L<JSON::Validator::Error> objects when the input data violates the L</schema>.
   my @errors = joi($data, $joi); # same as $joi->validate($data);
 
 Used to construct a new L<JSON::Validator::Joi> object or perform validation.
-
-Note that this function iS EXPERIMENTAL. See L<JSON::Validator::Joi> for more
-details.
 
 =head2 validate_json
 
@@ -1324,7 +1337,7 @@ Will be validated using L<Data::Validate::IP> if installed.
 
 =item * regex
 
-EXPERIMENTAL. Will check if the string is a regex, using C<qr{...}>.
+Will check if the string is a regex, using C<qr{...}>.
 
 =item * uri
 
@@ -1340,9 +1353,8 @@ Validated against the RFC3986 spec.
 Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
 from remote location.
 
-Note that the default L<Mojo::UserAgent> will detect proxy settings and have
-L<Mojo::UserAgent/max_redirects> set to 3. (These settings are EXPERIMENTAL
-and might change without a warning)
+The default L<Mojo::UserAgent> will detect proxy settings and have
+L<Mojo::UserAgent/max_redirects> set to 3.
 
 =head2 version
 
@@ -1351,8 +1363,6 @@ and might change without a warning)
 
 Used to set the JSON Schema version to use. Will be set automatically when
 using L</load_and_validate_schema>, unless already set.
-
-Note that this attribute is EXPERIMENTAL and might change without a warning.
 
 =head1 METHODS
 
@@ -1397,10 +1407,6 @@ Loading a YAML document will enable "booleans" automatically. This feature is
 experimental, but was added since YAML has no real concept of booleans, such
 as L<Mojo::JSON> or other JSON parsers.
 
-The coercion rules are EXPERIMENTAL and will be tighten/loosen if
-bugs are reported. See L<https://github.com/jhthorsen/json-validator/issues/8>
-for more details.
-
 =head2 get
 
   my $sub_schema = $validator->get("/x/y");
@@ -1413,8 +1419,6 @@ same time resolve C<$ref> if found. Example:
   $validator->schema->get('/x')           == undef
   $validator->schema->get('/x')->{'$ref'} == '#/y'
   $validator->get('/x')                   == {type => 'string'}
-
-This method is EXPERIMENTAL.
 
 The argument can also be an array-ref with the different parts of the pointer
 as each elements.
@@ -1445,6 +1449,7 @@ structured that can be used to validate C<$schema>.
   my $validator = $validator->schema($json_or_yaml_string);
   my $validator = $validator->schema($url);
   my $validator = $validator->schema(\%schema);
+  my $validator = $validator->schema(JSON::Validator::Joi->new);
   my $schema    = $validator->schema;
 
 Used to set a schema from either a data structure or a URL.
@@ -1461,17 +1466,20 @@ JSON or YAML format.
 
 A web resource will be fetched using the L<Mojo::UserAgent>, stored in L</ua>.
 
-=item * data://Some::Module/file.name
+=item * data://Some::Module/spec.json
 
-This version will use L<Mojo::Loader/data_section> to load "file.name" from the
-module "Some::Module".
+Will load a given "spec.json" file from C<Some::Module> using
+L<Mojo::Loader/data_section>.
 
-It is also EXPERIMENTAL support for omitting C<Some::Module>. This will result
-in searching up the C<caller()>-tree for the file.
+=item * data:///spec.json
 
-=item * /path/to/file
+A "data" URL without a module name will use the current package and search up
+the call/inheritance tree.
 
-An URL (without a recognized scheme) will be loaded from disk.
+=item * Any other URL
+
+An URL (without a recognized scheme) will be treated as a path to a file on
+disk.
 
 =back
 
@@ -1495,6 +1503,18 @@ C<$schema> is optional, but when specified, it will override schema stored in
 L</schema>. Example:
 
   $validator->validate({hero => "superwoman"}, {type => "object"});
+
+=head2 SEE ALSO
+
+=over 2
+
+=item * L<Mojolicious::Plugin::OpenAPI>
+
+L<Mojolicious::Plugin::OpenAPI> is a plugin for L<Mojolicious> that utilize
+L<JSON::Validator> and the L<OpenAPI specification|https://www.openapis.org/>
+to build routes with input and output validation.
+
+=back
 
 =head1 COPYRIGHT AND LICENSE
 
