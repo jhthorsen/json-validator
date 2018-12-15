@@ -607,8 +607,8 @@ sub _validate_all_of {
   }
 
   $self->_report_errors($path, 'allOf', \@errors) if REPORT;
-  my $expected = join ' or ', _uniq(@expected);
-  return E $path, "/allOf Expected $expected, not $type."
+  my $expected = join '/', _uniq(@expected);
+  return E $path, "/allOf Expected $expected - got $type."
     if $expected and @errors + @expected == @$rules;
   return _add_path_to_error_messages(allOf => @errors) if @errors;
   return;
@@ -635,8 +635,8 @@ sub _validate_any_of {
   }
 
   $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
-  my $expected = join ' or ', _uniq(@expected);
-  return E $path, "/anyOf Expected $expected, got $type." unless @errors;
+  my $expected = join '/', _uniq(@expected);
+  return E $path, "/anyOf Expected $expected - got $type." unless @errors;
   return _add_path_to_error_messages(anyOf => @errors);
 }
 
@@ -668,9 +668,9 @@ sub _validate_one_of {
   }
 
   return if @errors + @expected + 1 == @$rules;
-  my $expected = join ' or ', _uniq(@expected);
+  my $expected = join '/', _uniq(@expected);
   return E $path, "All of the oneOf rules match." unless @errors + @expected;
-  return E $path, "/oneOf Expected $expected, got $type." unless @errors;
+  return E $path, "/oneOf Expected $expected - got $type." unless @errors;
   return _add_path_to_error_messages(oneOf => @errors);
 }
 

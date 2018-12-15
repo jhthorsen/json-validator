@@ -7,7 +7,7 @@ my $schema
   };
 
 validate_ok 'short', $schema;
-validate_ok 12, $schema, E('/', '/allOf Expected string, not number.');
+validate_ok 12, $schema, E('/', '/allOf Expected string - got number.');
 
 $schema
   = {allOf =>

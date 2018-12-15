@@ -20,8 +20,7 @@ validate_ok 13, $schema, E('/', '/oneOf/0 Not multiple of 5.'),
   E('/', '/oneOf/1 Not multiple of 3.');
 
 $schema = {oneOf => [{type => 'object'}, {type => 'string', multipleOf => 3}]};
-validate_ok 13, $schema,
-  E('/', '/oneOf Expected object or string, got number.');
+validate_ok 13, $schema, E('/', '/oneOf Expected object/string - got number.');
 
 $schema = {oneOf => [{type => 'object'}, {type => 'number', multipleOf => 3}]};
 validate_ok 13, $schema, E('/', '/oneOf/1 Not multiple of 3.');
