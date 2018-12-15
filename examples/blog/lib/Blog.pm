@@ -12,8 +12,12 @@ sub startup {
 
   # Model
   my $storage
-    = $ENV{BLOG_STORAGE} ? Mojo::File->new($ENV{BLOG_STORAGE}) : $self->home->child('posts');
-  $self->helper(posts => sub { state $posts = Blog::Model::Posts->new(storage => $storage) });
+    = $ENV{BLOG_STORAGE}
+    ? Mojo::File->new($ENV{BLOG_STORAGE})
+    : $self->home->child('posts');
+  $self->helper(
+    posts => sub { state $posts = Blog::Model::Posts->new(storage => $storage) }
+  );
 
   $self->helper(markdown => \&_helper_poor_mans_markdown);
 

@@ -16,10 +16,11 @@ my $t = Test::Mojo->new;
 
 $t->post_ok('/', json => {})->status_is(400)->content_like(qr{/person});
 $t->post_ok('/', json => {person => {name => 'superwoman'}})->status_is(200);
-$t->post_ok('/', json => {person => {name => 'superwoman', children => [{name => 'batboy'}]}})
+$t->post_ok('/',
+  json => {person => {name => 'superwoman', children => [{name => 'batboy'}]}})
   ->status_is(200);
-$t->post_ok('/', json => {person => {name => 'superwoman', children => [{}]}})->status_is(400)
-  ->json_is('/0/path' => '/person/children/0/name');
+$t->post_ok('/', json => {person => {name => 'superwoman', children => [{}]}})
+  ->status_is(400)->json_is('/0/path' => '/person/children/0/name');
 
 done_testing;
 

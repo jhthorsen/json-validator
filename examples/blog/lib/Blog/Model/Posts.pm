@@ -26,7 +26,8 @@ sub add {
 
 sub all {
   my $self = shift;
-  return $self->storage->list_tree->sort->map(sub { $self->_deserialize(shift) });
+  return $self->storage->list_tree->sort->map(sub { $self->_deserialize(shift) }
+  );
 }
 
 sub find {
@@ -67,7 +68,8 @@ sub _id_to_path {
   my $self = shift;
   my @ymd = split /-/, shift;
   my ($epoch, $ms) = (pop @ymd, pop @ymd);
-  return $self->storage->child(@ymd, sprintf '%s-%s.%s', $epoch, $ms, $self->format);
+  return $self->storage->child(@ymd, sprintf '%s-%s.%s', $epoch, $ms,
+    $self->format);
 }
 
 sub _serialize {

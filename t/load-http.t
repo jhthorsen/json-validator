@@ -10,6 +10,7 @@ $validator->schema('http://swagger.io/v2/schema.json');
 
 isa_ok($validator->schema, 'Mojo::JSON::Pointer');
 like $validator->schema->get('/title'), qr{swagger}i, 'got swagger spec';
-ok $validator->schema->get('/patternProperties/^x-/description'), 'resolved vendorExtension $ref';
+ok $validator->schema->get('/patternProperties/^x-/description'),
+  'resolved vendorExtension $ref';
 
 done_testing;

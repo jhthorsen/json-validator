@@ -9,6 +9,7 @@ my $schema = {
   properties           => {link => {format => 'uri'}},
 };
 
-validate_ok {haha => 'hehe', link => 'http://a'}, $schema, E('/', 'Properties not allowed: haha.');
+validate_ok {haha => 'hehe', link => 'http://a'}, $schema,
+  E('/', 'Properties not allowed: haha.');
 
 done_testing;

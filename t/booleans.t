@@ -23,7 +23,8 @@ validate_ok {v => '0'},     $schema, E('/v', 'Expected boolean - got string.');
 validate_ok {v => ''},      $schema, E('/v', 'Expected boolean - got string.');
 
 SKIP: {
-  skip 'YAML::XS is not installed', 1 unless eval q[require YAML::XS;YAML::XS->VERSION('0.67');1];
+  skip 'YAML::XS is not installed', 1
+    unless eval q[require YAML::XS;YAML::XS->VERSION('0.67');1];
   my $data = t::Helper->validator->_load_schema_from_text(\"---\nv: true\n");
   isa_ok($data->{v}, 'JSON::PP::Boolean');
   validate_ok $data, $schema;
@@ -31,7 +32,8 @@ SKIP: {
 
 SKIP: {
   skip 'boolean not installed', 1 unless eval 'require boolean;1';
-  validate_ok {type => 'boolean'}, {type => 'object', properties => {type => {type => 'string'}}};
+  validate_ok {type => 'boolean'},
+    {type => 'object', properties => {type => {type => 'string'}}};
 }
 
 done_testing;

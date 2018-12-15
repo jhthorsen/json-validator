@@ -16,34 +16,54 @@ my $schema;
     street_name => {type => 'string'},
     street_type => {type => 'string', enum => ['Street', 'Avenue', 'Boulevard']}
   };
-  local $schema->{patternProperties} = {'^S_' => {type => 'string'}, '^I_' => {type => 'integer'}};
+  local $schema->{patternProperties}
+    = {'^S_' => {type => 'string'}, '^I_' => {type => 'integer'}};
 
-  validate_ok {number => 1600,   street_name => 'Pennsylvania', street_type => 'Avenue'}, $schema;
-  validate_ok {number => '1600', street_name => 'Pennsylvania', street_type => 'Avenue'}, $schema,
+  validate_ok {number => 1600, street_name => 'Pennsylvania',
+    street_type => 'Avenue'}, $schema;
+  validate_ok {number => '1600', street_name => 'Pennsylvania',
+    street_type => 'Avenue'}, $schema,
     E('/number', 'Expected number - got string.');
   validate_ok {number => 1600, street_name => 'Pennsylvania'}, $schema;
-  validate_ok {number => 1600, street_name => 'Pennsylvania', street_type => 'Avenue',
-    direction => 'NW'}, $schema;
+  validate_ok {
+    number      => 1600,
+    street_name => 'Pennsylvania',
+    street_type => 'Avenue',
+    direction   => 'NW'
+  }, $schema;
   validate_ok {'S_25' => 'This is a string', 'I_0' => 42}, $schema;
-  validate_ok {'S_0' => 42}, $schema, E('/S_0', 'Expected string - got number.');
+  validate_ok {'S_0' => 42}, $schema,
+    E('/S_0', 'Expected string - got number.');
 }
 
 {
   local $TODO = 't/openapi-set-request.t fails because of some oneOf logic';
   my $data = {};
   validate_ok $data,
-    {type => 'object', properties => {number => {type => 'number', default => 42}}};
+    {
+    type       => 'object',
+    properties => {number => {type => 'number', default => 42}}
+    };
   is $data->{number}, 42, 'default value was set';
 }
 
 {
   local $schema->{additionalProperties} = 0;
-  validate_ok {number => 1600, street_name => 'Pennsylvania', street_type => 'Avenue',
-    direction => 'NW'}, $schema, E('/', 'Properties not allowed: direction.');
+  validate_ok {
+    number      => 1600,
+    street_name => 'Pennsylvania',
+    street_type => 'Avenue',
+    direction   => 'NW'
+    },
+    $schema, E('/', 'Properties not allowed: direction.');
 
   $schema->{additionalProperties} = {type => 'string'};
-  validate_ok {number => 1600, street_name => 'Pennsylvania', street_type => 'Avenue',
-    direction => 'NW'}, $schema;
+  validate_ok {
+    number      => 1600,
+    street_name => 'Pennsylvania',
+    street_type => 'Avenue',
+    direction   => 'NW'
+  }, $schema;
 }
 
 {
@@ -58,7 +78,8 @@ my $schema;
   $schema = {type => 'object', minProperties => 2, maxProperties => 3};
   validate_ok {a => 1}, $schema, E('/', 'Not enough properties: 1/2.');
   validate_ok {a => 1, b => 2}, $schema;
-  validate_ok {a => 1, b => 2, c => 3, d => 4}, $schema, E('/', 'Too many properties: 4/3.');
+  validate_ok {a => 1, b => 2, c => 3, d => 4}, $schema,
+    E('/', 'Too many properties: 4/3.');
 }
 
 {

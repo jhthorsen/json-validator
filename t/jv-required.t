@@ -1,10 +1,17 @@
 use lib '.';
 use t::Helper;
 
-my $schema0 = {type => 'object', properties => {mynumber => {type => 'string', required => 1}}};
-my $schema1
-  = {type => 'object', properties => {mynumber => {type => 'string'}}, required => ['mynumber']};
-my $schema2 = {type => 'object', properties => {mynumber => {type => 'string'}}};
+my $schema0 = {
+  type       => 'object',
+  properties => {mynumber => {type => 'string', required => 1}}
+};
+my $schema1 = {
+  type       => 'object',
+  properties => {mynumber => {type => 'string'}},
+  required   => ['mynumber']
+};
+my $schema2
+  = {type => 'object', properties => {mynumber => {type => 'string'}}};
 
 my $data1 = {mynumber => 'yay'};
 my $data2 = {mynumbre => 'err'};

@@ -9,7 +9,8 @@ sub create { shift->render(post => {}) }
 # GET /posts/2018-12-11-1544489723-70142/edit
 sub edit {
   my $self = shift;
-  return $self->reply->not_found unless my $post = $self->posts->find($self->param('id'));
+  return $self->reply->not_found
+    unless my $post = $self->posts->find($self->param('id'));
   return $self->render(post => $post);
 }
 
@@ -19,20 +20,25 @@ sub index {
   my $self  = shift;
   my @posts = reverse @{$self->posts->all};
   $self->_validate_post($_) for @posts;
-  $self->respond_to(json => {json => {posts => \@posts}}, any => {posts => \@posts});
+  $self->respond_to(
+    json => {json  => {posts => \@posts}},
+    any  => {posts => \@posts}
+  );
 }
 
 # DELETE /posts/2018-12-11-1544489723-70142.json
 sub remove {
   my $self = shift;
-  $self->render(json => {removed => $self->posts->remove($self->param('id')) ? true : false});
+  $self->render(json =>
+      {removed => $self->posts->remove($self->param('id')) ? true : false});
 }
 
 # GET /posts/2018-12-11-1544489723-70142
 # GET /posts/2018-12-11-1544489723-70142.json
 sub show {
   my $self = shift;
-  return $self->reply->not_found unless my $post = $self->posts->find($self->param('id'));
+  return $self->reply->not_found
+    unless my $post = $self->posts->find($self->param('id'));
   $self->_validate_post($post);
   return $self->respond_to(json => {json => $post}, any => {post => $post});
 }

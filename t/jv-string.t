@@ -5,14 +5,19 @@ use utf8;
 
 my $schema = {
   type       => 'object',
-  properties => {nick => {type => 'string', minLength => 3, maxLength => 10, pattern => qr{^\w+$}}}
+  properties => {
+    nick =>
+      {type => 'string', minLength => 3, maxLength => 10, pattern => qr{^\w+$}}
+  }
 };
 
 validate_ok {nick => 'batman'}, $schema;
-validate_ok {nick => 1000},     $schema, E('/nick', 'Expected string - got number.');
-validate_ok {nick => '1000'},   $schema;
-validate_ok {nick => 'aa'},     $schema, E('/nick', 'String is too short: 2/3.');
-validate_ok {nick => 'a' x 11}, $schema, E('/nick', 'String is too long: 11/10.');
+validate_ok {nick => 1000},     $schema,
+  E('/nick', 'Expected string - got number.');
+validate_ok {nick => '1000'}, $schema;
+validate_ok {nick => 'aa'}, $schema, E('/nick', 'String is too short: 2/3.');
+validate_ok {nick => 'a' x 11}, $schema,
+  E('/nick', 'String is too long: 11/10.');
 like +join('', t::Helper->validator->validate({nick => '[nick]'})),
   qr{/nick: String does not match}, 'String does not match';
 

@@ -22,7 +22,8 @@ $validator = JSON::Validator->new;
 is $validator->cache_paths->[0], $tempdir->dirname, 'env';
 $validator->schema('https://za.payprop.com/api/docs/api_spec.yaml');
 @new_files = get_cached_files($validator);
-ok @new_files > @old_files, 'remote file cached when cache_paths not the default'
+ok @new_files > @old_files,
+  'remote file cached when cache_paths not the default'
   or diag join "\n", @new_files;
 
 done_testing;

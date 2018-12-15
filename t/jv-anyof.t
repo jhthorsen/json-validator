@@ -1,13 +1,17 @@
 use lib '.';
 use t::Helper;
 
-my $schema = {anyOf => [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]};
+my $schema
+  = {anyOf =>
+    [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]
+  };
 
 validate_ok 'short',    $schema;
 validate_ok 'too long', $schema, E('/', '/anyOf/0 String is too long: 8/5.');
 validate_ok 12,         $schema;
 validate_ok int(-1), $schema, E('/', '/anyOf/1 -1 < minimum(0)');
-validate_ok {}, $schema, E('/', '/anyOf Expected string or number, got object.');
+validate_ok {}, $schema,
+  E('/', '/anyOf Expected string or number, got object.');
 
 # anyOf with explicit integer (where _guess_data_type returns 'number')
 my $schemaB = {anyOf => [{type => 'integer'}, {minimum => 2}]};
@@ -29,7 +33,10 @@ validate_ok(
         ]
       },
     },
-    definitions => {simpleTypes => {enum => [qw(array boolean integer null number object string)]}}
+    definitions => {
+      simpleTypes =>
+        {enum => [qw(array boolean integer null number object string)]}
+    }
   }
 );
 
@@ -40,7 +47,9 @@ validate_ok(
     type        => 'object',
     title       => 'test',
     description => 'test',
-    properties  => {age => {type => 'number', anyOf => [{multipleOf => 5}, {multipleOf => 3}]}}
+    properties  => {
+      age => {type => 'number', anyOf => [{multipleOf => 5}, {multipleOf => 3}]}
+    }
   }
 );
 
