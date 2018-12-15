@@ -6,6 +6,7 @@ use JSON::Validator;
 use Mojo::JSON qw(false true);
 use Mojo::Util;
 
+has enum => sub { +[] };
 has [qw(format max min multiple_of regex)] => undef;
 has type => 'object';
 
@@ -91,6 +92,7 @@ sub _compile_number {
   my $self = shift;
   my $json = {type => $self->type};
 
+  $json->{enum} = $self->{enum} if defined $self->{enum} and @{$self->{enum}};
   $json->{maximum}    = $self->{max}         if defined $self->{max};
   $json->{minimum}    = $self->{min}         if defined $self->{min};
   $json->{multipleOf} = $self->{multiple_of} if defined $self->{multiple_of};
@@ -117,6 +119,7 @@ sub _compile_string {
   my $self = shift;
   my $json = {type => $self->type};
 
+  $json->{enum} = $self->{enum} if defined $self->{enum} and @{$self->{enum}};
   $json->{format}    = $self->{format} if defined $self->{format};
   $json->{maxLength} = $self->{max}    if defined $self->{max};
   $json->{minLength} = $self->{min}    if defined $self->{min};
@@ -166,6 +169,13 @@ to build a L<JSON Schema|https://json-schema.org/> for L<JSON::Validator>, but
 it can also validate data directly with sane defaults.
 
 =head1 ATTRIBUTES
+
+=head2 enum
+
+  my $joi       = $joi->enum(["foo", "bar"]);
+  my $array_ref = $joi->enum;
+
+Defines a list of enum values for L</integer>, L</number> and L</string>.
 
 =head2 format
 
