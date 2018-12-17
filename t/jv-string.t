@@ -27,4 +27,17 @@ validate_ok {nick => 'Déjà vu'}, $schema;
 t::Helper->validator->coerce(1);
 validate_ok {nick => 1000}, $schema;
 
+# https://github.com/mojolicious/json-validator/issues/134
+validate_ok(
+  {credit_card_number => '5252525252525252'},
+  {
+    type       => "object",
+    required   => ["credit_card_number"],
+    properties => {
+      credit_card_number =>
+        {type => "string", minLength => 15, maxLength => 16},
+    }
+  }
+);
+
 done_testing;
