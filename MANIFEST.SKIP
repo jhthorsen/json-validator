@@ -68,3 +68,4 @@
 ^MANIFEST\.SKIP
 ^README\.pod
 ^test.sh
+^run-all-tests.sh
