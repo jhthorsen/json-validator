@@ -4,18 +4,16 @@ use Mojo::Base -base;
 use Mojo::JSON qw(false true);
 use Time::HiRes;
 
-has format => 'markdown';
 has 'storage';
 
 sub add {
   my ($self, $post) = @_;
+  my $path;
 
-  my $time = Time::HiRes::time;
-  my (@ymd) = (localtime $time)[5, 4, 3];
-  $ymd[0] += 1900;
-  $ymd[1] += 1;
-  my $id = join '-', @ymd, split /\./, $time;
-  my $path = $self->_id_to_path($id);
+  state $id = 0;
+  while (1) {
+    last unless -e ($path = $self->_id_to_path(++$id));
+  }
 
   local $post->{id} = $id;
   $path->dirname->make_path unless -d $path->dirname;
@@ -26,8 +24,7 @@ sub add {
 
 sub all {
   my $self = shift;
-  return $self->storage->list_tree->sort->map(sub { $self->_deserialize(shift) }
-  );
+  return $self->storage->list->sort->map(sub { $self->_deserialize(shift) });
 }
 
 sub find {
@@ -65,11 +62,8 @@ sub _deserialize {
 }
 
 sub _id_to_path {
-  my $self = shift;
-  my @ymd = split /-/, shift;
-  my ($epoch, $ms) = (pop @ymd, pop @ymd);
-  return $self->storage->child(@ymd, sprintf '%s-%s.%s', $epoch, $ms,
-    $self->format);
+  my ($self, $id) = @_;
+  return $self->storage->child("$id.markdown");
 }
 
 sub _serialize {
