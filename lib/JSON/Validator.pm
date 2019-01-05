@@ -501,7 +501,7 @@ sub _resolve_ref {
     $fqn = join '#', grep defined, $location, $pointer;
     $other = $self->_resolve($location);
 
-    if (defined $pointer and length $pointer) {
+    if (defined $pointer and length $pointer and $pointer =~ m!^/!) {
       $other = Mojo::JSON::Pointer->new($other)->get($pointer)
         or confess
         qq[Possibly a typo in schema? Could not find "$pointer" in "$location" ($ref)];

@@ -2,6 +2,7 @@ Revision history for perl distribution JSON-Validator
 
 3.00  Not Released
  - Add enum() to Joi
+ - Fix $ref resolving after fixes applied to Mojo::JSON::Pointer in Mojolicious 8.11 #139
  - Fix cases where input was not coerced
  - Changed how format validation is done
  - Changed Joi to always coerce values
