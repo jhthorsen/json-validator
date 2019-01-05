@@ -2,6 +2,7 @@ Revision history for perl distribution JSON-Validator
 
 3.00  Not Released
  - Add enum() to Joi
+ - Add support for a list of types passed on to Joi #136
  - Add support for file:// scheme in $ref #138
  - Fix $ref resolving after fixes applied to Mojo::JSON::Pointer in Mojolicious 8.11 #139
  - Fix cases where input was not coerced

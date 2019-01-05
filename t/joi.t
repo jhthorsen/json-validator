@@ -71,7 +71,7 @@ is_deeply(
 );
 
 joi_ok(
-  {age => 34, email => 'jhthorsen@cpan.org', name => 'Jan Henning Thorsen',},
+  {age => 34, email => 'jhthorsen@cpan.org', name => 'Jan Henning Thorsen'},
   joi->props(
     age   => joi->integer->min(0)->max(200),
     email => joi->string->email->required,
@@ -80,7 +80,7 @@ joi_ok(
 );
 
 joi_ok(
-  {age => -1, name => 'Jan Henning Thorsen',},
+  {age => -1, name => 'Jan Henning Thorsen'},
   joi->props(
     age   => joi->integer->min(0)->max(200),
     email => joi->string->email->required,
@@ -113,9 +113,24 @@ is_deeply(
   ),
   {
     type       => 'object',
-    properties => {x => {type => 'number'}, y => {type => 'integer'},}
+    properties => {x => {type => 'number'}, y => {type => 'integer'}}
   },
   'extended object',
+);
+
+is_deeply(
+  edj(joi->object->props(
+    ip => joi->type([qw(string null)])->format('ip'),
+    ns => joi->string
+  )),
+  {
+    type       => 'object',
+    properties => {
+      ip => {format => 'ip', type => [qw(string null)]},
+      ns => {type   => 'string'},
+    }
+  },
+  'null or string',
 );
 
 done_testing;

@@ -15,9 +15,22 @@ for my $attr (qw(required strict unique)) {
     $attr => sub { $_[0]->{$attr} = $_[1] // 1; $_[0]; });
 }
 
-sub alphanum  { shift->_type('string')->regex('^\w*$') }
-sub boolean   { shift->type('boolean') }
-sub compile   { $_[0]->${\('_compile_' . $_[0]->type)} }
+sub alphanum { shift->_type('string')->regex('^\w*$') }
+sub boolean  { shift->type('boolean') }
+
+sub compile {
+  my $self   = shift;
+  my $merged = {};
+
+  for (ref $self->type eq 'ARRAY' ? @{$self->type} : $self->type) {
+    my $method   = "_compile_$_";
+    my $compiled = $self->$method;
+    @$merged{keys %$compiled} = values %$compiled;
+  }
+
+  return $merged;
+}
+
 sub date_time { shift->_type('string')->format('date-time') }
 sub email     { shift->_type('string')->format('email') }
 
@@ -87,6 +100,8 @@ sub _compile_array {
 sub _compile_boolean { +{type => 'boolean'} }
 
 sub _compile_integer { shift->_compile_number }
+
+sub _compile_null { {type => shift->type} }
 
 sub _compile_number {
   my $self = shift;
@@ -252,9 +267,13 @@ Defines a pattern that L</string> will be validated against.
 
 =head2 type
 
-  my $str = $joi->type;
+  my $joi = $joi->type("string");
+  my $joi = $joi->type([qw(null integer)]);
+  my $any = $joi->type;
 
-Set by L</array>, L</integer>, L</object> or L</string>.
+Sets the required type. This attribute is set by the convenience methods
+L</array>, L</integer>, L</object> and L</string>, but can be set manually if
+you need to check against a list of type.
 
 =head1 METHODS
 
