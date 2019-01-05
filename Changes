@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+3.01 Not Released
+ - Fix t/jv-formats.t
+
 3.00 2019-01-05T13:13:49+0900
  - Add enum() to Joi
  - Add support for a list of types passed on to Joi #136

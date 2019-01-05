@@ -45,12 +45,15 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 }
 
 {
+  local $TODO
+    = eval 'require Data::Validate::Domain;1' ? undef : 'Missing module';
   local $schema->{properties}{v}{format} = 'hostname';
   validate_ok {v => 'mojolicio.us'}, $schema;
   validate_ok {v => '[]'}, $schema, E('/v', 'Does not match hostname format.');
 }
 
 {
+  local $TODO = eval 'require Data::Validate::IP;1' ? undef : 'Missing module';
   local $schema->{properties}{v}{format} = 'ipv4';
   validate_ok {v => '255.100.30.1'}, $schema;
   validate_ok {v => '300.0.0.0'},    $schema,
@@ -58,6 +61,7 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 }
 
 {
+  local $TODO = eval 'require Data::Validate::IP;1' ? undef : 'Missing module';
   local $schema->{properties}{v}{format} = 'ipv6';
   validate_ok {v => '::1'},       $schema;
   validate_ok {v => '300.0.0.0'}, $schema,
