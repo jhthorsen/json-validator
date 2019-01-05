@@ -270,6 +270,7 @@ sub _load_schema {
   }
 
   my $file = $url;
+  $file =~ s!^file://!!;
   $file =~ s!#$!!;
   $file = path(split '/', $file);
   if (-e $file) {
@@ -1457,6 +1458,11 @@ The C<$url> can take many forms, but needs to point to a text file in the
 JSON or YAML format.
 
 =over 4
+
+=item * file://...
+
+A file on disk. Note that it is required to use the "file" scheme if you want
+to reference absolute paths on your file system.
 
 =item * http://... or https://...
 
