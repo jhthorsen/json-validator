@@ -590,7 +590,7 @@ sub _validate {
 
 sub _validate_all_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data);
+  my $type = _guess_data_type($data, $rules);
   my (@errors, @expected);
 
   $self->_report_schema($path, 'allOf', $rules) if REPORT;
@@ -598,26 +598,25 @@ sub _validate_all_of {
 
   my $i = 0;
   for my $rule (@$rules) {
-    my @e = $self->_validate($_[1], $path, $rule) or next;
+    next unless my @e = $self->_validate($_[1], $path, $rule);
     my $schema_type = _guess_schema_type($rule);
-    push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
-    push @expected, $schema_type;
+    push @expected, $schema_type if $schema_type;
+    push @errors, [$i, @e] if !$schema_type or $schema_type eq $type;
   }
   continue {
     $i++;
   }
 
   $self->_report_errors($path, 'allOf', \@errors) if REPORT;
-  my $expected = join '/', _uniq(@expected);
-  return E $path, "/allOf Expected $expected - got $type."
-    if $expected and @errors + @expected == @$rules;
+  return E $path, "/allOf Expected @{[join '/', _uniq(@expected)]} - got $type."
+    if !@errors and @expected;
   return _add_path_to_error_messages(allOf => @errors) if @errors;
   return;
 }
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data);
+  my $type = _guess_data_type($data, $rules);
   my (@e, @errors, @expected);
 
   $self->_report_schema($path, 'anyOf', $rules) if REPORT;
@@ -643,7 +642,7 @@ sub _validate_any_of {
 
 sub _validate_one_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data);
+  my $type = _guess_data_type($data, $rules);
   my (@errors, @expected);
 
   $self->_report_schema($path, 'oneOf', $rules) if REPORT;
@@ -810,10 +809,7 @@ sub _validate_type_number {
   if (!defined $value or ref $value) {
     return E $path, _expected($expected => $value);
   }
-  unless (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
-    and 0 + $value eq $value
-    and $value * 0 == 0)
-  {
+  unless (_match_number($value)) {
     return E $path, "Expected $expected - got string."
       if !$self->{coerce}{numbers}
       or $value !~ /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
@@ -970,56 +966,61 @@ sub _cmp {
 }
 
 sub _expected {
-  my $type = _guess_data_type($_[1]);
+  my $type = _guess_data_type($_[1], []);
   return "Expected $_[0] - got different $type." if $_[0] =~ /\b$type\b/;
   return "Expected $_[0] - got $type.";
 }
 
+# _guess_data_type($data, [{type => ...}, ...])
 sub _guess_data_type {
-  local $_ = $_[0];
-  my $ref     = ref;
-  my $blessed = blessed $_;
+  my $ref     = ref $_[0];
+  my $blessed = blessed $_[0];
   return 'object' if $ref eq 'HASH';
   return lc $ref if $ref and !$blessed;
-  return 'null' if !defined;
-  return 'boolean' if $blessed and ("$_" eq "1" or !"$_");
-  return 'number'
-    if B::svref_2object(\$_)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
-    and 0 + $_ eq $_
-    and $_ * 0 == 0;
+  return 'null' if !defined $_[0];
+  return 'boolean' if $blessed and ("$_[0]" eq "1" or !"$_[0]");
+
+  if (_match_number($_[0])) {
+    return 'integer' if grep { ($_->{type} // '') eq 'integer' } @{$_[1] || []};
+    return 'number';
+  }
+
   return $blessed || 'string';
 }
 
+# _guess_schema_type($schema, $data)
 sub _guess_schema_type {
   return $_[0]->{type} if $_[0]->{type};
-  return _guessed_right($_[1], 'object') if $_[0]->{additionalProperties};
-  return _guessed_right($_[1], 'object') if $_[0]->{patternProperties};
-  return _guessed_right($_[1], 'object') if $_[0]->{properties};
-  return _guessed_right($_[1], 'object') if $_[0]->{required};
-  return _guessed_right($_[1], 'object')
+  return _guessed_right(object => $_[1]) if $_[0]->{additionalProperties};
+  return _guessed_right(object => $_[1]) if $_[0]->{patternProperties};
+  return _guessed_right(object => $_[1]) if $_[0]->{properties};
+  return _guessed_right(object => $_[1]) if $_[0]->{required};
+  return _guessed_right(object => $_[1])
     if defined $_[0]->{maxProperties}
     or defined $_[0]->{minProperties};
-  return _guessed_right($_[1], 'array') if $_[0]->{additionalItems};
-  return _guessed_right($_[1], 'array') if $_[0]->{items};
-  return _guessed_right($_[1], 'array') if $_[0]->{uniqueItems};
-  return _guessed_right($_[1], 'array')
+  return _guessed_right(array => $_[1]) if $_[0]->{additionalItems};
+  return _guessed_right(array => $_[1]) if $_[0]->{items};
+  return _guessed_right(array => $_[1]) if $_[0]->{uniqueItems};
+  return _guessed_right(array => $_[1])
     if defined $_[0]->{maxItems}
     or defined $_[0]->{minItems};
-  return _guessed_right($_[1], 'string') if $_[0]->{pattern};
-  return _guessed_right($_[1], 'string')
+  return _guessed_right(string => $_[1]) if $_[0]->{pattern};
+  return _guessed_right(string => $_[1])
     if defined $_[0]->{maxLength}
     or defined $_[0]->{minLength};
-  return _guessed_right($_[1], 'number') if $_[0]->{multipleOf};
-  return _guessed_right($_[1], 'number')
+  return _guessed_right(number => $_[1]) if $_[0]->{multipleOf};
+  return _guessed_right(number => $_[1])
     if defined $_[0]->{maximum}
     or defined $_[0]->{minimum};
   return 'const' if $_[0]->{const};
   return undef;
 }
 
+# _guessed_right($type, $data);
 sub _guessed_right {
-  return $_[1] unless defined $_[0];
-  return _guess_data_type($_[0]) eq $_[1] ? $_[1] : undef;
+  return $_[0] if !defined $_[1];
+  return $_[0] if $_[0] eq _guess_data_type($_[1], [{type => $_[0]}]);
+  return undef;
 }
 
 sub _match_date_time {
@@ -1056,6 +1057,12 @@ sub _match_ipv4 {
   my (@octets) = $_[0] =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
   return 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ }
     @octets ? undef : 'Does not match ipv4 format.';
+}
+
+sub _match_number {
+  B::svref_2object(\$_[0])->FLAGS & (B::SVp_IOK | B::SVp_NOK)
+    && 0 + $_[0] eq $_[0]
+    && $_[0] * 0 == 0;
 }
 
 sub _match_regex {

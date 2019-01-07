@@ -10,7 +10,10 @@ my $workdir = path(__FILE__)->dirname;
 eval {
   JSON::Validator->new->schema(path($workdir, 'spec', 'missing-ref.json'));
 };
-like $@, qr{Unable to load schema.*missing\.json}, 'missing file';
+
+ok $@, 'loading missing ref failed';
+like $@, qr{Unable to load schema.*missing\.json}, 'error message'
+  unless $^O eq 'MSWin32';
 
 done_testing;
 
