@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-3.02 Not Released
+3.02 2019-01-07T09:52:31+0900
  - Trying to fix more failing test reports from the smokers
 
 3.01 2019-01-06T08:16:33+0900
