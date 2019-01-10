@@ -12,7 +12,7 @@ Revision history for perl distribution JSON-Validator
  - Add support for file:// scheme in $ref #138
  - Fix $ref resolving after fixes applied to Mojo::JSON::Pointer in Mojolicious 8.11 #139
  - Fix cases where input was not coerced
- - Changed how format validation is done
+ - Changed how format validation is done - now format funcs must return undef for success
  - Changed Joi to always coerce values
  - Removed JSON::Validator::OpenAPI
 
@@ -22,7 +22,7 @@ Revision history for perl distribution JSON-Validator
  - Removed JSON::Validator::OpenAPI::Dancer2
 
 2.18  2018-11-15
- - Add EXPERIMETNAL support for data:// without a package
+ - Add EXPERIMENTAL support for data:// without a package
 
 2.17  2018-11-14
  - Add basic support for OpenAPI v3
