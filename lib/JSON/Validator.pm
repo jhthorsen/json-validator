@@ -531,6 +531,9 @@ sub _validate {
   my ($self, $data, $path, $schema) = @_;
   my ($seen_addr, $to_json, $type);
 
+  # Do not validate against "default" in draft-07 schema
+  return if blessed $schema and $schema->isa('JSON::PP::Boolean');
+
   $schema = $self->_ref_to_schema($schema) if $schema->{'$ref'};
   $seen_addr = join ':', refaddr($schema),
     (!defined $data ? 'c:undef' : ref $data ? refaddr $data : "s:$data");
@@ -913,12 +916,13 @@ sub _validate_type_object {
       next unless exists $data->{$k};
       my @e = $self->_validate($data->{$k}, _path($path, $k), $r);
       push @errors, @e;
+      next if @e or !UNIVERSAL::isa($r, 'HASH');
       push @errors,
         $self->_validate_type_enum($data->{$k}, _path($path, $k), $r)
-        if $r->{enum} and !@e;
+        if $r->{enum};
       push @errors,
         $self->_validate_type_const($data->{$k}, _path($path, $k), $r)
-        if $r->{const} and !@e;
+        if $r->{const};
     }
   }
 

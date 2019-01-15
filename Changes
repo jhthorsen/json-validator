@@ -1,12 +1,20 @@
 Revision history for perl distribution JSON-Validator
 
 3.04 Not Released
+ - Fix "uri" check, so that it only accept ASCII characters. Note that this
+   fix might be an undesired change for your application. If so, then update
+   the "uri" format in your schema to "iri".
+ - Fix "hostname" format check, so it does not require a valid TLD
+ - Fix validating draft-07 schema against itself #144
  - Add support for more formats in JSON Schema draft-6 and 7: date, idn-email,
    idn-hostname, iri, iri-reference, json-pointer, relative-json-pointer, time,
    uri-reference and uri-template.
- - Fixed "uri" check, so that it only accept ASCII characters. Note that this
-   fix might be an undesired change for your application. If so, then update
-   the "uri" format in your schema to "iri".
+ - Add support for more keywords in draft-07
+   * 6.4.6. Arrays - contains
+   * 6.5.8. Objects - propertyNames
+   * 6.6.1. Objects - if
+   * 6.6.2. Objects - then
+   * 6.6.3. Objects - else
 
 3.03 2019-01-19T12:11:34+0900
  - Add JSON::Validator::Formats with format checks
@@ -75,7 +83,7 @@ Revision history for perl distribution JSON-Validator
 2.08  2018-06-03
  - Fix validating oneOf correctly #103
  - Fix validating "id" property #111
- - Add support for $id keyword in draft7 #114
+ - Add support for $id keyword in draft-07 #114
  - Bundle JSON Schema draft-06 and draft-07
 
 2.07  2018-04-18

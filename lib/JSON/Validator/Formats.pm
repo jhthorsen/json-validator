@@ -95,12 +95,12 @@ sub check_iri_reference {
     unless $_[0]
     =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
 
-  my ($scheme, $auth_host, $path, $query, $fragment)
-    = map { $_ // '' } ($2, $4, $5, $7, $9);
+  my ($scheme, $auth_host, $path, $query, $has_fragment, $fragment)
+    = map { $_ // '' } ($2, $4, $5, $7, $8, $9);
 
   return 'Scheme missing.' if length $auth_host and !length $scheme;
   return 'Scheme, path or fragment are required.'
-    unless length($scheme) + length($path) + length($fragment);
+    unless length($scheme) + length($path) + length($has_fragment);
   return 'Scheme must begin with a letter.'
     if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
   return 'Invalid hex escape.' if $_[0] =~ /%[^0-9a-f]/i;
