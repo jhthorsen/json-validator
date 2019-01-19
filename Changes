@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-3.03 Not Released
+3.03 2019-01-19T12:11:34+0900
  - Add JSON::Validator::Formats with format checks
    Note that these functions work by returning a string on error, instead of
    true on sucches, which was a breaking change introduced in the 3.00 release.
