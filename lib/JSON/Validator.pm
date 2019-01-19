@@ -146,43 +146,6 @@ sub get {
   $self->_get($self->schema->data, $pointer, '');
 }
 
-sub _get {
-  my ($self, $data, $path, $pos, $cb) = @_;
-  my $tied;
-
-  while (@$path) {
-    my $p = shift @$path;
-
-    unless (defined $p) {
-      my $i = 0;
-      return Mojo::Collection->new(
-        map { $self->_get($_->[0], [@$path], _path($pos, $_->[1]), $cb) }
-          ref $data eq 'ARRAY' ? map { [$_, $i++] }
-          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] }
-          sort keys %$data : [$data, '']);
-    }
-
-    $p =~ s!~1!/!g;
-    $p =~ s/~0/~/g;
-    $pos = _path($pos, $p) if $cb;
-
-    if (ref $data eq 'HASH' and exists $data->{$p}) {
-      $data = $data->{$p};
-    }
-    elsif (ref $data eq 'ARRAY' and $p =~ /^\d+$/ and @$data > $p) {
-      $data = $data->[$p];
-    }
-    else {
-      return undef;
-    }
-
-    $data = $tied->schema if ref $data eq 'HASH' and $tied = tied %$data;
-  }
-
-  return $cb->($data, $pos) if $cb;
-  return $data;
-}
-
 sub joi {
   return JSON::Validator::Joi->new unless @_;
   my ($data, $joi) = @_;
@@ -240,6 +203,43 @@ sub _build_formats {
     'uri'       => \&_match_uri,
     'uri-reference' => \&_match_uri_reference,
   };
+}
+
+sub _get {
+  my ($self, $data, $path, $pos, $cb) = @_;
+  my $tied;
+
+  while (@$path) {
+    my $p = shift @$path;
+
+    unless (defined $p) {
+      my $i = 0;
+      return Mojo::Collection->new(
+        map { $self->_get($_->[0], [@$path], _path($pos, $_->[1]), $cb) }
+          ref $data eq 'ARRAY' ? map { [$_, $i++] }
+          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] }
+          sort keys %$data : [$data, '']);
+    }
+
+    $p =~ s!~1!/!g;
+    $p =~ s/~0/~/g;
+    $pos = _path($pos, $p) if $cb;
+
+    if (ref $data eq 'HASH' and exists $data->{$p}) {
+      $data = $data->{$p};
+    }
+    elsif (ref $data eq 'ARRAY' and $p =~ /^\d+$/ and @$data > $p) {
+      $data = $data->[$p];
+    }
+    else {
+      return undef;
+    }
+
+    $data = $tied->schema if ref $data eq 'HASH' and $tied = tied %$data;
+  }
+
+  return $cb->($data, $pos) if $cb;
+  return $data;
 }
 
 sub _id_key { $_[0]->version < 7 ? 'id' : '$id' }
