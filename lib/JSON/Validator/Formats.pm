@@ -43,7 +43,7 @@ sub check_hostname {
 }
 
 sub check_ipv4 {
-  return undef if DATA_VALIDATE_IP and Data::Validate::Domain::is_ipv4($_[0]);
+  return undef if DATA_VALIDATE_IP and Data::Validate::IP::is_ipv4($_[0]);
   my (@octets) = $_[0] =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
   return undef
     if 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ } @octets;
@@ -52,7 +52,7 @@ sub check_ipv4 {
 
 sub check_ipv6 {
   return _module_missing(ipv6 => 'Data::Validate::IP') unless DATA_VALIDATE_IP;
-  return undef if Data::Validate::Domain::is_ipv6($_[0]);
+  return undef if Data::Validate::IP::is_ipv6($_[0]);
   return 'Does not match ipv6 format.';
 }
 
