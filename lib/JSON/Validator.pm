@@ -5,6 +5,7 @@ use B;
 use Carp 'confess';
 use Exporter 'import';
 use JSON::Validator::Error;
+use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
 use Mojo::File 'path';
@@ -194,14 +195,14 @@ sub validate_json {
 
 sub _build_formats {
   return {
-    'date-time' => \&_match_date_time,
-    'email'     => \&_match_email,
-    'hostname'  => _matcher(hostname => 'Data::Validate::Domain', 'is_domain'),
-    'ipv4'      => _matcher(ipv4 => 'Data::Validate::IP', 'is_ipv4'),
-    'ipv6'      => _matcher(ipv6 => 'Data::Validate::IP', 'is_ipv6'),
-    'regex'     => \&_match_regex,
-    'uri'       => \&_match_uri,
-    'uri-reference' => \&_match_uri_reference,
+    'date-time'     => JSON::Validator::Formats->can('check_date_time'),
+    'email'         => JSON::Validator::Formats->can('check_email'),
+    'hostname'      => JSON::Validator::Formats->can('check_hostname'),
+    'ipv4'          => JSON::Validator::Formats->can('check_ipv4'),
+    'ipv6'          => JSON::Validator::Formats->can('check_ipv6'),
+    'regex'         => JSON::Validator::Formats->can('check_regex'),
+    'uri'           => JSON::Validator::Formats->can('check_uri'),
+    'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
   };
 }
 
@@ -342,15 +343,6 @@ sub _load_schema_from_url {
   }
 
   return $self->_load_schema_from_text(\$tx->res->body);
-}
-
-sub _matcher {
-  my ($format, $module, $method) = @_;
-  my $e = eval "require $module;1" ? undef : $@;
-  return sub { warn "$module is not available: $e"; return undef }
-    if $e;
-  my $m = $module->can($method);
-  return sub { $m->($_[0]) ? undef : "Does not match $format format." };
 }
 
 sub _ref_to_schema {
@@ -809,7 +801,7 @@ sub _validate_type_number {
   if (!defined $value or ref $value) {
     return E $path, _expected($expected => $value);
   }
-  unless (_match_number($value)) {
+  unless (_is_number($value)) {
     return E $path, "Expected $expected - got string."
       if !$self->{coerce}{numbers}
       or $value !~ /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
@@ -980,7 +972,7 @@ sub _guess_data_type {
   return 'null' if !defined $_[0];
   return 'boolean' if $blessed and ("$_[0]" eq "1" or !"$_[0]");
 
-  if (_match_number($_[0])) {
+  if (_is_number($_[0])) {
     return 'integer' if grep { ($_->{type} // '') eq 'integer' } @{$_[1] || []};
     return 'number';
   }
@@ -1023,91 +1015,10 @@ sub _guessed_right {
   return undef;
 }
 
-sub _match_date_time {
-  my @time = $_[0]
-    =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
-  return 'Does not match date-time format.' unless @time;
-  @time = map { s/^0//; $_ } reverse @time[0 .. 5];
-  $time[4] -= 1;    # month are zero based
-  local $@;
-  return undef if eval { Time::Local::timegm(@time); 1 };
-  my $err = (split / at /, $@)[0];
-  $err =~ s!('-?\d+'\s|\s[\d\.]+)!!g;
-  $err .= '.';
-  return $err;
-}
-
-sub _match_email {
-  state $email_rfc5322_re = do {
-    my $atom          = qr;[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+;o;
-    my $quoted_string = qr/"(?:\\[^\r\n]|[^\\"])*"/o;
-    my $domain_literal
-      = qr/\[(?:\\[\x01-\x09\x0B-\x0c\x0e-\x7f]|[\x21-\x5a\x5e-\x7e])*\]/o;
-    my $dot_atom   = qr/$atom(?:[.]$atom)*/o;
-    my $local_part = qr/(?:$dot_atom|$quoted_string)/o;
-    my $domain     = qr/(?:$dot_atom|$domain_literal)/o;
-
-    qr/$local_part\@$domain/o;
-  };
-
-  return $_[0] =~ $email_rfc5322_re ? undef : 'Does not match email format.';
-}
-
-sub _match_ipv4 {
-  my (@octets) = $_[0] =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  return 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ }
-    @octets ? undef : 'Does not match ipv4 format.';
-}
-
-sub _match_number {
+sub _is_number {
   B::svref_2object(\$_[0])->FLAGS & (B::SVp_IOK | B::SVp_NOK)
     && 0 + $_[0] eq $_[0]
     && $_[0] * 0 == 0;
-}
-
-sub _match_regex {
-  eval {qr{$_[0]}} ? undef : 'Does not match regex format.';
-}
-
-sub _match_uri {
-  return 'Does not match uri format.'
-    unless $_[0]
-    =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
-
-  my ($scheme, $auth_host, $path, $query, $fragment)
-    = map { $_ // '' } ($2, $4, $5, $7, $9);
-
-  return 'Scheme missing from URI.' if length $auth_host and !length $scheme;
-  return 'Scheme, path or fragment are required.'
-    unless length($scheme) + length($path) + length($fragment);
-  return 'Scheme must begin with a letter.'
-    if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
-  return 'Invalid hex escape.' if $_[0] =~ /%[^0-9a-f]/i;
-  return 'Hex escapes are not complete.'
-    if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
-
-  if (defined $auth_host and length $auth_host) {
-    return 'Path cannot be empty or begin with a /'
-      unless !length $path or $path =~ m!^/!;
-  }
-  else {
-    return 'Path cannot not start with //.' if $path =~ m!^//!;
-  }
-
-  return undef;
-}
-
-sub _match_uri_reference {
-  return 'Does not match uri format.'
-    unless $_[0]
-    =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
-
-  my ($scheme, $auth_host, $path, $query, $fragment)
-    = map { $_ // '' } ($2, $4, $5, $7, $9);
-  return 'Path cannot not start with //.' if $path =~ m!^//!;
-  return undef if length $path;
-  return _match_uri($_[0]);
-  return undef;
 }
 
 sub _path {
@@ -1313,41 +1224,7 @@ block should return C<undef> on success and an error string on error:
 
   sub { return defined $_[0] && $_[0] eq "42" ? undef : "Not the answer." };
 
-Note! The modules mentioned below are optional.
-
-=over 4
-
-=item * date-time
-
-An RFC3339 timestamp in UTC time. This is formatted as
-"YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is optional
-
-=item * email
-
-Validated against the RFC5322 spec.
-
-=item * hostname
-
-Will be validated using L<Data::Validate::Domain> if installed.
-
-=item * ipv4
-
-Will be validated using L<Data::Validate::IP> if installed or
-fall back to a plain IPv4 IP regex.
-
-=item * ipv6
-
-Will be validated using L<Data::Validate::IP> if installed.
-
-=item * regex
-
-Will check if the string is a regex, using C<qr{...}>.
-
-=item * uri
-
-Validated against the RFC3986 spec.
-
-=back
+See L<JSON::Validator::Formats> for a list of supported formats.
 
 =head2 ua
 
