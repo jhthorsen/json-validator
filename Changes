@@ -1,7 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
 3.03 Not Released
- - Add JSON::Validator::Formats
+ - Add JSON::Validator::Formats with format checks
+   Note that these functions work by returning a string on error, instead of
+   true on sucches, which was a breaking change introduced in the 3.00 release.
 
 3.02 2019-01-07T09:52:31+0900
  - Trying to fix more failing test reports from the smokers
@@ -13,9 +15,11 @@ Revision history for perl distribution JSON-Validator
  - Add enum() to Joi
  - Add support for a list of types passed on to Joi #136
  - Add support for file:// scheme in $ref #138
- - Fix $ref resolving after fixes applied to Mojo::JSON::Pointer in Mojolicious 8.11 #139
+ - Fix $ref resolving after fixes applied to Mojo::JSON::Pointer in
+   Mojolicious 8.11 #139
  - Fix cases where input was not coerced
- - Changed how format validation is done
+ - Breaking change: format callbacks need to return undef on success and a
+   description on error.
  - Changed Joi to always coerce values
  - Removed JSON::Validator::OpenAPI
 
