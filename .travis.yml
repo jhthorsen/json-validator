@@ -14,7 +14,7 @@ env:
   - "HARNESS_OPTIONS=j6 TEST_RANDOM_ITERATIONS=5000"
 install:
   - "cpanm -n Test::Pod Test::Pod::Coverage"
-  - "cpanm -n Data::Validate::Domain Data::Validate::IP Cpanel::JSON::XS YAML::XS"
+  - "cpanm -n Data::Validate::Domain Data::Validate::IP Cpanel::JSON::XS Net::IDN::Encode YAML::XS"
   - "cpanm -n --installdeps ."
 sudo: false
 notifications:

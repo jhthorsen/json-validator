@@ -3,16 +3,32 @@ use Mojo::Base -strict;
 
 use constant DATA_VALIDATE_DOMAIN => eval 'require Data::Validate::Domain;1';
 use constant DATA_VALIDATE_IP     => eval 'require Data::Validate::IP;1';
+use constant NET_IDN_ENCODE       => eval 'require Net::IDN::Encode;1';
 use constant WARN_MISSING_MODULE  => $ENV{JSON_VALIDATOR_WARN} // 1;
 
-sub check_date_time {
-  my @time = $_[0]
-    =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
-  return 'Does not match date-time format.' unless @time;
-  @time = map { s/^0//; $_ } reverse @time[0 .. 5];
-  $time[4] -= 1;    # month are zero based
+our $IRI_TEST_NAME = 'iri-reference';
+
+sub check_date {
+  my @date = $_[0] =~ m!^(\d{4})-(\d\d)-(\d\d)$!io;
+  return 'Does not match date format.' unless @date;
+  @date = map { s/^0+//; $_ || 0 } reverse @date;
+  $date[1] -= 1;    # month are zero based
   local $@;
-  return undef if eval { Time::Local::timegm(@time); 1 };
+  return undef if eval { Time::Local::timegm(0, 0, 0, @date); 1 };
+  my $err = (split / at /, $@)[0];
+  $err =~ s!('-?\d+'\s|\s[\d\.]+)!!g;
+  $err .= '.';
+  return $err;
+}
+
+sub check_date_time {
+  my @dt = $_[0]
+    =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
+  return 'Does not match date-time format.' unless @dt;
+  @dt = map { s/^0//; $_ } reverse @dt[0 .. 5];
+  $dt[4] -= 1;    # month are zero based
+  local $@;
+  return undef if eval { Time::Local::timegm(@dt); 1 };
   my $err = (split / at /, $@)[0];
   $err =~ s!('-?\d+'\s|\s[\d\.]+)!!g;
   $err .= '.';
@@ -42,6 +58,71 @@ sub check_hostname {
   return 'Does not match hostname format.';
 }
 
+sub check_idn_email {
+  return _module_missing('idn-email' => 'Net::IDN::Encode')
+    unless NET_IDN_ENCODE;
+
+  local $@;
+  my $err = eval {
+    my @email = split /@/, $_[0], 2;
+    check_email(
+      join '@',
+      Net::IDN::Encode::to_ascii($email[0] // ''),
+      Net::IDN::Encode::domain_to_ascii($email[1] // ''),
+    );
+  };
+
+  return $err ? 'Does not match idn-email format.' : $@ || undef;
+}
+
+sub check_idn_hostname {
+  return _module_missing('idn-hostname' => 'Net::IDN::Encode')
+    unless NET_IDN_ENCODE;
+
+  local $@;
+  my $err = eval { check_hostname(Net::IDN::Encode::domain_to_ascii($_[0])) };
+  return $err ? 'Does not match idn-hostname format.' : $@ || undef;
+}
+
+sub check_iri {
+  local $IRI_TEST_NAME = 'iri';
+  return 'Scheme missing.' unless $_[0] =~ m!^\w+:!;
+  return check_iri_reference($_[0]);
+}
+
+sub check_iri_reference {
+  return "Does not match $IRI_TEST_NAME format."
+    unless $_[0]
+    =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
+
+  my ($scheme, $auth_host, $path, $query, $fragment)
+    = map { $_ // '' } ($2, $4, $5, $7, $9);
+
+  return 'Scheme missing.' if length $auth_host and !length $scheme;
+  return 'Scheme, path or fragment are required.'
+    unless length($scheme) + length($path) + length($fragment);
+  return 'Scheme must begin with a letter.'
+    if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
+  return 'Invalid hex escape.' if $_[0] =~ /%[^0-9a-f]/i;
+  return 'Hex escapes are not complete.'
+    if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
+
+  if (defined $auth_host and length $auth_host) {
+    return 'Path cannot be empty and must begin with a /'
+      unless !length $path or $path =~ m!^/!;
+  }
+  elsif ($path =~ m!^//!) {
+    return 'Path cannot not start with //.';
+  }
+
+  return undef;
+}
+
+sub check_json_pointer {
+  return !length $_[0]
+    || $_[0] =~ m!^/! ? undef : 'Does not match json-pointer format.';
+}
+
 sub check_ipv4 {
   return undef if DATA_VALIDATE_IP and Data::Validate::IP::is_ipv4($_[0]);
   my (@octets) = $_[0] =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
@@ -56,49 +137,48 @@ sub check_ipv6 {
   return 'Does not match ipv6 format.';
 }
 
+sub check_relative_json_pointer {
+  return 'Relative JSON Pointer must start with a non-negative-integer.'
+    unless $_[0] =~ m!^\d+!;
+  return undef if $_[0] =~ m!^(\d+)#?$!;
+  return 'Relative JSON Pointer must have "#" or a JSON Pointer.'
+    unless $_[0] =~ m!^\d+(.+)!;
+  return 'Does not match relative-json-pointer format.'
+    if check_json_pointer($1);
+  return undef;
+}
+
 sub check_regex {
   eval {qr{$_[0]}} ? undef : 'Does not match regex format.';
 }
 
+sub check_time {
+  my @time
+    = $_[0] =~ m!^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
+  return 'Does not match time format.' unless @time;
+  @time = map { s/^0//; $_ } reverse @time[0 .. 2];
+  local $@;
+  return undef if eval { Time::Local::timegm(@time, 31, 11, 1947); 1 };
+  my $err = (split / at /, $@)[0];
+  $err =~ s!('-?\d+'\s|\s[\d\.]+)!!g;
+  $err .= '.';
+  return $err;
+}
+
 sub check_uri {
-  return 'Does not match uri format.'
-    unless $_[0]
-    =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
-
-  my ($scheme, $auth_host, $path, $query, $fragment)
-    = map { $_ // '' } ($2, $4, $5, $7, $9);
-
-  return 'Scheme missing from URI.' if length $auth_host and !length $scheme;
-  return 'Scheme, path or fragment are required.'
-    unless length($scheme) + length($path) + length($fragment);
-  return 'Scheme must begin with a letter.'
-    if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
-  return 'Invalid hex escape.' if $_[0] =~ /%[^0-9a-f]/i;
-  return 'Hex escapes are not complete.'
-    if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
-
-  if (defined $auth_host and length $auth_host) {
-    return 'Path cannot be empty or begin with a /'
-      unless !length $path or $path =~ m!^/!;
-  }
-  else {
-    return 'Path cannot not start with //.' if $path =~ m!^//!;
-  }
-
-  return undef;
+  return 'An URI can only only contain ASCII characters.'
+    if $_[0] =~ m!\P{ASCII}!;
+  local $IRI_TEST_NAME = 'uri';
+  return check_iri_reference($_[0]);
 }
 
 sub check_uri_reference {
-  return 'Does not match uri format.'
-    unless $_[0]
-    =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
+  local $IRI_TEST_NAME = 'uri-reference';
+  return check_iri_reference($_[0]);
+}
 
-  my ($scheme, $auth_host, $path, $query, $fragment)
-    = map { $_ // '' } ($2, $4, $5, $7, $9);
-  return 'Path cannot not start with //.' if $path =~ m!^//!;
-  return undef if length $path;
-  return uri($_[0]);
-  return undef;
+sub check_uri_template {
+  return check_iri($_[0]);
 }
 
 sub _module_missing {
@@ -140,6 +220,12 @@ L<JSON::Validator/formats> to match JSON Schema formats.
 
 =head1 FUNCTIONS
 
+=head2 check_date
+
+  my $str_or_undef = check_date $str;
+
+Validates the date part of a RFC3339 string.
+
 =head2 check_date_time
 
   my $str_or_undef = check_date_time $str;
@@ -159,6 +245,20 @@ Validated against the RFC5322 spec.
 
 Will be validated using L<Data::Validate::Domain/is_hostname>, if installed.
 
+=head2 check_idn_email
+
+  my $str_or_undef = check_idn_email $str;
+
+Will validate an email with non-ASCII characters using L<Net::IDN::Encode> if
+installed.
+
+=head2 check_idn_hostname
+
+  my $str_or_undef = check_idn_hostname $str;
+
+Will validate a hostname with non-ASCII characters using L<Net::IDN::Encode> if
+installed.
+
 =head2 check_ipv4
 
   my $str_or_undef = check_ipv4 $str;
@@ -172,21 +272,65 @@ back to a plain IPv4 IP regex.
 
 Will be validated using L<Data::Validate::IP/is_ipv6>, if installed.
 
+=head2 check_iri
+
+  my $str_or_undef = check_iri $str;
+
+Validate either an absolute IRI containing ASCII or non-ASCII characters,
+against the RFC3986 spec.
+
+=head2 check_iri_reference
+
+  my $str_or_undef = check_iri_reference $str;
+
+Validate either a relative or absolute IRI containing ASCII or non-ASCII
+characters, against the RFC3986 spec.
+
+=head2 check_json_pointer
+
+  my $str_or_undef = check_json_pointer $str;
+
+Validates a JSON pointer, such as "/foo/bar/42".
+
 =head2 check_regex
 
   my $str_or_undef = check_regex $str;
 
 Will check if the string is a regex, using C<qr{...}>.
 
+=head2 check_relative_json_pointer
+
+  my $str_or_undef = check_relative_json_pointer $str;
+
+Validates a relative JSON pointer, such as "0/foo" or "3#".
+
+=head2 check_time
+
+  my $str_or_undef = check_time $str;
+
+Validates the time and optionally the offset part of a RFC3339 string.
+
 =head2 check_uri
 
   my $str_or_undef = check_uri $str;
 
-Validated against the RFC3986 spec.
+Validate either a relative or absolute URI containing just ASCII characters,
+against the RFC3986 spec.
+
+Note that this might change in the future to only check absolute URI.
 
 =head2 check_uri_reference
 
   my $str_or_undef = check_uri_reference $str;
+
+Validate either a relative or absolute URI containing just ASCII characters,
+against the RFC3986 spec.
+
+=head2 check_uri_template
+
+  my $str_or_undef = check_uri_reference $str;
+
+Validate an absolute URI with template characters.
 
 =head1 SEE ALSO
 

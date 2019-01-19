@@ -1,5 +1,13 @@
 Revision history for perl distribution JSON-Validator
 
+3.04 Not Released
+ - Add support for more formats in JSON Schema draft-6 and 7: date, idn-email,
+   idn-hostname, iri, iri-reference, json-pointer, relative-json-pointer, time,
+   uri-reference and uri-template.
+ - Fixed "uri" check, so that it only accept ASCII characters. Note that this
+   fix might be an undesired change for your application. If so, then update
+   the "uri" format in your schema to "iri".
+
 3.03 2019-01-19T12:11:34+0900
  - Add JSON::Validator::Formats with format checks
    Note that these functions work by returning a string on error, instead of
