@@ -31,4 +31,10 @@ $tuple->{additionalItems} = Mojo::JSON->false;
 validate_ok [1600, 'Pennsylvania', 'Avenue', 'NW', 'Washington'], $tuple,
   E('/', 'Invalid number of items: 5/4.');
 
+validate_ok [1600, 'NW'],
+  {type => 'array', contains => {type => 'string', enum => ['NW']}};
+validate_ok [1600, 'NW'],
+  {type => 'array', contains => {type => 'string', enum => ['Nope']}},
+  E('/0', 'Expected string - got number.'), E('/1', 'Not in enum list: Nope.');
+
 done_testing;

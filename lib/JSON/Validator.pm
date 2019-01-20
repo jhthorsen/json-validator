@@ -735,7 +735,16 @@ sub _validate_type_array {
       last;
     }
   }
-  if (ref $schema->{items} eq 'ARRAY') {
+
+  if ($schema->{contains}) {
+    my @e;
+    for my $i (0 .. @$data - 1) {
+      my @tmp = $self->_validate($data->[$i], "$path/$i", $schema->{contains});
+      push @e, \@tmp if @tmp;
+    }
+    push @errors, map {@$_} @e if @e >= @$data;
+  }
+  elsif (ref $schema->{items} eq 'ARRAY') {
     my $additional_items = $schema->{additionalItems} // {type => 'any'};
     my @rules = @{$schema->{items}};
 
