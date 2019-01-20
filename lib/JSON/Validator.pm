@@ -868,6 +868,13 @@ sub _validate_type_object {
     push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int @dkeys,
       $schema->{minProperties};
   }
+  if (my $n_schema = $schema->{propertyNames}) {
+    for my $name (keys %$data) {
+      next unless my @e = $self->_validate($name, $path, $n_schema);
+      push @errors,
+        _add_path_to_error_messages(propertyName => [map { ($name, $_) } @e]);
+    }
+  }
 
   while (my ($k, $r) = each %{$schema->{properties}}) {
     push @{$rules{$k}}, $r;
@@ -1006,6 +1013,7 @@ sub _guess_schema_type {
   return _guessed_right(object => $_[1]) if $_[0]->{additionalProperties};
   return _guessed_right(object => $_[1]) if $_[0]->{patternProperties};
   return _guessed_right(object => $_[1]) if $_[0]->{properties};
+  return _guessed_right(object => $_[1]) if $_[0]->{propertyNames};
   return _guessed_right(object => $_[1]) if $_[0]->{required};
   return _guessed_right(object => $_[1])
     if defined $_[0]->{maxProperties}

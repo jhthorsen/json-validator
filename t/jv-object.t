@@ -89,7 +89,7 @@ my $schema;
     properties => {
       name            => {type => 'string'},
       credit_card     => {type => 'number'},
-      billing_address => {type => 'string'}
+      billing_address => {type => 'string'},
     },
     required     => ['name'],
     dependencies => {credit_card => ['billing_address']}
@@ -103,6 +103,15 @@ my $schema;
   my $schema = {type => 'object', properties => {name => {type => 'string'}}};
   validate_ok {}, $schema;    # does not matter
   ok !$schema->{patternProperties}, 'patternProperties was not added issue#47';
+}
+
+{
+  my $schema = {propertyNames => {minLength => 3, maxLength => 5}};
+  validate_ok {name => 'John', surname => 'Doe'}, $schema,
+    E('/', '/propertyName/surname String is too long: 7/5.');
+
+  $schema->{propertyNames}{maxLength} = 7;
+  validate_ok {name => 'John', surname => 'Doe'}, $schema;
 }
 
 sub TO_JSON { return {age => shift->{age}} }
