@@ -875,6 +875,12 @@ sub _validate_type_object {
         _add_path_to_error_messages(propertyName => [map { ($name, $_) } @e]);
     }
   }
+  if ($schema->{if}) {
+    push @errors,
+      $self->_validate($data, $path, $schema->{if})
+      ? $self->_validate($data, $path, $schema->{else} // {})
+      : $self->_validate($data, $path, $schema->{then} // {});
+  }
 
   while (my ($k, $r) = each %{$schema->{properties}}) {
     push @{$rules{$k}}, $r;
@@ -1015,6 +1021,7 @@ sub _guess_schema_type {
   return _guessed_right(object => $_[1]) if $_[0]->{properties};
   return _guessed_right(object => $_[1]) if $_[0]->{propertyNames};
   return _guessed_right(object => $_[1]) if $_[0]->{required};
+  return _guessed_right(object => $_[1]) if $_[0]->{if};
   return _guessed_right(object => $_[1])
     if defined $_[0]->{maxProperties}
     or defined $_[0]->{minProperties};
