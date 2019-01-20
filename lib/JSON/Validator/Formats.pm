@@ -54,7 +54,7 @@ sub check_email {
 sub check_hostname {
   return _module_missing(hostname => 'Data::Validate::Domain')
     unless DATA_VALIDATE_DOMAIN;
-  return undef if Data::Validate::Domain::is_domain($_[0]);
+  return undef if Data::Validate::Domain::is_hostname($_[0]);
   return 'Does not match hostname format.';
 }
 
