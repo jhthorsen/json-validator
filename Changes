@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-3.04 Not Released
+3.04 2019-01-21T09:39:50+0900
  - Fix "uri" check, so that it only accept ASCII characters. Note that this
    fix might be an undesired change for your application. If so, then update
    the "uri" format in your schema to "iri".
