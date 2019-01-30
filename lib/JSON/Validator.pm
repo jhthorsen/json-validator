@@ -24,11 +24,11 @@ use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
-our $VERSION   = '3.04';
+our $VERSION   = '3.05';
 our @EXPORT_OK = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
-my $HTTP_SCHEME_RE = qr{^https?:};
+my $HTTP_SCHEME_RE    = qr{^https?:};
 
 sub D {
   Data::Dumper->new([@_])->Sortkeys(1)->Indent(0)->Maxdepth(2)->Pair(':')
@@ -337,7 +337,7 @@ sub _load_schema_from_url {
     return $self->_load_schema_from_text(\$path->slurp);
   }
 
-  $tx = $self->ua->get($url);
+  $tx  = $self->ua->get($url);
   $err = $tx->error && $tx->error->{message};
   confess "GET $url == $err" if DEBUG and $err;
   die "[JSON::Validator] GET $url == $err" if $err;
@@ -502,7 +502,7 @@ sub _resolve_ref {
     $url = $location = _location_to_abs($location, $url);
     $pointer = undef if length $location and !length $pointer;
     $pointer = url_unescape $pointer if defined $pointer;
-    $fqn = join '#', grep defined, $location, $pointer;
+    $fqn   = join '#', grep defined, $location, $pointer;
     $other = $self->_resolve($location);
 
     if (defined $pointer and length $pointer and $pointer =~ m!^/!) {
@@ -534,7 +534,7 @@ sub _validate {
   # Do not validate against "default" in draft-07 schema
   return if blessed $schema and $schema->isa('JSON::PP::Boolean');
 
-  $schema = $self->_ref_to_schema($schema) if $schema->{'$ref'};
+  $schema    = $self->_ref_to_schema($schema) if $schema->{'$ref'};
   $seen_addr = join ':', refaddr($schema),
     (!defined $data ? 'c:undef' : ref $data ? refaddr $data : "s:$data");
 
@@ -656,7 +656,7 @@ sub _validate_one_of {
 
   my $i = 0;
   for my $rule (@$rules) {
-    my @e = $self->_validate($_[1], $path, $rule) or next;
+    my @e           = $self->_validate($_[1], $path, $rule) or next;
     my $schema_type = _guess_schema_type($rule);
     push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
@@ -749,7 +749,7 @@ sub _validate_type_array {
   }
   elsif (ref $schema->{items} eq 'ARRAY') {
     my $additional_items = $schema->{additionalItems} // {type => 'any'};
-    my @rules = @{$schema->{items}};
+    my @rules            = @{$schema->{items}};
 
     if ($additional_items) {
       push @rules, $additional_items while @rules < @$data;
