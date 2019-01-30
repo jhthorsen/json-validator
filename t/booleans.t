@@ -36,4 +36,13 @@ SKIP: {
     {type => 'object', properties => {type => {type => 'string'}}};
 }
 
+SKIP: {
+  skip 'Cpanel::JSON::XS not installed', 2
+    unless eval 'require Cpanel::JSON::XS;1';
+  validate_ok {disabled => Mojo::JSON->true},
+    {properties => {disabled => {type => 'boolean'}}};
+  validate_ok {disabled => Mojo::JSON->false},
+    {properties => {disabled => {type => 'boolean'}}};
+}
+
 done_testing;
