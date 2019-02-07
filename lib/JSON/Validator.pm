@@ -550,6 +550,8 @@ sub _validate {
   $data = $$to_json if $to_json;
   $type = $schema->{type} || _guess_schema_type($schema, $data);
 
+  return if !defined $data and $schema->{nullable};
+
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {
     push @{$self->{temp_schema}}, [map { +{%$schema, type => $_} } @$type];
