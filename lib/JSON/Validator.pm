@@ -536,7 +536,7 @@ sub _validate {
 
   $schema    = $self->_ref_to_schema($schema) if $schema->{'$ref'};
   $seen_addr = join ':', refaddr($schema),
-    (!defined $data ? 'c:undef' : ref $data ? refaddr $data : "s:$data");
+    (ref $data ? refaddr $data : ++$self->{seen}{scalar});
 
   # Avoid recursion
   if ($self->{seen}{$seen_addr}) {

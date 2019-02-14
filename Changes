@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+3.06 Not Released
+ - Fix coercing integers and numbers #147
+ - Changed recursion guard to not keeping tracking of plain scalars #147
+
 3.05 2019-01-31T08:45:14+0900
  - Removed testing Mojo::JSON::MaybeXS, since Mojo::JSON loads Cpanel::JSON::XS
 

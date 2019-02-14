@@ -1,11 +1,13 @@
 use lib '.';
 use Mojo::Base -strict;
+use Mojo::JSON 'encode_json';
+use Test::More;
 use t::Helper;
 
 my $simple = {type => 'array', items => {type => 'number'}};
 my $length = {type => 'array', minItems => 2, maxItems => 2};
 my $unique = {type => 'array', uniqueItems => 1, items => {type => 'integer'}};
-my $tuple = {
+my $tuple  = {
   type  => 'array',
   items => [
     {type => 'number'},
@@ -36,5 +38,21 @@ validate_ok [1600, 'NW'],
 validate_ok [1600, 'NW'],
   {type => 'array', contains => {type => 'string', enum => ['Nope']}},
   E('/0', 'Expected string - got number.'), E('/1', 'Not in enum list: Nope.');
+
+# Make sure all similar numbers gets converted from strings
+my $jv = JSON::Validator->new->coerce(1);
+my @numbers;
+
+$jv->schema({type => 'array', items => {type => 'number'}});
+@numbers = qw(1.42 2.3 1.42 1.42);
+ok !$jv->validate(\@numbers), 'numbers are valid';
+is encode_json(\@numbers), encode_json([1.42, 2.3, 1.42, 1.42]),
+  'coerced into integers';
+
+$jv->schema({type => 'array', items => {type => 'integer'}});
+@numbers = qw(1 2 1 1 3 1);
+ok !$jv->validate(\@numbers), 'integers are valid';
+is encode_json(\@numbers), encode_json([1, 2, 1, 1, 3, 1]),
+  'coerced into numbers';
 
 done_testing;
