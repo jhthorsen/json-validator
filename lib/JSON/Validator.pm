@@ -193,8 +193,7 @@ sub validate_json {
   __PACKAGE__->singleton->schema($_[1])->validate($_[0]);
 }
 
-sub _build_formats {
-  return {
+my $_default_formats = {
     'date'          => JSON::Validator::Formats->can('check_date'),
     'date-time'     => JSON::Validator::Formats->can('check_date_time'),
     'email'         => JSON::Validator::Formats->can('check_email'),
@@ -214,7 +213,21 @@ sub _build_formats {
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-template'  => JSON::Validator::Formats->can('check_uri_template'),
-  };
+};
+
+sub _build_formats {
+    my ($self) = @_;
+    if (!$$self{_default_formats}) {
+	$$self{_default_formats} = {%$_default_formats};
+    }
+
+    return $$self{_default_formats};
+}
+
+sub set_format_validator {
+    my ($self, $format, $validator) = @_;
+    my $formats = $self->_build_formats;
+    $formats->{$format} = $validator;
 }
 
 sub _get {
@@ -1407,6 +1420,12 @@ An URL (without a recognized scheme) will be treated as a path to a file on
 disk.
 
 =back
+
+=head2 set_format_validator
+
+  $validator->set_format_validator('email' => JSON::Validator::Formats->can('check_email'));
+
+Used to set a custom format validator or replace a default one.
 
 =head2 singleton
 
