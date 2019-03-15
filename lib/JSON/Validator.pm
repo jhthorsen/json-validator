@@ -16,6 +16,7 @@ use Mojo::URL;
 use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
 use Time::Local ();
+use File::ShareDir 'dist_dir';
 
 use constant CASE_TOLERANT     => File::Spec->case_tolerant;
 use constant COLORS            => eval { require Term::ANSIColor };
@@ -27,7 +28,7 @@ use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 our $VERSION   = '3.06';
 our @EXPORT_OK = qw(joi validate_json);
 
-my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
+my $BUNDLED_CACHE_DIR = path(dist_dir('JSON-Validator'),'cache');
 my $HTTP_SCHEME_RE    = qr{^https?:};
 
 sub D {

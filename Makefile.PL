@@ -30,8 +30,15 @@ my %WriteMakefileArgs = (
       x_IRC => 'irc://irc.freenode.net/#mojo',
     },
   },
-  PREREQ_PM     => {'Mojolicious' => '7.28'},
-  TEST_REQUIRES => {'Test::More'  => '1.30'},
+  CONFIGURE_REQUIRES => {'File::ShareDir::Install' => '0.03'},
+  PREREQ_PM     => {
+      'Mojolicious' => '7.28',
+      'File::ShareDir' => '0',
+  },
+  TEST_REQUIRES => {
+      'Test::More'  => '1.30',
+      'Test::File::ShareDir' => '0',
+  },
   test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );
 
@@ -41,4 +48,13 @@ unless (eval { ExtUtils::MakeMaker->VERSION('6.63_03') }) {
     = values %$test_requires;
 }
 
+use File::ShareDir::Install;
+install_share dist => 'share';
+
 WriteMakefile(%WriteMakefileArgs);
+
+{
+  package
+    MY;
+  use File::ShareDir::Install 'postamble';
+}

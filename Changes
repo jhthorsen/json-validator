@@ -1,5 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
+ - cached schema files are moved to a standard distribution sharedir
+
 3.06 2019-02-14T18:24:29+0100
  - Fix coercing integers and numbers #147
  - Changed recursion guard to not keeping tracking of plain scalars #147
