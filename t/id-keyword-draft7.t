@@ -21,8 +21,8 @@ eval {
 };
 ok !$@, "${base_url}schema.json" or diag $@;
 
-is $jv->version, 7,     'detected version from draft-07';
-is $jv->_id_key, '$id', 'detected id_key from draft-07';
+is $jv->version, 7,     'detected version from $arg, as draft-07';
+is $jv->_id_key, '$id', 'detected id_key from $arg, as draft-07';
 
 eval { $jv->load_and_validate_schema("${base_url}invalid-relative.json") };
 like $@, qr{cannot have a relative}, 'Root id cannot be relative' or diag $@;

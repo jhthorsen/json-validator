@@ -1,6 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
  - cached schema files are moved to a standard distribution sharedir
+ - load_and_validate_schema() now also looks for the schema version in the "$schema"
+   of the provided document
 
 3.06 2019-02-14T18:24:29+0100
  - Fix coercing integers and numbers #147
