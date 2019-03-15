@@ -1294,7 +1294,7 @@ Used to create a new schema, where the C<$ref> are resolved. C<%args> can have:
 
 =over 2
 
-=item * C<{replace => 1}>
+=item * C<< {replace => 1} >>
 
 Used if you want to replace the C<$ref> inline in the schema. This currently
 does not work if you have circular references. The default is to move all the
@@ -1307,7 +1307,7 @@ on how a C<$ref> looks before and after:
   {"$ref":"http://example.com#/foo/bar"}
      => {"$ref":"#/definitions/_http___example_com-_foo_bar"}
 
-=item * C<{schema => {...}}>
+=item * C<< {schema => {...}} >>
 
 Default is to use the value from the L</schema> attribute.
 
