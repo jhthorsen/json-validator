@@ -157,9 +157,10 @@ sub joi {
 
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
-  my $schema = $args->{schema} || SPECIFICATION_URL;
-  $self->version($1) if !$self->{version} and $schema =~ /draft-0+(\w+)/;
+  my $schema = $args->{schema} || (ref $spec eq 'HASH' && $spec->{'$schema'});
+  $self->version($1) if $schema and !$self->{version} and $schema =~ /draft-0+(\w+)/;
   $spec = $self->_resolve($spec);
+  $schema ||= $spec->{'$schema'} || SPECIFICATION_URL;
   my @errors = $self->new(%$self)->schema($schema)->validate($spec);
   confess join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors
     if @errors;
@@ -443,14 +444,13 @@ sub _report_schema {
 # resolve all the $ref's that we find inside JSON Schema specification.
 sub _resolve {
   my ($self, $schema) = @_;
-  my $id_key = $self->_id_key;
   my ($id, $resolved, @refs);
 
   local $self->{level} = $self->{level} || 0;
   delete $_[0]->{schemas}{''} unless $self->{level};
 
   if (ref $schema eq 'HASH') {
-    $id = $schema->{$id_key} // '';
+    $id = $schema->{$self->_id_key} // '';
     return $resolved if $resolved = $self->{schemas}{$id};
   }
   elsif ($resolved = $self->{schemas}{$schema // ''}) {
@@ -458,8 +458,12 @@ sub _resolve {
   }
   else {
     ($schema, $id) = $self->_load_schema($schema);
+    $self->version($1) if !$self->{version} and $schema->{'$schema'} and $schema->{'$schema'} =~ /draft-0+(\w+)/;
+    my $id_key = $self->_id_key;
     $id = $schema->{$id_key} if $schema->{$id_key};
   }
+
+  my $id_key = $self->_id_key;
 
   unless ($self->{level}) {
     my $rid = $schema->{$id_key} // $id;

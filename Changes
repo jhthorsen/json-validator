@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+ - load_and_validate_schema() now also looks for the schema version in the "$schema"
+   key of the provided document
+
 3.11 2019-05-07T21:53:16+0700
  - Bundle https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json #157
 

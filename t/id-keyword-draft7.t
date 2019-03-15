@@ -1,28 +1,25 @@
 use Mojo::Base -strict;
-use Mojo::JSON 'encode_json';
 use Test::Mojo;
 use Test::More;
 use JSON::Validator;
-
-my ($base_url, $jv, $t, @e);
 
 use Mojolicious::Lite;
 get '/person'           => 'person';
 get '/invalid-relative' => 'invalid-relative';
 
-$t = Test::Mojo->new;
-$jv = JSON::Validator->new(ua => $t->ua);
+my $t  = Test::Mojo->new;
+my $jv = JSON::Validator->new(ua => $t->ua);
 
+$t->get_ok('/person.json')->status_is(200);
+my $base_url = $t->tx->req->url->to_abs->path('/');
 eval {
-  $t->get_ok('/person.json')->status_is(200);
-  $base_url = $t->tx->req->url->to_abs->path('/');
   $jv->load_and_validate_schema("${base_url}person.json",
     {schema => 'http://json-schema.org/draft-07/schema'});
 };
 ok !$@, "${base_url}schema.json" or diag $@;
 
-is $jv->version, 7,     'detected version from draft-07';
-is $jv->_id_key, '$id', 'detected id_key from draft-07';
+is $jv->version, 7,     'detected version from $arg, as draft-07';
+is $jv->_id_key, '$id', 'detected id_key from $arg, as draft-07';
 
 eval { $jv->load_and_validate_schema("${base_url}invalid-relative.json") };
 like $@, qr{cannot have a relative}, 'Root id cannot be relative' or diag $@;
