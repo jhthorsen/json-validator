@@ -4,8 +4,8 @@ use JSON::Validator;
 
 plan skip_all => 'YAML::XS required' unless $JSON::Validator::YAML_LOADER;
 
-my $validator = JSON::Validator->new;
-my @errors    = $validator->schema('data://Some::Module/s_pec-/-ficaTion')
+my $jv     = JSON::Validator->new;
+my @errors = $jv->schema('data://Some::Module/s_pec-/-ficaTion')
   ->validate({firstName => 'yikes!'});
 
 is int(@errors), 1, 'one error';

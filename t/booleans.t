@@ -11,7 +11,7 @@ validate_ok {v => 0.5},     $schema, E('/v', 'Expected boolean - got number.');
 validate_ok {v => Mojo::JSON->true},  $schema;
 validate_ok {v => Mojo::JSON->false}, $schema;
 
-t::Helper->validator->coerce(booleans => 1);
+jv->coerce(booleans => 1);
 validate_ok {v => !!1},     $schema;
 validate_ok {v => !!0},     $schema;
 validate_ok {v => 'false'}, $schema;
@@ -25,7 +25,7 @@ validate_ok {v => ''},      $schema, E('/v', 'Expected boolean - got string.');
 SKIP: {
   skip 'YAML::XS is not installed', 1
     unless eval q[require YAML::XS;YAML::XS->VERSION('0.67');1];
-  my $data = t::Helper->validator->_load_schema_from_text(\"---\nv: true\n");
+  my $data = jv->_load_schema_from_text(\"---\nv: true\n");
   isa_ok($data->{v}, 'JSON::PP::Boolean');
   validate_ok $data, $schema;
 }

@@ -62,7 +62,7 @@ sub pattern   { shift->regex(@_) }
 sub positive  { shift->number->min(0) }
 
 sub props {
-  my $self = shift->type('object');
+  my $self       = shift->type('object');
   my %properties = ref $_[0] ? %{$_[0]} : @_;
 
   while (my ($name, $property) = each %properties) {
@@ -80,8 +80,8 @@ sub uri       { shift->_type('string')->format('uri') }
 
 sub validate {
   my ($self, $data) = @_;
-  state $validator = JSON::Validator->new->coerce(1);
-  return $validator->validate($data, $self->compile);
+  state $jv = JSON::Validator->new->coerce(1);
+  return $jv->validate($data, $self->compile);
 }
 
 sub _compile_array {

@@ -7,7 +7,7 @@ use Test::More;
 plan skip_all => 'TEST_RANDOM_ITERATIONS=10000'
   unless my $iterations = $ENV{TEST_RANDOM_ITERATIONS};
 
-my $validator = JSON::Validator->new->schema({
+my $jv = JSON::Validator->new->schema({
   items => {
     properties => {
       prop1 => {type => [qw(string null)]},
@@ -28,7 +28,7 @@ my $validator = JSON::Validator->new->schema({
 my @errors;
 for (1 .. $iterations) {
   push @errors,
-    $validator->validate([{
+    $jv->validate([{
     prop1 => undef,
     prop2 => undef,
     prop3 => undef,

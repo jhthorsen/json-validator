@@ -18,7 +18,7 @@ validate_ok {mynumber => '2'}, $schema,
 $schema->{properties}{mynumber}{multipleOf} = 2;
 validate_ok {mynumber => 3}, $schema, E('/mynumber', 'Not multiple of 2.');
 
-t::Helper->validator->coerce(numbers => 1);
+jv->coerce(numbers => 1);
 validate_ok {mynumber => '2'},    $schema;
 validate_ok {mynumber => '2xyz'}, $schema,
   E('/mynumber', 'Expected integer - got string.');

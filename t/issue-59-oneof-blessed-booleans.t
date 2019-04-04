@@ -3,9 +3,9 @@ use Test::More;
 use Mojo::JSON;
 use JSON::Validator;
 
-my $validator = JSON::Validator->new->schema('data://main/spec.json');
-my @errors    = $validator->validate(
-  {prop1 => Mojo::JSON->false, prop2 => Mojo::JSON->false});
+my $jv = JSON::Validator->new->schema('data://main/spec.json');
+my @errors
+  = $jv->validate({prop1 => Mojo::JSON->false, prop2 => Mojo::JSON->false});
 
 is "@errors", "";
 

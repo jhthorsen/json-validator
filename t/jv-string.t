@@ -18,13 +18,13 @@ validate_ok {nick => '1000'}, $schema;
 validate_ok {nick => 'aa'}, $schema, E('/nick', 'String is too short: 2/3.');
 validate_ok {nick => 'a' x 11}, $schema,
   E('/nick', 'String is too long: 11/10.');
-like +join('', t::Helper->validator->validate({nick => '[nick]'})),
+like +join('', jv->validate({nick => '[nick]'})),
   qr{/nick: String does not match}, 'String does not match';
 
 delete $schema->{properties}{nick}{pattern};
 validate_ok {nick => 'Déjà vu'}, $schema;
 
-t::Helper->validator->coerce(1);
+jv->coerce(1);
 validate_ok {nick => 1000}, $schema;
 
 # https://github.com/mojolicious/json-validator/issues/134

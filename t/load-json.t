@@ -3,9 +3,9 @@ use Test::More;
 use JSON::Validator;
 use Mojo::File 'path';
 
-my $file      = path(path(__FILE__)->dirname, 'spec', 'person.json');
-my $validator = JSON::Validator->new->schema($file);
-my @errors    = $validator->validate({firstName => 'yikes!'});
+my $file   = path(path(__FILE__)->dirname, 'spec', 'person.json');
+my $jv     = JSON::Validator->new->schema($file);
+my @errors = $jv->validate({firstName => 'yikes!'});
 
 is int(@errors), 1, 'one error';
 is $errors[0]->path,    '/lastName',         'lastName';

@@ -2,9 +2,9 @@
   use Test::More;
   use JSON::Validator;
 
-  my $validator = JSON::Validator->new;
-  my @errors    = $validator->schema('data://main/spec.json')
-    ->validate({firstName => 'yikes!'});
+  my $jv = JSON::Validator->new;
+  my @errors
+    = $jv->schema('data://main/spec.json')->validate({firstName => 'yikes!'});
 
   is int(@errors), 1, 'one error';
   is $errors[0]->path,    '/lastName',         'lastName';

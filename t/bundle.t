@@ -3,21 +3,21 @@ use Mojo::File 'path';
 use Test::More;
 use JSON::Validator;
 
-my $validator = JSON::Validator->new;
+my $jv = JSON::Validator->new;
 my $bundled;
 
-# Bundle files
 {
+  note 'bundle files';
   local $ENV{JSON_VALIDATOR_CACHE_ANYWAYS} = 1;
-  $validator->_load_schema_from_url("http://json-schema.org/draft-04/schema");
-  $validator->_load_schema_from_url("http://json-schema.org/draft-06/schema");
-  $validator->_load_schema_from_url("http://json-schema.org/draft-07/schema");
+  $jv->_load_schema_from_url("http://json-schema.org/draft-04/schema");
+  $jv->_load_schema_from_url("http://json-schema.org/draft-06/schema");
+  $jv->_load_schema_from_url("http://json-schema.org/draft-07/schema");
 }
 
-# Run multiple times to make sure _reset() works
+note 'Run multiple times to make sure _reset() works';
 for my $n (1 .. 3) {
   note "[$n] replace=1";
-  $bundled = $validator->bundle({
+  $bundled = $jv->bundle({
     ref_key => 'definitions',
     replace => 1,
     schema  => {
@@ -29,7 +29,7 @@ for my $n (1 .. 3) {
   is $bundled->{name}{type}, 'string', "[$n] replace=1";
 
   note "[$n] replace=0";
-  $bundled = $validator->schema({
+  $bundled = $jv->schema({
     name        => {'$ref' => '#/definitions/name'},
     age         => {'$ref' => 'b.json#/definitions/age'},
     definitions => {name   => {type => 'string'}},
@@ -39,23 +39,23 @@ for my $n (1 .. 3) {
     "[$n] name still in definitions";
   is $bundled->{definitions}{b_json__definitions_age}{type}, 'integer',
     "[$n] added to definitions";
-  isnt $bundled->{age}, $validator->schema->get('/age'),  "[$n] new age ref";
-  is $bundled->{name},  $validator->schema->get('/name'), "[$n] same name ref";
+  isnt $bundled->{age}, $jv->schema->get('/age'),  "[$n] new age ref";
+  is $bundled->{name},  $jv->schema->get('/name'), "[$n] same name ref";
   is $bundled->{age}{'$ref'}, '#/definitions/b_json__definitions_age',
     "[$n] age \$ref point to /definitions/b_json__definitions_age";
   is $bundled->{name}{'$ref'}, '#/definitions/name',
     "[$n] name \$ref point to /definitions/name";
 }
 
-is $validator->get([qw(name type)]), 'string', 'get /name/$ref';
-is $validator->get('/name/type'), 'string', 'get /name/type';
-is $validator->get('/name/$ref'), undef,    'get /name/$ref';
-is $validator->schema->get('/name/type'), 'string', 'schema get /name/type';
-is $validator->schema->get('/name/$ref'), '#/definitions/name',
+is $jv->get([qw(name type)]), 'string', 'get /name/$ref';
+is $jv->get('/name/type'), 'string', 'get /name/type';
+is $jv->get('/name/$ref'), undef,    'get /name/$ref';
+is $jv->schema->get('/name/type'), 'string', 'schema get /name/type';
+is $jv->schema->get('/name/$ref'), '#/definitions/name',
   'schema get /name/$ref';
 
-$bundled = $validator->schema('data://main/api.json')
-  ->bundle({ref_key => 'definitions'});
+$bundled
+  = $jv->schema('data://main/api.json')->bundle({ref_key => 'definitions'});
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'],
   'no dup definitions';
 
@@ -65,23 +65,22 @@ my @pathlists = (
 );
 for my $pathlist (@pathlists) {
   my $file = path(path(__FILE__)->dirname, @$pathlist);
-  $bundled = $validator->schema($file)->bundle({ref_key => 'definitions'});
+  $bundled = $jv->schema($file)->bundle({ref_key => 'definitions'});
   is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ }
-      keys %{$bundled->{definitions}}], [
-    qw(
+      keys %{$bundled->{definitions}}],
+    [qw(
       SHA-age.json
       SHA-unit.json
       SHA-weight.json
       height
-      )
-      ],
+      )],
     'right definitions in disk spec'
     or diag explain $bundled->{definitions};
 }
 
-# ensure filenames with funny characters not mangled by Mojo::URL
+note 'ensure filenames with funny characters not mangled by Mojo::URL';
 my $file3 = path(__FILE__)->sibling('spec', 'space bundle.json');
-eval { $bundled = $validator->schema($file3)->bundle };
+eval { $bundled = $jv->schema($file3)->bundle };
 is $@, '', 'loaded absolute filename with space';
 is $bundled->{properties}{age}{description}, 'Age in years',
   'right definitions in disk spec'

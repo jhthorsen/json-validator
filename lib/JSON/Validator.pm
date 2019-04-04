@@ -167,7 +167,7 @@ sub schema {
   return $self;
 }
 
-sub singleton { state $validator = shift->new }
+sub singleton { state $jv = shift->new }
 
 sub validate {
   my ($self, $data, $schema) = @_;
@@ -1080,11 +1080,11 @@ JSON::Validator - Validate data against a JSON schema
 =head1 SYNOPSIS
 
   use JSON::Validator;
-  my $validator = JSON::Validator->new;
+  my $jv = JSON::Validator->new;
 
   # Define a schema - http://json-schema.org/learn/miscellaneous-examples.html
   # You can also load schema from disk or web
-  $validator->schema({
+  $jv->schema({
     type       => "object",
     required   => ["firstName", "lastName"],
     properties => {
@@ -1095,7 +1095,7 @@ JSON::Validator - Validate data against a JSON schema
   });
 
   # Validate your data
-  my @errors = $validator->validate({firstName => "Jan Henning", lastName => "Thorsen", age => -42});
+  my @errors = $jv->validate({firstName => "Jan Henning", lastName => "Thorsen", age => -42});
 
   # Do something if any errors was found
   die "@errors" if @errors;
@@ -1103,7 +1103,7 @@ JSON::Validator - Validate data against a JSON schema
   # Use joi() to build the schema
   use JSON::Validator 'joi';
 
-  $validator->schema(joi->object->props({
+  $jv->schema(joi->object->props({
     firstName => joi->string->required,
     lastName  => joi->string->required,
     age       => joi->integer->min(0),
@@ -1230,8 +1230,8 @@ See also L</validate> and L</ERROR OBJECT> for more details.
 
 =head2 cache_paths
 
-  my $validator = $validator->cache_paths(\@paths);
-  my $array_ref = $validator->cache_paths;
+  my $jv = $jv->cache_paths(\@paths);
+  my $array_ref = $jv->cache_paths;
 
 A list of directories to where cached specifications are stored. Defaults to
 C<JSON_VALIDATOR_CACHE_PATH> environment variable and the specs that is bundled
@@ -1243,8 +1243,8 @@ See L</Bundled specifications> for more details.
 
 =head2 formats
 
-  my $hash_ref  = $validator->formats;
-  my $validator = $validator->formats(\%hash);
+  my $hash_ref  = $jv->formats;
+  my $jv = $jv->formats(\%hash);
 
 Holds a hash-ref, where the keys are supported JSON type "formats", and
 the values holds a code block which can validate a given format. A code
@@ -1256,8 +1256,8 @@ See L<JSON::Validator::Formats> for a list of supported formats.
 
 =head2 ua
 
-  my $ua        = $validator->ua;
-  my $validator = $validator->ua(Mojo::UserAgent->new);
+  my $ua        = $jv->ua;
+  my $jv = $jv->ua(Mojo::UserAgent->new);
 
 Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
 from remote location.
@@ -1267,8 +1267,8 @@ L<Mojo::UserAgent/max_redirects> set to 3.
 
 =head2 version
 
-  my $int       = $validator->version;
-  my $validator = $validator->version(7);
+  my $int       = $jv->version;
+  my $jv = $jv->version(7);
 
 Used to set the JSON Schema version to use. Will be set automatically when
 using L</load_and_validate_schema>, unless already set.
@@ -1277,7 +1277,7 @@ using L</load_and_validate_schema>, unless already set.
 
 =head2 bundle
 
-  my $schema = $validator->bundle(\%args);
+  my $schema = $jv->bundle(\%args);
 
 Used to create a new schema, where the C<$ref> are resolved. C<%args> can have:
 
@@ -1304,9 +1304,9 @@ Default is to use the value from the L</schema> attribute.
 
 =head2 coerce
 
-  my $validator = $validator->coerce(booleans => 1, numbers => 1, strings => 1);
-  my $validator = $validator->coerce({booleans => 1, numbers => 1, strings => 1});
-  my $hash_ref  = $validator->coerce;
+  my $jv = $jv->coerce(booleans => 1, numbers => 1, strings => 1);
+  my $jv = $jv->coerce({booleans => 1, numbers => 1, strings => 1});
+  my $hash_ref  = $jv->coerce;
 
 Set the given type to coerce. Before enabling coercion this module is very
 strict when it comes to validating types. Example: The string C<"1"> is not
@@ -1318,23 +1318,23 @@ as L<Mojo::JSON> or other JSON parsers.
 
 =head2 get
 
-  my $sub_schema = $validator->get("/x/y");
-  my $sub_schema = $validator->get(["x", "y"]);
+  my $sub_schema = $jv->get("/x/y");
+  my $sub_schema = $jv->get(["x", "y"]);
 
 Extract value from L</schema> identified by the given JSON Pointer. Will at the
 same time resolve C<$ref> if found. Example:
 
-  $validator->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
-  $validator->schema->get('/x')           == undef
-  $validator->schema->get('/x')->{'$ref'} == '#/y'
-  $validator->get('/x')                   == {type => 'string'}
+  $jv->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
+  $jv->schema->get('/x')           == undef
+  $jv->schema->get('/x')->{'$ref'} == '#/y'
+  $jv->get('/x')                   == {type => 'string'}
 
 The argument can also be an array-ref with the different parts of the pointer
 as each elements.
 
 =head2 load_and_validate_schema
 
-  my $validator = $validator->load_and_validate_schema($schema, \%args);
+  my $jv = $jv->load_and_validate_schema($schema, \%args);
 
 Will load and validate C<$schema> against the OpenAPI specification. C<$schema>
 can be anything L<JSON::Validator/schema> accepts. The expanded specification
@@ -1355,11 +1355,11 @@ structured that can be used to validate C<$schema>.
 
 =head2 schema
 
-  my $validator = $validator->schema($json_or_yaml_string);
-  my $validator = $validator->schema($url);
-  my $validator = $validator->schema(\%schema);
-  my $validator = $validator->schema(JSON::Validator::Joi->new);
-  my $schema    = $validator->schema;
+  my $jv = $jv->schema($json_or_yaml_string);
+  my $jv = $jv->schema($url);
+  my $jv = $jv->schema(\%schema);
+  my $jv = $jv->schema(JSON::Validator::Joi->new);
+  my $schema    = $jv->schema;
 
 Used to set a schema from either a data structure or a URL.
 
@@ -1399,14 +1399,14 @@ disk.
 
 =head2 singleton
 
-  my $validator = JSON::Validator->singleton;
+  my $jv = JSON::Validator->singleton;
 
 Returns the L<JSON::Validator> object used by L</validate_json>.
 
 =head2 validate
 
-  my @errors = $validator->validate($data);
-  my @errors = $validator->validate($data, $schema);
+  my @errors = $jv->validate($data);
+  my @errors = $jv->validate($data, $schema);
 
 Validates C<$data> against a given JSON L</schema>. C<@errors> will
 contain validation error objects or be an empty list on success.
@@ -1416,7 +1416,7 @@ See L</ERROR OBJECT> for details.
 C<$schema> is optional, but when specified, it will override schema stored in
 L</schema>. Example:
 
-  $validator->validate({hero => "superwoman"}, {type => "object"});
+  $jv->validate({hero => "superwoman"}, {type => "object"});
 
 =head2 SEE ALSO
 
