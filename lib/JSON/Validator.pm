@@ -85,12 +85,13 @@ sub bundle {
       my $ref  = ref $from;
 
       if ($ref eq 'HASH' and my $tied = tied %$from) {
-        my $ref_name = $tied->fqn;
+        my $ref_name  = $tied->fqn;
+        my $file_name = (split '#', $ref_name)[0];
         return $from if $ref_name =~ m!^\Q$self->{root_schema_url}\E\#!;
 
-        if (-e $ref_name) {
+        if (-e $file_name) {
           $ref_name = sprintf '%s-%s', substr(sha1_sum($ref_name), 0, 10),
-            path($ref_name)->basename;
+            path($file_name)->basename;
         }
         else {
           $ref_name =~ s![^\w-]!_!g;

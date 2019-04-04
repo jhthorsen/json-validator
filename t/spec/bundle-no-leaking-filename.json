@@ -1,0 +1,4 @@
+{
+  "type": "object",
+  "properties": { "$ref": "./with-deep-mixed-ref.json#/properties" }
+}

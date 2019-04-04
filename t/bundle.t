@@ -3,7 +3,8 @@ use Mojo::File 'path';
 use Test::More;
 use JSON::Validator;
 
-my $jv = JSON::Validator->new;
+my $workdir = path(__FILE__)->to_abs->dirname;
+my $jv      = JSON::Validator->new;
 my $bundled;
 
 {
@@ -64,7 +65,7 @@ my @pathlists = (
   ['spec', File::Spec->updir, 'spec', 'with-deep-mixed-ref.json'],
 );
 for my $pathlist (@pathlists) {
-  my $file = path(path(__FILE__)->dirname, @$pathlist);
+  my $file = path $workdir, @$pathlist;
   $bundled = $jv->schema($file)->bundle({ref_key => 'definitions'});
   is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ }
       keys %{$bundled->{definitions}}],
@@ -79,7 +80,7 @@ for my $pathlist (@pathlists) {
 }
 
 note 'ensure filenames with funny characters not mangled by Mojo::URL';
-my $file3 = path(__FILE__)->sibling('spec', 'space bundle.json');
+my $file3 = path $workdir, 'spec', 'space bundle.json';
 eval { $bundled = $jv->schema($file3)->bundle };
 is $@, '', 'loaded absolute filename with space';
 is $bundled->{properties}{age}{description}, 'Age in years',
@@ -87,7 +88,7 @@ is $bundled->{properties}{age}{description}, 'Age in years',
   or diag explain $bundled;
 
 note 'extract subset of schema';
-my $bundled = $jv->bundle({
+$bundled = $jv->bundle({
   ref_key => 'definitions',
   schema  => $jv->schema('data://main/api.json')->get([qw(paths /withdots get)])
 });
@@ -108,10 +109,17 @@ is_deeply(
   'subset of schema was bundled'
 ) or diag explain $bundled;
 
+note 'no leaking path';
+my $ref_name_prefix = $workdir;
+$ref_name_prefix =~ s![^\w-]!_!g;
+$jv->schema(path $workdir, 'spec', 'bundle-no-leaking-filename.json');
+$bundled = $jv->bundle({ref_key => 'xyz'});
+is_deeply [grep { 0 == index $_, $ref_name_prefix } keys %{$bundled->{xyz}}],
+  [], 'no leaking of path';
+
 done_testing;
 
 __DATA__
-
 @@ api.json
 {
    "definitions" : {
