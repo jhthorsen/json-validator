@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-3.07 Not Released
+3.07 2019-04-04T23:43:55+0700
  - Fix not leaking file names with bundle()
 
 3.06 2019-02-14T18:24:29+0100
