@@ -86,6 +86,28 @@ is $bundled->{properties}{age}{description}, 'Age in years',
   'right definitions in disk spec'
   or diag explain $bundled;
 
+note 'extract subset of schema';
+my $bundled = $jv->bundle({
+  ref_key => 'definitions',
+  schema  => $jv->schema('data://main/api.json')->get([qw(paths /withdots get)])
+});
+is_deeply(
+  $bundled,
+  {
+    definitions => {
+      data___main_api_json__definitions_objtype =>
+        {properties => {propname => {type => 'string'}}, type => 'object'}
+    },
+    responses => {
+      200 => {
+        schema =>
+          {'$ref' => '#/definitions/data___main_api_json__definitions_objtype'}
+      }
+    }
+  },
+  'subset of schema was bundled'
+) or diag explain $bundled;
+
 done_testing;
 
 __DATA__
