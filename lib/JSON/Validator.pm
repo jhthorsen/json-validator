@@ -10,7 +10,7 @@ use JSON::Validator::Joi;
 use JSON::Validator::Ref;
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
-use Mojo::JSON;
+use Mojo::JSON qw(false true);
 use Mojo::Loader;
 use Mojo::URL;
 use Mojo::Util qw(url_unescape sha1_sum);
@@ -26,6 +26,9 @@ use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
 our $VERSION   = '3.06';
 our @EXPORT_OK = qw(joi validate_json);
+
+# $YAML_LOADER should be considered internal
+our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE    = qr{^https?:};
@@ -133,18 +136,10 @@ sub coerce {
 }
 
 sub get {
-  my ($self, $pointer) = @_;
-  $pointer
-    = [
-      ref $pointer ? @$pointer
-    : length $pointer ? split('/', $pointer, -1)
-    :                   $pointer
-    ];
-  shift @$pointer
-    if @$pointer
-    and defined $pointer->[0]
-    and !length $pointer->[0];
-  $self->_get($self->schema->data, $pointer, '');
+  my ($self, $p) = @_;
+  $p = [ref $p ? @$p : length $p ? split('/', $p, -1) : $p];
+  shift @$p if @$p and defined $p->[0] and !length $p->[0];
+  $self->_get($self->schema->data, $p, '');
 }
 
 sub joi {
@@ -315,13 +310,15 @@ sub _load_schema_from_text {
       unless $v->{type}
       and $v->{type} eq 'boolean'
       and exists $v->{default};
-    %$v
-      = (%$v, default => $v->{default} ? Mojo::JSON->true : Mojo::JSON->false);
+    %$v = (%$v, default => $v->{default} ? true : false);
     return $v;
   };
 
+  die "[JSON::Validator] YAML::XS 0.67 is missing or could not be loaded."
+    unless $YAML_LOADER;
+
   local $YAML::XS::Boolean = 'JSON::PP';
-  return $visit->($self->_yaml_module->can('Load')->($$text));
+  return $visit->($YAML_LOADER->($$text));
 }
 
 sub _load_schema_from_url {
@@ -792,7 +789,7 @@ sub _validate_type_boolean {
       or $value =~ /^(true|false)$/)
     )
   {
-    $_[1] = $value ? Mojo::JSON->true : Mojo::JSON->false;
+    $_[1] = $value ? true : false;
     return;
   }
 
@@ -1070,14 +1067,6 @@ sub _path {
 sub _uniq {
   my %uniq;
   grep { !$uniq{$_}++ } @_;
-}
-
-# Please report if you need to manually monkey patch this function
-# https://github.com/jhthorsen/json-validator/issues
-sub _yaml_module {
-  state $yaml_module = eval qq[use YAML::XS 0.67; "YAML::XS"]
-    || die
-    "[JSON::Validator] The optional YAML::XS module is missing or could not be loaded: $@";
 }
 
 1;
