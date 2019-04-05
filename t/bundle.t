@@ -38,12 +38,11 @@ for my $n (1 .. 3) {
   })->bundle({ref_key => 'definitions'});
   is $bundled->{definitions}{name}{type}, 'string',
     "[$n] name still in definitions";
-  is $bundled->{definitions}{b_json__definitions_age}{type}, 'integer',
-    "[$n] added to definitions";
+  is $bundled->{definitions}{age}{type}, 'integer', "[$n] added to definitions";
   isnt $bundled->{age}, $jv->schema->get('/age'),  "[$n] new age ref";
   is $bundled->{name},  $jv->schema->get('/name'), "[$n] same name ref";
-  is $bundled->{age}{'$ref'}, '#/definitions/b_json__definitions_age',
-    "[$n] age \$ref point to /definitions/b_json__definitions_age";
+  is $bundled->{age}{'$ref'}, '#/definitions/age',
+    "[$n] age \$ref point to /definitions/age";
   is $bundled->{name}{'$ref'}, '#/definitions/name',
     "[$n] name \$ref point to /definitions/name";
 }
@@ -70,9 +69,9 @@ for my $pathlist (@pathlists) {
   is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ }
       keys %{$bundled->{definitions}}],
     [qw(
-      SHA-age.json
-      SHA-unit.json
-      SHA-weight.json
+      SHA-age_json
+      SHA-unit_json
+      SHA-weight_json
       height
       )],
     'right definitions in disk spec'
@@ -96,15 +95,10 @@ is_deeply(
   $bundled,
   {
     definitions => {
-      data___main_api_json__definitions_objtype =>
+      objtype =>
         {properties => {propname => {type => 'string'}}, type => 'object'}
     },
-    responses => {
-      200 => {
-        schema =>
-          {'$ref' => '#/definitions/data___main_api_json__definitions_objtype'}
-      }
-    }
+    responses => {200 => {schema => {'$ref' => '#/definitions/objtype'}}}
   },
   'subset of schema was bundled'
 ) or diag explain $bundled;

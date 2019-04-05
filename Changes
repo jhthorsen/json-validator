@@ -1,5 +1,10 @@
 Revision history for perl distribution JSON-Validator
 
+3.09 Not Released
+ - Prettier definition names from bundle().
+ - Replaced bundle() argument "ref_key" with "def_location".
+ - Changed default bundle() def_location to "definitions".
+
 3.08 2019-04-06T15:07:11+0700
  - Add support for "default" in object definitions #155
  - Add support for coerce("bool,def,num,str") as alternative to hash

@@ -79,33 +79,30 @@ sub bundle {
     };
   }
   else {
-    my $ref_key = $args->{ref_key} || 'x-bundled';
-    $bundle->{$ref_key} = $topics[0][0]{$ref_key} || {};
+    my %seen;
+    my $def_location
+      = $args->{def_location} || $args->{ref_key} || 'definitions';
+    $bundle->{$def_location} = $topics[0][0]{$def_location} || {};
     $cloner = sub {
-      my $from = shift;
-      my $ref  = ref $from;
+      my $from      = shift;
+      my $from_type = ref $from;
 
-      if ($ref eq 'HASH' and my $tied = tied %$from) {
-        my $ref_name  = $tied->fqn;
-        my $file_name = (split '#', $ref_name)[0];
-        return $from if $ref_name =~ m!^\Q$self->{root_schema_url}\E\#!;
+      if ($from_type eq 'HASH' and my $ref = tied %$from) {
+        return $from
+          if !$args->{schema}
+          and $ref->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
 
-        if (-e $file_name) {
-          $ref_name = sprintf '%s-%s', substr(sha1_sum($ref_name), 0, 10),
-            path($file_name)->basename;
-        }
-        else {
-          $ref_name =~ s![^\w-]!_!g;
-        }
-
-        push @topics, [$tied->schema, $bundle->{$ref_key}{$ref_name} = {}];
-        tie my %ref, 'JSON::Validator::Ref', $tied->schema,
-          "#/$ref_key/$ref_name";
+        my $def_key
+          = $self->_definitions_key($bundle, $def_location, $ref, \%seen);
+        push @topics, [$ref->schema, $bundle->{$def_location}{$def_key} ||= {}]
+          unless $seen{$ref->fqn}++;
+        tie my %ref, 'JSON::Validator::Ref', $ref->schema,
+          "#/$def_location/$def_key";
         return \%ref;
       }
 
-      my $to = $ref eq 'ARRAY' ? [] : $ref eq 'HASH' ? {} : $from;
-      push @topics, [$from, $to] if $ref;
+      my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
+      push @topics, [$from, $to] if $from_type;
       return $to;
     };
   }
@@ -227,6 +224,27 @@ sub _build_formats {
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-template'  => JSON::Validator::Formats->can('check_uri_template'),
   };
+}
+
+sub _definitions_key {
+  my ($self, $bundle, $def_location, $ref, $seen) = @_;
+
+  # No need to rewrite, when it already has a nice name
+  return $1
+    if $ref->fqn =~ m!#/$def_location/([^/]+)$!
+    and ($seen->{$ref->fqn} or !$bundle->{$def_location}{$1});
+
+  # Must mask path to file on disk
+  my $key       = $ref->fqn;
+  my $spec_path = (split '#', $key)[0];
+  if (-e $spec_path) {
+    $key = sprintf '%s-%s', substr(sha1_sum($key), 0, 10),
+      path($spec_path)->basename;
+  }
+
+  # Fallback or nicer path name
+  $key =~ s![^\w-]!_!g;
+  $key;
 }
 
 sub _get {
@@ -1301,18 +1319,29 @@ using L</load_and_validate_schema>, unless already set.
 
 =head2 bundle
 
-  my $schema = $jv->bundle(\%args);
+  # Example with defaults applied
+  my $schema = $jv->bundle({def_location => "definitions", replace => 0, schema => $self->schema->data});
 
-Used to create a new schema, where the C<$ref> are resolved. C<%args> can have:
+  # Example with a partial response
+  my $schema = $jv->bundle({schema => $self->schema->get("/properties/person/age")});
+
+Used to create a new schema, where the C<$ref>s are resolved. C<%args> can have:
 
 =over 2
 
-=item * C<< {replace => 1} >>
+=item * def_location
+
+Where to put the resolved C<$ref>s when C<replace> is not active.
+
+Defaults to "definitions". Note that this might change in the future, dependent
+on C</version>.
+
+=item * replace
 
 Used if you want to replace the C<$ref> inline in the schema. This currently
 does not work if you have circular references. The default is to move all the
 C<$ref> definitions into the main schema with custom names. Here is an example
-on how a C<$ref> looks before and after:
+on how a C<$ref> looks before and after, without C<replace>.
 
   {"$ref":"../some/place.json#/foo/bar"}
      => {"$ref":"#/definitions/____some_place_json-_foo_bar"}
@@ -1320,7 +1349,7 @@ on how a C<$ref> looks before and after:
   {"$ref":"http://example.com#/foo/bar"}
      => {"$ref":"#/definitions/_http___example_com-_foo_bar"}
 
-=item * C<< {schema => {...}} >>
+=item * schema
 
 Default is to use the value from the L</schema> attribute.
 
