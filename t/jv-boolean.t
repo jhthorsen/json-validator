@@ -22,7 +22,7 @@ validate_ok j('foo'),             {type => 'boolean'},
   E('/', 'Expected boolean - got string.');
 validate_ok undef, {properties => {}}, E('/', 'Expected object - got null.');
 
-jv->coerce(1);
+jv->coerce('bool');
 validate_ok {nick => 1000}, $schema;
 validate_ok {nick => 0.5},  $schema;
 

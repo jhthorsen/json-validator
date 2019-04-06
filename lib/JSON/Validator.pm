@@ -129,12 +129,21 @@ sub bundle {
 
 sub coerce {
   my $self = shift;
-  return $self->{coerce} ||= {} unless @_;
-  $self->{coerce}
-    = $_[0] eq '1' ? {booleans => 1, numbers => 1, strings => 1}
-    : ref $_[0]    ? {%{$_[0]}}
-    :                {@_};
-  $self;
+  return $self->{coerce} ||= {} unless defined(my $what = shift);
+
+  if ($what eq '1') {
+    Mojo::Util::deprecated('coerce(1) will be deprecated.');
+    $what = {booleans => 1, numbers => 1, strings => 1};
+  }
+
+  state $short = {bool => 'booleans', def => 'defaults', num => 'numbers',
+    str => 'strings'};
+
+  $what = {map { ($_ => 1) } split /,/, $what} unless ref $what;
+  $self->{coerce} = {};
+  $self->{coerce}{($short->{$_} || $_)} = $what->{$_} for keys %$what;
+
+  return $self;
 }
 
 sub get {
@@ -160,6 +169,12 @@ sub load_and_validate_schema {
     if @errors;
   $self->{schema} = Mojo::JSON::Pointer->new($spec);
   $self;
+}
+
+sub new {
+  my $self = shift->SUPER::new(@_);
+  $self->coerce($self->{coerce}) if defined $self->{coerce};
+  return $self;
 }
 
 sub schema {
@@ -1336,6 +1351,13 @@ same time resolve C<$ref> if found. Example:
 
 The argument can also be an array-ref with the different parts of the pointer
 as each elements.
+
+=head2 new
+
+  $jv = JSON::Validator->new(%attributes);
+  $jv = JSON::Validator->new(\%attributes);
+
+Creates a new L<JSON::Validate> object.
 
 =head2 load_and_validate_schema
 

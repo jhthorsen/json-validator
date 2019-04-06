@@ -11,7 +11,7 @@ validate_ok {mynumber => 1},   $schema;
 validate_ok {mynumber => '2'}, $schema,
   E('/mynumber', 'Expected number - got string.');
 
-jv->coerce(numbers => 1);
+jv->coerce('numbers');
 validate_ok {mynumber => '-0.3'},   $schema;
 validate_ok {mynumber => '0.1e+1'}, $schema;
 validate_ok {mynumber => '2xyz'},   $schema,

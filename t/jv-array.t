@@ -40,7 +40,7 @@ validate_ok [1600, 'NW'],
   E('/0', 'Expected string - got number.'), E('/1', 'Not in enum list: Nope.');
 
 # Make sure all similar numbers gets converted from strings
-my $jv = JSON::Validator->new->coerce(1);
+my $jv = JSON::Validator->new->coerce('numbers');
 my @numbers;
 
 $jv->schema({type => 'array', items => {type => 'number'}});

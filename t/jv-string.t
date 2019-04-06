@@ -24,7 +24,7 @@ like +join('', jv->validate({nick => '[nick]'})),
 delete $schema->{properties}{nick}{pattern};
 validate_ok {nick => 'Déjà vu'}, $schema;
 
-jv->coerce(1);
+jv->coerce('str');
 validate_ok {nick => 1000}, $schema;
 
 # https://github.com/mojolicious/json-validator/issues/134
