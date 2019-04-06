@@ -37,6 +37,7 @@ sub D {
   Data::Dumper->new([@_])->Sortkeys(1)->Indent(0)->Maxdepth(2)->Pair(':')
     ->Useqq(1)->Terse(1)->Dump;
 }
+
 sub E { JSON::Validator::Error->new(@_) }
 
 sub S {
@@ -318,6 +319,7 @@ sub _load_schema_from_text {
   die "[JSON::Validator] YAML::XS 0.67 is missing or could not be loaded."
     unless $YAML_LOADER;
 
+  no warnings 'once';
   local $YAML::XS::Boolean = 'JSON::PP';
   return $visit->($YAML_LOADER->($$text));
 }
@@ -376,13 +378,15 @@ sub _register_schema {
 
 sub _report {
   my $table = Mojo::Util::tablify($_[0]->{report});
-  $table =~ s!^(\W*)(N?OK|<<<)(.*)!{
-    my ($x, $y, $z) = ($1, $2, $3);
-    my $c = $y eq 'OK' ? 'green' : $y eq '<<<' ? 'blue' : 'magenta';
-    $c = "$c bold" if $z =~ /\s\w+Of\s/;
-    Term::ANSIColor::colored([$c], "$x$y$z")
-  }!gme if COLORS;
+  $table =~ s!^(\W*)(N?OK|<<<)(.*)!{_report_colored()}!gme;
   warn "---\n$table";
+}
+
+sub _report_colored {
+  my ($x, $y, $z) = ($1, $2, $3);
+  my $c = $y eq 'OK' ? 'green' : $y eq '<<<' ? 'blue' : 'magenta';
+  $c = "$c bold" if $z =~ /\s\w+Of\s/;
+  Term::ANSIColor::colored([$c], "$x$y$z");
 }
 
 sub _report_errors {
