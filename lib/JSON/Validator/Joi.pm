@@ -1,10 +1,11 @@
 package JSON::Validator::Joi;
 use Mojo::Base -base;
 
-use Exporter 'import';
-use JSON::Validator;
 use Mojo::JSON qw(false true);
 use Mojo::Util;
+
+# Avoid "Subroutine redefined" warnings
+require JSON::Validator;
 
 has enum => sub { +[] };
 has [qw(format max min multiple_of regex)] => undef;
