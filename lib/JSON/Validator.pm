@@ -902,9 +902,13 @@ sub _validate_type_object {
       : $self->_validate($data, $path, $schema->{then} // {});
   }
 
+  my $coerce_defaults = $self->{coerce}{defaults};
   while (my ($k, $r) = each %{$schema->{properties}}) {
     push @{$rules{$k}}, $r;
+    next unless $coerce_defaults;
+    $data->{$k} = $r->{default} if exists $r->{default} and !exists $data->{$k};
   }
+
   while (my ($p, $r) = each %{$schema->{patternProperties} || {}}) {
     push @{$rules{$_}}, $r for sort grep { $_ =~ /$p/ } @dkeys;
   }
@@ -1324,13 +1328,40 @@ Default is to use the value from the L</schema> attribute.
 
 =head2 coerce
 
-  my $jv = $jv->coerce(booleans => 1, numbers => 1, strings => 1);
-  my $jv = $jv->coerce({booleans => 1, numbers => 1, strings => 1});
-  my $hash_ref  = $jv->coerce;
+  my $jv       = $jv->coerce('bool,def,num,str');
+  my $jv       = $jv->coerce('booleans,defaults,numbers,strings');
+  my $hash_ref = $jv->coerce;
 
 Set the given type to coerce. Before enabling coercion this module is very
 strict when it comes to validating types. Example: The string C<"1"> is not
-the same as the number C<1>, unless you have coercion enabled.
+the same as the number C<1>, unless you have "numbers" coercion enabled.
+
+=over 2
+
+=item * booleans
+
+Will convert what looks can be interpreted as a boolean to a
+L<JSON::PP::Boolean> object. Note that "foo" is not considered a true value and
+will fail the validation.
+
+=item * defaults
+
+Will copy the default value defined in the schema, into the input structure,
+if the input value is non-existing.
+
+Note that support for "default" is currently EXPERIMENTAL, and enabling this
+might be changed in future versions.
+
+=item * numbers
+
+Will convert strings that looks like numbers, into true numbers. This works for
+both the "integer" and "number" types.
+
+=item * strings
+
+Will convert a number into a string. This works for the "string" type.
+
+=back
 
 Loading a YAML document will enable "booleans" automatically. This feature is
 experimental, but was added since YAML has no real concept of booleans, such
