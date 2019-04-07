@@ -24,11 +24,10 @@ use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
-our $VERSION   = '3.08';
-our @EXPORT_OK = qw(joi validate_json);
-
-# $YAML_LOADER should be considered internal
-our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];
+our $DEFINITIONS = 'definitions';
+our $VERSION     = '3.08';
+our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
+our @EXPORT_OK   = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE    = qr{^https?:};
@@ -68,6 +67,12 @@ sub bundle {
   $topics[0][0]
     = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
 
+  local $DEFINITIONS = $args->{ref_key} || $DEFINITIONS;
+  Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
+    if $args->{ref_key};
+  Mojo::Util::deprecated('bundle({replace => 1}) will be removed.')
+    if $args->{replace};
+
   if ($args->{replace}) {
     $cloner = sub {
       my $from = shift;
@@ -80,9 +85,7 @@ sub bundle {
   }
   else {
     my %seen;
-    my $def_location
-      = $args->{def_location} || $args->{ref_key} || 'definitions';
-    $bundle->{$def_location} = $topics[0][0]{$def_location} || {};
+    $bundle->{$DEFINITIONS} = $topics[0][0]{$DEFINITIONS} || {};
     $cloner = sub {
       my $from      = shift;
       my $from_type = ref $from;
@@ -92,12 +95,10 @@ sub bundle {
           if !$args->{schema}
           and $ref->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
 
-        my $def_key
-          = $self->_definitions_key($bundle, $def_location, $ref, \%seen);
-        push @topics, [$ref->schema, $bundle->{$def_location}{$def_key} ||= {}]
+        my $k = $self->_definitions_key($bundle, $ref, \%seen);
+        push @topics, [$ref->schema, $bundle->{$DEFINITIONS}{$k} ||= {}]
           unless $seen{$ref->fqn}++;
-        tie my %ref, 'JSON::Validator::Ref', $ref->schema,
-          "#/$def_location/$def_key";
+        tie my %ref, 'JSON::Validator::Ref', $ref->schema, "#/$DEFINITIONS/$k";
         return \%ref;
       }
 
@@ -227,12 +228,12 @@ sub _build_formats {
 }
 
 sub _definitions_key {
-  my ($self, $bundle, $def_location, $ref, $seen) = @_;
+  my ($self, $bundle, $ref, $seen) = @_;
 
   # No need to rewrite, when it already has a nice name
   return $1
-    if $ref->fqn =~ m!#/$def_location/([^/]+)$!
-    and ($seen->{$ref->fqn} or !$bundle->{$def_location}{$1});
+    if $ref->fqn =~ m!#/$DEFINITIONS/([^/]+)$!
+    and ($seen->{$ref->fqn} or !$bundle->{$DEFINITIONS}{$1});
 
   # Must mask path to file on disk
   my $key       = $ref->fqn;
@@ -1319,41 +1320,16 @@ using L</load_and_validate_schema>, unless already set.
 
 =head2 bundle
 
-  # Example with defaults applied
-  my $schema = $jv->bundle({def_location => "definitions", replace => 0, schema => $self->schema->data});
+  # These two lines does the same
+  my $schema = $jv->bundle({schema => $self->schema->data});
+  my $schema = $jv->bundle;
 
-  # Example with a partial response
+  # Will only bundle a section of the schema
   my $schema = $jv->bundle({schema => $self->schema->get("/properties/person/age")});
 
-Used to create a new schema, where the C<$ref>s are resolved. C<%args> can have:
-
-=over 2
-
-=item * def_location
-
-Where to put the resolved C<$ref>s when C<replace> is not active.
-
-Defaults to "definitions". Note that this might change in the future, dependent
-on C</version>.
-
-=item * replace
-
-Used if you want to replace the C<$ref> inline in the schema. This currently
-does not work if you have circular references. The default is to move all the
-C<$ref> definitions into the main schema with custom names. Here is an example
-on how a C<$ref> looks before and after, without C<replace>.
-
-  {"$ref":"../some/place.json#/foo/bar"}
-     => {"$ref":"#/definitions/____some_place_json-_foo_bar"}
-
-  {"$ref":"http://example.com#/foo/bar"}
-     => {"$ref":"#/definitions/_http___example_com-_foo_bar"}
-
-=item * schema
-
-Default is to use the value from the L</schema> attribute.
-
-=back
+Used to create a new schema, where there are no "$ref" pointing to external
+resources. This means that all the "$ref" that are found, will be moved into
+the "definitions" key, in the returning C<$schema>.
 
 =head2 coerce
 

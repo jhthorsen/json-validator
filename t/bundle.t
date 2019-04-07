@@ -19,7 +19,6 @@ note 'Run multiple times to make sure _reset() works';
 for my $n (1 .. 3) {
   note "[$n] replace=1";
   $bundled = $jv->bundle({
-    ref_key => 'definitions',
     replace => 1,
     schema  => {
       name        => {'$ref' => '#/definitions/name'},
@@ -35,7 +34,7 @@ for my $n (1 .. 3) {
     age         => {'$ref' => 'b.json#/definitions/age'},
     definitions => {name   => {type => 'string'}},
     B => {id => 'b.json', definitions => {age => {type => 'integer'}}},
-  })->bundle({ref_key => 'definitions'});
+  })->bundle;
   is $bundled->{definitions}{name}{type}, 'string',
     "[$n] name still in definitions";
   is $bundled->{definitions}{age}{type}, 'integer', "[$n] added to definitions";
@@ -54,8 +53,7 @@ is $jv->schema->get('/name/type'), 'string', 'schema get /name/type';
 is $jv->schema->get('/name/$ref'), '#/definitions/name',
   'schema get /name/$ref';
 
-$bundled
-  = $jv->schema('data://main/api.json')->bundle({ref_key => 'definitions'});
+$bundled = $jv->schema('data://main/api.json')->bundle;
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'],
   'no dup definitions';
 
@@ -65,7 +63,7 @@ my @pathlists = (
 );
 for my $pathlist (@pathlists) {
   my $file = path $workdir, @$pathlist;
-  $bundled = $jv->schema($file)->bundle({ref_key => 'definitions'});
+  $bundled = $jv->schema($file)->bundle;
   is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ }
       keys %{$bundled->{definitions}}],
     [qw(
@@ -87,10 +85,8 @@ is $bundled->{properties}{age}{description}, 'Age in years',
   or diag explain $bundled;
 
 note 'extract subset of schema';
-$bundled = $jv->bundle({
-  ref_key => 'definitions',
-  schema  => $jv->schema('data://main/api.json')->get([qw(paths /withdots get)])
-});
+$jv->schema('data://main/api.json');
+$bundled = $jv->bundle({schema => $jv->get([qw(paths /withdots get)])});
 is_deeply(
   $bundled,
   {
@@ -108,8 +104,10 @@ my $ref_name_prefix = $workdir;
 $ref_name_prefix =~ s![^\w-]!_!g;
 $jv->schema(path $workdir, 'spec', 'bundle-no-leaking-filename.json');
 $bundled = $jv->bundle({ref_key => 'xyz'});
-is_deeply [grep { 0 == index $_, $ref_name_prefix } keys %{$bundled->{xyz}}],
-  [], 'no leaking of path';
+my @definitions = keys %{$bundled->{xyz}};
+ok @definitions, 'definitions are present';
+is_deeply [grep { 0 == index $_, $ref_name_prefix } @definitions], [],
+  'no leaking of path';
 
 done_testing;
 
