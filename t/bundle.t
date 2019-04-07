@@ -53,7 +53,7 @@ is $jv->schema->get('/name/type'), 'string', 'schema get /name/type';
 is $jv->schema->get('/name/$ref'), '#/definitions/name',
   'schema get /name/$ref';
 
-$bundled = $jv->schema('data://main/api.json')->bundle;
+$bundled = $jv->schema('data://main/bundled.json')->bundle;
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'],
   'no dup definitions';
 
@@ -85,7 +85,7 @@ is $bundled->{properties}{age}{description}, 'Age in years',
   or diag explain $bundled;
 
 note 'extract subset of schema';
-$jv->schema('data://main/api.json');
+$jv->schema('data://main/bundled.json');
 $bundled = $jv->bundle({schema => $jv->get([qw(paths /withdots get)])});
 is_deeply(
   $bundled,
@@ -112,21 +112,21 @@ is_deeply [grep { 0 == index $_, $ref_name_prefix } @definitions], [],
 done_testing;
 
 __DATA__
-@@ api.json
+@@ bundled.json
 {
-   "definitions" : {
-      "objtype" : {
-         "type" : "object",
-         "properties" : { "propname" : { "type" : "string" } }
+  "definitions": {
+    "objtype": {
+      "type": "object",
+      "properties": {"propname": {"type": "string"}}
+    }
+  },
+  "paths": {
+    "/withdots": {
+      "get": {
+        "responses": {
+          "200": {"schema": {"$ref": "#/definitions/objtype"}}
+        }
       }
-   },
-   "paths" : {
-      "/withdots" : {
-         "get" : {
-            "responses" : {
-               "200" : { "schema" : { "$ref" : "#/definitions/objtype" } }
-            }
-         }
-      }
-   }
+    }
+  }
 }
