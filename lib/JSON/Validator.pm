@@ -233,7 +233,9 @@ sub _definitions_key {
   # No need to rewrite, when it already has a nice name
   return $1
     if $ref->fqn =~ m!#/$DEFINITIONS/([^/]+)$!
-    and ($seen->{$ref->fqn} or !$bundle->{$DEFINITIONS}{$1});
+    and ($seen->{$ref->fqn}
+    or !$bundle->{$DEFINITIONS}{$1}
+    or D($ref->schema) eq D($bundle->{$DEFINITIONS}{$1}));
 
   # Must mask path to file on disk
   my $key       = $ref->fqn;
