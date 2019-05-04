@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-3.09 Not Released
+3.09 2019-05-04T22:28:55+0700
  - Prettier definition names from bundle().
  - Changed default bundle() definitions location from "x-bundle" to "definitions".
  - Deprecated bundle({ref_ref => ...})
