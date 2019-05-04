@@ -19,7 +19,6 @@ note 'Run multiple times to make sure _reset() works';
 for my $n (1 .. 3) {
   note "[$n] replace=1";
   $bundled = $jv->bundle({
-    ref_key => 'definitions',
     replace => 1,
     schema  => {
       name        => {'$ref' => '#/definitions/name'},
@@ -35,15 +34,14 @@ for my $n (1 .. 3) {
     age         => {'$ref' => 'b.json#/definitions/age'},
     definitions => {name   => {type => 'string'}},
     B => {id => 'b.json', definitions => {age => {type => 'integer'}}},
-  })->bundle({ref_key => 'definitions'});
+  })->bundle;
   is $bundled->{definitions}{name}{type}, 'string',
     "[$n] name still in definitions";
-  is $bundled->{definitions}{b_json__definitions_age}{type}, 'integer',
-    "[$n] added to definitions";
+  is $bundled->{definitions}{age}{type}, 'integer', "[$n] added to definitions";
   isnt $bundled->{age}, $jv->schema->get('/age'),  "[$n] new age ref";
   is $bundled->{name},  $jv->schema->get('/name'), "[$n] same name ref";
-  is $bundled->{age}{'$ref'}, '#/definitions/b_json__definitions_age',
-    "[$n] age \$ref point to /definitions/b_json__definitions_age";
+  is $bundled->{age}{'$ref'}, '#/definitions/age',
+    "[$n] age \$ref point to /definitions/age";
   is $bundled->{name}{'$ref'}, '#/definitions/name',
     "[$n] name \$ref point to /definitions/name";
 }
@@ -55,8 +53,7 @@ is $jv->schema->get('/name/type'), 'string', 'schema get /name/type';
 is $jv->schema->get('/name/$ref'), '#/definitions/name',
   'schema get /name/$ref';
 
-$bundled
-  = $jv->schema('data://main/api.json')->bundle({ref_key => 'definitions'});
+$bundled = $jv->schema('data://main/bundled.json')->bundle;
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'],
   'no dup definitions';
 
@@ -66,13 +63,13 @@ my @pathlists = (
 );
 for my $pathlist (@pathlists) {
   my $file = path $workdir, @$pathlist;
-  $bundled = $jv->schema($file)->bundle({ref_key => 'definitions'});
+  $bundled = $jv->schema($file)->bundle;
   is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ }
       keys %{$bundled->{definitions}}],
     [qw(
-      SHA-age.json
-      SHA-unit.json
-      SHA-weight.json
+      SHA-age_json
+      SHA-unit_json
+      SHA-weight_json
       height
       )],
     'right definitions in disk spec'
@@ -88,23 +85,16 @@ is $bundled->{properties}{age}{description}, 'Age in years',
   or diag explain $bundled;
 
 note 'extract subset of schema';
-$bundled = $jv->bundle({
-  ref_key => 'definitions',
-  schema  => $jv->schema('data://main/api.json')->get([qw(paths /withdots get)])
-});
+$jv->schema('data://main/bundled.json');
+$bundled = $jv->bundle({schema => $jv->get([qw(paths /withdots get)])});
 is_deeply(
   $bundled,
   {
     definitions => {
-      data___main_api_json__definitions_objtype =>
+      objtype =>
         {properties => {propname => {type => 'string'}}, type => 'object'}
     },
-    responses => {
-      200 => {
-        schema =>
-          {'$ref' => '#/definitions/data___main_api_json__definitions_objtype'}
-      }
-    }
+    responses => {200 => {schema => {'$ref' => '#/definitions/objtype'}}}
   },
   'subset of schema was bundled'
 ) or diag explain $bundled;
@@ -114,27 +104,29 @@ my $ref_name_prefix = $workdir;
 $ref_name_prefix =~ s![^\w-]!_!g;
 $jv->schema(path $workdir, 'spec', 'bundle-no-leaking-filename.json');
 $bundled = $jv->bundle({ref_key => 'xyz'});
-is_deeply [grep { 0 == index $_, $ref_name_prefix } keys %{$bundled->{xyz}}],
-  [], 'no leaking of path';
+my @definitions = keys %{$bundled->{xyz}};
+ok @definitions, 'definitions are present';
+is_deeply [grep { 0 == index $_, $ref_name_prefix } @definitions], [],
+  'no leaking of path';
 
 done_testing;
 
 __DATA__
-@@ api.json
+@@ bundled.json
 {
-   "definitions" : {
-      "objtype" : {
-         "type" : "object",
-         "properties" : { "propname" : { "type" : "string" } }
+  "definitions": {
+    "objtype": {
+      "type": "object",
+      "properties": {"propname": {"type": "string"}}
+    }
+  },
+  "paths": {
+    "/withdots": {
+      "get": {
+        "responses": {
+          "200": {"schema": {"$ref": "#/definitions/objtype"}}
+        }
       }
-   },
-   "paths" : {
-      "/withdots" : {
-         "get" : {
-            "responses" : {
-               "200" : { "schema" : { "$ref" : "#/definitions/objtype" } }
-            }
-         }
-      }
-   }
+    }
+  }
 }

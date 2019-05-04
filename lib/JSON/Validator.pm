@@ -24,11 +24,10 @@ use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
-our $VERSION   = '3.08';
-our @EXPORT_OK = qw(joi validate_json);
-
-# $YAML_LOADER should be considered internal
-our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];
+our $DEFINITIONS = 'definitions';
+our $VERSION     = '3.08';
+our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
+our @EXPORT_OK   = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE    = qr{^https?:};
@@ -68,6 +67,12 @@ sub bundle {
   $topics[0][0]
     = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
 
+  local $DEFINITIONS = $args->{ref_key} || $DEFINITIONS;
+  Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
+    if $args->{ref_key};
+  Mojo::Util::deprecated('bundle({replace => 1}) will be removed.')
+    if $args->{replace};
+
   if ($args->{replace}) {
     $cloner = sub {
       my $from = shift;
@@ -79,33 +84,26 @@ sub bundle {
     };
   }
   else {
-    my $ref_key = $args->{ref_key} || 'x-bundled';
-    $bundle->{$ref_key} = $topics[0][0]{$ref_key} || {};
+    my %seen;
+    $bundle->{$DEFINITIONS} = $topics[0][0]{$DEFINITIONS} || {};
     $cloner = sub {
-      my $from = shift;
-      my $ref  = ref $from;
+      my $from      = shift;
+      my $from_type = ref $from;
 
-      if ($ref eq 'HASH' and my $tied = tied %$from) {
-        my $ref_name  = $tied->fqn;
-        my $file_name = (split '#', $ref_name)[0];
-        return $from if $ref_name =~ m!^\Q$self->{root_schema_url}\E\#!;
+      if ($from_type eq 'HASH' and my $ref = tied %$from) {
+        return $from
+          if !$args->{schema}
+          and $ref->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
 
-        if (-e $file_name) {
-          $ref_name = sprintf '%s-%s', substr(sha1_sum($ref_name), 0, 10),
-            path($file_name)->basename;
-        }
-        else {
-          $ref_name =~ s![^\w-]!_!g;
-        }
-
-        push @topics, [$tied->schema, $bundle->{$ref_key}{$ref_name} = {}];
-        tie my %ref, 'JSON::Validator::Ref', $tied->schema,
-          "#/$ref_key/$ref_name";
+        my $k = $self->_definitions_key($bundle, $ref, \%seen);
+        push @topics, [$ref->schema, $bundle->{$DEFINITIONS}{$k} ||= {}]
+          unless $seen{$ref->fqn}++;
+        tie my %ref, 'JSON::Validator::Ref', $ref->schema, "#/$DEFINITIONS/$k";
         return \%ref;
       }
 
-      my $to = $ref eq 'ARRAY' ? [] : $ref eq 'HASH' ? {} : $from;
-      push @topics, [$from, $to] if $ref;
+      my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
+      push @topics, [$from, $to] if $from_type;
       return $to;
     };
   }
@@ -227,6 +225,29 @@ sub _build_formats {
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-template'  => JSON::Validator::Formats->can('check_uri_template'),
   };
+}
+
+sub _definitions_key {
+  my ($self, $bundle, $ref, $seen) = @_;
+
+  # No need to rewrite, when it already has a nice name
+  return $1
+    if $ref->fqn =~ m!#/$DEFINITIONS/([^/]+)$!
+    and ($seen->{$ref->fqn}
+    or !$bundle->{$DEFINITIONS}{$1}
+    or D($ref->schema) eq D($bundle->{$DEFINITIONS}{$1}));
+
+  # Must mask path to file on disk
+  my $key       = $ref->fqn;
+  my $spec_path = (split '#', $key)[0];
+  if (-e $spec_path) {
+    $key = sprintf '%s-%s', substr(sha1_sum($key), 0, 10),
+      path($spec_path)->basename;
+  }
+
+  # Fallback or nicer path name
+  $key =~ s![^\w-]!_!g;
+  $key;
 }
 
 sub _get {
@@ -1301,30 +1322,16 @@ using L</load_and_validate_schema>, unless already set.
 
 =head2 bundle
 
-  my $schema = $jv->bundle(\%args);
+  # These two lines does the same
+  my $schema = $jv->bundle({schema => $self->schema->data});
+  my $schema = $jv->bundle;
 
-Used to create a new schema, where the C<$ref> are resolved. C<%args> can have:
+  # Will only bundle a section of the schema
+  my $schema = $jv->bundle({schema => $self->schema->get("/properties/person/age")});
 
-=over 2
-
-=item * C<< {replace => 1} >>
-
-Used if you want to replace the C<$ref> inline in the schema. This currently
-does not work if you have circular references. The default is to move all the
-C<$ref> definitions into the main schema with custom names. Here is an example
-on how a C<$ref> looks before and after:
-
-  {"$ref":"../some/place.json#/foo/bar"}
-     => {"$ref":"#/definitions/____some_place_json-_foo_bar"}
-
-  {"$ref":"http://example.com#/foo/bar"}
-     => {"$ref":"#/definitions/_http___example_com-_foo_bar"}
-
-=item * C<< {schema => {...}} >>
-
-Default is to use the value from the L</schema> attribute.
-
-=back
+Used to create a new schema, where there are no "$ref" pointing to external
+resources. This means that all the "$ref" that are found, will be moved into
+the "definitions" key, in the returning C<$schema>.
 
 =head2 coerce
 
