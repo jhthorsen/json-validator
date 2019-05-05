@@ -70,8 +70,6 @@ sub bundle {
   local $DEFINITIONS = $args->{ref_key} || $DEFINITIONS;
   Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
     if $args->{ref_key};
-  Mojo::Util::deprecated('bundle({replace => 1}) will be removed.')
-    if $args->{replace};
 
   if ($args->{replace}) {
     $cloner = sub {
