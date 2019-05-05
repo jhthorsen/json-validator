@@ -63,7 +63,12 @@
 ^MYMETA\.
 #!end included /Users/jhthorsen/.plenv/versions/5.22.0/lib/perl5/5.22.0/ExtUtils/MANIFEST.SKIP
 
+\.gitattributes
+\.github
+\.perltidyrc
 \.swp$
+\.travis.yml
+\.vstags
 ^local/
 ^MANIFEST\.SKIP
 ^README\.pod
