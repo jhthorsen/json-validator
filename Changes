@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-3.10 Not Released
+3.10 2019-05-05T14:32:15+0700
  - Should not add "/definitions" to bundle, if there are no definitions
  - A bit too soon to deprecate bundle({replace => 1}) in 3.09
 
