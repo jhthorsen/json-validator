@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+3.10 Not Released
+ - Should not add "/definitions" to bundle, if there are no definitions
+
 3.09 2019-05-04T22:28:55+0700
  - Prettier definition names from bundle().
  - Changed default bundle() definitions location from "x-bundle" to "definitions".

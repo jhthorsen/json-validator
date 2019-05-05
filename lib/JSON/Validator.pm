@@ -122,6 +122,7 @@ sub bundle {
     }
   }
 
+  delete $bundle->{$DEFINITIONS} unless keys %{$bundle->{$DEFINITIONS}};
   return $bundle;
 }
 
