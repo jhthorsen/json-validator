@@ -746,7 +746,7 @@ sub _validate_format {
   my $code = $self->formats->{$schema->{format}};
   return do { warn "Format rule for '$schema->{format}' is missing"; return }
     unless $code;
-  return unless my $err = $code->($value);
+  return unless my $err = $code->($value,$schema);
   return E $path, $err;
 }
 
@@ -1291,7 +1291,10 @@ See L</Bundled specifications> for more details.
   my $jv = $jv->formats(\%hash);
 
 Holds a hash-ref, where the keys are supported JSON type "formats", and
-the values holds a code block which can validate a given format. A code
+the values holds a code block which can validate a value against a given
+format. The second parameter is the schema fragment where the format is
+defined, in case some custom format requires accessing additional schema
+attributes in order to tweak its validation. A code
 block should return C<undef> on success and an error string on error:
 
   sub { return defined $_[0] && $_[0] eq "42" ? undef : "Not the answer." };
