@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-3.11 Not Released
+3.11 2019-05-07T21:53:16+0700
  - Bundle https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json #157
 
 3.10 2019-05-05T14:32:15+0700
