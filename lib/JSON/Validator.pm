@@ -1234,7 +1234,7 @@ C<$ref>: L<http://swagger.io/v2/schema.json#>
 
 Web page: L<https://openapis.org>
 
-C<$ref>: L<http://swagger.io/v3/schema.yaml#>
+C<$ref>: L<https://spec.openapis.org/oas/3.0/schema/2019-04-02|https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json>
 
 This specification is still EXPERIMENTAL.
 
