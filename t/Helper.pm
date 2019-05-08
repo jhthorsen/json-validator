@@ -38,6 +38,22 @@ sub validate_ok {
     or Test::More::diag(encode_json(\@errors));
 }
 
+sub validate_custom_format_ok {
+  my ($data, $schema, $newformat, $codeblock, @expected) = @_;
+  my $description
+    ||= @expected ? "errors: @expected" : "valid: " . encode_json($data);
+  my $jv = jv()->schema($schema);
+  my $formats = $jv->formats;
+  $formats->{$newformat} = $codeblock;
+  
+  my @errors = $jv->formats($formats)->validate($data);
+  Test::More::is_deeply(
+    [map { $_->TO_JSON } sort { $a->path cmp $b->path } @errors],
+    [map { $_->TO_JSON } sort { $a->path cmp $b->path } @expected],
+    $description)
+    or Test::More::diag(encode_json(\@errors));
+}
+
 sub import {
   my $class  = shift;
   my $caller = caller;
@@ -52,6 +68,7 @@ sub import {
   monkey_patch $caller => jv           => \&jv;
   monkey_patch $caller => true         => \&Mojo::JSON::true;
   monkey_patch $caller => validate_ok  => \&validate_ok;
+  monkey_patch $caller => validate_custom_format_ok  => \&validate_custom_format_ok;
 }
 
 1;
