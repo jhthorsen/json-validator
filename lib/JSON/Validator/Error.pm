@@ -3,7 +3,7 @@ use Mojo::Base -base;
 
 use overload q("") => \&to_string, bool => sub {1}, fallback => 1;
 
-our %MESSAGES = (
+our $MESSAGES = {
   allOf => {type => '/allOf Expected %3 - got %4.'},
   anyOf => {type => '/anyOf Expected %3 - got %4.'},
   array => {
@@ -41,7 +41,7 @@ our %MESSAGES = (
     maxLength => 'String is too long: %3/%4.',
     minLength => 'String is too short: %3/%4.',
   }
-);
+};
 
 has details => sub { [qw(generic generic)] };
 
@@ -56,7 +56,7 @@ has message => sub {
   elsif (($details->[1] || '') eq 'type' and @$details == 3) {
     $message = 'Expected %1 - got %3.';
   }
-  elsif (my $group = $MESSAGES{$details->[0]}) {
+  elsif (my $group = $MESSAGES->{$details->[0]}) {
     $message = $group->{$details->[1] || 'default'};
   }
 
@@ -146,8 +146,22 @@ values.
   my $str = $error->message;
 
 A human readable description of the error. Defaults to being being constructed
-from L</details>. See the C<%MESSAGES> variable in the source code for more
+from L</details>. See the C<$MESSAGES> variable in the source code for more
 details.
+
+As an EXPERIMENTAL hack you can localize C<$JSON::Validator::Error::MESSAGES>
+to get i18n support. Example:
+
+  sub validate_i18n {
+    local $JSON::Validator::Error::MESSAGES = {
+      allOf => {type => '/allOf Forventet %3 - fikk %4.'},
+    };
+
+    my @error_norwegian = $jv->validate({age => 42});
+  }
+
+Note that the error messages might contain a mix of English and the local
+language. Run some tests to see how it looks.
 
 =head2 path
 
