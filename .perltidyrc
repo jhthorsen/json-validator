@@ -11,3 +11,4 @@
 -sbt=2   # High square bracket tightness
 -wn      # Weld nested containers
 -isbc    # Don't indent comments without leading space
+-nst     # undo -st from -pbp, to allow for command line use
