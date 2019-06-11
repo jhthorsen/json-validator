@@ -195,7 +195,7 @@ sub _module_missing {
 
 =head1 NAME
 
-JSON::Validator::Formats - Functions for valiating JSON schema formats
+JSON::Validator::Formats - Functions for validating JSON schema formats
 
 =head1 SYNOPSIS
 
@@ -219,6 +219,7 @@ JSON::Validator::Formats - Functions for valiating JSON schema formats
 
 L<JSON::Validator::Formats> is a module with utility functions used by
 L<JSON::Validator/formats> to match JSON Schema formats.
+All functions return C<undef> for success or an error message for failure.
 
 =head1 FUNCTIONS
 
