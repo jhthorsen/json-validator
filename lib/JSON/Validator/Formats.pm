@@ -1,6 +1,8 @@
 package JSON::Validator::Formats;
 use Mojo::Base -strict;
 
+require Time::Local;
+
 use constant DATA_VALIDATE_DOMAIN => eval 'require Data::Validate::Domain;1';
 use constant DATA_VALIDATE_IP     => eval 'require Data::Validate::IP;1';
 use constant NET_IDN_ENCODE       => eval 'require Net::IDN::Encode;1';
