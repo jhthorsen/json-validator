@@ -15,7 +15,6 @@ use Mojo::Loader;
 use Mojo::URL;
 use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
-use Time::Local ();
 
 use constant CASE_TOLERANT     => File::Spec->case_tolerant;
 use constant COLORS            => eval { require Term::ANSIColor };
