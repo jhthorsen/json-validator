@@ -1,0 +1,25 @@
+---
+$schema: http://json-schema.org/draft-07/schema#
+definitions:
+  my_name:
+    type: string
+    minLength: 2
+  my_address:
+    type: object
+    properties:
+      street:
+        type: string
+      city:
+        # this is a local ref in a secondary file - resolution is extra tricky
+        $ref: /definitions/my_name
+  dupe_name:
+    type: string
+  i_am_a_ref_with_the_same_name:
+    type: string
+  i_have_a_ref_to_the_first_filename:
+    type: object
+    properties:
+      gotcha:
+        $ref: more-bundle.yaml#/definitions/ref3
+  i_have_a_ref_with_the_same_name:
+    type: string
