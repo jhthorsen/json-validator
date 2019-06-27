@@ -1,6 +1,8 @@
 package JSON::Validator::Formats;
 use Mojo::Base -strict;
 
+require Time::Local;
+
 use constant DATA_VALIDATE_DOMAIN => eval 'require Data::Validate::Domain;1';
 use constant DATA_VALIDATE_IP     => eval 'require Data::Validate::IP;1';
 use constant NET_IDN_ENCODE       => eval 'require Net::IDN::Encode;1';
@@ -193,7 +195,7 @@ sub _module_missing {
 
 =head1 NAME
 
-JSON::Validator::Formats - Functions for valiating JSON schema formats
+JSON::Validator::Formats - Functions for validating JSON schema formats
 
 =head1 SYNOPSIS
 
@@ -217,6 +219,7 @@ JSON::Validator::Formats - Functions for valiating JSON schema formats
 
 L<JSON::Validator::Formats> is a module with utility functions used by
 L<JSON::Validator/formats> to match JSON Schema formats.
+All functions return C<undef> for success or an error message for failure.
 
 =head1 FUNCTIONS
 
