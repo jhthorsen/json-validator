@@ -15,7 +15,6 @@ use Mojo::Loader;
 use Mojo::URL;
 use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
-use Time::Local ();
 
 use constant CASE_TOLERANT     => File::Spec->case_tolerant;
 use constant COLORS            => eval { require Term::ANSIColor };
@@ -25,7 +24,7 @@ use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
 our $DEFINITIONS = 'definitions';
-our $VERSION     = '3.10';
+our $VERSION     = '3.11';
 our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
 our @EXPORT_OK   = qw(joi validate_json);
 
@@ -1234,7 +1233,7 @@ C<$ref>: L<http://swagger.io/v2/schema.json#>
 
 Web page: L<https://openapis.org>
 
-C<$ref>: L<http://swagger.io/v3/schema.yaml#>
+C<$ref>: L<https://spec.openapis.org/oas/3.0/schema/2019-04-02|https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json>
 
 This specification is still EXPERIMENTAL.
 

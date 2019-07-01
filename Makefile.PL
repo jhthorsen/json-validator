@@ -31,7 +31,10 @@ my %WriteMakefileArgs = (
     },
   },
   PREREQ_PM     => {'Mojolicious' => '7.28'},
-  TEST_REQUIRES => {'Test::More'  => '1.30'},
+  TEST_REQUIRES => {
+    'Test::More' => '1.30',
+    'Test::Deep' => '0',
+  },
   test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );
 
