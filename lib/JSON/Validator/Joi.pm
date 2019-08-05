@@ -81,7 +81,7 @@ sub uri       { shift->_type('string')->format('uri') }
 
 sub validate {
   my ($self, $data) = @_;
-  state $jv = JSON::Validator->new->coerce(1);
+  state $jv = JSON::Validator->new->coerce({booleans => 1, numbers => 1, strings => 1});
   return $jv->validate($data, $self->compile);
 }
 
