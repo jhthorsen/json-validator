@@ -47,6 +47,9 @@ sub extend {
       for keys %{$self->{properties} || {}};
   }
 
+  push @{ $clone->{required} }, @{ $self->{required} }
+    if $self->{required} && @{ $self->{required} };
+
   return $clone;
 }
 

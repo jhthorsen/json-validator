@@ -119,6 +119,36 @@ is_deeply(
 );
 
 is_deeply(
+  edj(
+    joi->object->props(x => joi->integer, y => joi->integer->required)
+      ->extend(
+        joi->object->props(
+            k => joi->object->props(
+                x => joi->string->required,
+                y => joi->string->required
+            )
+        )
+     )
+  ),
+  {
+    type       => 'object',
+    properties => {
+      x => {type => 'integer'},
+      y => {type => 'integer'},
+      k => {
+        type => 'object',
+        properties => {
+          x => {type => 'string'}, y => {type => 'string'},
+        },
+        required => ['y','x']
+      }
+    },
+    required   => ['k','y'],
+  },
+  'extended object',
+);
+
+is_deeply(
   edj(joi->object->props(
     ip => joi->type([qw(string null)])->format('ip'),
     ns => joi->string
