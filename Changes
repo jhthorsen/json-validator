@@ -1,5 +1,12 @@
 Revision history for perl distribution JSON-Validator
 
+3.12 2019-08-08T12:02:14+0200
+ - Fix bug: Joi->extend(...) will also merge "required" #166
+ - Fix deprecation warning from $joi->validate #165
+   Contributor: Mattias Päivärinta
+ - Fix loading Time::Local in the correct module #163
+   Contributor: Bernhard Graf
+
 3.11 2019-05-07T21:53:16+0700
  - Bundle https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json #157
 
