@@ -43,6 +43,8 @@ sub extend {
   my $clone = shift->new(%$self, %$by);
 
   if ($self->type eq 'object') {
+    unshift @{$clone->{required}}, @{$self->{required}}
+      if ref $self->{required} eq 'ARRAY';
     $clone->{properties}{$_} ||= $self->{properties}{$_}
       for keys %{$self->{properties} || {}};
   }
