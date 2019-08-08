@@ -1,6 +1,7 @@
 use lib '.';
 use t::Helper;
 use JSON::Validator 'joi';
+use Test::Deep;
 use Test::More;
 
 is_deeply(
@@ -131,6 +132,27 @@ is_deeply(
     }
   },
   'null or string',
+);
+
+cmp_deeply(
+  edj(
+    joi->object->props(a => joi->integer, b => joi->integer->required)
+      ->extend(joi->object->props(
+      x => joi->string->required,
+      y => joi->string->required
+      ))
+  ),
+  {
+    type       => 'object',
+    required   => bag(qw(b x y)),
+    properties => {
+      a => {type => 'integer'},
+      b => {type => 'integer'},
+      x => {type => 'string'},
+      y => {type => 'string'},
+    },
+  },
+  'extended object with required',
 );
 
 done_testing;

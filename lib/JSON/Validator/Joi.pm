@@ -7,9 +7,9 @@ use Mojo::Util;
 # Avoid "Subroutine redefined" warnings
 require JSON::Validator;
 
-has enum => sub { +[] };
+has enum                                   => sub { +[] };
 has [qw(format max min multiple_of regex)] => undef;
-has type => 'object';
+has type                                   => 'object';
 
 for my $attr (qw(required strict unique)) {
   Mojo::Util::monkey_patch(__PACKAGE__,
@@ -81,7 +81,8 @@ sub uri       { shift->_type('string')->format('uri') }
 
 sub validate {
   my ($self, $data) = @_;
-  state $jv = JSON::Validator->new->coerce({booleans => 1, numbers => 1, strings => 1});
+  state $jv
+    = JSON::Validator->new->coerce({booleans => 1, numbers => 1, strings => 1});
   return $jv->validate($data, $self->compile);
 }
 
