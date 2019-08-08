@@ -140,7 +140,7 @@ is_deeply(
         properties => {
           x => {type => 'string'}, y => {type => 'string'},
         },
-        required => ['y','x']
+        required => ['x', 'y']
       }
     },
     required   => ['k','y'],

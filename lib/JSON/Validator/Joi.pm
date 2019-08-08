@@ -48,7 +48,7 @@ sub extend {
   }
 
   push @{ $clone->{required} }, @{ $self->{required} }
-    if $self->{required} && @{ $self->{required} };
+    if $self->{required} && @{$self->{required}};
 
   return $clone;
 }
@@ -73,6 +73,8 @@ sub props {
     push @{$self->{required}}, $name if $property->{required};
     $self->{properties}{$name} = $property->compile;
   }
+  @{$self->{required}} = sort @{$self->{required}}
+    if $self->{required} && @{$self->{required}};
 
   return $self;
 }
