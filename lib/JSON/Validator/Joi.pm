@@ -1,8 +1,10 @@
 package JSON::Validator::Joi;
 use Mojo::Base -base;
 
+use List::Util 'uniq';
 use Mojo::JSON qw(false true);
 use Mojo::Util;
+use Storable 'dclone';
 
 # Avoid "Subroutine redefined" warnings
 require JSON::Validator;
@@ -40,13 +42,21 @@ sub extend {
   die "Cannot extend joi '@{[$self->type]}' by '@{[$by->type]}'"
     unless $self->type eq $by->type;
 
-  my $clone = shift->new(%$self, %$by);
+  my $clone = shift->new(dclone($self));
 
-  if ($self->type eq 'object') {
-    unshift @{$clone->{required}}, @{$self->{required}}
-      if ref $self->{required} eq 'ARRAY';
-    $clone->{properties}{$_} ||= $self->{properties}{$_}
-      for keys %{$self->{properties} || {}};
+  for my $key (keys %$by) {
+    my $ref = ref $by->{$key};
+    $clone->{$key} = $by->{$key} unless $ref eq 'ARRAY' or $ref eq 'HASH';
+  }
+
+  if ($self->type eq 'array') {
+    $clone->{items} = dclone($by->{items}) if $by->{items};
+  }
+  elsif ($self->type eq 'object') {
+    $clone->{required} = [uniq @{$clone->{required}}, @{$by->{required}}]
+      if ref $by->{required} eq 'ARRAY';
+    $clone->{properties}{$_} = dclone($by->{properties}{$_})
+      for keys %{$by->{properties} || {}};
   }
 
   return $clone;
@@ -324,9 +334,10 @@ Sets L</format> to L<email|JSON::Validator/email>.
 
 =head2 extend
 
-  my $new_joi = $joi->extend($joi);
+  my $new_joi = $joi->extend($other_joi_object);
 
-Will extend C<$joi> with the definitions in C<$joi> and return a new object.
+Will extend C<$joi> with the definitions in C<$other_joi_object> and return a
+new object.
 
 =head2 iso_date
 

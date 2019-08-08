@@ -1,6 +1,7 @@
 use lib '.';
 use t::Helper;
 use JSON::Validator 'joi';
+use Storable 'dclone';
 use Test::Deep;
 use Test::More;
 
@@ -95,23 +96,31 @@ eval { joi->number->extend(joi->integer) };
 like $@, qr{Cannot extend joi 'number' by 'integer'},
   'need to extend same type';
 
-is_deeply(
-  edj(joi->array->min(0)->max(10)->extend(joi->array->min(5))),
+test_extend(
+  joi->array->min(0)->max(10),
+  joi->array->min(5),
   {type => 'array', minItems => 5, maxItems => 10},
   'extended array',
 );
 
-is_deeply(
-  edj(joi->integer->min(0)->max(10)->extend(joi->integer->min(5))),
+test_extend(
+  joi->array->items([joi->integer]),
+  joi->array->items([joi->number]),
+  {type => 'array', items => [{type => 'number'}]},
+  'extended items in an array',
+);
+
+test_extend(
+  joi->integer->min(0)->max(10),
+  joi->integer->min(5),
   {type => 'integer', minimum => 5, maximum => 10},
+  'extended integer',
   'extended integer',
 );
 
-is_deeply(
-  edj(
-    joi->object->props(x => joi->integer, y => joi->integer)
-      ->extend(joi->object->props(x => joi->number))
-  ),
+test_extend(
+  joi->object->props(x => joi->integer, y => joi->integer),
+  joi->object->props(x => joi->number),
   {
     type       => 'object',
     properties => {x => {type => 'number'}, y => {type => 'integer'}}
@@ -134,13 +143,12 @@ is_deeply(
   'null or string',
 );
 
-cmp_deeply(
-  edj(
-    joi->object->props(a => joi->integer, b => joi->integer->required)
-      ->extend(joi->object->props(
-      x => joi->string->required,
-      y => joi->string->required
-      ))
+test_extend(
+  joi->object->props(a => joi->integer, b => joi->integer->required),
+  joi->object->props(
+    b => joi->integer->required,
+    x => joi->string->required,
+    y => joi->string->required
   ),
   {
     type       => 'object',
@@ -156,3 +164,13 @@ cmp_deeply(
 );
 
 done_testing;
+
+sub test_extend {
+  my ($joi, $by, $expected, $description) = @_;
+  my $joi_clone = dclone $joi;
+  my $by_clone  = dclone $by;
+
+  cmp_deeply(edj($joi->extend($by)), $expected, $description);
+  cmp_deeply $joi, $joi_clone, "$description did not mutate \$joi";
+  cmp_deeply $by,  $by_clone,  "$description did not mutate \$by";
+}
