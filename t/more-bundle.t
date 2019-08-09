@@ -4,6 +4,9 @@ use Test::More;
 use Test::Deep;
 use JSON::Validator;
 
+plan skip_all => 'YAML::XS is not installed'
+  unless $JSON::Validator::YAML_LOADER;
+
 # these are triples:
 # - schema name to extract from schema file(s) with bundle()
 # - expected result
@@ -149,7 +152,7 @@ my @tests = (
           and eq_deeply($got->{$other_key}, {type => 'string'})
           and eq_deeply($other_key, re(qr/-more-bundle2_yaml$/)))
           or ((
-              eq_deeply($got->{dupe_name}, {type => 'string'})
+              eq_deeply($got->{dupe_name},  {type => 'string'})
           and eq_deeply($got->{$other_key}, {type => 'integer'})
           and eq_deeply($other_key, re(qr/-more-bundle_yaml$/))
           ));

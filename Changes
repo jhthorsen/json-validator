@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+3.14 Not Released
+ - Fix failing tests #169
+
 3.13 2019-08-08T16:27:29+0200
  - Fix extend() should not mutate the source objects #167
 
