@@ -1,7 +1,6 @@
 package JSON::Validator::Joi;
 use Mojo::Base -base;
 
-use List::Util 'uniq';
 use Mojo::JSON qw(false true);
 use Mojo::Util;
 use Storable 'dclone';
@@ -53,7 +52,8 @@ sub extend {
     $clone->{items} = dclone($by->{items}) if $by->{items};
   }
   elsif ($self->type eq 'object') {
-    $clone->{required} = [uniq @{$clone->{required}}, @{$by->{required}}]
+    $clone->{required}
+      = [JSON::Validator::_uniq(@{$clone->{required}}, @{$by->{required}})]
       if ref $by->{required} eq 'ARRAY';
     $clone->{properties}{$_} = dclone($by->{properties}{$_})
       for keys %{$by->{properties} || {}};
