@@ -239,8 +239,9 @@ sub _definitions_key {
   my $key       = $ref->fqn;
   my $spec_path = (split '#', $key)[0];
   if (-e $spec_path) {
-    $key = sprintf '%s-%s', substr(sha1_sum($key), 0, 10),
-      path($spec_path)->basename;
+    my ($name) = ($key =~ m!$spec_path#/$DEFINITIONS/([^/]+)$!);
+    $name //= path($spec_path)->basename;
+    $key = sprintf '%s-%s', $name, substr(sha1_sum($key), 0, 10);
   }
 
   # Fallback or nicer path name
