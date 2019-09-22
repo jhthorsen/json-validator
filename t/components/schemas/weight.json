@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "description": "Weight with Units",
+  "properties": {
+    "mass": { "type": "integer" },
+    "unit": { "$ref": "./unit.json" }
+  }
+}

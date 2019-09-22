@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "age": { "$ref": "../components/schemas/age.json#" },
+    "weight": { "$ref": "../components/schemas/weight.json" },
+    "height": { "$ref": "#/components/schemas/height" }
+  },
+  "components": {
+    "schemas": {
+      "height": { "type": "integer", "minimum": 5 }
+    }
+  }
+}

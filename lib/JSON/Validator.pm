@@ -23,6 +23,7 @@ use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
+our $COMPONENTS  = 'components';
 our $DEFINITIONS = 'definitions';
 our $VERSION     = '3.14';
 our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
@@ -82,8 +83,9 @@ sub bundle {
   }
   else {
     my %seen;
+    $bundle->{$COMPONENTS}  = $topics[0][0]{$COMPONENTS}  || {};
     $bundle->{$DEFINITIONS} = $topics[0][0]{$DEFINITIONS} || {};
-    $cloner = sub {
+    $cloner                 = sub {
       my $from      = shift;
       my $from_type = ref $from;
 
@@ -92,13 +94,24 @@ sub bundle {
           if !$args->{schema}
           and $ref->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
 
-        my $k = $self->_definitions_key($bundle, $ref, \%seen);
-        push @topics, [$ref->schema, $bundle->{$DEFINITIONS}{$k} ||= {}]
-          unless $seen{$ref->fqn}++;
-        tie my %ref, 'JSON::Validator::Ref', $ref->schema, "#/$DEFINITIONS/$k";
+        # Do things differently for components in openapi spec v3
+        my %ref;
+        if ($ref->fqn =~ m!/components/!) {
+          my $k = $self->_components_type_key($bundle, $ref, \%seen);
+          push @topics,
+            [$ref->schema, $bundle->{$COMPONENTS}{$k->[0]}{$k->[1]} ||= {}]
+            unless $seen{$ref->fqn}++;
+          tie %ref, 'JSON::Validator::Ref', $ref->schema,
+            "#/$COMPONENTS/$k->[0]/$k->[1]";
+        }
+        else {
+          my $k = $self->_definitions_key($bundle, $ref, \%seen);
+          push @topics, [$ref->schema, $bundle->{$DEFINITIONS}{$k} ||= {}]
+            unless $seen{$ref->fqn}++;
+          tie %ref, 'JSON::Validator::Ref', $ref->schema, "#/$DEFINITIONS/$k";
+        }
         return \%ref;
       }
-
       my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
       push @topics, [$from, $to] if $from_type;
       return $to;
@@ -120,6 +133,7 @@ sub bundle {
   }
 
   delete $bundle->{$DEFINITIONS} unless keys %{$bundle->{$DEFINITIONS}};
+  delete $bundle->{$COMPONENTS}  unless keys %{$bundle->{$COMPONENTS}};
   return $bundle;
 }
 
@@ -223,6 +237,32 @@ sub _build_formats {
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-template'  => JSON::Validator::Formats->can('check_uri_template'),
   };
+}
+
+sub _components_type_key {
+  my ($self, $bundle, $ref, $seen) = @_;
+
+  # No need to rewrite, when it already has a nice name
+  return [$1, $2]
+    if $ref->fqn =~ m!#/$COMPONENTS/([^/]+)/([^/]+)$!
+    and ($seen->{$ref->fqn}
+    or !$bundle->{$COMPONENTS}{$1}{$2}
+    or D($ref->schema) eq D($bundle->{$COMPONENTS}{$1}{$2}));
+
+  # Must mask path to file on disk
+  my $key       = $ref->fqn;
+  my $spec_path = (split '#', $key)[0];
+  if (-e $spec_path) {
+    $key = sprintf '%s-%s', substr(sha1_sum($key), 0, 10),
+      path($spec_path)->basename;
+  }
+
+  $ref->fqn =~ m!$COMPONENTS/([^/]+)/([^/]+)$!;
+  my $comp_type = $1;
+
+  # Fallback or nicer path name
+  $key =~ s![^\w-]!_!g;
+  return [$comp_type, $key];
 }
 
 sub _definitions_key {
