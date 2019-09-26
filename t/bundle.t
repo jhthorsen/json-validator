@@ -21,37 +21,40 @@ for my $n (1 .. 3) {
   $bundled = $jv->bundle({
     replace => 1,
     schema  => {
-      name        => {'$ref' => '#/definitions/name'},
-      definitions => {name   => {type => 'string'}}
+      definitions => {name   => {type => 'string'}},
+      surname     => {'$ref' => '#/definitions/name'},
     },
   });
 
-  is $bundled->{name}{type}, 'string', "[$n] replace=1";
+  is $bundled->{surname}{type}, 'string', "[$n] replace=1";
 
   note "[$n] replace=0";
   $bundled = $jv->schema({
-    name        => {'$ref' => '#/definitions/name'},
-    age         => {'$ref' => 'b.json#/definitions/age'},
+    surname     => {'$ref' => '#/definitions/name'},
+    age         => {'$ref' => 'b.json#/definitions/years'},
     definitions => {name   => {type => 'string'}},
-    B => {id => 'b.json', definitions => {age => {type => 'integer'}}},
+    B => {id => 'b.json', definitions => {years => {type => 'integer'}}},
   })->bundle;
+  ok $bundled->{definitions}{name},
+    "[$n] definitions/name still in definitions";
   is $bundled->{definitions}{name}{type}, 'string',
-    "[$n] name still in definitions";
-  is $bundled->{definitions}{age}{type}, 'integer', "[$n] added to definitions";
-  isnt $bundled->{age}, $jv->schema->get('/age'),  "[$n] new age ref";
-  is $bundled->{name},  $jv->schema->get('/name'), "[$n] same name ref";
-  is $bundled->{age}{'$ref'}, '#/definitions/age',
-    "[$n] age \$ref point to /definitions/age";
-  is $bundled->{name}{'$ref'}, '#/definitions/name',
-    "[$n] name \$ref point to /definitions/name";
+    "[$n] definitions/name/type still in definitions";
+  is $bundled->{definitions}{years}{type}, 'integer',
+    "[$n] added to definitions";
+  isnt $bundled->{age},   $jv->schema->get('/age'),     "[$n] new age ref";
+  is $bundled->{surname}, $jv->schema->get('/surname'), "[$n] same surname ref";
+  is $bundled->{age}{'$ref'}, '#/definitions/years',
+    "[$n] age \$ref point to /definitions/years";
+  is $bundled->{surname}{'$ref'}, '#/definitions/name',
+    "[$n] surname \$ref point to /definitions/name";
 }
 
-is $jv->get([qw(name type)]), 'string', 'get /name/$ref';
-is $jv->get('/name/type'), 'string', 'get /name/type';
-is $jv->get('/name/$ref'), undef,    'get /name/$ref';
-is $jv->schema->get('/name/type'), 'string', 'schema get /name/type';
-is $jv->schema->get('/name/$ref'), '#/definitions/name',
-  'schema get /name/$ref';
+is $jv->get([qw(surname type)]), 'string', 'get /surname/$ref';
+is $jv->get('/surname/type'), 'string', 'get /surname/type';
+is $jv->get('/surname/$ref'), undef,    'get /surname/$ref';
+is $jv->schema->get('/surname/type'), 'string', 'schema get /surname/type';
+is $jv->schema->get('/surname/$ref'), '#/definitions/name',
+  'schema get /surname/$ref';
 
 $bundled = $jv->schema('data://main/bundled.json')->bundle;
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'],
@@ -67,11 +70,11 @@ for my $pathlist (@pathlists) {
   is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ }
       keys %{$bundled->{definitions}}],
     [qw(
-      SHA-age_json
-      SHA-unit_json
-      SHA-weight_json
-      height
-      )],
+    SHA-age_json
+    SHA-unit_json
+    SHA-weight_json
+    height
+    )],
     'right definitions in disk spec'
     or diag explain $bundled->{definitions};
 }
