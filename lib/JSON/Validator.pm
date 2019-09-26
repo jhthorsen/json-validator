@@ -23,7 +23,6 @@ use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
-our $DEFINITIONS = 'definitions';
 our $VERSION     = '3.14';
 our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
 our @EXPORT_OK   = qw(joi validate_json);
@@ -48,6 +47,13 @@ has cache_paths => sub {
 };
 
 has formats => sub { shift->_build_formats };
+
+has generate_definitions_path => sub {
+  my $self = shift;
+  Scalar::Util::weaken($self);
+  return sub { [$self->{definitions_key} || 'definitions'] };
+};
+
 has version => 4;
 
 has ua => sub {
@@ -66,10 +72,6 @@ sub bundle {
     = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
   my @topics = ([$schema, my $bundle = {}, '']);    # ([$from, $to], ...);
 
-  local $DEFINITIONS = $args->{ref_key} || $DEFINITIONS;
-  Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
-    if $args->{ref_key};
-
   if ($args->{replace}) {
     $cloner = sub {
       my $from      = shift;
@@ -81,8 +83,6 @@ sub bundle {
     };
   }
   else {
-    my %seen;
-    $bundle->{$DEFINITIONS} = $topics[0][0]{$DEFINITIONS} || {};
     $cloner = sub {
       my $from      = shift;
       my $from_type = ref $from;
@@ -98,13 +98,24 @@ sub bundle {
         if !$args->{schema}
         and $tied->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
 
-      my $k = $self->_definitions_key($bundle, $tied, \%seen);
-      push @topics, [$tied->schema, $bundle->{$DEFINITIONS}{$k} ||= {}]
-        unless $seen{$tied->fqn}++;
-      tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/$DEFINITIONS/$k";
+      my $path = $self->_definitions_path($bundle, $tied);
+      unless ($self->{seen_ref}{$tied->fqn}++) {
+        push @topics,
+          [$schema->{$path->[0]} || {}, $bundle->{$path->[0]} ||= {}];
+        push @topics, [$tied->schema, $bundle->{$path->[0]}{$path->[1]} ||= {}];
+      }
+
+      $path = join '/', '#', @$path;
+      tie my %ref, 'JSON::Validator::Ref', $tied->schema, $path;
+
       return \%ref;
     };
   }
+
+  Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
+    if $args->{ref_key};
+  local $self->{definitions_key} = $args->{ref_key};
+  local $self->{seen_ref}        = {};
 
   while (@topics) {
     my ($from, $to) = @{shift @topics};
@@ -120,7 +131,6 @@ sub bundle {
     }
   }
 
-  delete $bundle->{$DEFINITIONS} unless keys %{$bundle->{$DEFINITIONS}};
   return $bundle;
 }
 
@@ -226,27 +236,34 @@ sub _build_formats {
   };
 }
 
-sub _definitions_key {
-  my ($self, $bundle, $ref, $seen) = @_;
+sub _definitions_path {
+  my ($self, $bundle, $ref) = @_;
+  my $path = $self->generate_definitions_path->($ref);
 
-  # No need to rewrite, when it already has a nice name
-  return $1
-    if $ref->fqn =~ m!#/$DEFINITIONS/([^/]+)$!
-    and ($seen->{$ref->fqn}
-    or !$bundle->{$DEFINITIONS}{$1}
-    or D($ref->schema) eq D($bundle->{$DEFINITIONS}{$1}));
+  # No need to rewrite, if it already has a nice name
+  if (!$path->[1] and $ref->fqn =~ m!#/$path->[0]/([^/]+)$!) {
+    my $key = $1;
 
-  # Must mask path to file on disk
-  my $key       = $ref->fqn;
-  my $spec_path = (split '#', $key)[0];
-  if (-e $spec_path) {
-    $key = sprintf '%s-%s', substr(sha1_sum($key), 0, 10),
-      path($spec_path)->basename;
+    if ( $self->{seen_ref}{$ref->fqn}
+      or !$bundle->{$path->[0]}{$key}
+      or D($ref->schema) eq D($bundle->{$path->[0]}{$key}))
+    {
+      return [$path->[0], $key];
+    }
   }
 
-  # Fallback or nicer path name
-  $key =~ s![^\w-]!_!g;
-  $key;
+  # Generate definitions key based on filename
+  unless ($path->[1]) {
+    $path->[1] = $ref->fqn;
+    my $spec_path = (split '#', $path->[1])[0];
+    if (-e $spec_path) {
+      $path->[1] = sprintf '%s-%s', substr(sha1_sum($path->[1]), 0, 10),
+        path($spec_path)->basename;
+    }
+    $path->[1] =~ s![^\w-]!_!g;
+  }
+
+  return $path;
 }
 
 sub _get {
@@ -1297,6 +1314,16 @@ block should return C<undef> on success and an error string on error:
   sub { return defined $_[0] && $_[0] eq "42" ? undef : "Not the answer." };
 
 See L<JSON::Validator::Formats> for a list of supported formats.
+
+=head2 generate_definitions_path
+
+  my $cb = $self->generate_definitions_path;
+  my $jv = $self->generate_definitions_path(sub { my $ref = shift; return ["definitions" });
+
+Holds a callback that is used by L</bundle> to figure out where to place
+references. The default location is under "definitions", but this can be
+changed to whatever you want. The input C<$ref> variable passed on is a
+L<JSON::Validator::Ref> object.
 
 =head2 ua
 
