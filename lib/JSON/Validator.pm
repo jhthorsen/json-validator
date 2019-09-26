@@ -101,7 +101,7 @@ sub bundle {
       my $path = $self->_definitions_path($bundle, $tied);
       unless ($self->{seen_ref}{$tied->fqn}++) {
         push @topics,
-          [$schema->{$path->[0]} || {}, $bundle->{$path->[0]} ||= {}];
+          [_node($schema, $path, 1, 0) || {}, _node($bundle, $path, 1, 1)];
         push @topics, [$tied->schema, $bundle->{$path->[0]}{$path->[1]} ||= {}];
       }
 
@@ -241,29 +241,30 @@ sub _definitions_path {
   my $path = $self->generate_definitions_path->($ref);
 
   # No need to rewrite, if it already has a nice name
-  if (!$path->[1] and $ref->fqn =~ m!#/$path->[0]/([^/]+)$!) {
+  my $node   = _node($bundle, $path, 2, 0);
+  my $prefix = join '/', @$path;
+  if ($ref->fqn =~ m!#/$prefix/([^/]+)$!) {
     my $key = $1;
 
     if ( $self->{seen_ref}{$ref->fqn}
-      or !$bundle->{$path->[0]}{$key}
-      or D($ref->schema) eq D($bundle->{$path->[0]}{$key}))
+      or !$node
+      or !$node->{$key}
+      or D($ref->schema) eq D($node->{$key}))
     {
-      return [$path->[0], $key];
+      return [@$path, $key];
     }
   }
 
   # Generate definitions key based on filename
-  unless ($path->[1]) {
-    $path->[1] = $ref->fqn;
-    my $spec_path = (split '#', $path->[1])[0];
-    if (-e $spec_path) {
-      $path->[1] = sprintf '%s-%s', substr(sha1_sum($path->[1]), 0, 10),
-        path($spec_path)->basename;
-    }
-    $path->[1] =~ s![^\w-]!_!g;
+  my $key       = $ref->fqn;
+  my $spec_path = (split '#', $key)[0];
+  if (-e $spec_path) {
+    $key = sprintf '%s-%s', substr(sha1_sum($key), 0, 10),
+      path($spec_path)->basename;
   }
 
-  return $path;
+  $key =~ s![^\w-]!_!g;
+  return [@$path, $key];
 }
 
 sub _get {
@@ -406,6 +407,19 @@ sub _load_schema_from_url {
   }
 
   return $self->_load_schema_from_text(\$tx->res->body);
+}
+
+sub _node {
+  my ($node, $path, $offset, $create) = @_;
+
+  my $n = 0;
+  while ($path->[$n]) {
+    $node->{$path->[$n]} ||= {} if $create;
+    return undef unless $node = $node->{$path->[$n]};
+    last if (++$n) + $offset >= @$path;
+  }
+
+  return $node;
 }
 
 sub _ref_to_schema {

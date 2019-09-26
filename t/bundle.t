@@ -111,10 +111,20 @@ $jv->generate_definitions_path(
 $bundled = $jv->bundle;
 my @deep  = keys %{$bundled->{deep}};
 my @other = keys %{$bundled->{other}};
-is @deep,  2, 'deep present';
-is @other, 3, 'other present';
+is @deep,  2, 'deep present'  or diag join ', ', @deep;
+is @other, 3, 'other present' or diag join ', ', @other;
 is_deeply [grep { 0 == index $_, $ref_name_prefix } @deep, @other], [],
   'no leaking of path';
+
+$jv->generate_definitions_path(
+  sub { shift->fqn =~ /with-deep-mixed/ ? ['even', 'deeper'] : ['other'] });
+$bundled = $jv->bundle;
+@deep    = keys %{$bundled->{even}{deeper}};
+@other   = keys %{$bundled->{other}};
+is @deep,  2, 'even deeper present' or diag join ', ', @deep;
+is @other, 3, 'other present'       or diag join ', ', @other;
+
+warn Data::Dumper::Dumper($bundled);
 
 done_testing;
 
