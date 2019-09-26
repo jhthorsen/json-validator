@@ -150,23 +150,20 @@ my @tests = (
         return 1
           if (eq_deeply($got->{dupe_name}, {type => 'integer'})
           and eq_deeply($got->{$other_key}, {type => 'string'})
-          and eq_deeply($other_key, re(qr/-more-bundle2_yaml$/)))
-          or ((
-              eq_deeply($got->{dupe_name},  {type => 'string'})
+          and $other_key =~ qr/\bmore-bundle2_yaml-definitions_dupe_name-\w+$/)
+          or (eq_deeply($got->{dupe_name}, {type => 'string'})
           and eq_deeply($got->{$other_key}, {type => 'integer'})
-          and eq_deeply($other_key, re(qr/-more-bundle_yaml$/))
-          ));
+          and $other_key =~ qr/\bmore-bundle_yaml-definitions_dupe_name-\w+$/);
         return (0, 'uh oh, got: ' . (Test::More::explain($got))[0]);
       }),
 
       # begin i_contain_refs_to_same_named_definitions definition
       type       => 'object',
       properties => {
-        foo => {
-          '$ref' => re(qr/^#\/definitions\/(dupe_name|\w+-more-bundle_yaml)$/)
-        },
+        foo =>
+          {'$ref' => re(qr/^#\/definitions\/(dupe_name|more-bundle_yaml-.*)$/)},
         bar => {
-          '$ref' => re(qr/^#\/definitions\/(dupe_name|\w+-more-bundle2_yaml)/)
+          '$ref' => re(qr/^#\/definitions\/(dupe_name|more-bundle2_yaml-.*)$/)
         },
       },
     },

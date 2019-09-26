@@ -60,21 +60,22 @@ $bundled = $jv->schema('data://main/bundled.json')->bundle;
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'],
   'no dup definitions';
 
-my @pathlists = (
-  ['spec', 'with-deep-mixed-ref.json'],
-  ['spec', File::Spec->updir, 'spec', 'with-deep-mixed-ref.json'],
-);
-for my $pathlist (@pathlists) {
-  my $file = path $workdir, @$pathlist;
+for my $path (
+  ['test-definitions-key.json'],
+  ['with-deep-mixed-ref.json'],
+  ['with-deep-mixed-ref.json'],
+  [File::Spec->updir, 'spec', 'with-deep-mixed-ref.json'],
+  )
+{
+  my $file = path $workdir, 'spec', @$path;
+
+  my @expected = qw(age_json-SHA height unit_json-SHA weight_json-SHA);
+  $expected[0] = 'age_json-type-SHA'
+    if $path->[0] eq 'test-definitions-key.json';
+
   $bundled = $jv->schema($file)->bundle;
-  is_deeply [sort map { s!^[a-z0-9]{10}!SHA!; $_ }
-      keys %{$bundled->{definitions}}],
-    [qw(
-    SHA-age_json
-    SHA-unit_json
-    SHA-weight_json
-    height
-    )],
+  is_deeply [sort map { s!-[a-z0-9]{10}$!-SHA!; $_ }
+      keys %{$bundled->{definitions}}], \@expected,
     'right definitions in disk spec'
     or diag explain $bundled->{definitions};
 }

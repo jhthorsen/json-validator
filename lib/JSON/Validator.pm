@@ -244,11 +244,11 @@ sub _definitions_path {
   }
 
   # Generate definitions key based on filename
-  my $key       = $ref->fqn;
-  my $spec_path = (split '#', $key)[0];
+  my ($spec_path, $fragment) = split '#', $ref->fqn;
+  my $key = $fragment;
   if (-e $spec_path) {
-    $key = sprintf '%s-%s', substr(sha1_sum($key), 0, 10),
-      path($spec_path)->basename;
+    $key = join '-', map { s!^\W+!!; $_ } grep {$_} path($spec_path)->basename,
+      $fragment, substr(sha1_sum($spec_path), 0, 10);
   }
 
   # Fallback or nicer path name

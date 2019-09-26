@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "age": { "type": { "$ref": "../definitions/age.json#type" } },
+    "weight": { "$ref": "../definitions/weight.json" },
+    "height": { "$ref": "#/definitions/height" }
+  },
+  "definitions": {
+    "height": { "type": "integer" }
+  }
+}
