@@ -23,7 +23,6 @@ use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
-our $DEFINITIONS = 'definitions';
 our $VERSION     = '3.14';
 our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
 our @EXPORT_OK   = qw(joi validate_json);
@@ -66,10 +65,6 @@ sub bundle {
     = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
   my @topics = ([$schema, my $bundle = {}, '']);    # ([$from, $to], ...);
 
-  local $DEFINITIONS = $args->{ref_key} || $DEFINITIONS;
-  Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
-    if $args->{ref_key};
-
   if ($args->{replace}) {
     $cloner = sub {
       my $from      = shift;
@@ -81,8 +76,6 @@ sub bundle {
     };
   }
   else {
-    my %seen;
-    $bundle->{$DEFINITIONS} = $topics[0][0]{$DEFINITIONS} || {};
     $cloner = sub {
       my $from      = shift;
       my $from_type = ref $from;
@@ -98,13 +91,22 @@ sub bundle {
         if !$args->{schema}
         and $tied->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
 
-      my $k = $self->_definitions_key($bundle, $tied, \%seen);
-      push @topics, [$tied->schema, $bundle->{$DEFINITIONS}{$k} ||= {}]
-        unless $seen{$tied->fqn}++;
-      tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/$DEFINITIONS/$k";
+      my $p = $self->_definitions_path($bundle, $tied);
+      unless ($self->{bundled_refs}{$tied->fqn}) {
+        $self->{bundled_refs}{$tied->fqn} = $tied;
+        push @topics, [$schema->{$p->[0]} || {}, $bundle->{$p->[0]} ||= {}];
+        push @topics, [$tied->schema, $bundle->{$p->[0]}{$p->[1]} ||= {}];
+      }
+
+      tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/$p->[0]/$p->[1]";
       return \%ref;
     };
   }
+
+  Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
+    if $args->{ref_key};
+  local $self->{definitions_key} = $args->{ref_key};
+  local $self->{bundled_refs}    = {};
 
   while (@topics) {
     my ($from, $to) = @{shift @topics};
@@ -120,7 +122,6 @@ sub bundle {
     }
   }
 
-  delete $bundle->{$DEFINITIONS} unless keys %{$bundle->{$DEFINITIONS}};
   return $bundle;
 }
 
@@ -226,17 +227,23 @@ sub _build_formats {
   };
 }
 
-sub _definitions_key {
-  my ($self, $bundle, $ref, $seen) = @_;
+sub _definitions_path {
+  my ($self, $bundle, $ref) = @_;
+  my $definitions_key = $self->{definitions_key} || 'definitions';
 
-  # No need to rewrite, when it already has a nice name
-  return $1
-    if $ref->fqn =~ m!#/$DEFINITIONS/([^/]+)$!
-    and ($seen->{$ref->fqn}
-    or !$bundle->{$DEFINITIONS}{$1}
-    or D($ref->schema) eq D($bundle->{$DEFINITIONS}{$1}));
+  # No need to rewrite, if it already has a nice name
+  if ($ref->fqn =~ m!#/$definitions_key/([^/]+)$!) {
+    my $key = $1;
 
-  # Must mask path to file on disk
+    if ( $self->{bundled_refs}{$ref->fqn}
+      or !$bundle->{$definitions_key}{$key}
+      or D($ref->schema) eq D($bundle->{$definitions_key}{$key}))
+    {
+      return [$definitions_key, $key];
+    }
+  }
+
+  # Generate definitions key based on filename
   my $key       = $ref->fqn;
   my $spec_path = (split '#', $key)[0];
   if (-e $spec_path) {
@@ -246,7 +253,8 @@ sub _definitions_key {
 
   # Fallback or nicer path name
   $key =~ s![^\w-]!_!g;
-  $key;
+
+  return [$definitions_key, $key];
 }
 
 sub _get {
