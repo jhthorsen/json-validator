@@ -60,11 +60,11 @@ has ua => sub {
 
 sub bundle {
   my ($self, $args) = @_;
-  my @topics = ([undef, my $bundle = {}]);
   my ($cloner, $tied);
 
-  $topics[0][0]
+  my $schema
     = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
+  my @topics = ([$schema, my $bundle = {}, '']);    # ([$from, $to], ...);
 
   local $DEFINITIONS = $args->{ref_key} || $DEFINITIONS;
   Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
@@ -72,11 +72,11 @@ sub bundle {
 
   if ($args->{replace}) {
     $cloner = sub {
-      my $from = shift;
-      my $ref  = ref $from;
-      $from = $tied->schema if $ref eq 'HASH' and $tied = tied %$from;
-      my $to = $ref eq 'ARRAY' ? [] : $ref eq 'HASH' ? {} : $from;
-      push @topics, [$from, $to] if $ref;
+      my $from      = shift;
+      my $from_type = ref $from;
+      $from = $tied->schema if $from_type eq 'HASH' and $tied = tied %$from;
+      my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
+      push @topics, [$from, $to] if $from_type;
       return $to;
     };
   }
@@ -87,21 +87,22 @@ sub bundle {
       my $from      = shift;
       my $from_type = ref $from;
 
-      if ($from_type eq 'HASH' and my $ref = tied %$from) {
-        return $from
-          if !$args->{schema}
-          and $ref->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
-
-        my $k = $self->_definitions_key($bundle, $ref, \%seen);
-        push @topics, [$ref->schema, $bundle->{$DEFINITIONS}{$k} ||= {}]
-          unless $seen{$ref->fqn}++;
-        tie my %ref, 'JSON::Validator::Ref', $ref->schema, "#/$DEFINITIONS/$k";
-        return \%ref;
+      $tied = $from_type eq 'HASH' && tied %$from;
+      unless ($tied) {
+        my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
+        push @topics, [$from, $to] if $from_type;
+        return $to;
       }
 
-      my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
-      push @topics, [$from, $to] if $from_type;
-      return $to;
+      return $from
+        if !$args->{schema}
+        and $tied->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
+
+      my $k = $self->_definitions_key($bundle, $tied, \%seen);
+      push @topics, [$tied->schema, $bundle->{$DEFINITIONS}{$k} ||= {}]
+        unless $seen{$tied->fqn}++;
+      tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/$DEFINITIONS/$k";
+      return \%ref;
     };
   }
 
