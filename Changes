@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+3.15 2019-09-27T09:28:32+0900
+ - Add JSON::Validator::Error->details() #133
+ - Reversed the checksum and nice name for generated definitions #173
+
 3.14 2019-08-09T23:52:24+0200
  - Fix failing tests #169
 
