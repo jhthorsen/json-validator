@@ -59,7 +59,7 @@ has ua => sub {
 
 sub bundle {
   my ($self, $args) = @_;
-  my ($cloner, $tied);
+  my ($cloner, $tied, @added_refs);
 
   my $schema
     = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
@@ -92,20 +92,20 @@ sub bundle {
         and $tied->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
 
       my $p = $self->_definitions_path($bundle, $tied);
-      unless ($self->{bundled_refs}{$tied->fqn}) {
-        $self->{bundled_refs}{$tied->fqn} = $tied;
+      unless ($self->{bundled_refs}{$tied->fqn}++) {
         push @topics, [$schema->{$p->[0]} || {}, $bundle->{$p->[0]} ||= {}];
         push @topics, [$tied->schema, $bundle->{$p->[0]}{$p->[1]} ||= {}];
       }
 
       tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/$p->[0]/$p->[1]";
+      push @added_refs, tied %ref;
       return \%ref;
     };
   }
 
   Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
     if $args->{ref_key};
-  local $self->{definitions_key} = $args->{ref_key};
+  local $self->{definitions_key} = $args->{ref_key} || 'definitions';
   local $self->{bundled_refs}    = {};
 
   while (@topics) {
@@ -121,6 +121,9 @@ sub bundle {
       }
     }
   }
+
+  $self->_post_process_refs($bundle, \@added_refs, $args->{post_process_refs})
+    if $args->{post_process_refs};
 
   return $bundle;
 }
@@ -229,7 +232,7 @@ sub _build_formats {
 
 sub _definitions_path {
   my ($self, $bundle, $ref) = @_;
-  my $definitions_key = $self->{definitions_key} || 'definitions';
+  my $definitions_key = $self->{definitions_key};
 
   # No need to rewrite, if it already has a nice name
   if ($ref->fqn =~ m!#/$definitions_key/([^/]+)$!) {
@@ -527,6 +530,35 @@ sub _location_to_abs {
     return $base->sibling(split '/', $location)->realpath;
   }
   return $location_as_url->to_abs($base);
+}
+
+sub _post_process_refs {
+  my ($self, $bundle, $refs, $cb) = @_;
+
+  my $extract_node = sub {
+    my $p = shift;
+    $p =~ s!^#/!!;
+    my @path = split '/', $p;
+    my $leaf = pop @path;
+    my $node = $bundle;
+    $node = $node->{$_} //= {} for @path;
+    return $node, $leaf;
+  };
+
+  for my $ref (@$refs) {
+    my $move_to = $cb->($ref);
+    next if !$move_to or $move_to eq $ref->ref;
+    my ($old_parent_node, $old_node_name) = $extract_node->($ref->ref);
+
+    $ref->{'$ref'} = $move_to;
+    my ($new_parent_node, $new_node_name) = $extract_node->($ref->ref);
+    $new_parent_node->{$new_node_name}
+      = delete $old_parent_node->{$old_node_name};
+  }
+
+  # Maybe "definitions" was added for no reason
+  delete $bundle->{$self->{definitions_key}}
+    unless keys %{$bundle->{definitions}};
 }
 
 sub _resolve_ref {

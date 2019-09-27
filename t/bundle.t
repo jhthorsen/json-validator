@@ -108,10 +108,35 @@ my $ref_name_prefix = $workdir;
 $ref_name_prefix =~ s![^\w-]!_!g;
 $jv->schema(path $workdir, 'spec', 'bundle-no-leaking-filename.json');
 $bundled = $jv->bundle({ref_key => 'xyz'});
-my @definitions = keys %{$bundled->{xyz}};
-ok @definitions, 'definitions are present';
-is_deeply [grep { 0 == index $_, $ref_name_prefix } @definitions], [],
-  'no leaking of path';
+is int(keys %{$bundled->{xyz}}), 5, 'definitions are present';
+is_deeply [grep { 0 == index $_, $ref_name_prefix } keys %{$bundled->{xyz}}],
+  [], 'no leaking of path';
+
+note 'post_process_refs';
+$bundled = $jv->bundle({
+  post_process_refs => sub {
+    my $ref = shift;
+    return undef unless $ref->schema->{description};
+    my $location = $ref->ref;
+    $location =~ s!/definitions/!/foo/bar/!;
+    return $location;
+  }
+});
+
+is int(keys %{$bundled->{definitions}}), 2, 'post_process_refs /definitions';
+is int(keys %{$bundled->{foo}{bar}}), 3, 'post_process_refs /foo/bar';
+
+$bundled = $jv->bundle({
+  post_process_refs => sub {
+    my $ref      = shift;
+    my $location = $ref->ref;
+    $location =~ s!/definitions/!/foo/!;
+    return $location;
+  }
+});
+
+ok !$bundled->{definitions}, 'post_process_refs /definitions was removed';
+is int(keys %{$bundled->{foo}}), 5, 'post_process_refs /foo';
 
 done_testing;
 
