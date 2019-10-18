@@ -1323,7 +1323,7 @@ See L<JSON::Validator::Formats> for a list of supported formats.
 =head2 generate_definitions_path
 
   my $cb = $self->generate_definitions_path;
-  my $jv = $self->generate_definitions_path(sub { my $ref = shift; return ["definitions" });
+  my $jv = $self->generate_definitions_path(sub { my $ref = shift; return ["definitions"] });
 
 Holds a callback that is used by L</bundle> to figure out where to place
 references. The default location is under "definitions", but this can be
