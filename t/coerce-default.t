@@ -30,11 +30,11 @@ is_deeply $data, {tos => true, subscribed_to => []},
 
 $jv->schema({
   type       => 'object',
-  properties => {tos => {type => 'boolean', default => 'invalid'}},
+  properties => {age => {type => 'number', default => 'invalid'}},
 });
 
 @errors = $jv->validate({});
-is $errors[0]{message}, 'Expected boolean - got string.',
+is $errors[0]->message, 'Expected number - got string.',
   'default values must be valid';
 
 done_testing;

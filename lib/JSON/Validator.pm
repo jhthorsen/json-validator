@@ -23,7 +23,7 @@ use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
-our $VERSION     = '3.14';
+our $VERSION     = '3.15';
 our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
 our @EXPORT_OK   = qw(joi validate_json);
 
@@ -256,11 +256,11 @@ sub _definitions_path {
   }
 
   # Generate definitions key based on filename
-  my $key       = $ref->fqn;
-  my $spec_path = (split '#', $key)[0];
+  my ($spec_path, $fragment) = split '#', $ref->fqn;
+  my $key = $fragment;
   if (-e $spec_path) {
-    $key = sprintf '%s-%s', substr(sha1_sum($key), 0, 10),
-      path($spec_path)->basename;
+    $key = join '-', map { s!^\W+!!; $_ } grep {$_} path($spec_path)->basename,
+      $fragment, substr(sha1_sum($spec_path), 0, 10);
   }
 
   $key =~ s![^\w-]!_!g;
@@ -643,7 +643,7 @@ sub _validate {
   if (my $rules = $schema->{not}) {
     push @errors, $self->_validate($to_json ? $$to_json : $_[1], $path, $rules);
     $self->_report_errors($path, 'not', \@errors) if REPORT;
-    return @errors ? () : (E $path, 'Should not match.');
+    return @errors ? () : (E $path, [not => 'not']);
   }
 
   if (my $rules = $schema->{allOf}) {
@@ -682,7 +682,7 @@ sub _validate_all_of {
   }
 
   $self->_report_errors($path, 'allOf', \@errors) if REPORT;
-  return E $path, "/allOf Expected @{[join '/', _uniq(@expected)]} - got $type."
+  return E $path, [allOf => type => join('/', _uniq(@expected)), $type]
     if !@errors and @expected;
   return _add_path_to_error_messages(allOf => @errors) if @errors;
   return;
@@ -710,7 +710,7 @@ sub _validate_any_of {
 
   $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
   my $expected = join '/', _uniq(@expected);
-  return E $path, "/anyOf Expected $expected - got $type." unless @errors;
+  return E $path, [anyOf => type => $expected, $type] unless @errors;
   return _add_path_to_error_messages(anyOf => @errors);
 }
 
@@ -743,8 +743,8 @@ sub _validate_one_of {
 
   return if @errors + @expected + 1 == @$rules;
   my $expected = join '/', _uniq(@expected);
-  return E $path, "All of the oneOf rules match." unless @errors + @expected;
-  return E $path, "/oneOf Expected $expected - got $type." unless @errors;
+  return E $path, [oneOf => 'all_rules_match'] unless @errors + @expected;
+  return E $path, [oneOf => type => $expected => $type] unless @errors;
   return _add_path_to_error_messages(oneOf => @errors);
 }
 
@@ -757,9 +757,9 @@ sub _validate_type_enum {
     return if $m eq S $i;
   }
 
-  local $" = ', ';
-  return E $path, sprintf 'Not in enum list: %s.', join ', ',
+  $enum = join ', ',
     map { (!defined or ref) ? Mojo::JSON::encode_json($_) : $_ } @$enum;
+  return E $path, [enum => enum => $enum];
 }
 
 sub _validate_type_const {
@@ -768,8 +768,7 @@ sub _validate_type_const {
   my $m     = S $data;
 
   return if $m eq S $const;
-  return E $path, sprintf 'Does not match const: %s.',
-    Mojo::JSON::encode_json($const);
+  return E $path, [const => const => Mojo::JSON::encode_json($const)];
 }
 
 sub _validate_format {
@@ -778,7 +777,7 @@ sub _validate_format {
   return do { warn "Format rule for '$schema->{format}' is missing"; return }
     unless $code;
   return unless my $err = $code->($value);
-  return E $path, $err;
+  return E $path, [format => $schema->{format}, $err];
 }
 
 sub _validate_type_any { }
@@ -788,21 +787,21 @@ sub _validate_type_array {
   my @errors;
 
   if (ref $data ne 'ARRAY') {
-    return E $path, _expected(array => $data);
+    return E $path, [array => type => _guess_data_type($data)];
   }
   if (defined $schema->{minItems} and $schema->{minItems} > @$data) {
-    push @errors, E $path, sprintf 'Not enough items: %s/%s.', int @$data,
-      $schema->{minItems};
+    push @errors, E $path,
+      [array => minItems => int(@$data), $schema->{minItems}];
   }
   if (defined $schema->{maxItems} and $schema->{maxItems} < @$data) {
-    push @errors, E $path, sprintf 'Too many items: %s/%s.', int @$data,
-      $schema->{maxItems};
+    push @errors, E $path,
+      [array => maxItems => int(@$data), $schema->{maxItems}];
   }
   if ($schema->{uniqueItems}) {
     my %uniq;
     for (@$data) {
       next if !$uniq{S($_)}++;
-      push @errors, E $path, 'Unique items required.';
+      push @errors, E $path, [array => 'uniqueItems'];
       last;
     }
   }
@@ -829,8 +828,8 @@ sub _validate_type_array {
       }
     }
     elsif (!$additional_items) {
-      push @errors, E $path, sprintf "Invalid number of items: %s/%s.",
-        int(@$data), int(@rules);
+      push @errors, E $path,
+        [array => additionalItems => int(@$data), int(@rules)];
     }
   }
   elsif (UNIVERSAL::isa($schema->{items}, 'HASH')) {
@@ -864,7 +863,7 @@ sub _validate_type_boolean {
     return;
   }
 
-  return E $path, _expected(boolean => $value);
+  return E $path, [boolean => type => _guess_data_type($value)];
 }
 
 sub _validate_type_integer {
@@ -873,14 +872,14 @@ sub _validate_type_integer {
 
   return @errors if @errors;
   return if $value =~ /^-?\d+$/;
-  return E $path, "Expected integer - got number.";
+  return E $path, [integer => type => _guess_data_type($value)];
 }
 
 sub _validate_type_null {
   my ($self, $value, $path, $schema) = @_;
 
-  return E $path, 'Not null.' if defined $value;
-  return;
+  return unless defined $value;
+  return E $path, ['null', 'null'];
 }
 
 sub _validate_type_number {
@@ -890,10 +889,10 @@ sub _validate_type_number {
   $expected ||= 'number';
 
   if (!defined $value or ref $value) {
-    return E $path, _expected($expected => $value);
+    return E $path, [$expected => type => _guess_data_type($value)];
   }
   unless (_is_number($value)) {
-    return E $path, "Expected $expected - got string."
+    return E $path, [$expected => type => _guess_data_type($value)]
       if !$self->{coerce}{numbers}
       or $value !~ /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
     $_[1] = 0 + $value;    # coerce input value
@@ -905,16 +904,16 @@ sub _validate_type_number {
   if (my $e
     = _cmp($schema->{minimum}, $value, $schema->{exclusiveMinimum}, '<'))
   {
-    push @errors, E $path, "$value $e minimum($schema->{minimum})";
+    push @errors, E $path, [$expected => minimum => $value, $schema->{minimum}];
   }
   if (my $e
     = _cmp($value, $schema->{maximum}, $schema->{exclusiveMaximum}, '>'))
   {
-    push @errors, E $path, "$value $e maximum($schema->{maximum})";
+    push @errors, E $path, [$expected => maximum => $value, $schema->{maximum}];
   }
   if (my $d = $schema->{multipleOf}) {
     if (($value / $d) =~ /\.[^0]+$/) {
-      push @errors, E $path, "Not multiple of $d.";
+      push @errors, E $path, [$expected => multipleOf => $d];
     }
   }
 
@@ -927,17 +926,17 @@ sub _validate_type_object {
   my ($additional, @errors, %rules);
 
   if (ref $data ne 'HASH') {
-    return E $path, _expected(object => $data);
+    return E $path, [object => type => _guess_data_type($data)];
   }
 
   my @dkeys = sort keys %$data;
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < @dkeys) {
-    push @errors, E $path, sprintf 'Too many properties: %s/%s.', int @dkeys,
-      $schema->{maxProperties};
+    push @errors, E $path,
+      [object => maxProperties => int(@dkeys), $schema->{maxProperties}];
   }
   if (defined $schema->{minProperties} and $schema->{minProperties} > @dkeys) {
-    push @errors, E $path, sprintf 'Not enough properties: %s/%s.', int @dkeys,
-      $schema->{minProperties};
+    push @errors, E $path,
+      [object => minProperties => int(@dkeys), $schema->{minProperties}];
   }
   if (my $n_schema = $schema->{propertyNames}) {
     for my $name (keys %$data) {
@@ -974,12 +973,12 @@ sub _validate_type_object {
   }
   elsif (my @k = grep { !$rules{$_} } @dkeys) {
     local $" = ', ';
-    return E $path, "Properties not allowed: @k.";
+    return E $path, [object => additionalProperties => join '/', @k];
   }
 
   for my $k (sort keys %required) {
     next if exists $data->{$k};
-    push @errors, E _path($path, $k), 'Missing property.';
+    push @errors, E _path($path, $k), [object => 'required'];
     delete $rules{$k};
   }
 
@@ -1006,13 +1005,13 @@ sub _validate_type_string {
   my @errors;
 
   if (!defined $value or ref $value) {
-    return E $path, _expected(string => $value);
+    return E $path, [string => type => _guess_data_type($value)];
   }
   if (  B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
     and 0 + $value eq $value
     and $value * 0 == 0)
   {
-    return E $path, "Expected string - got number."
+    return E $path, [string => type => _guess_data_type($value)]
       unless $self->{coerce}{strings};
     $_[1] = "$value";    # coerce input value
   }
@@ -1021,21 +1020,19 @@ sub _validate_type_string {
   }
   if (defined $schema->{maxLength}) {
     if (length($value) > $schema->{maxLength}) {
-      push @errors, E $path, sprintf "String is too long: %s/%s.",
-        length($value), $schema->{maxLength};
+      push @errors, E $path,
+        [string => maxLength => length($value), $schema->{maxLength}];
     }
   }
   if (defined $schema->{minLength}) {
     if (length($value) < $schema->{minLength}) {
-      push @errors, E $path, sprintf "String is too short: %s/%s.",
-        length($value), $schema->{minLength};
+      push @errors, E $path,
+        [string => minLength => length($value), $schema->{minLength}];
     }
   }
   if (defined $schema->{pattern}) {
     my $p = $schema->{pattern};
-    unless ($value =~ /$p/) {
-      push @errors, E $path, "String does not match '$p'";
-    }
+    push @errors, E $path, [string => pattern => $p] unless $value =~ /$p/;
   }
 
   return @errors;
@@ -1050,7 +1047,7 @@ sub _add_path_to_error_messages {
   for my $e (@errors_with_index) {
     my $index = shift @$e;
     push @errors, map {
-      my $msg = sprintf '/%s/%s %s', $type, $index, $_->{message};
+      my $msg = sprintf '/%s/%s %s', $type, $index, $_->message;
       $msg =~ s!(\d+)\s/!$1/!g;
       E $_->path, $msg;
     } @$e;
@@ -1064,12 +1061,6 @@ sub _cmp {
   return "$_[3]=" if $_[2] and $_[0] >= $_[1];
   return $_[3]    if $_[0] > $_[1];
   return "";
-}
-
-sub _expected {
-  my $type = _guess_data_type($_[1], []);
-  return "Expected $_[0] - got different $type." if $_[0] =~ /\b$type\b/;
-  return "Expected $_[0] - got $type.";
 }
 
 # _guess_data_type($data, [{type => ...}, ...])
