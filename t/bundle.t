@@ -125,8 +125,6 @@ $bundled = $jv->bundle;
 is @deep,  2, 'even deeper present' or diag join ', ', @deep;
 is @other, 3, 'other present'       or diag join ', ', @other;
 
-warn Data::Dumper::Dumper($bundled);
-
 done_testing;
 
 __DATA__

@@ -102,7 +102,7 @@ sub bundle {
       unless ($self->{seen_ref}{$tied->fqn}++) {
         push @topics,
           [_node($schema, $path, 1, 0) || {}, _node($bundle, $path, 1, 1)];
-        push @topics, [$tied->schema, $bundle->{$path->[0]}{$path->[1]} ||= {}];
+        push @topics, [$tied->schema, _node($bundle, $path, 0, 1)];
       }
 
       $path = join '/', '#', @$path;
