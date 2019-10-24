@@ -524,7 +524,9 @@ sub _location_to_abs {
   # definitely relative now
   if ($base->isa('Mojo::File')) {
     return $base if !length $location;
-    return $base->sibling(split '/', $location)->realpath;
+    my $tpath = $base->sibling(split '/', $location)->realpath;
+    #lc fixes https://github.com/mojolicious/json-validator/issues/170
+    return CASE_TOLERANT ? lc($tpath) : $tpath;
   }
   return $location_as_url->to_abs($base);
 }
