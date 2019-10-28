@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+3.16 Not Released
+ - Add generate_definitions_path() #175 #177
+   Contributor: Henrik Andersen, Jan Henning Thorsen
+
 3.15 2019-09-27T09:28:32+0900
  - Add JSON::Validator::Error->details() #133
  - Reversed the checksum and nice name for generated definitions #173

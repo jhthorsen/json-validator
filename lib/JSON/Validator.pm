@@ -47,6 +47,13 @@ has cache_paths => sub {
 };
 
 has formats => sub { shift->_build_formats };
+
+has generate_definitions_path => sub {
+  my $self = shift;
+  Scalar::Util::weaken($self);
+  return sub { [$self->{definitions_key} || 'definitions'] };
+};
+
 has version => 4;
 
 has ua => sub {
@@ -91,14 +98,15 @@ sub bundle {
         if !$args->{schema}
         and $tied->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
 
-      my $p = $self->_definitions_path($bundle, $tied);
-      unless ($self->{bundled_refs}{$tied->fqn}) {
-        $self->{bundled_refs}{$tied->fqn} = $tied;
-        push @topics, [$schema->{$p->[0]} || {}, $bundle->{$p->[0]} ||= {}];
-        push @topics, [$tied->schema, $bundle->{$p->[0]}{$p->[1]} ||= {}];
+      my $path = $self->_definitions_path($bundle, $tied);
+      unless ($self->{bundled_refs}{$tied->fqn}++) {
+        push @topics,
+          [_node($schema, $path, 1, 0) || {}, _node($bundle, $path, 1, 1)];
+        push @topics, [$tied->schema, _node($bundle, $path, 0, 1)];
       }
 
-      tie my %ref, 'JSON::Validator::Ref', $tied->schema, "#/$p->[0]/$p->[1]";
+      $path = join '/', '#', @$path;
+      tie my %ref, 'JSON::Validator::Ref', $tied->schema, $path;
       return \%ref;
     };
   }
@@ -229,17 +237,20 @@ sub _build_formats {
 
 sub _definitions_path {
   my ($self, $bundle, $ref) = @_;
-  my $definitions_key = $self->{definitions_key} || 'definitions';
+  my $path = $self->generate_definitions_path->($ref);
 
   # No need to rewrite, if it already has a nice name
-  if ($ref->fqn =~ m!#/$definitions_key/([^/]+)$!) {
+  my $node   = _node($bundle, $path, 2, 0);
+  my $prefix = join '/', @$path;
+  if ($ref->fqn =~ m!#/$prefix/([^/]+)$!) {
     my $key = $1;
 
     if ( $self->{bundled_refs}{$ref->fqn}
-      or !$bundle->{$definitions_key}{$key}
-      or D($ref->schema) eq D($bundle->{$definitions_key}{$key}))
+      or !$node
+      or !$node->{$key}
+      or D($ref->schema) eq D($node->{$key}))
     {
-      return [$definitions_key, $key];
+      return [@$path, $key];
     }
   }
 
@@ -253,8 +264,7 @@ sub _definitions_path {
 
   # Fallback or nicer path name
   $key =~ s![^\w-]!_!g;
-
-  return [$definitions_key, $key];
+  return [@$path, $key];
 }
 
 sub _get {
@@ -397,6 +407,19 @@ sub _load_schema_from_url {
   }
 
   return $self->_load_schema_from_text(\$tx->res->body);
+}
+
+sub _node {
+  my ($node, $path, $offset, $create) = @_;
+
+  my $n = 0;
+  while ($path->[$n]) {
+    $node->{$path->[$n]} ||= {} if $create;
+    return undef unless $node = $node->{$path->[$n]};
+    last if (++$n) + $offset >= @$path;
+  }
+
+  return $node;
 }
 
 sub _ref_to_schema {
@@ -1296,6 +1319,18 @@ block should return C<undef> on success and an error string on error:
   sub { return defined $_[0] && $_[0] eq "42" ? undef : "Not the answer." };
 
 See L<JSON::Validator::Formats> for a list of supported formats.
+
+=head2 generate_definitions_path
+
+  my $cb = $self->generate_definitions_path;
+  my $jv = $self->generate_definitions_path(sub { my $ref = shift; return ["definitions"] });
+
+Holds a callback that is used by L</bundle> to figure out where to place
+references. The default location is under "definitions", but this can be
+changed to whatever you want. The input C<$ref> variable passed on is a
+L<JSON::Validator::Ref> object.
+
+This attribute is EXPERIMENTAL and might change without warning.
 
 =head2 ua
 
