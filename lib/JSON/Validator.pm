@@ -547,7 +547,8 @@ sub _location_to_abs {
   # definitely relative now
   if ($base->isa('Mojo::File')) {
     return $base if !length $location;
-    return $base->sibling(split '/', $location)->realpath;
+    my $path = $base->sibling(split '/', $location)->realpath;
+    return CASE_TOLERANT ? lc($path) : $path;
   }
   return $location_as_url->to_abs($base);
 }
