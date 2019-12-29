@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+3.17 2019-12-29T14:21:53+0900
+ - Fix for deep recursion on Windows #170
+ - Fix reading unicode specifiation from __DATA__ #179
+
 3.16 2019-10-28T13:59:47+0900
  - Add generate_definitions_path() #175 #177
    Contributor: Henrik Andersen, Jan Henning Thorsen
