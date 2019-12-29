@@ -320,7 +320,8 @@ sub _load_schema {
     @modules = _stack() unless $modules[0];
     for my $module (@modules) {
       warn "[JSON::Validator] Looking for $file in $module\n" if DEBUG;
-      my $text = Mojo::Loader::data_section($module, $file);
+      my $text = Mojo::Util::encode('UTF-8',
+        Mojo::Loader::data_section($module, $file) // '');
       return $self->_load_schema_from_text(\$text), "$url" if $text;
     }
     confess "$file could not be found in __DATA__ section of @modules.";

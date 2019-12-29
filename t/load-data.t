@@ -35,7 +35,7 @@ __DATA__
   "properties": {
       "firstName": { "type": "string" },
       "lastName": { "type": "string" },
-      "age": { "type": "integer", "minimum": 0, "description": "Age in years" }
+      "age": { "type": "integer", "minimum": 0, "description": "トシ" }
   }
 }
 
