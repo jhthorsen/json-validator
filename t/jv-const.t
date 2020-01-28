@@ -71,4 +71,12 @@ validate_ok {
   people => [{name => 'mr. chocolate fan', age => 42, likes => 'peanutbutter'}]
 }, $schema;
 
+my $null_const = {const => undef};
+validate_ok 'foo', $null_const, E('/', q{Does not match const: null.});
+validate_ok undef, $null_const;
+
+my $empty_const = {const => ''};
+validate_ok 'foo', $empty_const, E('/', q{Does not match const: "".});
+validate_ok '', $empty_const;
+
 done_testing;
