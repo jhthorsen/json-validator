@@ -55,4 +55,9 @@ ok !$jv->validate(\@numbers), 'integers are valid';
 is encode_json(\@numbers), encode_json([1, 2, 1, 1, 3, 1]),
   'coerced into numbers';
 
+my $array_constant = {type => 'array', const => [1, 'a', undef]};
+validate_ok [1, 'a', undef], $array_constant;
+validate_ok [1, 'b', undef], $array_constant,
+  E('/', q{Does not match const: [1,"a",null].});
+
 done_testing;
