@@ -11,7 +11,7 @@ get '/invalid-fragment'     => 'invalid-fragment';
 get '/invalid-relative'     => 'invalid-relative';
 get '/relative-to-the-root' => 'relative-to-the-root';
 
-$t = Test::Mojo->new;
+$t  = Test::Mojo->new;
 $jv = JSON::Validator->new(ua => $t->ua);
 $t->get_ok('/relative-to-the-root.json')->status_is(200);
 

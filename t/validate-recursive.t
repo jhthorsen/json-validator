@@ -6,7 +6,7 @@ use JSON::Validator 'validate_json';
 {
   use Mojolicious::Lite;
   post '/' => sub {
-    my $c = shift;
+    my $c      = shift;
     my @errors = validate_json $c->req->json, 'data://main/spec.json';
     $c->render(status => @errors ? 400 : 200, json => \@errors);
   };
