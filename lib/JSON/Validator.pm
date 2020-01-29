@@ -23,7 +23,7 @@ use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
-our $VERSION     = '3.17';
+our $VERSION     = '3.18';
 our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
 our @EXPORT_OK   = qw(joi validate_json);
 
@@ -1551,6 +1551,8 @@ Jan Henning Thorsen - C<jhthorsen@cpan.org>
 Daniel Böhmer - C<post@daniel-boehmer.de>
 
 Ed J - C<mohawk2@users.noreply.github.com>
+
+Karen Etheridge - C<ether@cpan.org>
 
 Kevin Goess - C<cpan@goess.org>
 

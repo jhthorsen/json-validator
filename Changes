@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+3.18 2020-01-29T10:18:09+0900
+ - Fix validating constants that are null or the empty string
+   Contributor: Karen Etheridge
+
 3.17 2019-12-29T14:21:53+0900
  - Fix for deep recursion on Windows #170
  - Fix reading unicode specifiation from __DATA__ #179
