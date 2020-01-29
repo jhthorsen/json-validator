@@ -79,4 +79,9 @@ my $empty_const = {const => ''};
 validate_ok 'foo', $empty_const, E('/', q{Does not match const: "".});
 validate_ok '', $empty_const;
 
+my $array_constant = {const => [1, 'a', undef]};
+validate_ok [1, 'a', undef], $array_constant;
+validate_ok [1, 'b', undef], $array_constant,
+  E('/', q{Does not match const: [1,"a",null].});
+
 done_testing;
