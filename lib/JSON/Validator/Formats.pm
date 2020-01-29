@@ -69,7 +69,7 @@ sub check_idn_email {
     my @email = split /@/, $_[0], 2;
     check_email(
       join '@',
-      Net::IDN::Encode::to_ascii($email[0] // ''),
+      Net::IDN::Encode::to_ascii($email[0]        // ''),
       Net::IDN::Encode::domain_to_ascii($email[1] // ''),
     );
   };

@@ -6,13 +6,14 @@ use Mojo::File 'tempdir';
 plan skip_all => 'TEST_ONLINE=1' unless $ENV{TEST_ONLINE};
 
 $ENV{JSON_VALIDATOR_CACHE_PATH} = '/tmp/whatever';
-my $jv = JSON::Validator->new;
+my $jv        = JSON::Validator->new;
 my @old_files = get_cached_files($jv);
 
 is $jv->cache_paths->[0], '/tmp/whatever', 'back compat env';
 shift @{$jv->cache_paths};
 
-my $spec_url = 'https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v2.0/schema.json';
+my $spec_url
+  = 'https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/schemas/v2.0/schema.json';
 $jv->schema($spec_url);
 my @new_files = get_cached_files($jv);
 ok @old_files == @new_files, 'remote file not cached in default cache dir';

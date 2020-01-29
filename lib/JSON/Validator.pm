@@ -638,7 +638,7 @@ sub _validate {
   if (exists $schema->{const}) {
     push @errors,
       $self->_validate_type_const($to_json ? $$to_json : $_[1], $path, $schema);
-    $self->_report_errors($path, 'enum', \@errors) if REPORT;
+    $self->_report_errors($path, 'const', \@errors) if REPORT;
     return @errors if @errors;
   }
 

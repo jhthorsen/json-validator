@@ -10,7 +10,7 @@ use Mojolicious::Lite;
 get '/person'           => 'person';
 get '/invalid-relative' => 'invalid-relative';
 
-$t = Test::Mojo->new;
+$t  = Test::Mojo->new;
 $jv = JSON::Validator->new(ua => $t->ua);
 
 eval {

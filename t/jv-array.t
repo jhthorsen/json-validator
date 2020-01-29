@@ -4,10 +4,10 @@ use Mojo::JSON 'encode_json';
 use Test::More;
 use t::Helper;
 
-my $simple = {type => 'array', items => {type => 'number'}};
-my $length = {type => 'array', minItems => 2, maxItems => 2};
+my $simple = {type => 'array', items       => {type => 'number'}};
+my $length = {type => 'array', minItems    => 2, maxItems => 2};
 my $unique = {type => 'array', uniqueItems => 1, items => {type => 'integer'}};
-my $tuple  = {
+my $tuple = {
   type  => 'array',
   items => [
     {type => 'number'},

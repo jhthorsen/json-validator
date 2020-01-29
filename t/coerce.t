@@ -47,7 +47,7 @@ sub schemas {
   my $base = {type => shift};
   return (
     $base,
-    {type  => ['array', $base->{type}]},
+    {type  => ['array',           $base->{type}]},
     {allOf => [$base]},
     {anyOf => [{type => 'array'}, $base]},
     {oneOf => [$base, {type => 'array'}]},
