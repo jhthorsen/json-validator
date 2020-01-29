@@ -22,9 +22,21 @@ validate_ok j('foo'),             {type => 'boolean'},
   E('/', 'Expected boolean - got string.');
 validate_ok undef, {properties => {}}, E('/', 'Expected object - got null.');
 
+my $bool_constant_false = {type => 'boolean', const => false};
+my $bool_constant_true  = {type => 'boolean', const => true};
+validate_ok false, $bool_constant_false;
+validate_ok true, $bool_constant_false, E('/', q{Does not match const: false.});
+validate_ok true, $bool_constant_true;
+validate_ok false, $bool_constant_true, E('/', q{Does not match const: true.});
+
 jv->coerce('bool');
 validate_ok {nick => 1000}, $schema;
 validate_ok {nick => 0.5},  $schema;
+
+validate_ok 0,    $bool_constant_false;
+validate_ok 1000, $bool_constant_false, E('/', q{Does not match const: false.});
+validate_ok 1000, $bool_constant_true;
+validate_ok 0,    $bool_constant_true, E('/', q{Does not match const: true.});
 
 done_testing;
 

@@ -40,4 +40,12 @@ validate_ok(
   }
 );
 
+my $string_constant = {type => 'string', const => 'foo'};
+validate_ok 'foo', $string_constant;
+validate_ok 'bar', $string_constant, E('/', q{Does not match const: "foo".});
+
+my $empty_string_constant = {type => 'string', const => ''};
+validate_ok '', $empty_string_constant;
+validate_ok 'bar', $empty_string_constant, E('/', q{Does not match const: "".});
+
 done_testing;

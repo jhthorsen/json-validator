@@ -132,4 +132,9 @@ my $obj = bless {age => 'not_a_string'}, 'main';
 validate_ok $obj, {properties => {age => {type => 'integer'}}},
   E('/age', 'Expected integer - got string.', 'age is not a string');
 
+my $object_constant = {type => 'object', const => {a => 1}};
+validate_ok {a => 1}, $object_constant;
+validate_ok {b => 1}, $object_constant,
+  E('/', q{Does not match const: {"a":1}.});
+
 done_testing;

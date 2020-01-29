@@ -18,6 +18,10 @@ validate_ok {mynumber => '2'}, $schema,
 $schema->{properties}{mynumber}{multipleOf} = 2;
 validate_ok {mynumber => 3}, $schema, E('/mynumber', 'Not multiple of 2.');
 
+my $int_constant = {type => 'integer', const => 2};
+validate_ok 2, $int_constant;
+validate_ok 1, $int_constant, E('/', q{Does not match const: 2.});
+
 jv->coerce('num');
 validate_ok {mynumber => '2'},    $schema;
 validate_ok {mynumber => '2xyz'}, $schema,
@@ -25,5 +29,8 @@ validate_ok {mynumber => '2xyz'}, $schema,
 
 $schema->{properties}{mynumber}{minimum} = -3;
 validate_ok {mynumber => '-2'}, $schema;
+
+validate_ok '2', $int_constant;
+validate_ok '1', $int_constant, E('/', q{Does not match const: 2.});
 
 done_testing;

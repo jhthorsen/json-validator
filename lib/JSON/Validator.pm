@@ -635,6 +635,13 @@ sub _validate {
     return @errors if @errors;
   }
 
+  if (exists $schema->{const}) {
+    push @errors,
+      $self->_validate_type_const($to_json ? $$to_json : $_[1], $path, $schema);
+    $self->_report_errors($path, 'enum', \@errors) if REPORT;
+    return @errors if @errors;
+  }
+
   if ($schema->{enum}) {
     push @errors,
       $self->_validate_type_enum($to_json ? $$to_json : $_[1], $path, $schema);
@@ -1108,7 +1115,7 @@ sub _guess_schema_type {
   return _guessed_right(number => $_[1])
     if defined $_[0]->{maximum}
     or defined $_[0]->{minimum};
-  return 'const' if $_[0]->{const};
+  return 'const' if exists $_[0]->{const};
   return undef;
 }
 
