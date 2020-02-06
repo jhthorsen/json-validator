@@ -7,6 +7,16 @@ validate_ok {who_id => 'WHO', expire => '2018-01-01', amount => 1000,
   E('/template', '/oneOf/0/allOf/2 Missing property.'),
   E('/sym',      '/oneOf/1/allOf/0 Missing property.');
 
+validate_ok {
+  sym      => 'a',
+  expire   => 'b',
+  amount   => 1,
+  desc     => 'foo',
+  who_id   => 'c',
+  template => 'd'
+  },
+  'data://main/example.json', E('/', 'oneOf rules 0, 1 match.');
+
 done_testing;
 
 __DATA__
@@ -14,7 +24,8 @@ __DATA__
 {
   "oneOf": [
     {"$ref": "#/definitions/template_1"},
-    {"$ref": "#/definitions/bar_header"}
+    {"$ref": "#/definitions/bar_header"},
+    {"type": "string"}
   ],
   "definitions": {
     "hwho":{

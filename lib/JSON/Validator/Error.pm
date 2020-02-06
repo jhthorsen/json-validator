@@ -34,6 +34,7 @@ our $MESSAGES = {
   },
   oneOf => {
     all_rules_match => 'All of the oneOf rules match.',
+    n_rules_match   => 'oneOf rules %3 match.',
     type            => '/oneOf Expected %3 - got %4.',
   },
   string => {

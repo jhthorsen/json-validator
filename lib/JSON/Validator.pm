@@ -731,9 +731,9 @@ sub _validate_one_of {
   $self->_report_schema($path, 'oneOf', $rules) if REPORT;
   local $self->{grouped} = $self->{grouped} + 1;
 
-  my $i = 0;
+  my ($i, @passed) = (0);
   for my $rule (@$rules) {
-    my @e           = $self->_validate($_[1], $path, $rule) or next;
+    my @e = $self->_validate($_[1], $path, $rule) or push @passed, $i and next;
     my $schema_type = _guess_schema_type($rule);
     push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
@@ -750,11 +750,11 @@ sub _validate_one_of {
     $self->_report_errors($path, 'oneOf', \@e);
   }
 
-  return if @errors + @expected + 1 == @$rules;
-  my $expected = join '/', _uniq(@expected);
+  return if @passed == 1;
   return E $path, [oneOf => 'all_rules_match'] unless @errors + @expected;
-  return E $path, [oneOf => type => $expected => $type] unless @errors;
-  return _add_path_to_error_messages(oneOf => @errors);
+  return E $path, [oneOf => 'n_rules_match', join(', ', @passed)] if @passed;
+  return _add_path_to_error_messages(oneOf => @errors) if @errors;
+  return E $path, [oneOf => type => join('/', _uniq(@expected)), $type];
 }
 
 sub _validate_type_enum {
