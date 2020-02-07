@@ -992,11 +992,13 @@ sub _validate_type_object {
       : $self->_validate($data, $path, $schema->{then} // {});
   }
 
-  my $coerce_defaults = $self->{coerce}{defaults};
+  my $coerce = $self->{coerce}{defaults};
   while (my ($k, $r) = each %{$schema->{properties}}) {
+    next unless ref $r eq 'HASH';
     push @{$rules{$k}}, $r;
-    next unless $coerce_defaults;
-    $data->{$k} = $r->{default} if exists $r->{default} and !exists $data->{$k};
+    if ($coerce and exists $r->{default} and !exists $data->{$k}) {
+      $data->{$k} = $r->{default};
+    }
   }
 
   while (my ($p, $r) = each %{$schema->{patternProperties} || {}}) {
