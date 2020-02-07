@@ -15,6 +15,8 @@ our $MESSAGES = {
   const   => {const => 'Does not match const: %3.'},
   enum    => {enum  => 'Not in enum list: %3.'},
   integer => {
+    ex_maximum => '%3 >= maximum(%4)',
+    ex_minimum => '%3 <= minimum(%4)',
     maximum    => '%3 > maximum(%4)',
     minimum    => '%3 < minimum(%4)',
     multipleOf => 'Not multiple of %3.',
@@ -22,6 +24,8 @@ our $MESSAGES = {
   not    => {not  => 'Should not match.'},
   null   => {null => 'Not null.'},
   number => {
+    ex_maximum => '%3 >= maximum(%4)',
+    ex_minimum => '%3 <= minimum(%4)',
     maximum    => '%3 > maximum(%4)',
     minimum    => '%3 < minimum(%4)',
     multipleOf => 'Not multiple of %3.',
@@ -89,7 +93,7 @@ sub new {
 }
 
 sub to_string { sprintf '%s: %s', $_[0]->path, $_[0]->message }
-sub TO_JSON { {message => $_[0]->message, path => $_[0]->path} }
+sub TO_JSON   { {message => $_[0]->message, path => $_[0]->path} }
 
 1;
 

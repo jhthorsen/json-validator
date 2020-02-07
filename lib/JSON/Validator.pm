@@ -393,7 +393,7 @@ sub _load_schema_from_url {
 
   $tx  = $self->ua->get($url);
   $err = $tx->error && $tx->error->{message};
-  confess "GET $url == $err" if DEBUG and $err;
+  confess "GET $url == $err"               if DEBUG and $err;
   die "[JSON::Validator] GET $url == $err" if $err;
 
   if ($cache_path
@@ -569,11 +569,11 @@ sub _resolve_ref {
     last if !$ref or ref $ref;
     $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
     ($location, $pointer) = split /#/, $fqn, 2;
-    $url = $location = _location_to_abs($location, $url);
+    $url     = $location = _location_to_abs($location, $url);
     $pointer = undef if length $location and !length $pointer;
     $pointer = url_unescape $pointer if defined $pointer;
-    $fqn   = join '#', grep defined, $location, $pointer;
-    $other = $self->_resolve($location);
+    $fqn     = join '#', grep defined, $location, $pointer;
+    $other   = $self->_resolve($location);
 
     if (defined $pointer and length $pointer and $pointer =~ m!^/!) {
       $other = Mojo::JSON::Pointer->new($other)->get($pointer)
@@ -632,21 +632,21 @@ sub _validate {
     $self->_report_schema($path || '/', $type, $schema) if REPORT;
     @errors = $self->$method($to_json ? $$to_json : $_[1], $path, $schema);
     $self->_report_errors($path, $type, \@errors) if REPORT;
-    return @errors if @errors;
+    return @errors                                if @errors;
   }
 
   if (exists $schema->{const}) {
     push @errors,
       $self->_validate_type_const($to_json ? $$to_json : $_[1], $path, $schema);
     $self->_report_errors($path, 'const', \@errors) if REPORT;
-    return @errors if @errors;
+    return @errors                                  if @errors;
   }
 
   if ($schema->{enum}) {
     push @errors,
       $self->_validate_type_enum($to_json ? $$to_json : $_[1], $path, $schema);
     $self->_report_errors($path, 'enum', \@errors) if REPORT;
-    return @errors if @errors;
+    return @errors                                 if @errors;
   }
 
   if (my $rules = $schema->{not}) {
@@ -757,6 +757,54 @@ sub _validate_one_of {
   return E $path, [oneOf => type => join('/', _uniq(@expected)), $type];
 }
 
+sub _validate_number_max {
+  my ($self, $value, $path, $schema, $expected) = @_;
+  my @errors;
+
+  my $cmp_with = $schema->{exclusiveMaximum} // '';
+  if (_is_boolean($cmp_with)) {
+    push @errors, E $path,
+      [$expected => ex_maximum => $value, $schema->{maximum}]
+      unless $value < $schema->{maximum};
+  }
+  elsif (_is_number($cmp_with)) {
+    push @errors, E $path, [$expected => ex_maximum => $value, $cmp_with]
+      unless $value < $cmp_with;
+  }
+
+  if (exists $schema->{maximum}) {
+    my $cmp_with = $schema->{maximum};
+    push @errors, E $path, [$expected => maximum => $value, $cmp_with]
+      unless $value <= $cmp_with;
+  }
+
+  return @errors;
+}
+
+sub _validate_number_min {
+  my ($self, $value, $path, $schema, $expected) = @_;
+  my @errors;
+
+  my $cmp_with = $schema->{exclusiveMinimum} // '';
+  if (_is_boolean($cmp_with)) {
+    push @errors, E $path,
+      [$expected => ex_minimum => $value, $schema->{minimum}]
+      unless $value > $schema->{minimum};
+  }
+  elsif (_is_number($cmp_with)) {
+    push @errors, E $path, [$expected => ex_minimum => $value, $cmp_with]
+      unless $value > $cmp_with;
+  }
+
+  if (exists $schema->{minimum}) {
+    my $cmp_with = $schema->{minimum};
+    push @errors, E $path, [$expected => minimum => $value, $cmp_with]
+      unless $value >= $cmp_with;
+  }
+
+  return @errors;
+}
+
 sub _validate_type_enum {
   my ($self, $data, $path, $schema) = @_;
   my $enum = $schema->{enum};
@@ -852,13 +900,7 @@ sub _validate_type_array {
 
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
-
-  # Object representing a boolean
-  if (blessed $value
-    and ($value->isa('JSON::PP::Boolean') or "$value" eq "1" or !$value))
-  {
-    return;
-  }
+  return if _is_boolean($value);
 
   # String that looks like a boolean
   if (
@@ -880,7 +922,7 @@ sub _validate_type_integer {
   my @errors = $self->_validate_type_number($_[1], $path, $schema, 'integer');
 
   return @errors if @errors;
-  return if $value =~ /^-?\d+$/;
+  return         if $value =~ /^-?\d+$/;
   return E $path, [integer => type => _guess_data_type($value)];
 }
 
@@ -907,24 +949,14 @@ sub _validate_type_number {
     $_[1] = 0 + $value;    # coerce input value
   }
 
-  if ($schema->{format}) {
-    push @errors, $self->_validate_format($value, $path, $schema);
-  }
-  if (my $e
-    = _cmp($schema->{minimum}, $value, $schema->{exclusiveMinimum}, '<'))
-  {
-    push @errors, E $path, [$expected => minimum => $value, $schema->{minimum}];
-  }
-  if (my $e
-    = _cmp($value, $schema->{maximum}, $schema->{exclusiveMaximum}, '>'))
-  {
-    push @errors, E $path, [$expected => maximum => $value, $schema->{maximum}];
-  }
-  if (my $d = $schema->{multipleOf}) {
-    if (($value / $d) =~ /\.[^0]+$/) {
-      push @errors, E $path, [$expected => multipleOf => $d];
-    }
-  }
+  push @errors, $self->_validate_format($value, $path, $schema)
+    if $schema->{format};
+  push @errors, $self->_validate_number_max($value, $path, $schema, $expected);
+  push @errors, $self->_validate_number_min($value, $path, $schema, $expected);
+
+  my $d = $schema->{multipleOf};
+  push @errors, E $path, [$expected => multipleOf => $d]
+    if $d and ($value / $d) =~ /\.[^0]+$/;
 
   return @errors;
 }
@@ -1065,13 +1097,6 @@ sub _add_path_to_error_messages {
   return @errors;
 }
 
-sub _cmp {
-  return undef    if !defined $_[0] or !defined $_[1];
-  return "$_[3]=" if $_[2] and $_[0] >= $_[1];
-  return $_[3]    if $_[0] > $_[1];
-  return "";
-}
-
 # _guess_data_type($data, [{type => ...}, ...])
 sub _guess_data_type {
   my $ref     = ref $_[0];
@@ -1124,6 +1149,11 @@ sub _guessed_right {
   return $_[0] if !defined $_[1];
   return $_[0] if $_[0] eq _guess_data_type($_[1], [{type => $_[0]}]);
   return undef;
+}
+
+sub _is_boolean {
+  return blessed $_[0]
+    && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]);
 }
 
 sub _is_number {

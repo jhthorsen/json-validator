@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+3.19 Not Released
+ - Improved validation of numeric minimum and maximum values
+
 3.18 2020-01-29T10:18:09+0900
  - Fix validating constants that are null or the empty string
    Contributor: Karen Etheridge
