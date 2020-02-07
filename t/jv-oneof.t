@@ -36,4 +36,7 @@ validate_ok {x => 'foo'}, $schema,
 validate_ok {x => '2015-04-21T20:30:43.000Z'}, $schema;
 validate_ok {x => undef}, $schema;
 
+validate_ok 1, {oneOf => [{minimum => 1}, {minimum => 2}, {maximum => 3}]},
+  E('/', 'oneOf rules 0, 2 match.');
+
 done_testing;
