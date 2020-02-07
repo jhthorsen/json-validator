@@ -1,13 +1,11 @@
 use Mojo::Base -strict;
-use Test::More;
-use Mojo::JSON;
 use JSON::Validator;
+use Mojo::JSON 'false';
+use Test::More;
 
-my $jv = JSON::Validator->new->schema('data://main/spec.json');
-my @errors
-  = $jv->validate({prop1 => Mojo::JSON->false, prop2 => Mojo::JSON->false});
-
-is "@errors", "";
+my $jv     = JSON::Validator->new->schema('data://main/spec.json');
+my @errors = $jv->validate({prop1 => false, prop2 => false});
+is "@errors", '', 'oneof blessed booleans';
 
 done_testing;
 

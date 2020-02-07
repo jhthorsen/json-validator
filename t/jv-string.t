@@ -1,7 +1,6 @@
 use lib '.';
-use t::Helper;
-use Test::More;
 use utf8;
+use t::Helper;
 
 my $schema = {
   type       => 'object',

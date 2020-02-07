@@ -1,29 +1,29 @@
-  use Mojo::Base -strict;
-  use Test::More;
-  use JSON::Validator;
+use Mojo::Base -strict;
+use JSON::Validator;
+use Test::More;
 
-  my $jv = JSON::Validator->new;
-  my @errors
-    = $jv->schema('data://main/spec.json')->validate({firstName => 'yikes!'});
+my $jv = JSON::Validator->new;
+my @errors
+  = $jv->schema('data://main/spec.json')->validate({firstName => 'yikes!'});
 
-  is int(@errors), 1, 'one error';
-  is $errors[0]->path,    '/lastName',         'lastName';
-  is $errors[0]->message, 'Missing property.', 'required';
-  is_deeply $errors[0]->TO_JSON,
-    {path => '/lastName', message => 'Missing property.'}, 'TO_JSON';
+is int(@errors), 1, 'one error';
+is $errors[0]->path,    '/lastName',         'lastName';
+is $errors[0]->message, 'Missing property.', 'required';
+is_deeply $errors[0]->TO_JSON,
+  {path => '/lastName', message => 'Missing property.'}, 'TO_JSON';
 
-  use Mojo::File 'path';
-  push @INC, path(path(__FILE__)->dirname, 'stack')->to_string;
-  require Some::Module;
+use Mojo::File 'path';
+push @INC, path(path(__FILE__)->dirname, 'stack')->to_string;
+require Some::Module;
 
-  eval { Some->validate_age1({age => 1}) };
-  like $@, qr{age1\.json}, 'could not find age1.json';
+eval { Some->validate_age1({age => 1}) };
+like $@, qr{age1\.json}, 'could not find age1.json';
 
-  ok !Some->validate_age0({age => 1}), 'validate_age0';
-  ok !Some::Module->validate_age0({age => 1}), 'validate_age0';
-  ok !Some::Module->validate_age1({age => 1}), 'validate_age1';
+ok !Some->validate_age0({age => 1}), 'validate_age0';
+ok !Some::Module->validate_age0({age => 1}), 'validate_age0';
+ok !Some::Module->validate_age1({age => 1}), 'validate_age1';
 
-  done_testing;
+done_testing;
 
 __DATA__
 @@ spec.json

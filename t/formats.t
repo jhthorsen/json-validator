@@ -1,4 +1,4 @@
-use strict;
+use Mojo::Base -strict;
 use Test::More;
 
 BEGIN { use_ok('JSON::Validator::Formats'); }

@@ -1,16 +1,14 @@
 use Mojo::Base -strict;
+use JSON::Validator 'validate_json';
 use Test::Mojo;
 use Test::More;
-use JSON::Validator 'validate_json';
 
-{
-  use Mojolicious::Lite;
-  post '/' => sub {
-    my $c      = shift;
-    my @errors = validate_json $c->req->json, 'data://main/spec.json';
-    $c->render(status => @errors ? 400 : 200, json => \@errors);
-  };
-}
+use Mojolicious::Lite;
+post '/' => sub {
+  my $c      = shift;
+  my @errors = validate_json $c->req->json, 'data://main/spec.json';
+  $c->render(status => @errors ? 400 : 200, json => \@errors);
+};
 
 my $t = Test::Mojo->new;
 

@@ -1,7 +1,7 @@
 use Mojo::Base -strict;
+use JSON::Validator;
 use Mojo::File 'path';
 use Test::More;
-use JSON::Validator;
 
 my $workdir = path(__FILE__)->to_abs->dirname;
 my $jv      = JSON::Validator->new;

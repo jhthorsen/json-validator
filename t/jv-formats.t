@@ -1,7 +1,6 @@
 use lib '.';
 use t::Helper;
 use Mojo::Util 'decode';
-use Test::More;
 
 my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 

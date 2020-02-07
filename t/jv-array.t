@@ -1,7 +1,6 @@
 use lib '.';
 use Mojo::Base -strict;
 use Mojo::JSON 'encode_json';
-use Test::More;
 use t::Helper;
 
 my $simple = {type => 'array', items       => {type => 'number'}};

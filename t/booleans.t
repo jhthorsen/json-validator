@@ -1,6 +1,5 @@
 use lib '.';
 use t::Helper;
-use Test::More;
 
 my $schema = {properties => {v => {type => 'boolean'}}};
 

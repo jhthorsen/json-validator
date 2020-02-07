@@ -1,8 +1,7 @@
 use Mojo::Base -strict;
-
-use Test::More;
-use Test::Deep;
 use JSON::Validator;
+use Test::Deep;
+use Test::More;
 
 plan skip_all => 'YAML::XS is not installed'
   unless $JSON::Validator::YAML_LOADER;

@@ -1,7 +1,7 @@
 use Mojo::Base -strict;
-use Test::More;
 use JSON::Validator;
 use Mojo::File 'path';
+use Test::More;
 
 my $workdir = path(__FILE__)->dirname;
 my $file    = path($workdir, 'spec', 'with-deep-mixed-ref.json');

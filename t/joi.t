@@ -2,8 +2,6 @@ use lib '.';
 use t::Helper;
 use JSON::Validator 'joi';
 use Storable 'dclone';
-use Test::Deep;
-use Test::More;
 
 is_deeply(
   edj(joi->object->strict->props(

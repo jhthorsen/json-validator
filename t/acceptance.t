@@ -1,10 +1,9 @@
 use Mojo::Base -strict;
-use JSON::Validator;
+use JSON::Validator 'validate_json';
 use Mojo::File 'path';
-use Mojo::JSON qw(encode_json false decode_json true);
+use Mojo::JSON qw(encode_json decode_json false true);
 use Test::Mojo;
 use Test::More;
-use JSON::Validator 'validate_json';
 
 my $test_suite = path(qw(t draft4-tests));
 my $remotes    = path(qw(t remotes));
@@ -30,7 +29,7 @@ for my $file (sort $test_suite->list->each) {
       my $schema = encode_json $group->{schema};
       my $descr  = "$group->{description} - $test->{description}";
 
-      next if $test_only_re and $descr !~ /$test_only_re/;
+      next          if $test_only_re and $descr !~ /$test_only_re/;
       diag <<"HERE" if $test_only_re;
 ---
 description:  $descr

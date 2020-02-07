@@ -1,6 +1,6 @@
 use Mojo::Base -strict;
-use Test::More;
 use JSON::Validator 'validate_json';
+use Test::More;
 
 my @errors
   = validate_json(

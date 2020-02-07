@@ -1,7 +1,7 @@
 use Mojo::Base -strict;
-use Test::More;
 use JSON::Validator;
 use Mojo::File 'tempdir';
+use Test::More;
 
 plan skip_all => 'TEST_ONLINE=1' unless $ENV{TEST_ONLINE};
 

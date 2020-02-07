@@ -1,8 +1,7 @@
 use Mojo::Base -strict;
-use Mojo::JSON 'encode_json';
+use JSON::Validator;
 use Test::Mojo;
 use Test::More;
-use JSON::Validator;
 
 my ($base_url, $jv, $t, @e);
 

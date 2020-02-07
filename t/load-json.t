@@ -1,7 +1,7 @@
 use Mojo::Base -strict;
-use Test::More;
 use JSON::Validator;
 use Mojo::File 'path';
+use Test::More;
 
 my $file   = path(path(__FILE__)->dirname, 'spec', 'person.json');
 my $jv     = JSON::Validator->new->schema($file);

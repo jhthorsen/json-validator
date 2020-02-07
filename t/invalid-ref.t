@@ -1,7 +1,7 @@
 use Mojo::Base -strict;
+use JSON::Validator;
 use Mojo::File 'path';
 use Test::More;
-use JSON::Validator;
 
 eval { JSON::Validator->new->schema('data://main/spec.json') };
 like $@, qr{Could not find.*/definitions/Pet"}, 'missing definition';
