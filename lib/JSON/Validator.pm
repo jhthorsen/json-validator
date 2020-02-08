@@ -362,10 +362,9 @@ sub _load_schema_from_text {
   $visit = sub {
     my $v = shift;
     $visit->($_) for grep { ref $_ eq 'HASH' } values %$v;
-    return $v
-      unless $v->{type}
-      and $v->{type} eq 'boolean'
-      and exists $v->{default};
+    unless ($v->{type} and $v->{type} eq 'boolean' and exists $v->{default}) {
+      return $v;
+    }
     %$v = (%$v, default => $v->{default} ? true : false);
     return $v;
   };
@@ -1335,7 +1334,7 @@ See also L</validate> and L</ERROR OBJECT> for more details.
 
 =head2 cache_paths
 
-  my $jv = $jv->cache_paths(\@paths);
+  my $jv        = $jv->cache_paths(\@paths);
   my $array_ref = $jv->cache_paths;
 
 A list of directories to where cached specifications are stored. Defaults to
@@ -1373,7 +1372,7 @@ This attribute is EXPERIMENTAL and might change without warning.
 
 =head2 ua
 
-  my $ua        = $jv->ua;
+  my $ua = $jv->ua;
   my $jv = $jv->ua(Mojo::UserAgent->new);
 
 Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
@@ -1384,8 +1383,8 @@ L<Mojo::UserAgent/max_redirects> set to 3.
 
 =head2 version
 
-  my $int       = $jv->version;
-  my $jv = $jv->version(7);
+  my $int = $jv->version;
+  my $jv  = $jv->version(7);
 
 Used to set the JSON Schema version to use. Will be set automatically when
 using L</load_and_validate_schema>, unless already set.
@@ -1492,11 +1491,11 @@ structured that can be used to validate C<$schema>.
 
 =head2 schema
 
-  my $jv = $jv->schema($json_or_yaml_string);
-  my $jv = $jv->schema($url);
-  my $jv = $jv->schema(\%schema);
-  my $jv = $jv->schema(JSON::Validator::Joi->new);
-  my $schema    = $jv->schema;
+  my $jv     = $jv->schema($json_or_yaml_string);
+  my $jv     = $jv->schema($url);
+  my $jv     = $jv->schema(\%schema);
+  my $jv     = $jv->schema(JSON::Validator::Joi->new);
+  my $schema = $jv->schema;
 
 Used to set a schema from either a data structure or a URL.
 
