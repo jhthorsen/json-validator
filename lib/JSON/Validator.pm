@@ -8,6 +8,8 @@ use JSON::Validator::Error;
 use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
+use JSON::Validator::Util
+  qw(E data_type is_boolean is_number is_type json_path prefix_errors schema_type uniq);
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON qw(false true);
@@ -34,8 +36,6 @@ sub D {
   Data::Dumper->new([@_])->Sortkeys(1)->Indent(0)->Maxdepth(2)->Pair(':')
     ->Useqq(1)->Terse(1)->Dump;
 }
-
-sub E { JSON::Validator::Error->new(@_) }
 
 sub S {
   Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump);
@@ -277,7 +277,7 @@ sub _get {
     unless (defined $p) {
       my $i = 0;
       return Mojo::Collection->new(
-        map { $self->_get($_->[0], [@$path], _path($pos, $_->[1]), $cb) }
+        map { $self->_get($_->[0], [@$path], json_path($pos, $_->[1]), $cb) }
           ref $data eq 'ARRAY' ? map { [$_, $i++] }
           @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] }
           sort keys %$data : [$data, '']);
@@ -285,7 +285,7 @@ sub _get {
 
     $p =~ s!~1!/!g;
     $p =~ s/~0/~/g;
-    $pos = _path($pos, $p) if $cb;
+    $pos = json_path $pos, $p if $cb;
 
     if (ref $data eq 'HASH' and exists $data->{$p}) {
       $data = $data->{$p};
@@ -511,15 +511,14 @@ sub _resolve {
   $self->_register_schema($schema, $id);
 
   my @topics
-    = ([$schema, UNIVERSAL::isa($id, 'Mojo::File') ? $id : Mojo::URL->new($id)
-    ]);
+    = ([$schema, is_type($id, 'Mojo::File') ? $id : Mojo::URL->new($id)]);
   while (@topics) {
     my ($topic, $base) = @{shift @topics};
 
-    if (UNIVERSAL::isa($topic, 'ARRAY')) {
+    if (is_type $topic, 'ARRAY') {
       push @topics, map { [$_, $base] } @$topic;
     }
-    elsif (UNIVERSAL::isa($topic, 'HASH')) {
+    elsif (is_type $topic, 'HASH') {
       push @refs, [$topic, $base] and next
         if $topic->{'$ref'} and !ref $topic->{'$ref'};
 
@@ -545,7 +544,7 @@ sub _location_to_abs {
   return $location_as_url if $location_as_url->is_abs;
 
   # definitely relative now
-  if ($base->isa('Mojo::File')) {
+  if (is_type $base, 'Mojo::File') {
     return $base if !length $location;
     my $path = $base->sibling(split '/', $location)->realpath;
     return CASE_TOLERANT ? lc($path) : $path;
@@ -601,7 +600,7 @@ sub _validate {
   my ($seen_addr, $to_json, $type);
 
   # Do not validate against "default" in draft-07 schema
-  return if blessed $schema and $schema->isa('JSON::PP::Boolean');
+  return if is_type $schema, 'JSON::PP::Boolean';
 
   $schema    = $self->_ref_to_schema($schema) if $schema->{'$ref'};
   $seen_addr = join ':', refaddr($schema),
@@ -617,7 +616,7 @@ sub _validate {
   $to_json
     = (blessed $data and $data->can('TO_JSON')) ? \$data->TO_JSON : undef;
   $data = $$to_json if $to_json;
-  $type = $schema->{type} || _guess_schema_type($schema, $data);
+  $type = $schema->{type} || schema_type $schema, $data;
 
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {
@@ -672,7 +671,7 @@ sub _validate {
 
 sub _validate_all_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data, $rules);
+  my $type = data_type $data, $rules;
   my (@errors, @expected);
 
   $self->_report_schema($path, 'allOf', $rules) if REPORT;
@@ -681,7 +680,7 @@ sub _validate_all_of {
   my $i = 0;
   for my $rule (@$rules) {
     next unless my @e = $self->_validate($_[1], $path, $rule);
-    my $schema_type = _guess_schema_type($rule);
+    my $schema_type = schema_type $rule;
     push @expected, $schema_type if $schema_type;
     push @errors, [$i, @e] if !$schema_type or $schema_type eq $type;
   }
@@ -690,15 +689,15 @@ sub _validate_all_of {
   }
 
   $self->_report_errors($path, 'allOf', \@errors) if REPORT;
-  return E $path, [allOf => type => join('/', _uniq(@expected)), $type]
+  return E $path, [allOf => type => join('/', uniq @expected), $type]
     if !@errors and @expected;
-  return _add_path_to_error_messages(allOf => @errors) if @errors;
+  return prefix_errors allOf => @errors if @errors;
   return;
 }
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data, $rules);
+  my $type = data_type $data, $rules;
   my (@e, @errors, @expected);
 
   $self->_report_schema($path, 'anyOf', $rules) if REPORT;
@@ -708,7 +707,7 @@ sub _validate_any_of {
   for my $rule (@$rules) {
     @e = $self->_validate($_[1], $path, $rule);
     return unless @e;
-    my $schema_type = _guess_schema_type($rule);
+    my $schema_type = schema_type $rule;
     push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
   }
@@ -717,14 +716,14 @@ sub _validate_any_of {
   }
 
   $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
-  my $expected = join '/', _uniq(@expected);
+  my $expected = join '/', uniq @expected;
   return E $path, [anyOf => type => $expected, $type] unless @errors;
-  return _add_path_to_error_messages(anyOf => @errors);
+  return prefix_errors anyOf => @errors;
 }
 
 sub _validate_one_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = _guess_data_type($data, $rules);
+  my $type = data_type $data, $rules;
   my (@errors, @expected);
 
   $self->_report_schema($path, 'oneOf', $rules) if REPORT;
@@ -733,7 +732,7 @@ sub _validate_one_of {
   my ($i, @passed) = (0);
   for my $rule (@$rules) {
     my @e = $self->_validate($_[1], $path, $rule) or push @passed, $i and next;
-    my $schema_type = _guess_schema_type($rule);
+    my $schema_type = schema_type $rule;
     push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
     push @expected, $schema_type;
   }
@@ -752,8 +751,8 @@ sub _validate_one_of {
   return if @passed == 1;
   return E $path, [oneOf => 'all_rules_match'] unless @errors + @expected;
   return E $path, [oneOf => 'n_rules_match', join(', ', @passed)] if @passed;
-  return _add_path_to_error_messages(oneOf => @errors) if @errors;
-  return E $path, [oneOf => type => join('/', _uniq(@expected)), $type];
+  return prefix_errors oneOf => @errors if @errors;
+  return E $path, [oneOf => type => join('/', uniq @expected), $type];
 }
 
 sub _validate_number_max {
@@ -761,12 +760,12 @@ sub _validate_number_max {
   my @errors;
 
   my $cmp_with = $schema->{exclusiveMaximum} // '';
-  if (_is_boolean($cmp_with)) {
+  if (is_boolean $cmp_with) {
     push @errors, E $path,
       [$expected => ex_maximum => $value, $schema->{maximum}]
       unless $value < $schema->{maximum};
   }
-  elsif (_is_number($cmp_with)) {
+  elsif (is_number $cmp_with) {
     push @errors, E $path, [$expected => ex_maximum => $value, $cmp_with]
       unless $value < $cmp_with;
   }
@@ -785,12 +784,12 @@ sub _validate_number_min {
   my @errors;
 
   my $cmp_with = $schema->{exclusiveMinimum} // '';
-  if (_is_boolean($cmp_with)) {
+  if (is_boolean $cmp_with) {
     push @errors, E $path,
       [$expected => ex_minimum => $value, $schema->{minimum}]
       unless $value > $schema->{minimum};
   }
-  elsif (_is_number($cmp_with)) {
+  elsif (is_number $cmp_with) {
     push @errors, E $path, [$expected => ex_minimum => $value, $cmp_with]
       unless $value > $cmp_with;
   }
@@ -843,7 +842,7 @@ sub _validate_type_array {
   my @errors;
 
   if (ref $data ne 'ARRAY') {
-    return E $path, [array => type => _guess_data_type($data)];
+    return E $path, [array => type => data_type $data];
   }
   if (defined $schema->{minItems} and $schema->{minItems} > @$data) {
     push @errors, E $path,
@@ -888,7 +887,7 @@ sub _validate_type_array {
         [array => additionalItems => int(@$data), int(@rules)];
     }
   }
-  elsif (UNIVERSAL::isa($schema->{items}, 'HASH')) {
+  elsif (is_type $schema->{items}, 'HASH') {
     for my $i (0 .. @$data - 1) {
       push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
     }
@@ -899,7 +898,7 @@ sub _validate_type_array {
 
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
-  return if _is_boolean($value);
+  return if is_boolean $value;
 
   # String that looks like a boolean
   if (
@@ -913,7 +912,7 @@ sub _validate_type_boolean {
     return;
   }
 
-  return E $path, [boolean => type => _guess_data_type($value)];
+  return E $path, [boolean => type => data_type $value];
 }
 
 sub _validate_type_integer {
@@ -922,7 +921,7 @@ sub _validate_type_integer {
 
   return @errors if @errors;
   return         if $value =~ /^-?\d+$/;
-  return E $path, [integer => type => _guess_data_type($value)];
+  return E $path, [integer => type => data_type $value];
 }
 
 sub _validate_type_null {
@@ -939,10 +938,10 @@ sub _validate_type_number {
   $expected ||= 'number';
 
   if (!defined $value or ref $value) {
-    return E $path, [$expected => type => _guess_data_type($value)];
+    return E $path, [$expected => type => data_type $value];
   }
-  unless (_is_number($value)) {
-    return E $path, [$expected => type => _guess_data_type($value)]
+  unless (is_number $value) {
+    return E $path, [$expected => type => data_type $value]
       if !$self->{coerce}{numbers}
       or $value !~ /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
     $_[1] = 0 + $value;    # coerce input value
@@ -966,7 +965,7 @@ sub _validate_type_object {
   my ($additional, @errors, %rules);
 
   if (ref $data ne 'HASH') {
-    return E $path, [object => type => _guess_data_type($data)];
+    return E $path, [object => type => data_type $data];
   }
 
   my @dkeys = sort keys %$data;
@@ -981,8 +980,7 @@ sub _validate_type_object {
   if (my $n_schema = $schema->{propertyNames}) {
     for my $name (keys %$data) {
       next unless my @e = $self->_validate($name, $path, $n_schema);
-      push @errors,
-        _add_path_to_error_messages(propertyName => [map { ($name, $_) } @e]);
+      push @errors, prefix_errors propertyName => [map { ($name, $_) } @e];
     }
   }
   if ($schema->{if}) {
@@ -1010,7 +1008,7 @@ sub _validate_type_object {
     ? $schema->{additionalProperties}
     : {};
   if ($additional) {
-    $additional = {} unless UNIVERSAL::isa($additional, 'HASH');
+    $additional = {} unless is_type $additional, 'HASH';
     $rules{$_} ||= [$additional] for @dkeys;
   }
   elsif (my @k = grep { !$rules{$_} } @dkeys) {
@@ -1020,21 +1018,21 @@ sub _validate_type_object {
 
   for my $k (sort keys %required) {
     next if exists $data->{$k};
-    push @errors, E _path($path, $k), [object => 'required'];
+    push @errors, E json_path($path, $k), [object => 'required'];
     delete $rules{$k};
   }
 
   for my $k (sort keys %rules) {
     for my $r (@{$rules{$k}}) {
       next unless exists $data->{$k};
-      my @e = $self->_validate($data->{$k}, _path($path, $k), $r);
+      my @e = $self->_validate($data->{$k}, json_path($path, $k), $r);
       push @errors, @e;
-      next if @e or !UNIVERSAL::isa($r, 'HASH');
+      next if @e or !is_type $r, 'HASH';
       push @errors,
-        $self->_validate_type_enum($data->{$k}, _path($path, $k), $r)
+        $self->_validate_type_enum($data->{$k}, json_path($path, $k), $r)
         if $r->{enum};
       push @errors,
-        $self->_validate_type_const($data->{$k}, _path($path, $k), $r)
+        $self->_validate_type_const($data->{$k}, json_path($path, $k), $r)
         if $r->{const};
     }
   }
@@ -1047,13 +1045,13 @@ sub _validate_type_string {
   my @errors;
 
   if (!defined $value or ref $value) {
-    return E $path, [string => type => _guess_data_type($value)];
+    return E $path, [string => type => data_type $value];
   }
   if (  B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
     and 0 + $value eq $value
     and $value * 0 == 0)
   {
-    return E $path, [string => type => _guess_data_type($value)]
+    return E $path, [string => type => data_type $value]
       unless $self->{coerce}{strings};
     $_[1] = "$value";    # coerce input value
   }
@@ -1078,101 +1076,6 @@ sub _validate_type_string {
   }
 
   return @errors;
-}
-
-# FUNCTIONS ==================================================================
-
-sub _add_path_to_error_messages {
-  my ($type, @errors_with_index) = @_;
-  my @errors;
-
-  for my $e (@errors_with_index) {
-    my $index = shift @$e;
-    push @errors, map {
-      my $msg = sprintf '/%s/%s %s', $type, $index, $_->message;
-      $msg =~ s!(\d+)\s/!$1/!g;
-      E $_->path, $msg;
-    } @$e;
-  }
-
-  return @errors;
-}
-
-# _guess_data_type($data, [{type => ...}, ...])
-sub _guess_data_type {
-  my $ref     = ref $_[0];
-  my $blessed = blessed $_[0];
-  return 'object'  if $ref eq 'HASH';
-  return lc $ref   if $ref and !$blessed;
-  return 'null'    if !defined $_[0];
-  return 'boolean' if $blessed and ("$_[0]" eq "1" or !"$_[0]");
-
-  if (_is_number($_[0])) {
-    return 'integer' if grep { ($_->{type} // '') eq 'integer' } @{$_[1] || []};
-    return 'number';
-  }
-
-  return $blessed || 'string';
-}
-
-# _guess_schema_type($schema, $data)
-sub _guess_schema_type {
-  return $_[0]->{type} if $_[0]->{type};
-  return _guessed_right(object => $_[1]) if $_[0]->{additionalProperties};
-  return _guessed_right(object => $_[1]) if $_[0]->{patternProperties};
-  return _guessed_right(object => $_[1]) if $_[0]->{properties};
-  return _guessed_right(object => $_[1]) if $_[0]->{propertyNames};
-  return _guessed_right(object => $_[1]) if $_[0]->{required};
-  return _guessed_right(object => $_[1]) if $_[0]->{if};
-  return _guessed_right(object => $_[1])
-    if defined $_[0]->{maxProperties}
-    or defined $_[0]->{minProperties};
-  return _guessed_right(array => $_[1]) if $_[0]->{additionalItems};
-  return _guessed_right(array => $_[1]) if $_[0]->{items};
-  return _guessed_right(array => $_[1]) if $_[0]->{uniqueItems};
-  return _guessed_right(array => $_[1])
-    if defined $_[0]->{maxItems}
-    or defined $_[0]->{minItems};
-  return _guessed_right(string => $_[1]) if $_[0]->{pattern};
-  return _guessed_right(string => $_[1])
-    if defined $_[0]->{maxLength}
-    or defined $_[0]->{minLength};
-  return _guessed_right(number => $_[1]) if $_[0]->{multipleOf};
-  return _guessed_right(number => $_[1])
-    if defined $_[0]->{maximum}
-    or defined $_[0]->{minimum};
-  return 'const' if exists $_[0]->{const};
-  return undef;
-}
-
-# _guessed_right($type, $data);
-sub _guessed_right {
-  return $_[0] if !defined $_[1];
-  return $_[0] if $_[0] eq _guess_data_type($_[1], [{type => $_[0]}]);
-  return undef;
-}
-
-sub _is_boolean {
-  return blessed $_[0]
-    && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]);
-}
-
-sub _is_number {
-  B::svref_2object(\$_[0])->FLAGS & (B::SVp_IOK | B::SVp_NOK)
-    && 0 + $_[0] eq $_[0]
-    && $_[0] * 0 == 0;
-}
-
-sub _path {
-  local $_ = $_[1];
-  s!~!~0!g;
-  s!/!~1!g;
-  "$_[0]/$_";
-}
-
-sub _uniq {
-  my %uniq;
-  grep { !$uniq{$_}++ } @_;
 }
 
 1;

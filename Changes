@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+3.20 Not Released
+ - Add JSON::Validator::Util
+
 3.19 2020-02-07T11:10:58+0900
  - Add clearer error when more than one oneOf rule matched #184
    Contributor: Karen Etheridge
