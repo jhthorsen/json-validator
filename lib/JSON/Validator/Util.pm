@@ -1,14 +1,20 @@
 package JSON::Validator::Util;
 use Mojo::Base -strict;
 
+use Data::Dumper ();
 use Exporter 'import';
 use JSON::Validator::Error;
+use Mojo::Util;
 use Scalar::Util 'blessed';
 
 our @EXPORT_OK
-  = qw(E data_type schema_type prefix_errors is_boolean is_number is_type json_path uniq);
+  = qw(E data_checksum data_type schema_type prefix_errors is_boolean is_number is_type json_path uniq);
 
 sub E { JSON::Validator::Error->new(@_) }
+
+sub data_checksum {
+  Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump);
+}
 
 sub data_type {
   my $ref     = ref $_[0];
@@ -119,6 +125,12 @@ L<JSON::Validator::Util> is a package containing utility functions for
 L<JSON::Validator>. Each of the L</FUNCTIONS> can be imported.
 
 =head1 FUNCTIONS
+
+=head2 data_checksum
+
+  $str = data_checksum $any;
+
+Will create a checksum for any data structure stored in C<$any>.
 
 =head2 data_type
 

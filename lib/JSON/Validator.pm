@@ -9,7 +9,7 @@ use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
 use JSON::Validator::Util
-  qw(E data_type is_boolean is_number is_type json_path prefix_errors schema_type uniq);
+  qw(E data_checksum data_type is_boolean is_number is_type json_path prefix_errors schema_type uniq);
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON qw(false true);
@@ -29,15 +29,6 @@ our @EXPORT_OK   = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE    = qr{^https?:};
-
-sub D {
-  Data::Dumper->new([@_])->Sortkeys(1)->Indent(0)->Maxdepth(2)->Pair(':')
-    ->Useqq(1)->Terse(1)->Dump;
-}
-
-sub S {
-  Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump);
-}
 
 has cache_paths => sub {
   return [split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''),
@@ -243,7 +234,7 @@ sub _definitions_path {
     if ( $self->{bundled_refs}{$ref->fqn}
       or !$node
       or !$node->{$key}
-      or D($ref->schema) eq D($node->{$key}))
+      or data_checksum($ref->schema) eq data_checksum($node->{$key}))
     {
       return [@$path, $key];
     }
@@ -747,10 +738,10 @@ sub _validate_number_min {
 sub _validate_type_enum {
   my ($self, $data, $path, $schema) = @_;
   my $enum = $schema->{enum};
-  my $m    = S $data;
+  my $m    = data_checksum $data;
 
   for my $i (@$enum) {
-    return if $m eq S $i;
+    return if $m eq data_checksum $i;
   }
 
   $enum = join ', ',
@@ -761,9 +752,8 @@ sub _validate_type_enum {
 sub _validate_type_const {
   my ($self, $data, $path, $schema) = @_;
   my $const = $schema->{const};
-  my $m     = S $data;
 
-  return if $m eq S $const;
+  return if data_checksum($data) eq data_checksum($const);
   return E $path, [const => const => Mojo::JSON::encode_json($const)];
 }
 
@@ -796,7 +786,7 @@ sub _validate_type_array {
   if ($schema->{uniqueItems}) {
     my %uniq;
     for (@$data) {
-      next if !$uniq{S($_)}++;
+      next if !$uniq{data_checksum($_)}++;
       push @errors, E $path, [array => 'uniqueItems'];
       last;
     }
