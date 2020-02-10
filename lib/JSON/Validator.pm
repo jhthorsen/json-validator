@@ -19,9 +19,7 @@ use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
 
 use constant CASE_TOLERANT     => File::Spec->case_tolerant;
-use constant COLORS            => eval { require Term::ANSIColor };
 use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
-use constant REPORT            => $ENV{JSON_VALIDATOR_REPORT} // DEBUG >= 2;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 
@@ -197,13 +195,10 @@ sub validate {
   $schema ||= $self->schema->data;
   return E '/', 'No validation rules defined.' unless $schema and %$schema;
 
-  local $self->{grouped} = 0;
-  local $self->{schema}  = Mojo::JSON::Pointer->new($schema);
-  local $self->{seen}    = {};
+  local $self->{schema} = Mojo::JSON::Pointer->new($schema);
+  local $self->{seen}   = {};
   local $self->{temp_schema} = [];    # make sure random-errors.t does not fail
-  $self->{report} = [];
   my @errors = $self->_validate($_[1], '', $schema);
-  $self->_report if DEBUG and REPORT;
   return @errors;
 }
 
@@ -442,35 +437,6 @@ sub _register_schema {
   $self->{schemas}{$fqn} = $schema;
 }
 
-sub _report {
-  my $table = Mojo::Util::tablify($_[0]->{report});
-  $table =~ s!^(\W*)(N?OK|<<<)(.*)!{_report_colored()}!gme;
-  warn "---\n$table";
-}
-
-sub _report_colored {
-  my ($x, $y, $z) = ($1, $2, $3);
-  my $c = $y eq 'OK' ? 'green' : $y eq '<<<' ? 'blue' : 'magenta';
-  $c = "$c bold" if $z =~ /\s\w+Of\s/;
-  Term::ANSIColor::colored([$c], "$x$y$z");
-}
-
-sub _report_errors {
-  my ($self, $path, $type, $errors) = @_;
-  push @{$self->{report}},
-    [
-    (('  ') x $self->{grouped}) . (@$errors ? 'NOK' : 'OK'),
-    $path || '/',
-    $type, join "\n", @$errors
-    ];
-}
-
-sub _report_schema {
-  my ($self, $path, $type, $schema) = @_;
-  push @{$self->{report}},
-    [(('  ') x $self->{grouped}) . ('<<<'), $path || '/', $type, D $schema];
-}
-
 # _resolve() method is used to convert all "id" into absolute URLs and
 # resolve all the $ref's that we find inside JSON Schema specification.
 sub _resolve {
@@ -608,7 +574,6 @@ sub _validate {
 
   # Avoid recursion
   if ($self->{seen}{$seen_addr}) {
-    $self->_report_schema($path || '/', 'seen', $schema) if REPORT;
     return @{$self->{seen}{$seen_addr}};
   }
 
@@ -627,29 +592,24 @@ sub _validate {
   }
   elsif ($type) {
     my $method = sprintf '_validate_type_%s', $type;
-    $self->_report_schema($path || '/', $type, $schema) if REPORT;
     @errors = $self->$method($to_json ? $$to_json : $_[1], $path, $schema);
-    $self->_report_errors($path, $type, \@errors) if REPORT;
-    return @errors                                if @errors;
+    return @errors if @errors;
   }
 
   if (exists $schema->{const}) {
     push @errors,
       $self->_validate_type_const($to_json ? $$to_json : $_[1], $path, $schema);
-    $self->_report_errors($path, 'const', \@errors) if REPORT;
-    return @errors                                  if @errors;
+    return @errors if @errors;
   }
 
   if ($schema->{enum}) {
     push @errors,
       $self->_validate_type_enum($to_json ? $$to_json : $_[1], $path, $schema);
-    $self->_report_errors($path, 'enum', \@errors) if REPORT;
-    return @errors                                 if @errors;
+    return @errors if @errors;
   }
 
   if (my $rules = $schema->{not}) {
     push @errors, $self->_validate($to_json ? $$to_json : $_[1], $path, $rules);
-    $self->_report_errors($path, 'not', \@errors) if REPORT;
     return @errors ? () : (E $path, [not => 'not']);
   }
 
@@ -674,9 +634,6 @@ sub _validate_all_of {
   my $type = data_type $data, $rules;
   my (@errors, @expected);
 
-  $self->_report_schema($path, 'allOf', $rules) if REPORT;
-  local $self->{grouped} = $self->{grouped} + 1;
-
   my $i = 0;
   for my $rule (@$rules) {
     next unless my @e = $self->_validate($_[1], $path, $rule);
@@ -688,7 +645,6 @@ sub _validate_all_of {
     $i++;
   }
 
-  $self->_report_errors($path, 'allOf', \@errors) if REPORT;
   return E $path, [allOf => type => join('/', uniq @expected), $type]
     if !@errors and @expected;
   return prefix_errors allOf => @errors if @errors;
@@ -699,9 +655,6 @@ sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
   my $type = data_type $data, $rules;
   my (@e, @errors, @expected);
-
-  $self->_report_schema($path, 'anyOf', $rules) if REPORT;
-  local $self->{grouped} = $self->{grouped} + 1;
 
   my $i = 0;
   for my $rule (@$rules) {
@@ -715,7 +668,6 @@ sub _validate_any_of {
     $i++;
   }
 
-  $self->_report_errors($path, 'anyOf', \@errors) if REPORT;
   my $expected = join '/', uniq @expected;
   return E $path, [anyOf => type => $expected, $type] unless @errors;
   return prefix_errors anyOf => @errors;
@@ -726,9 +678,6 @@ sub _validate_one_of {
   my $type = data_type $data, $rules;
   my (@errors, @expected);
 
-  $self->_report_schema($path, 'oneOf', $rules) if REPORT;
-  local $self->{grouped} = $self->{grouped} + 1;
-
   my ($i, @passed) = (0);
   for my $rule (@$rules) {
     my @e = $self->_validate($_[1], $path, $rule) or push @passed, $i and next;
@@ -738,14 +687,6 @@ sub _validate_one_of {
   }
   continue {
     $i++;
-  }
-
-  if (REPORT) {
-    my @e
-      = @errors + @expected + 1 == @$rules ? ()
-      : @errors                            ? @errors
-      :                                      'All of the oneOf rules match.';
-    $self->_report_errors($path, 'oneOf', \@e);
   }
 
   return if @passed == 1;
