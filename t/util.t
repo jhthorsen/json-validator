@@ -2,7 +2,7 @@ use Mojo::Base -strict;
 use Mojo::JSON 'false';
 use JSON::Validator;
 use JSON::Validator::Util
-  qw(E data_type schema_type prefix_errors is_boolean is_number is_type json_path uniq);
+  qw(E data_type schema_type prefix_errors is_type json_path uniq);
 use Test::More;
 
 my $e = E '/path/x', 'some error';
@@ -17,19 +17,17 @@ is data_type(false), 'boolean', 'data_type boolean';
 is data_type(undef), 'null', 'data_type null';
 is data_type($e), 'JSON::Validator::Error', 'data_type JSON::Validator::Error';
 
-ok is_boolean(false), 'is_boolean false';
-ok !is_boolean(0), 'is_boolean 0';
-
-ok is_number(4.2),  'is_number 4.2';
-ok is_number(42),   'is_number 42';
-ok !is_number('2'), 'is_number 2';
-
 my $v = JSON::Validator->new;
-ok is_type($v, 'JSON::Validator'), 'is_type JSON::Validator';
-ok is_type($v, 'Mojo::Base'),      'is_type Mojo::Base';
-ok is_type($v, 'HASH'),            'is_type HASH';
-ok is_type([], 'ARRAY'),           'is_type ARRAY';
-ok is_type({}, 'HASH'),            'is_type HASH';
+ok is_type($v,    'JSON::Validator'), 'is_type JSON::Validator';
+ok is_type($v,    'Mojo::Base'),      'is_type Mojo::Base';
+ok is_type($v,    'HASH'),            'is_type HASH';
+ok is_type([],    'ARRAY'),           'is_type ARRAY';
+ok is_type({},    'HASH'),            'is_type HASH';
+ok is_type(4.2,   'NUM'),             'is_type 4.2';
+ok is_type(42,    'NUM'),             'is_type 42';
+ok is_type(false, 'BOOL'),            'is_type BOOL';
+ok !is_type('2', 'NUM'),  'is_type 2';
+ok !is_type(0,   'BOOL'), 'is_type BOOL';
 
 is json_path(qw(foo bar)),    'foo/bar',      'json_path foo bar';
 is json_path(qw(f/oo bar)),   'f/oo/bar',     'json_path f/oo bar';

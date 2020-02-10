@@ -9,7 +9,7 @@ use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
 use JSON::Validator::Util
-  qw(E data_checksum data_section data_type is_boolean is_number is_type json_path prefix_errors schema_type uniq);
+  qw(E data_checksum data_section data_type is_type json_path prefix_errors schema_type uniq);
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON qw(false true);
@@ -674,12 +674,12 @@ sub _validate_number_max {
   my @errors;
 
   my $cmp_with = $schema->{exclusiveMaximum} // '';
-  if (is_boolean $cmp_with) {
+  if (is_type $cmp_with, 'BOOL') {
     push @errors, E $path,
       [$expected => ex_maximum => $value, $schema->{maximum}]
       unless $value < $schema->{maximum};
   }
-  elsif (is_number $cmp_with) {
+  elsif (is_type $cmp_with, 'NUM') {
     push @errors, E $path, [$expected => ex_maximum => $value, $cmp_with]
       unless $value < $cmp_with;
   }
@@ -698,12 +698,12 @@ sub _validate_number_min {
   my @errors;
 
   my $cmp_with = $schema->{exclusiveMinimum} // '';
-  if (is_boolean $cmp_with) {
+  if (is_type $cmp_with, 'BOOL') {
     push @errors, E $path,
       [$expected => ex_minimum => $value, $schema->{minimum}]
       unless $value > $schema->{minimum};
   }
-  elsif (is_number $cmp_with) {
+  elsif (is_type $cmp_with, 'NUM') {
     push @errors, E $path, [$expected => ex_minimum => $value, $cmp_with]
       unless $value > $cmp_with;
   }
@@ -811,7 +811,7 @@ sub _validate_type_array {
 
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
-  return if is_boolean $value;
+  return if is_type $value, 'BOOL';
 
   # String that looks like a boolean
   if (
@@ -853,7 +853,7 @@ sub _validate_type_number {
   if (!defined $value or ref $value) {
     return E $path, [$expected => type => data_type $value];
   }
-  unless (is_number $value) {
+  unless (is_type $value, 'NUM') {
     return E $path, [$expected => type => data_type $value]
       if !$self->{coerce}{numbers}
       or $value !~ /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;

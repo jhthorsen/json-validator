@@ -8,10 +8,8 @@ use Mojo::Loader;
 use Mojo::Util;
 use Scalar::Util 'blessed';
 
-our @EXPORT_OK = (
-  qw(E data_checksum data_section data_type schema_type prefix_errors),
-  qw(is_boolean is_number is_type json_path uniq),
-);
+our @EXPORT_OK
+  = qw(E data_checksum data_section data_type is_type json_path prefix_errors schema_type uniq);
 
 sub E { JSON::Validator::Error->new(@_) }
 
@@ -51,7 +49,7 @@ sub data_type {
   return 'null'    if !defined $_[0];
   return 'boolean' if $blessed and ("$_[0]" eq "1" or !"$_[0]");
 
-  if (is_number($_[0])) {
+  if (is_type($_[0], 'NUM')) {
     return 'integer' if grep { ($_->{type} // '') eq 'integer' } @{$_[1] || []};
     return 'number';
   }
@@ -59,19 +57,24 @@ sub data_type {
   return $blessed || 'string';
 }
 
-sub is_boolean {
-  return blessed $_[0]
-    && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]);
-}
-
-sub is_number {
-  B::svref_2object(\$_[0])->FLAGS & (B::SVp_IOK | B::SVp_NOK)
-    && 0 + $_[0] eq $_[0]
-    && $_[0] * 0 == 0;
-}
-
 sub is_type {
-  return blessed $_[0] ? $_[0]->isa($_[1]) : ref $_[0] eq $_[1];
+  my $type = $_[1];
+
+  if ($type eq 'BOOL') {
+    return blessed $_[0]
+      && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]);
+  }
+
+  # NUM
+  if ($type eq 'NUM') {
+    return
+         B::svref_2object(\$_[0])->FLAGS & (B::SVp_IOK | B::SVp_NOK)
+      && 0 + $_[0] eq $_[0]
+      && $_[0] * 0 == 0;
+  }
+
+  # Class or data type
+  return blessed $_[0] ? $_[0]->isa($type) : ref $_[0] eq $type;
 }
 
 sub json_path {
@@ -177,26 +180,27 @@ Returns the JSON type for C<$any>. C<$str> can be array, boolean, integer,
 null, number object or string. Note that a list of schemas need to be provided
 to differentiate between "integer" and "number".
 
-=head2 is_boolean
+=head2 is_type
 
-  $bool = is_boolean $any;
+  $bool = is_type $any, $class;
+  $bool = is_type $any, $type; # $type = "ARRAY", "BOOL", "HASH", "NUM" ...
+
+Checks if C<$any> is a, or inherit from C<$class> or C<$type>. Two special
+types can be checked:
+
+=over 2
+
+=item * BOOL
 
 Checks if C<$any> is a boolean value. C<$any> is considered boolean if it is an
 object inheriting from L<JSON::PP::Boolean> or is another object that
 stringifies to "1" or "0".
 
-=head2 is_number
-
-  $bool = is_number $any;
+=item * NUM
 
 Checks if C<$any> is indeed a number.
 
-=head2 is_type
-
-  $bool = is_type $any, $class;
-  $bool = is_type $any, $type; # $type = "ARRAY", "HASH", ...
-
-Checks if C<$any> is a, or inherit from C<$class> or C<$type>.
+=back
 
 =head2 json_path
 
