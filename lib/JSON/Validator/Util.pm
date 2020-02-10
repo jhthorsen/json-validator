@@ -4,16 +4,43 @@ use Mojo::Base -strict;
 use Data::Dumper ();
 use Exporter 'import';
 use JSON::Validator::Error;
+use Mojo::Loader;
 use Mojo::Util;
 use Scalar::Util 'blessed';
 
-our @EXPORT_OK
-  = qw(E data_checksum data_type schema_type prefix_errors is_boolean is_number is_type json_path uniq);
+our @EXPORT_OK = (
+  qw(E data_checksum data_section data_type schema_type prefix_errors),
+  qw(is_boolean is_number is_type json_path uniq),
+);
 
 sub E { JSON::Validator::Error->new(@_) }
 
 sub data_checksum {
   Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump);
+}
+
+sub data_section {
+  my ($class, $file, $params) = @_;
+  state $class_skip_re
+    = qr{(^JSON::Validator$|^Mojo::Base$|^Mojolicious$|\w+::_Dynamic)};
+
+  unless ($class) {
+    my $i = 1;
+    while ($class = caller($i++)) {
+      last unless $class =~ $class_skip_re;
+    }
+  }
+
+  my @classes = do { no strict 'refs'; ($class, @{"$class\::ISA"}) };
+  my $text;
+  for my $class (@classes) {
+    next if $class =~ $class_skip_re;
+    last if $text = Mojo::Loader::data_section($class, $file);
+  }
+
+  $text = Mojo::Util::encode($params->{encoding}, $text)
+    if $text and $params->{encoding};
+  $text;
 }
 
 sub data_type {
@@ -131,6 +158,14 @@ L<JSON::Validator>. Each of the L</FUNCTIONS> can be imported.
   $str = data_checksum $any;
 
 Will create a checksum for any data structure stored in C<$any>.
+
+=head2 data_section
+
+  $str = data_section "Some::Module", "file.json";
+  $str = data_section "Some::Module", "file.json", {encode => 'UTF-8'};
+
+Same as L<Mojo::Loader/data_section>, but will also look up the file in any
+inherited class.
 
 =head2 data_type
 

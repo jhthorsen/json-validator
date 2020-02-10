@@ -9,11 +9,10 @@ use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
 use JSON::Validator::Util
-  qw(E data_checksum data_type is_boolean is_number is_type json_path prefix_errors schema_type uniq);
+  qw(E data_checksum data_section data_type is_boolean is_number is_type json_path prefix_errors schema_type uniq);
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON qw(false true);
-use Mojo::Loader;
 use Mojo::URL;
 use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
@@ -302,15 +301,10 @@ sub _load_schema {
   }
 
   if ($url =~ m!^data://([^/]*)/(.*)!) {
-    my ($file, @modules) = ($2, ($1));
-    @modules = _stack() unless $modules[0];
-    for my $module (@modules) {
-      warn "[JSON::Validator] Looking for $file in $module\n" if DEBUG;
-      my $text = Mojo::Util::encode('UTF-8',
-        Mojo::Loader::data_section($module, $file) // '');
-      return $self->_load_schema_from_text(\$text), "$url" if $text;
-    }
-    confess "$file could not be found in __DATA__ section of @modules.";
+    my ($class, $file) = ($1, $2);
+    my $text = data_section $class, $file, {encoding => 'UTF-8'};
+    return $self->_load_schema_from_text(\$text), "$url" if $text;
+    confess "$file could not be found in __DATA__ section of $class.";
   }
 
   if ($url =~ m!^\s*[\[\{]!) {
@@ -538,18 +532,6 @@ sub _resolve_ref {
   }
 
   tie %$topic, 'JSON::Validator::Ref', $other, $topic->{'$ref'}, $fqn;
-}
-
-sub _stack {
-  my @classes;
-  my $i = 2;
-  while (my $pkg = caller($i++)) {
-    no strict 'refs';
-    push @classes,
-      grep { !/(^JSON::Validator$|^Mojo::Base$|^Mojolicious$|\w+::_Dynamic)/ }
-      $pkg, @{"$pkg\::ISA"};
-  }
-  return @classes;
 }
 
 sub _validate {
@@ -1355,7 +1337,7 @@ A web resource will be fetched using the L<Mojo::UserAgent>, stored in L</ua>.
 =item * data://Some::Module/spec.json
 
 Will load a given "spec.json" file from C<Some::Module> using
-L<Mojo::Loader/data_section>.
+L<JSON::Validator::Util/data_section>.
 
 =item * data:///spec.json
 
