@@ -178,7 +178,7 @@ sub singleton { state $jv = shift->new }
 sub validate {
   my ($self, $data, $schema) = @_;
   $schema ||= $self->schema->data;
-  return E '/', 'No validation rules defined.' unless $schema and %$schema;
+  return E '/', 'No validation rules defined.' unless defined $schema;
 
   local $self->{schema} = Mojo::JSON::Pointer->new($schema);
   local $self->{seen}   = {};
@@ -372,6 +372,7 @@ sub _ref_to_schema {
     confess "Seems like you have a circular reference: @guard"
       if @guard > RECURSION_LIMIT;
     $schema = $tied->schema;
+    last if is_type $schema, 'BOOL';
   }
 
   return $schema;
@@ -399,6 +400,10 @@ sub _resolve {
   }
   elsif ($resolved = $self->{schemas}{$schema // ''}) {
     return $resolved;
+  }
+  elsif (is_type $schema, 'BOOL') {
+    $self->_register_schema($schema, $schema);
+    return $schema;
   }
   else {
     ($schema, $id) = $self->_load_schema($schema);
@@ -473,16 +478,17 @@ sub _resolve_ref {
   return if tied %$topic;
 
   my $other = $topic;
-  my ($location, $fqn, $pointer, $ref, @guard);
+  my ($fqn, $ref, @guard);
 
   while (1) {
+    last if is_type $other, 'BOOL';
     $ref = $other->{'$ref'};
     push @guard, $other->{'$ref'};
     confess "Seems like you have a circular reference: @guard"
       if @guard > RECURSION_LIMIT;
     last if !$ref or ref $ref;
     $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
-    ($location, $pointer) = split /#/, $fqn, 2;
+    my ($location, $pointer) = split /#/, $fqn, 2;
     $url     = $location = _location_to_abs($location, $url);
     $pointer = undef if length $location and !length $pointer;
     $pointer = url_unescape $pointer if defined $pointer;
@@ -490,9 +496,10 @@ sub _resolve_ref {
     $other   = $self->_resolve($location);
 
     if (defined $pointer and length $pointer and $pointer =~ m!^/!) {
-      $other = Mojo::JSON::Pointer->new($other)->get($pointer)
-        or confess
-        qq[Possibly a typo in schema? Could not find "$pointer" in "$location" ($ref)];
+      $other = Mojo::JSON::Pointer->new($other)->get($pointer);
+      confess
+        qq[Possibly a typo in schema? Could not find "$pointer" in "$location" ($ref)]
+        if not defined $other;
     }
   }
 
@@ -503,10 +510,10 @@ sub _validate {
   my ($self, $data, $path, $schema) = @_;
   my ($seen_addr, $to_json, $type);
 
-  # Do not validate against "default" in draft-07 schema
-  return if is_type $schema, 'JSON::PP::Boolean';
+  $schema = $self->_ref_to_schema($schema)
+    if ref $schema eq 'HASH' and $schema->{'$ref'};
+  return $schema ? () : E $path, [not => 'not'] if is_type $schema, 'BOOL';
 
-  $schema    = $self->_ref_to_schema($schema) if $schema->{'$ref'};
   $seen_addr = join ':', refaddr($schema),
     (ref $data ? refaddr $data : ++$self->{seen}{scalar});
 
@@ -765,7 +772,7 @@ sub _validate_type_array {
         [array => additionalItems => int(@$data), int(@rules)];
     }
   }
-  elsif (is_type $schema->{items}, 'HASH') {
+  elsif (exists $schema->{items}) {
     for my $i (0 .. @$data - 1) {
       push @errors, $self->_validate($data->[$i], "$path/$i", $schema->{items});
     }
@@ -870,9 +877,12 @@ sub _validate_type_object {
 
   my $coerce = $self->{coerce}{defaults};
   while (my ($k, $r) = each %{$schema->{properties}}) {
-    next unless ref $r eq 'HASH';
     push @{$rules{$k}}, $r;
-    if ($coerce and exists $r->{default} and !exists $data->{$k}) {
+    if (  $coerce
+      and ref $r eq 'HASH'
+      and exists $r->{default}
+      and !exists $data->{$k})
+    {
       $data->{$k} = $r->{default};
     }
   }
@@ -903,6 +913,7 @@ sub _validate_type_object {
   for my $k (sort keys %rules) {
     for my $r (@{$rules{$k}}) {
       next unless exists $data->{$k};
+      $r = $self->_ref_to_schema($r) if ref $r eq 'HASH' and $r->{'$ref'};
       my @e = $self->_validate($data->{$k}, json_pointer($path, $k), $r);
       push @errors, @e;
       next if @e or !is_type $r, 'HASH';
@@ -1143,8 +1154,8 @@ See L<JSON::Validator::Formats> for a list of supported formats.
 
 =head2 generate_definitions_path
 
-  my $cb = $self->generate_definitions_path;
-  my $jv = $self->generate_definitions_path(sub { my $ref = shift; return ["definitions"] });
+  my $cb = $jv->generate_definitions_path;
+  my $jv = $jv->generate_definitions_path(sub { my $ref = shift; return ["definitions"] });
 
 Holds a callback that is used by L</bundle> to figure out where to place
 references. The default location is under "definitions", but this can be
@@ -1177,11 +1188,11 @@ using L</load_and_validate_schema>, unless already set.
 =head2 bundle
 
   # These two lines does the same
-  my $schema = $jv->bundle({schema => $self->schema->data});
+  my $schema = $jv->bundle({schema => $jv->schema->data});
   my $schema = $jv->bundle;
 
   # Will only bundle a section of the schema
-  my $schema = $jv->bundle({schema => $self->schema->get("/properties/person/age")});
+  my $schema = $jv->bundle({schema => $jv->schema->get("/properties/person/age")});
 
 Used to create a new schema, where there are no "$ref" pointing to external
 resources. This means that all the "$ref" that are found, will be moved into

@@ -43,6 +43,10 @@ JSON::Validator::Ref - JSON::Validator $ref representation
   use JSON::Validator::Ref;
   my $ref = JSON::Validator::Ref->new({ref => "...", schema => {...});
 
+or:
+
+  tie my %ref, 'JSON::Validator::Ref', $schema, $path;
+
 =head1 DESCRIPTION
 
 L<JSON::Validator::Ref> is a class representing a C<$ref> inside a JSON Schema.

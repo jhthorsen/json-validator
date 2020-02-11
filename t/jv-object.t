@@ -136,4 +136,51 @@ validate_ok {a => 1}, $object_constant;
 validate_ok {b => 1}, $object_constant,
   E('/', q{Does not match const: {"a":1}.});
 
+
+validate_ok {foo => 'bar'}, {type => 'object', required => ['foo'], %$_}
+  foreach { properties => {foo => {}} }
+, {additionalProperties => {}}, {patternProperties => {foo => {}}};
+
+validate_ok {foo => 'bar'},
+  {
+  definitions => {my_true_ref => {}},
+  type        => 'object',
+  required    => ['foo'],
+  %$_
+  } foreach { properties => {foo => {'$ref' => '#/definitions/my_true_ref'}} }
+, {additionalProperties => {'$ref' => '#/definitions/my_true_ref'}},
+  {patternProperties => {foo => {'$ref' => '#/definitions/my_true_ref'}}};
+
+# TODO! true, false are draft 6+ only
+validate_ok {foo => 'bar'}, {type => 'object', required => ['foo'], %$_}
+  foreach { properties => {foo => true} }
+, {additionalProperties => true}, {patternProperties => {foo => true}};
+
+validate_ok {foo => 'bar'},
+  {
+  definitions => {my_true_ref => true},
+  type        => 'object',
+  required    => ['foo'],
+  %$_
+  } foreach { properties => {foo => {'$ref' => '#/definitions/my_true_ref'}} }
+, {additionalProperties => {'$ref' => '#/definitions/my_true_ref'}},
+  {patternProperties => {foo => {'$ref' => '#/definitions/my_true_ref'}}};
+
+validate_ok {foo => 'bar'}, {type => 'object', required => ['foo'], %$_},
+  E('/foo', 'Should not match.')
+  foreach { properties => {foo => false} }
+, {patternProperties => {foo => false}};
+
+validate_ok {foo => 'bar'},
+  {
+  definitions => {my_false_ref => false},
+  type        => 'object',
+  required    => ['foo'],
+  %$_
+  },
+  E('/foo', 'Should not match.')
+  foreach { properties => {foo => {'$ref' => '#/definitions/my_false_ref'}} }
+, {additionalProperties => {'$ref' => '#/definitions/my_false_ref'}},
+  {patternProperties => {foo => {'$ref' => '#/definitions/my_false_ref'}}};
+
 done_testing;

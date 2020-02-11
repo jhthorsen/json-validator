@@ -59,4 +59,43 @@ validate_ok [1, 'a', undef], $array_constant;
 validate_ok [1, 'b', undef], $array_constant,
   E('/', q{Does not match const: [1,"a",null].});
 
+# TODO! true, false are draft 6+ only
+validate_ok [1, 'foo', 1.2], {type => 'array', items => {}};
+validate_ok [1, 'foo', 1.2], {type => 'array', items => true};
+
+validate_ok [1, 'foo', 1.2], {type => 'array', items => [true, true, false]},
+  E('/2', 'Should not match.');
+
+validate_ok [1, 'foo', 1.2], {type => 'array', items => false},
+  E('/0', 'Should not match.'), E('/1', 'Should not match.'),
+  E('/2', 'Should not match.');
+
+validate_ok [1, 'foo', 1.2],
+  {
+  definitions => {my_true_ref => true},
+  type        => 'array',
+  items       => {'$ref' => '#/definitions/my_true_ref'},
+  };
+
+validate_ok [1, 'foo', 1.2],
+  {
+  definitions => {my_false_ref => false},
+  type        => 'array',
+  items       => {'$ref' => '#/definitions/my_false_ref'},
+  },
+  E('/0', 'Should not match.'), E('/1', 'Should not match.'),
+  E('/2', 'Should not match.');
+
+validate_ok [1, 'foo', 1.2],
+  {
+  definitions => {my_true_ref => true, my_false_ref => false},
+  type        => 'array',
+  items       => [
+    {'$ref' => '#/definitions/my_true_ref'},
+    {'$ref' => '#/definitions/my_true_ref'},
+    {'$ref' => '#/definitions/my_false_ref'}
+  ],
+  },
+  E('/2', 'Should not match.');
+
 done_testing;
