@@ -503,8 +503,6 @@ sub _validate {
   my ($self, $data, $path, $schema) = @_;
   my ($seen_addr, $to_json, $type);
 
-  # Do not validate against "default" in draft-07 schema
-  return if is_type $schema, 'JSON::PP::Boolean';
 
   $schema    = $self->_ref_to_schema($schema) if $schema->{'$ref'};
   $seen_addr = join ':', refaddr($schema),
