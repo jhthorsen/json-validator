@@ -473,7 +473,7 @@ sub _resolve_ref {
   return if tied %$topic;
 
   my $other = $topic;
-  my ($location, $fqn, $pointer, $ref, @guard);
+  my ($fqn, $ref, @guard);
 
   while (1) {
     $ref = $other->{'$ref'};
@@ -482,7 +482,7 @@ sub _resolve_ref {
       if @guard > RECURSION_LIMIT;
     last if !$ref or ref $ref;
     $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
-    ($location, $pointer) = split /#/, $fqn, 2;
+    my ($location, $pointer) = split /#/, $fqn, 2;
     $url     = $location = _location_to_abs($location, $url);
     $pointer = undef if length $location and !length $pointer;
     $pointer = url_unescape $pointer if defined $pointer;
