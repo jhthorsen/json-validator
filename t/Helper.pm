@@ -31,6 +31,7 @@ sub validate_ok {
   my $description
     ||= @expected ? "errors: @expected" : "valid: " . encode_json($data);
   my @errors = jv()->schema($schema)->validate($data);
+  local $Test::Builder::Level = $Test::Builder::Level + 1;
   Test::More::is_deeply(
     [map { $_->TO_JSON } sort { $a->path cmp $b->path } @errors],
     [map { $_->TO_JSON } sort { $a->path cmp $b->path } @expected],
