@@ -9,7 +9,7 @@ use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
 use JSON::Validator::Util
-  qw(E data_checksum data_section data_type is_type json_path prefix_errors schema_type uniq);
+  qw(E data_checksum data_section data_type is_type json_pointer prefix_errors schema_type uniq);
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON qw(false true);
@@ -896,21 +896,21 @@ sub _validate_type_object {
 
   for my $k (sort keys %required) {
     next if exists $data->{$k};
-    push @errors, E json_path($path, $k), [object => 'required'];
+    push @errors, E json_pointer($path, $k), [object => 'required'];
     delete $rules{$k};
   }
 
   for my $k (sort keys %rules) {
     for my $r (@{$rules{$k}}) {
       next unless exists $data->{$k};
-      my @e = $self->_validate($data->{$k}, json_path($path, $k), $r);
+      my @e = $self->_validate($data->{$k}, json_pointer($path, $k), $r);
       push @errors, @e;
       next if @e or !is_type $r, 'HASH';
       push @errors,
-        $self->_validate_type_enum($data->{$k}, json_path($path, $k), $r)
+        $self->_validate_type_enum($data->{$k}, json_pointer($path, $k), $r)
         if $r->{enum};
       push @errors,
-        $self->_validate_type_const($data->{$k}, json_path($path, $k), $r)
+        $self->_validate_type_const($data->{$k}, json_pointer($path, $k), $r)
         if $r->{const};
     }
   }

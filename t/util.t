@@ -2,7 +2,7 @@ use Mojo::Base -strict;
 use Mojo::JSON 'false';
 use JSON::Validator;
 use JSON::Validator::Util
-  qw(E data_type schema_type prefix_errors is_type json_path uniq);
+  qw(E data_type schema_type prefix_errors is_type json_pointer uniq);
 use Test::More;
 
 my $e = E '/path/x', 'some error';
@@ -29,9 +29,9 @@ ok is_type(false, 'BOOL'),            'is_type BOOL';
 ok !is_type('2', 'NUM'),  'is_type 2';
 ok !is_type(0,   'BOOL'), 'is_type BOOL';
 
-is json_path(qw(foo bar)),    'foo/bar',      'json_path foo bar';
-is json_path(qw(f/oo bar)),   'f/oo/bar',     'json_path f/oo bar';
-is json_path(qw(f/oo ~b/ar)), 'f/oo/~0b~1ar', 'json_path f/oo ~b/ar';
+is json_pointer(qw(foo bar)),    'foo/bar',      'json_pointer foo bar';
+is json_pointer(qw(f/oo bar)),   'f/oo/bar',     'json_pointer f/oo bar';
+is json_pointer(qw(f/oo ~b/ar)), 'f/oo/~0b~1ar', 'json_pointer f/oo ~b/ar';
 
 my $yikes = E {path => '/path/100/y', message => 'yikes'};
 is_deeply(

@@ -10,7 +10,7 @@ use Mojo::Util;
 use Scalar::Util 'blessed';
 
 our @EXPORT_OK
-  = qw(E data_checksum data_section data_type is_type schema_extract json_path prefix_errors schema_type uniq);
+  = qw(E data_checksum data_section data_type is_type schema_extract json_pointer prefix_errors schema_type uniq);
 
 sub E { JSON::Validator::Error->new(@_) }
 
@@ -85,7 +85,7 @@ sub schema_extract {
   _schema_extract($data, $p, '', $cb);
 }
 
-sub json_path {
+sub json_pointer {
   local $_ = $_[1];
   s!~!~0!g;
   s!/!~1!g;
@@ -159,7 +159,7 @@ sub _schema_extract {
       my $i = 0;
       return Mojo::Collection->new(
         map {
-          _schema_extract($_->[0], [@$path], json_path($pos, $_->[1]), $cb)
+          _schema_extract($_->[0], [@$path], json_pointer($pos, $_->[1]), $cb)
         } ref $data eq 'ARRAY' ? map { [$_, $i++] }
           @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] }
           sort keys %$data : [$data, '']
@@ -168,7 +168,7 @@ sub _schema_extract {
 
     $p =~ s!~1!/!g;
     $p =~ s/~0/~/g;
-    $pos = json_path $pos, $p if $cb;
+    $pos = json_pointer $pos, $p if $cb;
 
     if (ref $data eq 'HASH' and exists $data->{$p}) {
       $data = $data->{$p};
@@ -248,9 +248,9 @@ Checks if C<$any> is indeed a number.
 
 =back
 
-=head2 json_path
+=head2 json_pointer
 
-  $str = json_path $path, $append;
+  $str = json_pointer $path, $append;
 
 Will concat C<$append> on to C<$path>, but will also escape the two special
 characters "~" and "/" in C<$append>.
