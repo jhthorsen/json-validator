@@ -461,6 +461,7 @@ sub _resolve {
   $self->{level}++;
   $self->_register_schema($schema, $id);
 
+  my %seen;
   my @topics
     = ([$schema, is_type($id, 'Mojo::File') ? $id : Mojo::URL->new($id)]);
   while (@topics) {
@@ -470,6 +471,9 @@ sub _resolve {
       push @topics, map { [$_, $base] } @$topic;
     }
     elsif (is_type $topic, 'HASH') {
+      my $seen_addr = join ':', $base, refaddr($topic);
+      next if $seen{$seen_addr}++;
+
       push @refs, [$topic, $base] and next
         if $topic->{'$ref'} and !ref $topic->{'$ref'};
 
