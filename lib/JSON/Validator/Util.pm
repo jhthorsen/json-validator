@@ -4,12 +4,13 @@ use Mojo::Base -strict;
 use Data::Dumper ();
 use Exporter 'import';
 use JSON::Validator::Error;
+use Mojo::Collection;
 use Mojo::Loader;
 use Mojo::Util;
 use Scalar::Util 'blessed';
 
 our @EXPORT_OK
-  = qw(E data_checksum data_section data_type is_type json_path prefix_errors schema_type uniq);
+  = qw(E data_checksum data_section data_type is_type schema_extract json_path prefix_errors schema_type uniq);
 
 sub E { JSON::Validator::Error->new(@_) }
 
@@ -77,6 +78,13 @@ sub is_type {
   return blessed $_[0] ? $_[0]->isa($type) : ref $_[0] eq $type;
 }
 
+sub schema_extract {
+  my ($data, $p, $cb) = @_;
+  $p = [ref $p ? @$p : length $p ? split('/', $p, -1) : $p];
+  shift @$p if @$p and defined $p->[0] and !length $p->[0];
+  _schema_extract($data, $p, '', $cb);
+}
+
 sub json_path {
   local $_ = $_[1];
   s!~!~0!g;
@@ -139,6 +147,44 @@ sub _guessed_right {
   return $_[0] if !defined $_[1];
   return $_[0] if $_[0] eq data_type $_[1], [{type => $_[0]}];
   return '';
+}
+
+sub _schema_extract {
+  my ($data, $path, $pos, $cb) = @_, my $tied;
+
+  while (@$path) {
+    my $p = shift @$path;
+
+    unless (defined $p) {
+      my $i = 0;
+      return Mojo::Collection->new(
+        map {
+          _schema_extract($_->[0], [@$path], json_path($pos, $_->[1]), $cb)
+        } ref $data eq 'ARRAY' ? map { [$_, $i++] }
+          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] }
+          sort keys %$data : [$data, '']
+      );
+    }
+
+    $p =~ s!~1!/!g;
+    $p =~ s/~0/~/g;
+    $pos = json_path $pos, $p if $cb;
+
+    if (ref $data eq 'HASH' and exists $data->{$p}) {
+      $data = $data->{$p};
+    }
+    elsif (ref $data eq 'ARRAY' and $p =~ /^\d+$/ and @$data > $p) {
+      $data = $data->[$p];
+    }
+    else {
+      return undef;
+    }
+
+    $data = $tied->schema if ref $data eq 'HASH' and $tied = tied %$data;
+  }
+
+  return $cb->($data, $pos) if $cb;
+  return $data;
 }
 
 1;
@@ -214,6 +260,32 @@ characters "~" and "/" in C<$append>.
   @errors = prefix_errors $prefix, @errors;
 
 Consider this internal for now.
+
+=head2 schema_extract
+
+  $data       = schema_extract $any, $json_pointer;
+  $data       = schema_extract $any, "/x/cool_beans/y";
+  $collection = schema_extract $any, ["x", undef, "y"];
+  schema_extract $any, $json_pointer, sub { my ($data, $json_pointer) = @_ };
+
+The basic usage is to extract data from C<$any>, using a C<$json_pointer> -
+L<RFC 6901|http://tools.ietf.org/html/rfc6901>. It can however be used in a
+more complex way by passing in an array-ref, instead of a plain string. The
+array-ref can contain C<undef()> values, will result in extracting any element
+on that point, regardsless of value. In that case a L<Mojo::Collection> will
+be returned.
+
+A callback can also be given. This callback will be called each time the
+C<$json_pointer> matches some data, and will pass in the C<$json_pointer> at
+that place.
+
+In addition, if the C<$json_pointer> points to a L<JSON::Validator::Ref> at any
+point, the "$ref" will be followed, while if you used L<Mojo::JSON::Pointer>,
+it would return either the L<JSON::Validator::Ref> or C<undef()>.
+
+Even though L</schema_extract> has special capabilities for handling a
+JSON-Schema, it can be used for any data-structure, just like
+L<Mojo::JSON::Pointer>.
 
 =head2 schema_type
 

@@ -140,12 +140,7 @@ sub coerce {
   return $self;
 }
 
-sub get {
-  my ($self, $p) = @_;
-  $p = [ref $p ? @$p : length $p ? split('/', $p, -1) : $p];
-  shift @$p if @$p and defined $p->[0] and !length $p->[0];
-  $self->_get($self->schema->data, $p, '');
-}
+sub get { JSON::Validator::Util::schema_extract(shift->schema->data, shift) }
 
 sub joi {
   return JSON::Validator::Joi->new unless @_;
@@ -252,42 +247,8 @@ sub _definitions_path {
   return [@$path, $key];
 }
 
-sub _get {
-  my ($self, $data, $path, $pos, $cb) = @_;
-  my $tied;
-
-  while (@$path) {
-    my $p = shift @$path;
-
-    unless (defined $p) {
-      my $i = 0;
-      return Mojo::Collection->new(
-        map { $self->_get($_->[0], [@$path], json_path($pos, $_->[1]), $cb) }
-          ref $data eq 'ARRAY' ? map { [$_, $i++] }
-          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] }
-          sort keys %$data : [$data, '']);
-    }
-
-    $p =~ s!~1!/!g;
-    $p =~ s/~0/~/g;
-    $pos = json_path $pos, $p if $cb;
-
-    if (ref $data eq 'HASH' and exists $data->{$p}) {
-      $data = $data->{$p};
-    }
-    elsif (ref $data eq 'ARRAY' and $p =~ /^\d+$/ and @$data > $p) {
-      $data = $data->[$p];
-    }
-    else {
-      return undef;
-    }
-
-    $data = $tied->schema if ref $data eq 'HASH' and $tied = tied %$data;
-  }
-
-  return $cb->($data, $pos) if $cb;
-  return $data;
-}
+# Try not to break JSON::Validator::OpenAPI::Mojolicious
+sub _get { shift; JSON::Validator::Util::_schema_extract(@_) }
 
 sub _id_key { $_[0]->version < 7 ? 'id' : '$id' }
 

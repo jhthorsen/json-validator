@@ -1,5 +1,6 @@
 use Mojo::Base -strict;
 use JSON::Validator;
+use JSON::Validator::Util 'schema_extract';
 use Test::More;
 
 my $jv = JSON::Validator->new->schema({
@@ -19,5 +20,13 @@ is_deeply $jv->get([undef, undef, 'y']), [['first', 'second', undef], ['foo']],
   'get /undef/undef/y';
 is_deeply $jv->get([undef, undef, 'y'])->flatten,
   ['first', 'second', undef, 'foo'], 'get /undef/undef/y flatten';
+
+is_deeply schema_extract($jv->schema->data, ['bar', undef, 'y']),
+  ['first', 'second', undef], 'schema_extract /bar/undef/y';
+
+my @res;
+schema_extract($jv->schema->data, ['bar', undef, 'y'], sub { push @res, [@_] });
+is_deeply \@res, [['first', '/bar/0/y'], ['second', '/bar/1/y']],
+  'schema_extract /bar/undef/y, $cb';
 
 done_testing;
