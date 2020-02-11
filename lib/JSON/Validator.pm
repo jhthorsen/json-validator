@@ -1143,8 +1143,8 @@ See L<JSON::Validator::Formats> for a list of supported formats.
 
 =head2 generate_definitions_path
 
-  my $cb = $self->generate_definitions_path;
-  my $jv = $self->generate_definitions_path(sub { my $ref = shift; return ["definitions"] });
+  my $cb = $jv->generate_definitions_path;
+  my $jv = $jv->generate_definitions_path(sub { my $ref = shift; return ["definitions"] });
 
 Holds a callback that is used by L</bundle> to figure out where to place
 references. The default location is under "definitions", but this can be
@@ -1177,11 +1177,11 @@ using L</load_and_validate_schema>, unless already set.
 =head2 bundle
 
   # These two lines does the same
-  my $schema = $jv->bundle({schema => $self->schema->data});
+  my $schema = $jv->bundle({schema => $jv->schema->data});
   my $schema = $jv->bundle;
 
   # Will only bundle a section of the schema
-  my $schema = $jv->bundle({schema => $self->schema->get("/properties/person/age")});
+  my $schema = $jv->bundle({schema => $jv->schema->get("/properties/person/age")});
 
 Used to create a new schema, where there are no "$ref" pointing to external
 resources. This means that all the "$ref" that are found, will be moved into
