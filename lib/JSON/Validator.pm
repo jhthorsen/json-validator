@@ -112,7 +112,7 @@ sub bundle {
       }
     }
     elsif (ref $from eq 'HASH') {
-      while (my ($key, $value) = each %$from) {
+      for my $key (keys %$from) {
         $to->{$key} //= $cloner->($from->{$key});
       }
     }
@@ -876,7 +876,8 @@ sub _validate_type_object {
   }
 
   my $coerce = $self->{coerce}{defaults};
-  while (my ($k, $r) = each %{$schema->{properties}}) {
+  for my $k (keys %{$schema->{properties}}) {
+    my $r = $schema->{properties}{$k};
     push @{$rules{$k}}, $r;
     if (  $coerce
       and ref $r eq 'HASH'
@@ -887,7 +888,8 @@ sub _validate_type_object {
     }
   }
 
-  while (my ($p, $r) = each %{$schema->{patternProperties} || {}}) {
+  for my $p (keys %{$schema->{patternProperties} || {}}) {
+    my $r = $schema->{patternProperties}{$p};
     push @{$rules{$_}}, $r for sort grep { $_ =~ /$p/ } @dkeys;
   }
 
