@@ -549,11 +549,13 @@ sub _validate {
     push @errors,
       $self->_validate_all_of($to_json ? $$to_json : $_[1], $path, $rules);
   }
-  elsif ($rules = $schema->{anyOf}) {
+
+  if (my $rules = $schema->{anyOf}) {
     push @errors,
       $self->_validate_any_of($to_json ? $$to_json : $_[1], $path, $rules);
   }
-  elsif ($rules = $schema->{oneOf}) {
+
+  if (my $rules = $schema->{oneOf}) {
     push @errors,
       $self->_validate_one_of($to_json ? $$to_json : $_[1], $path, $rules);
   }
