@@ -558,6 +558,14 @@ sub _validate {
       $self->_validate_one_of($to_json ? $$to_json : $_[1], $path, $rules);
   }
 
+  if ($schema->{if}) {
+    my $rules
+      = $self->_validate($data, $path, $schema->{if})
+      ? $schema->{else}
+      : $schema->{then};
+    push @errors, $self->_validate($data, $path, $rules // {});
+  }
+
   return @errors;
 }
 
@@ -853,12 +861,6 @@ sub _validate_type_object {
       next unless my @e = $self->_validate($name, $path, $n_schema);
       push @errors, prefix_errors propertyName => [map { ($name, $_) } @e];
     }
-  }
-  if ($schema->{if}) {
-    push @errors,
-      $self->_validate($data, $path, $schema->{if})
-      ? $self->_validate($data, $path, $schema->{else} // {})
-      : $self->_validate($data, $path, $schema->{then} // {});
   }
 
   my %rules;

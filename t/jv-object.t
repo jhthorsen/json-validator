@@ -113,19 +113,6 @@ my $schema;
   validate_ok {name => 'John', surname => 'Doe'}, $schema;
 }
 
-{
-  my $schema = {
-    if   => {properties => {ifx => {type      => 'string'}}},
-    then => {properties => {ifx => {maxLength => 3}}},
-    else => {properties => {ifx => {type      => 'number'}}},
-  };
-
-  validate_ok {ifx => 'foo'},    $schema;
-  validate_ok {ifx => 'foobar'}, $schema, E('/ifx', 'String is too long: 6/3.');
-  validate_ok {ifx => 42},       $schema;
-  validate_ok {ifx => []}, $schema, E('/ifx', 'Expected number - got array.');
-}
-
 sub TO_JSON { return {age => shift->{age}} }
 my $obj = bless {age => 'not_a_string'}, 'main';
 validate_ok $obj, {properties => {age => {type => 'integer'}}},
