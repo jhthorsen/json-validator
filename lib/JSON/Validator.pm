@@ -846,13 +846,12 @@ sub _validate_type_number {
 
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
-  my %required = map { ($_ => 1) } @{$schema->{required} || []};
-  my ($additional, @errors, %rules);
 
   if (ref $data ne 'HASH') {
     return E $path, [object => type => data_type $data];
   }
 
+  my @errors;
   my @dkeys = sort keys %$data;
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < @dkeys) {
     push @errors, E $path,
@@ -875,11 +874,11 @@ sub _validate_type_object {
       : $self->_validate($data, $path, $schema->{then} // {});
   }
 
-  my $coerce = $self->{coerce}{defaults};
+  my %rules;
   for my $k (keys %{$schema->{properties}}) {
     my $r = $schema->{properties}{$k};
     push @{$rules{$k}}, $r;
-    if (  $coerce
+    if (  $self->{coerce}{defaults}
       and ref $r eq 'HASH'
       and exists $r->{default}
       and !exists $data->{$k})
@@ -893,7 +892,7 @@ sub _validate_type_object {
     push @{$rules{$_}}, $r for sort grep { $_ =~ /$p/ } @dkeys;
   }
 
-  $additional
+  my $additional
     = exists $schema->{additionalProperties}
     ? $schema->{additionalProperties}
     : {};
@@ -906,7 +905,7 @@ sub _validate_type_object {
     return E $path, [object => additionalProperties => join '/', @k];
   }
 
-  for my $k (sort keys %required) {
+  for my $k (sort uniq @{$schema->{required} || []}) {
     next if exists $data->{$k};
     push @errors, E json_pointer($path, $k), [object => 'required'];
     delete $rules{$k};
