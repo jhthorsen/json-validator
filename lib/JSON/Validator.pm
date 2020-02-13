@@ -1197,7 +1197,7 @@ using L</load_and_validate_schema>, unless already set.
 
 Used to create a new schema, where there are no "$ref" pointing to external
 resources. This means that all the "$ref" that are found, will be moved into
-the "definitions" key, in the returning C<$schema>.
+the "definitions" key, in the returned C<$schema>.
 
 =head2 coerce
 
@@ -1213,7 +1213,8 @@ the same as the number C<1>, unless you have "numbers" coercion enabled.
 
 =item * booleans
 
-Will convert what looks can be interpreted as a boolean to a
+Will convert what looks can be interpreted as a boolean (that is, an actual
+numeric C<1> or C<0>, and the strings "true" and "false") to a
 L<JSON::PP::Boolean> object. Note that "foo" is not considered a true value and
 will fail the validation.
 
