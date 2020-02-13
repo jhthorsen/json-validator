@@ -1,10 +1,12 @@
 package JSON::Validator::Util;
 use Mojo::Base -strict;
 
+use Carp         ();
 use Data::Dumper ();
 use Exporter 'import';
 use JSON::Validator::Error;
 use Mojo::Collection;
+use Mojo::JSON;
 use Mojo::Loader;
 use Mojo::Util;
 use Scalar::Util 'blessed';
@@ -20,26 +22,32 @@ sub data_checksum {
 
 sub data_section {
   my ($class, $file, $params) = @_;
-  state $class_skip_re
-    = qr{(^JSON::Validator$|^Mojo::Base$|^Mojolicious$|\w+::_Dynamic)};
+  state $skip_re
+    = qr{(^JSON::Validator|^Mojo::Base$|^Mojolicious$|\w+::_Dynamic)};
 
-  unless ($class) {
-    my $i = 1;
+  my @classes = $class ? ([$class]) : ();
+  unless (@classes) {
+    my $i = 0;
     while ($class = caller($i++)) {
-      last unless $class =~ $class_skip_re;
+      push @classes, [$class] unless $class =~ $skip_re;
     }
   }
 
-  my @classes = do { no strict 'refs'; ($class, @{"$class\::ISA"}) };
-  my $text;
-  for my $class (@classes) {
-    next if $class =~ $class_skip_re;
-    last if $text = Mojo::Loader::data_section($class, $file);
+  for my $group (@classes) {
+    push @$group,
+      grep { !/$skip_re/ } do { no strict 'refs'; @{"$group->[0]\::ISA"} };
+    for my $class (@$group) {
+      next unless my $text = Mojo::Loader::data_section($class, $file);
+      return Mojo::Util::encode($params->{encoding}, $text)
+        if $params->{encoding};
+      return $text;
+    }
   }
 
-  $text = Mojo::Util::encode($params->{encoding}, $text)
-    if $text and $params->{encoding};
-  $text;
+  return undef unless $params->{confess};
+
+  my $err = Mojo::JSON::encode_json([map { @$_ == 1 ? $_->[0] : $_ } @classes]);
+  Carp::confess(qq(Could not find "$file" in __DATA__ section of $err.));
 }
 
 sub data_type {

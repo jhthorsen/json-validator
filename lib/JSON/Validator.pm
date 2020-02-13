@@ -263,9 +263,8 @@ sub _load_schema {
 
   if ($url =~ m!^data://([^/]*)/(.*)!) {
     my ($class, $file) = ($1, $2);
-    my $text = data_section $class, $file, {encoding => 'UTF-8'};
-    return $self->_load_schema_from_text(\$text), "$url" if $text;
-    confess "$file could not be found in __DATA__ section of $class.";
+    my $text = data_section $class, $file, {confess => 1, encoding => 'UTF-8'};
+    return $self->_load_schema_from_text(\$text), "$url";
   }
 
   if ($url =~ m!^\s*[\[\{]!) {

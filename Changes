@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+3.21 Not Released
+ - Fix data_section() without a class #193
+
 3.20 2020-02-12T09:47:21+0900
  - Fix validating draft6 "false" and "true" schemas #190
    Contributor: Karen Etheridge
