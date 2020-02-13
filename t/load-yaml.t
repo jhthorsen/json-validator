@@ -2,7 +2,7 @@ use Mojo::Base -strict;
 use JSON::Validator;
 use Test::More;
 
-plan skip_all => 'YAML::XS required' unless $JSON::Validator::YAML_LOADER;
+plan skip_all => 'YAML::XS required' unless JSON::Validator->YAML_SUPPORT;
 
 my $jv     = JSON::Validator->new;
 my @errors = $jv->schema('data://Some::Module/s_pec-/-ficaTion')

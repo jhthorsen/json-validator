@@ -21,9 +21,9 @@ use constant CASE_TOLERANT     => File::Spec->case_tolerant;
 use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
+use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
 
 our $VERSION     = '3.20';
-our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
 our @EXPORT_OK   = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
@@ -300,22 +300,12 @@ sub _load_schema_from_text {
   return Mojo::JSON::decode_json($$text) if $$text =~ /^\s*\{/s;
 
   # YAML
-  $visit = sub {
-    my $v = shift;
-    $visit->($_) for grep { ref $_ eq 'HASH' } values %$v;
-    unless ($v->{type} and $v->{type} eq 'boolean' and exists $v->{default}) {
-      return $v;
-    }
-    %$v = (%$v, default => $v->{default} ? true : false);
-    return $v;
-  };
-
   die "[JSON::Validator] YAML::XS 0.67 is missing or could not be loaded."
-    unless $YAML_LOADER;
+    unless YAML_SUPPORT;
 
   no warnings 'once';
   local $YAML::XS::Boolean = 'JSON::PP';
-  return $visit->($YAML_LOADER->($$text));
+  return YAML::XS::Load($$text);
 }
 
 sub _load_schema_from_url {
@@ -1236,10 +1226,6 @@ both the "integer" and "number" types.
 Will convert a number into a string. This works for the "string" type.
 
 =back
-
-Loading a YAML document will enable "booleans" automatically. This feature is
-experimental, but was added since YAML has no real concept of booleans, such
-as L<Mojo::JSON> or other JSON parsers.
 
 =head2 get
 
