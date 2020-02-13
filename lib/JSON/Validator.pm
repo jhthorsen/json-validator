@@ -1250,7 +1250,7 @@ Extract value from L</schema> identified by the given JSON Pointer. Will at the
 same time resolve C<$ref> if found. Example:
 
   $jv->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
-  $jv->schema->get('/x')           == undef
+  $jv->schema->get('/x')           == {'$ref' => '#/y'}
   $jv->schema->get('/x')->{'$ref'} == '#/y'
   $jv->get('/x')                   == {type => 'string'}
 
