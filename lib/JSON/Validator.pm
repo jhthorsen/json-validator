@@ -1039,7 +1039,7 @@ Here are some resources that are related to JSON schemas and validation:
 
 =item * L<http://json-schema.org/documentation.html>
 
-=item * L<http://spacetelescope.github.io/understanding-json-schema/index.html>
+=item * L<https://json-schema.org/understanding-json-schema/index.html>
 
 =item * L<https://github.com/json-schema/json-schema/>
 
