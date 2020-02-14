@@ -239,7 +239,7 @@ to differentiate between "integer" and "number".
   $bool = is_type $any, $class;
   $bool = is_type $any, $type; # $type = "ARRAY", "BOOL", "HASH", "NUM" ...
 
-Checks if C<$any> is a, or inherit from C<$class> or C<$type>. Two special
+Checks if C<$any> is a, or inherits from, C<$class> or C<$type>. Two special
 types can be checked:
 
 =over 2

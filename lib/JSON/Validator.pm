@@ -21,9 +21,9 @@ use constant CASE_TOLERANT     => File::Spec->case_tolerant;
 use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
+use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
 
 our $VERSION     = '3.20';
-our $YAML_LOADER = eval q[use YAML::XS 0.67; YAML::XS->can('Load')];  # internal
 our @EXPORT_OK   = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
@@ -112,7 +112,7 @@ sub bundle {
       }
     }
     elsif (ref $from eq 'HASH') {
-      while (my ($key, $value) = each %$from) {
+      for my $key (keys %$from) {
         $to->{$key} //= $cloner->($from->{$key});
       }
     }
@@ -299,22 +299,12 @@ sub _load_schema_from_text {
   return Mojo::JSON::decode_json($$text) if $$text =~ /^\s*\{/s;
 
   # YAML
-  $visit = sub {
-    my $v = shift;
-    $visit->($_) for grep { ref $_ eq 'HASH' } values %$v;
-    unless ($v->{type} and $v->{type} eq 'boolean' and exists $v->{default}) {
-      return $v;
-    }
-    %$v = (%$v, default => $v->{default} ? true : false);
-    return $v;
-  };
-
   die "[JSON::Validator] YAML::XS 0.67 is missing or could not be loaded."
-    unless $YAML_LOADER;
+    unless YAML_SUPPORT;
 
   no warnings 'once';
   local $YAML::XS::Boolean = 'JSON::PP';
-  return $visit->($YAML_LOADER->($$text));
+  return YAML::XS::Load($$text);
 }
 
 sub _load_schema_from_url {
@@ -845,13 +835,12 @@ sub _validate_type_number {
 
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
-  my %required = map { ($_ => 1) } @{$schema->{required} || []};
-  my ($additional, @errors, %rules);
 
   if (ref $data ne 'HASH') {
     return E $path, [object => type => data_type $data];
   }
 
+  my @errors;
   my @dkeys = sort keys %$data;
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < @dkeys) {
     push @errors, E $path,
@@ -874,10 +863,11 @@ sub _validate_type_object {
       : $self->_validate($data, $path, $schema->{then} // {});
   }
 
-  my $coerce = $self->{coerce}{defaults};
-  while (my ($k, $r) = each %{$schema->{properties}}) {
+  my %rules;
+  for my $k (keys %{$schema->{properties}}) {
+    my $r = $schema->{properties}{$k};
     push @{$rules{$k}}, $r;
-    if (  $coerce
+    if (  $self->{coerce}{defaults}
       and ref $r eq 'HASH'
       and exists $r->{default}
       and !exists $data->{$k})
@@ -886,11 +876,12 @@ sub _validate_type_object {
     }
   }
 
-  while (my ($p, $r) = each %{$schema->{patternProperties} || {}}) {
+  for my $p (keys %{$schema->{patternProperties} || {}}) {
+    my $r = $schema->{patternProperties}{$p};
     push @{$rules{$_}}, $r for sort grep { $_ =~ /$p/ } @dkeys;
   }
 
-  $additional
+  my $additional
     = exists $schema->{additionalProperties}
     ? $schema->{additionalProperties}
     : {};
@@ -903,7 +894,7 @@ sub _validate_type_object {
     return E $path, [object => additionalProperties => join '/', @k];
   }
 
-  for my $k (sort keys %required) {
+  for my $k (sort uniq @{$schema->{required} || []}) {
     next if exists $data->{$k};
     push @errors, E json_pointer($path, $k), [object => 'required'];
     delete $rules{$k};
@@ -1038,7 +1029,7 @@ Here are some resources that are related to JSON schemas and validation:
 
 =item * L<http://json-schema.org/documentation.html>
 
-=item * L<http://spacetelescope.github.io/understanding-json-schema/index.html>
+=item * L<https://json-schema.org/understanding-json-schema/index.html>
 
 =item * L<https://github.com/json-schema/json-schema/>
 
@@ -1195,7 +1186,7 @@ using L</load_and_validate_schema>, unless already set.
 
 Used to create a new schema, where there are no "$ref" pointing to external
 resources. This means that all the "$ref" that are found, will be moved into
-the "definitions" key, in the returning C<$schema>.
+the "definitions" key, in the returned C<$schema>.
 
 =head2 coerce
 
@@ -1211,7 +1202,8 @@ the same as the number C<1>, unless you have "numbers" coercion enabled.
 
 =item * booleans
 
-Will convert what looks can be interpreted as a boolean to a
+Will convert what looks can be interpreted as a boolean (that is, an actual
+numeric C<1> or C<0>, and the strings "true" and "false") to a
 L<JSON::PP::Boolean> object. Note that "foo" is not considered a true value and
 will fail the validation.
 
@@ -1234,10 +1226,6 @@ Will convert a number into a string. This works for the "string" type.
 
 =back
 
-Loading a YAML document will enable "booleans" automatically. This feature is
-experimental, but was added since YAML has no real concept of booleans, such
-as L<Mojo::JSON> or other JSON parsers.
-
 =head2 get
 
   my $sub_schema = $jv->get("/x/y");
@@ -1247,7 +1235,7 @@ Extract value from L</schema> identified by the given JSON Pointer. Will at the
 same time resolve C<$ref> if found. Example:
 
   $jv->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
-  $jv->schema->get('/x')           == undef
+  $jv->schema->get('/x')           == {'$ref' => '#/y'}
   $jv->schema->get('/x')->{'$ref'} == '#/y'
   $jv->get('/x')                   == {type => 'string'}
 

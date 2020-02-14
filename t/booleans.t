@@ -22,7 +22,7 @@ validate_ok {v => '0'},     $schema, E('/v', 'Expected boolean - got string.');
 validate_ok {v => ''},      $schema, E('/v', 'Expected boolean - got string.');
 
 SKIP: {
-  skip 'YAML::XS is not installed', 1 unless $JSON::Validator::YAML_LOADER;
+  skip 'YAML::XS is not installed', 1 unless JSON::Validator->YAML_SUPPORT;
   my $data = jv->_load_schema_from_text(\"---\nv: true\n");
   isa_ok($data->{v}, 'JSON::PP::Boolean');
   validate_ok $data, $schema;
@@ -34,8 +34,7 @@ SKIP: {
     {type => 'object', properties => {type => {type => 'string'}}};
 }
 
-SKIP: {
-  skip 'Cpanel::JSON::XS not installed', 2 unless $JSON::Validator::YAML_LOADER;
+{
   validate_ok {disabled => Mojo::JSON->true},
     {properties => {disabled => {type => 'boolean'}}};
   validate_ok {disabled => Mojo::JSON->false},
