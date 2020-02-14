@@ -54,7 +54,7 @@ has ua => sub {
 
 sub bundle {
   my ($self, $args) = @_;
-  my ($cloner, $tied);
+  my ($cloner);
 
   my $schema
     = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
@@ -64,6 +64,7 @@ sub bundle {
     $cloner = sub {
       my $from      = shift;
       my $from_type = ref $from;
+      my $tied;
       $from = $tied->schema if $from_type eq 'HASH' and $tied = tied %$from;
       my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
       push @topics, [$from, $to] if $from_type;
@@ -75,7 +76,7 @@ sub bundle {
       my $from      = shift;
       my $from_type = ref $from;
 
-      $tied = $from_type eq 'HASH' && tied %$from;
+      my $tied = $from_type eq 'HASH' && tied %$from;
       unless ($tied) {
         my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
         push @topics, [$from, $to] if $from_type;
@@ -293,7 +294,6 @@ sub _load_schema {
 
 sub _load_schema_from_text {
   my ($self, $text) = @_;
-  my $visit;
 
   # JSON
   return Mojo::JSON::decode_json($$text) if $$text =~ /^\s*\{/s;
@@ -311,7 +311,6 @@ sub _load_schema_from_url {
   my ($self, $url) = @_;
   my $cache_path = $self->cache_paths->[0];
   my $cache_file = Mojo::Util::md5_sum("$url");
-  my ($err, $tx);
 
   for (@{$self->cache_paths}) {
     my $path = path $_, $cache_file;
@@ -320,8 +319,8 @@ sub _load_schema_from_url {
     return $self->_load_schema_from_text(\$path->slurp);
   }
 
-  $tx  = $self->ua->get($url);
-  $err = $tx->error && $tx->error->{message};
+  my $tx  = $self->ua->get($url);
+  my $err = $tx->error && $tx->error->{message};
   confess "GET $url == $err"               if DEBUG and $err;
   die "[JSON::Validator] GET $url == $err" if $err;
 
@@ -378,7 +377,7 @@ sub _register_schema {
 sub _resolve {
   my ($self, $schema) = @_;
   my $id_key = $self->_id_key;
-  my ($id, $resolved, @refs);
+  my ($id, $resolved);
 
   local $self->{level} = $self->{level} || 0;
   delete $_[0]->{schemas}{''} unless $self->{level};
@@ -416,7 +415,7 @@ sub _resolve {
   $self->{level}++;
   $self->_register_schema($schema, $id);
 
-  my %seen;
+  my (%seen, @refs);
   my @topics
     = ([$schema, is_type($id, 'Mojo::File') ? $id : Mojo::URL->new($id)]);
   while (@topics) {
@@ -497,13 +496,12 @@ sub _resolve_ref {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  my ($seen_addr, $to_json, $type);
 
   $schema = $self->_ref_to_schema($schema)
     if ref $schema eq 'HASH' and $schema->{'$ref'};
   return $schema ? () : E $path, [not => 'not'] if is_type $schema, 'BOOL';
 
-  $seen_addr = join ':', refaddr($schema),
+  my $seen_addr = join ':', refaddr($schema),
     (ref $data ? refaddr $data : ++$self->{seen}{scalar});
 
   # Avoid recursion
@@ -512,10 +510,10 @@ sub _validate {
   }
 
   $self->{seen}{$seen_addr} = \my @errors;
-  $to_json
+  my $to_json
     = (blessed $data and $data->can('TO_JSON')) ? \$data->TO_JSON : undef;
   $data = $$to_json if $to_json;
-  $type = $schema->{type} || schema_type $schema, $data;
+  my $type = $schema->{type} || schema_type $schema, $data;
 
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {
