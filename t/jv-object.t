@@ -82,7 +82,6 @@ my $schema;
 }
 
 {
-  local $TODO = 'Add support for dependencies';
   $schema = {
     type       => 'object',
     properties => {
@@ -94,8 +93,28 @@ my $schema;
     dependencies => {credit_card => ['billing_address']}
   };
 
+  validate_ok {name => 'John Doe'}, $schema;
+  validate_ok {name => 'John Doe', billing_address => '123 Main St'}, $schema;
   validate_ok {name => 'John Doe', credit_card => 5555555555555555}, $schema,
-    E('/credit_card', 'Missing billing_address.', 'credit_card');
+    E('/billing_address', 'Missing property. Dependee: credit_card.');
+
+  $schema = {
+    type => 'object',
+    properties =>
+      {name => {type => 'string'}, credit_card => {type => 'number'}},
+    required     => ['name'],
+    dependencies => {
+      credit_card => {
+        properties => {billing_address => {type => 'string'}},
+        required   => ['billing_address'],
+      },
+    },
+  };
+
+  validate_ok {name => 'John Doe'}, $schema;
+  validate_ok {name => 'John Doe', billing_address => '123 Main St'}, $schema;
+  validate_ok {name => 'John Doe', credit_card => 5555555555555555}, $schema,
+    E('/billing_address', 'Missing property.');
 }
 
 {

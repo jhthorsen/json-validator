@@ -899,7 +899,21 @@ sub _validate_type_object {
   for my $k (sort uniq @{$schema->{required} || []}) {
     next if exists $data->{$k};
     push @errors, E json_pointer($path, $k), [object => 'required'];
-    delete $rules{$k};
+    delete $rules{$k};    # why bother?
+  }
+
+  my $dependencies = $schema->{dependencies} || {};
+  for my $k (keys %$dependencies) {
+    next if not exists $data->{$k};
+    if (ref $dependencies->{$k} eq 'ARRAY') {
+      push @errors,
+        map { E json_pointer($path, $_), [object => dependencies => $k] }
+        grep { !exists $data->{$_} } @{$dependencies->{$k}};
+    }
+    elsif (ref $dependencies->{$k} eq 'HASH') {
+      push @errors,
+        $self->_validate_type_object($data, $path, $schema->{dependencies}{$k});
+    }
   }
 
   for my $k (sort keys %rules) {
