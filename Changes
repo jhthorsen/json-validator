@@ -1,5 +1,10 @@
 Revision history for perl distribution JSON-Validator
 
+3.22 2020-02-15T08:35:29+0900
+ - Add support for "dependencies" keyword #192 #197
+ - Add support for anyOf/allOf/oneOf at the same time #196 #197
+ - Allow if/then/else to be in any sort of schema #190 #197
+
 3.21 2020-02-14T10:14:14+0900
  - Fix data_section() without a class #193
 
