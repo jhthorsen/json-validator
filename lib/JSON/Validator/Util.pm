@@ -123,7 +123,6 @@ sub schema_type {
   return _guessed_right(object => $_[1]) if $_[0]->{properties};
   return _guessed_right(object => $_[1]) if $_[0]->{propertyNames};
   return _guessed_right(object => $_[1]) if $_[0]->{required};
-  return _guessed_right(object => $_[1]) if $_[0]->{if};
   return _guessed_right(object => $_[1])
     if defined $_[0]->{maxProperties}
     or defined $_[0]->{minProperties};

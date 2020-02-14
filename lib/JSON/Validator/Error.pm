@@ -35,6 +35,7 @@ our $MESSAGES = {
     maxProperties        => 'Too many properties: %3/%4.',
     minProperties        => 'Not enough properties: %3/%4.',
     required             => 'Missing property.',
+    dependencies         => 'Missing property. Dependee: %3.',
   },
   oneOf => {
     all_rules_match => 'All of the oneOf rules match.',
