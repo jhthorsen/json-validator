@@ -899,7 +899,7 @@ sub _validate_type_object {
   for my $k (sort uniq @{$schema->{required} || []}) {
     next if exists $data->{$k};
     push @errors, E json_pointer($path, $k), [object => 'required'];
-    delete $rules{$k};    # why bother?
+    delete $rules{$k};
   }
 
   my $dependencies = $schema->{dependencies} || {};
