@@ -30,11 +30,8 @@ my %WriteMakefileArgs = (
       x_IRC => 'irc://irc.freenode.net/#mojo',
     },
   },
-  PREREQ_PM     => {'Mojolicious' => '7.28'},
-  TEST_REQUIRES => {
-    'Test::More' => '1.30',
-    'Test::Deep' => '0',
-  },
+  PREREQ_PM     => {'List::Util' => '1.45', 'Mojolicious' => '7.28'},
+  TEST_REQUIRES => {'Test::More' => '1.30', 'Test::Deep'  => '0'},
   test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );
 

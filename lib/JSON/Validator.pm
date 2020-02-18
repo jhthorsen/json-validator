@@ -9,7 +9,8 @@ use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
 use JSON::Validator::Util
-  qw(E data_checksum data_section data_type is_type json_pointer prefix_errors schema_type uniq);
+  qw(E data_checksum data_section data_type is_type json_pointer prefix_errors schema_type);
+use List::Util 'uniq';
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON qw(false true);
@@ -896,7 +897,7 @@ sub _validate_type_object {
     return E $path, [object => additionalProperties => join '/', @k];
   }
 
-  for my $k (sort uniq @{$schema->{required} || []}) {
+  for my $k (sort { $a cmp $b } uniq @{$schema->{required} || []}) {
     next if exists $data->{$k};
     push @errors, E json_pointer($path, $k), [object => 'required'];
     delete $rules{$k};

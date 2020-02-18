@@ -26,6 +26,9 @@ ok !Some::Module->validate_age1({age => 1}), 'validate_age1';
 eval { Mojolicious::Plugin::TestX->validate('data:///spec.json', {}) };
 ok !$@, 'found spec.json in main' or diag $@;
 
+@errors = $jv->schema('data://main/spec.json')->validate({});
+like "@errors", qr{firstName.*lastName}, 'required is sorted';
+
 package Mojolicious::Plugin::TestX;
 sub validate { $jv->schema($_[1])->validate($_[2]) }
 
@@ -38,7 +41,7 @@ __DATA__
 {
   "title": "Example Schema",
   "type": "object",
-  "required": ["firstName", "lastName"],
+  "required": ["lastName", "firstName"],
   "properties": {
       "firstName": { "type": "string" },
       "lastName": { "type": "string" },

@@ -5,6 +5,7 @@ use Carp         ();
 use Data::Dumper ();
 use Exporter 'import';
 use JSON::Validator::Error;
+use List::Util;
 use Mojo::Collection;
 use Mojo::JSON;
 use Mojo::Loader;
@@ -12,7 +13,7 @@ use Mojo::Util;
 use Scalar::Util 'blessed';
 
 our @EXPORT_OK
-  = qw(E data_checksum data_section data_type is_type schema_extract json_pointer prefix_errors schema_type uniq);
+  = qw(E data_checksum data_section data_type is_type schema_extract json_pointer prefix_errors schema_type);
 
 sub E { JSON::Validator::Error->new(@_) }
 
@@ -142,11 +143,6 @@ sub schema_type {
     or defined $_[0]->{minimum};
   return 'const' if exists $_[0]->{const};
   return '';
-}
-
-sub uniq {
-  my %uniq;
-  grep { !$uniq{$_}++ } @_;
 }
 
 # _guessed_right($type, $data);
@@ -320,12 +316,6 @@ faster if you specify "type". Both of the two below is valid, but the one with
 
   {"type": "object", "properties": {}} # Faster
   {"properties": {}}                   # Slower
-
-=head2 uniq
-
-  @items = uniq @items;
-
-See L<List::Util/uniq>.
 
 =head1 SEE ALSO
 

@@ -1,7 +1,7 @@
 package JSON::Validator::Joi;
 use Mojo::Base -base;
 
-use JSON::Validator::Util 'uniq';
+use List::Util 'uniq';
 use Mojo::JSON qw(false true);
 use Mojo::Util;
 use Storable 'dclone';
