@@ -57,7 +57,16 @@ validate_ok(
     properties =>
       {name => {type => ['string'], enum => [qw(n yes true false)]}},
   },
-  E('/name', '/anyOf Expected string - got null.'),
+  E('/name', 'Expected string - got null.'),
+);
+
+validate_ok(
+  {name => undef},
+  {
+    type       => 'object',
+    required   => ['name'],
+    properties => {name => {enum => [qw(n yes true false)]}},
+  },
   E('/name', 'Not in enum list: n, yes, true, false.'),
 );
 

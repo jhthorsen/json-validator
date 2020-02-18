@@ -39,4 +39,10 @@ validate_ok 'he110th3re', $schema,
   E('/', '/oneOf/1 String is too long: 10/4.'),
   E('/', '/oneOf/1 String does not match ^[a-z]+$.');
 
+validate_ok 'hello', {type => ['integer', 'boolean']},
+  E('/', 'Expected integer/boolean - got string.');
+
+validate_ok 'hello', {allOf => [true, {type => ['integer', 'boolean']}]},
+  E('/', '/allOf/1 Expected integer/boolean - got string.');
+
 done_testing;

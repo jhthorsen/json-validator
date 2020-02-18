@@ -5,7 +5,8 @@ validate_ok {who_id => 'WHO', expire => '2018-01-01', amount => 1000,
   desc => 'foo'}, 'data://main/example.json',
   E('/sym',      '/oneOf/0/allOf/0/allOf/0 Missing property.'),
   E('/template', '/oneOf/0/allOf/2 Missing property.'),
-  E('/sym',      '/oneOf/1/allOf/0 Missing property.');
+  E('/sym',      '/oneOf/1/allOf/0 Missing property.'),
+  E('/',         '/oneOf/2 Expected string - got object.');
 
 validate_ok {
   sym      => 'a',

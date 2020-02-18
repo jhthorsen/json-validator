@@ -6,10 +6,14 @@ my $schema
     [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]
   };
 
-validate_ok 'short',    $schema;
-validate_ok 'too long', $schema, E('/', '/anyOf/0 String is too long: 8/5.');
-validate_ok 12,         $schema;
-validate_ok int(-1), $schema, E('/', '/anyOf/1 -1 < minimum(0)');
+validate_ok 'short', $schema;
+validate_ok 'too long', $schema, E('/', '/anyOf/0 String is too long: 8/5.'),
+  E('/', '/anyOf/1 Expected number - got string.');
+
+validate_ok 12, $schema;
+validate_ok int(-1), $schema, E('/', '/anyOf/0 Expected string - got number.'),
+  E('/', '/anyOf/1 -1 < minimum(0)');
+
 validate_ok {}, $schema, E('/', '/anyOf Expected string/number - got object.');
 
 # anyOf with explicit integer (where _guess_data_type returns 'number')
@@ -62,5 +66,15 @@ validate_ok(
   E('/a', '/anyOf/0 Missing property.'),
   E('/b', '/anyOf/1 Missing property.'),
 );
+
+validate_ok 'hello', {type => ['integer', 'string'], enum => [123, 'HELLO']},
+  E('/', 'Not in enum list: 123, HELLO.');
+
+validate_ok 'hello', {anyOf => [false, {type => ['integer', 'boolean']}]},
+  E('/', '/anyOf/0 Should not match.'),
+  E('/', '/anyOf/1 Expected integer/boolean - got string.');
+
+validate_ok 'hello', {type => ['integer', 'boolean']},
+  E('/', 'Expected integer/boolean - got string.');
 
 done_testing;
