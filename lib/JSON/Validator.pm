@@ -24,7 +24,7 @@ use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
 
-our $VERSION   = '3.22';
+our $VERSION   = '3.23';
 our @EXPORT_OK = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));

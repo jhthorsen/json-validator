@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+3.23 2020-02-19T09:37:44+0900
+ - Using List::Util::uniq() instead of JSON::Validator::Util::uniq() #198
+
 3.22 2020-02-15T08:35:29+0900
  - Add support for "dependencies" keyword #192 #197
    Contributor: Karen Etheridge

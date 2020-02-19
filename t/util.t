@@ -2,7 +2,7 @@ use Mojo::Base -strict;
 use Mojo::JSON 'false';
 use JSON::Validator;
 use JSON::Validator::Util
-  qw(E data_type schema_type prefix_errors is_type json_pointer uniq);
+  qw(E data_type schema_type prefix_errors is_type json_pointer);
 use Test::More;
 
 my $e = E '/path/x', 'some error';
@@ -51,7 +51,5 @@ is schema_type({minLength => 4}), 'string', 'schema_type string';
 is schema_type({multipleOf => 2}),       'number', 'schema_type number';
 is schema_type({const      => 42}),      'const',  'schema_type const';
 is schema_type({cannot     => 'guess'}), '',       'schema_type no idea';
-
-is_deeply [uniq(1, '1', 10, 3, 4, 1)], [1, 10, 3, 4], 'uniq';
 
 done_testing;
