@@ -39,4 +39,12 @@ validate_ok {x => undef}, $schema;
 validate_ok 1, {oneOf => [{minimum => 1}, {minimum => 2}, {maximum => 3}]},
   E('/', 'oneOf rules 0, 2 match.');
 
+validate_ok 'hello', {oneOf => [true, false]};
+
+validate_ok 'hello', {oneOf => [true, true]},
+  E('/', 'All of the oneOf rules match.');
+
+validate_ok 'hello', {oneOf => [false, false]},
+  E('/', '/oneOf/0 Should not match.'), E('/', '/oneOf/1 Should not match.');
+
 done_testing;

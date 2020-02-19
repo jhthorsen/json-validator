@@ -118,6 +118,7 @@ sub prefix_errors {
 }
 
 sub schema_type {
+  return '' if ref $_[0] ne 'HASH';
   return $_[0]->{type} if $_[0]->{type};
   return _guessed_right(object => $_[1]) if $_[0]->{additionalProperties};
   return _guessed_right(object => $_[1]) if $_[0]->{patternProperties};
