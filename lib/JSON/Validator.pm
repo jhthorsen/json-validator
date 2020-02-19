@@ -1029,7 +1029,7 @@ JSON::Validator - Validate data against a JSON schema
 L<JSON::Validator> is a data structure validation library based around
 L<JSON Schema|https://json-schema.org/>. This module can be used directly with
 a JSON schema or you can use the elegant DSL schema-builder
-L<JSON::Validator::joi> to define the schema programmatically.
+L<JSON::Validator::Joi> to define the schema programmatically.
 
 =head2 Supported schema formats
 
