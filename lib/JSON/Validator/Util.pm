@@ -2,7 +2,6 @@ package JSON::Validator::Util;
 use Mojo::Base -strict;
 
 use Carp         ();
-use Data::Dumper ();
 use Exporter 'import';
 use JSON::Validator::Error;
 use List::Util;
@@ -18,7 +17,11 @@ our @EXPORT_OK
 sub E { JSON::Validator::Error->new(@_) }
 
 sub data_checksum {
-  Mojo::Util::md5_sum(Data::Dumper->new([@_])->Sortkeys(1)->Useqq(1)->Dump);
+  return Mojo::Util::md5_sum(
+    ref $_[0]
+    ? Mojo::JSON::encode_json([@_])
+    : defined $_[0] ? qq('$_[0]')
+    :                 'undef');
 }
 
 sub data_section {
@@ -118,7 +121,7 @@ sub prefix_errors {
 }
 
 sub schema_type {
-  return '' if ref $_[0] ne 'HASH';
+  return ''            if ref $_[0] ne 'HASH';
   return $_[0]->{type} if $_[0]->{type};
   return _guessed_right(object => $_[1]) if $_[0]->{additionalProperties};
   return _guessed_right(object => $_[1]) if $_[0]->{patternProperties};
