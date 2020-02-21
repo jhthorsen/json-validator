@@ -519,8 +519,7 @@ sub _validate {
   # Test base schema before allOf, anyOf or oneOf
   if (ref $type eq 'ARRAY') {
     push @{$self->{temp_schema}}, [map { +{%$schema, type => $_} } @$type];
-    push @errors,
-      $self->_validate_any_of($to_json ? $$to_json : $_[1],
+    return $self->_validate_any_of_types($to_json ? $$to_json : $_[1],
       $path, $self->{temp_schema}[-1]);
   }
   elsif ($type) {
@@ -574,69 +573,91 @@ sub _validate {
 
 sub _validate_all_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = data_type $data, $rules;
-  my (@errors, @expected);
+  my @errors;
 
   my $i = 0;
   for my $rule (@$rules) {
     next unless my @e = $self->_validate($_[1], $path, $rule);
-    my $schema_type = schema_type $rule;
-    push @expected, $schema_type if $schema_type;
-    push @errors, [$i, @e] if !$schema_type or $schema_type eq $type;
+    push @errors, [$i, @e];
   }
   continue {
     $i++;
   }
 
-  return E $path, [allOf => type => join('/', uniq @expected), $type]
-    if !@errors and @expected;
-  return prefix_errors allOf => @errors if @errors;
-  return;
+  return if not @errors;
+
+  return prefix_errors(allOf => @errors)
+    if @errors == 1
+    or grep $_->[1]->details->[1] ne 'type', @errors;
+
+  # combine all 'type' errors together
+  my $want_types = join('/', uniq map $_->[1]->details->[0], @errors);
+  return E $path, [allOf => type => $want_types, $errors[-1][1]->details->[2]];
+}
+
+sub _validate_any_of_types {
+  my ($self, $data, $path, $rules) = @_;
+  my @errors;
+
+  for my $rule (@$rules) {
+    return unless my @e = $self->_validate($_[1], $path, $rule);
+    push @errors, @e;
+  }
+
+ # disregard any 'type' errors in favour of a more specific error, when possible
+  if (my @e = grep $_->details->[1] ne 'type', @errors) {
+    return @e;
+  }
+
+  # combine all 'type' errors together
+  my $want_types = join('/', uniq map $_->details->[0], @errors);
+  return E $path, [$want_types => 'type', $errors[-1]->details->[2]];
 }
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = data_type $data, $rules;
-  my (@e, @errors, @expected);
+  my @errors;
 
   my $i = 0;
   for my $rule (@$rules) {
-    @e = $self->_validate($_[1], $path, $rule);
-    return unless @e;
-    my $schema_type = schema_type $rule;
-    push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
-    push @expected, $schema_type;
+    return unless my @e = $self->_validate($_[1], $path, $rule);
+    push @errors, [$i, @e];
   }
   continue {
     $i++;
   }
 
-  my $expected = join '/', uniq @expected;
-  return E $path, [anyOf => type => $expected, $type] unless @errors;
-  return prefix_errors anyOf => @errors;
+  return prefix_errors(anyOf => @errors)
+    if grep $_->[1]->details->[1] ne 'type', @errors;
+
+  # combine all 'type' errors together
+  my $want_types = join('/', uniq map $_->[1]->details->[0], @errors);
+  return E $path, [anyOf => type => $want_types, $errors[-1][1]->details->[2]];
 }
 
 sub _validate_one_of {
   my ($self, $data, $path, $rules) = @_;
-  my $type = data_type $data, $rules;
-  my (@errors, @expected);
+  my @errors;
 
   my ($i, @passed) = (0);
   for my $rule (@$rules) {
     my @e = $self->_validate($_[1], $path, $rule) or push @passed, $i and next;
-    my $schema_type = schema_type $rule;
-    push @errors, [$i, @e] and next if !$schema_type or $schema_type eq $type;
-    push @expected, $schema_type;
+    push @errors, [$i, @e];
   }
   continue {
     $i++;
   }
 
   return if @passed == 1;
-  return E $path, [oneOf => 'all_rules_match'] unless @errors + @expected;
+  return E $path, [oneOf => 'all_rules_match'] unless @errors;
   return E $path, [oneOf => 'n_rules_match', join(', ', @passed)] if @passed;
-  return prefix_errors oneOf => @errors if @errors;
-  return E $path, [oneOf => type => join('/', uniq @expected), $type];
+
+  return prefix_errors(oneOf => @errors)
+    if grep $_->[1]->details->[1] ne 'type', @errors;
+
+  # combine all 'type' errors together
+  my $want_types = join('/', uniq map $_->[1]->details->[0], @errors);
+  return E $path, [oneOf => type => $want_types, $errors[-1][1]->details->[2]];
 }
 
 sub _validate_number_max {
