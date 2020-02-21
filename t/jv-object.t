@@ -189,4 +189,7 @@ validate_ok {foo => 'bar'},
 , {additionalProperties => {'$ref' => '#/definitions/my_false_ref'}},
   {patternProperties => {foo => {'$ref' => '#/definitions/my_false_ref'}}};
 
+$schema = {dependencies => {bar => ['foo']}};
+validate_ok {bar => 2}, $schema, E('/foo', 'Missing property. Dependee: bar.');
+
 done_testing;

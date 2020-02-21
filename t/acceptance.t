@@ -18,7 +18,6 @@ my $host_port = $t->ua->server->url->host_port;
 
 my $test_only_re = $ENV{TEST_ONLY} || '';
 my $todo_re      = join('|',
-  'dependencies',
   'change resolution scope - changed scope ref valid',
   $ENV{TEST_ONLINE} ? () : ('remote ref'),
 );
