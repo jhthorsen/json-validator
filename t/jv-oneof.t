@@ -68,4 +68,18 @@ validate_ok 'hello', {oneOf => [false, {type => 'integer'}]},
   E('/', '/oneOf/0 Should not match.'),
   E('/', '/oneOf/1 Expected integer - got string.');
 
+validate_ok 'hello', {oneOf => [{type => ['integer', 'boolean']}]},
+  E('/', '/oneOf/0 Expected integer/boolean - got string.');
+
+validate_ok 'hello',
+  {
+  oneOf => [
+    {oneOf => [{type => 'boolean'}, {type => 'string', maxLength => 2}]},
+    {type  => 'integer'},
+  ],
+  },
+  E('/', '/oneOf/0/oneOf/0 Expected boolean - got string.'),
+  E('/', '/oneOf/0/oneOf/1 String is too long: 5/2.'),
+  E('/', '/oneOf/1 Expected integer - got string.');
+
 done_testing;
