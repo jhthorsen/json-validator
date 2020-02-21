@@ -114,7 +114,7 @@ sub prefix_errors {
     push @errors, map {
       my $msg = sprintf '/%s/%s %s', $type, $index, $_->message;
       $msg =~ s!(\d+)\s/!$1/!g;
-      E $_->path, $msg;
+      E +{%$_, message => $msg};   # preserve 'details', for later introspection
     } @$e;
   }
 

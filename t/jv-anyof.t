@@ -77,4 +77,18 @@ validate_ok 'hello', {anyOf => [false, {type => ['integer', 'boolean']}]},
 validate_ok 'hello', {type => ['integer', 'boolean']},
   E('/', 'Expected integer/boolean - got string.');
 
+validate_ok 'hello', {anyOf => [{type => ['integer', 'boolean']}]},
+  E('/', '/anyOf/0 Expected integer/boolean - got string.');
+
+validate_ok 'hello',
+  {
+  anyOf => [
+    {anyOf => [{type => 'boolean'}, {type => 'string', maxLength => 2}]},
+    {type  => 'integer'},
+  ],
+  },
+  E('/', '/anyOf/0/anyOf/0 Expected boolean - got string.'),
+  E('/', '/anyOf/0/anyOf/1 String is too long: 5/2.'),
+  E('/', '/anyOf/1 Expected integer - got string.');
+
 done_testing;

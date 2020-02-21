@@ -586,13 +586,15 @@ sub _validate_all_of {
 
   return if not @errors;
 
+  my @details = map { my ($i, @e) = @$_; map $_->details, @e } @errors;
+
   return prefix_errors(allOf => @errors)
-    if @errors == 1
-    or grep $_->[1]->details->[1] ne 'type', @errors;
+    if @details == 1
+    or grep $_->[1] ne 'type', @details;
 
   # combine all 'type' errors together
-  my $want_types = join('/', uniq map $_->[1]->details->[0], @errors);
-  return E $path, [allOf => type => $want_types, $errors[-1][1]->details->[2]];
+  my $want_types = join '/', uniq map $_->[0], @details;
+  return E $path, [allOf => type => $want_types, $details[-1][2]];
 }
 
 sub _validate_any_of_types {
@@ -610,8 +612,9 @@ sub _validate_any_of_types {
   }
 
   # combine all 'type' errors together
-  my $want_types = join('/', uniq map $_->details->[0], @errors);
-  return E $path, [$want_types => 'type', $errors[-1]->details->[2]];
+  my @details    = map $_->details, @errors;
+  my $want_types = join '/', uniq map $_->[0], @details;
+  return E $path, [$want_types => 'type', $details[-1][2]];
 }
 
 sub _validate_any_of {
@@ -627,12 +630,15 @@ sub _validate_any_of {
     $i++;
   }
 
+  my @details = map { my ($i, @e) = @$_; map $_->details, @e } @errors;
+
   return prefix_errors(anyOf => @errors)
-    if grep $_->[1]->details->[1] ne 'type', @errors;
+    if @details == 1
+    or grep $_->[1] ne 'type', @details;
 
   # combine all 'type' errors together
-  my $want_types = join('/', uniq map $_->[1]->details->[0], @errors);
-  return E $path, [anyOf => type => $want_types, $errors[-1][1]->details->[2]];
+  my $want_types = join '/', uniq map $_->[0], @details;
+  return E $path, [anyOf => type => $want_types, $details[-1][2]];
 }
 
 sub _validate_one_of {
@@ -652,12 +658,15 @@ sub _validate_one_of {
   return E $path, [oneOf => 'all_rules_match'] unless @errors;
   return E $path, [oneOf => 'n_rules_match', join(', ', @passed)] if @passed;
 
+  my @details = map { my ($i, @e) = @$_; map $_->details, @e } @errors;
+
   return prefix_errors(oneOf => @errors)
-    if grep $_->[1]->details->[1] ne 'type', @errors;
+    if @details == 1
+    or grep $_->[1] ne 'type', @details;
 
   # combine all 'type' errors together
-  my $want_types = join('/', uniq map $_->[1]->details->[0], @errors);
-  return E $path, [oneOf => type => $want_types, $errors[-1][1]->details->[2]];
+  my $want_types = join '/', uniq map $_->[0], @details;
+  return E $path, [oneOf => type => $want_types, $details[-1][2]];
 }
 
 sub _validate_number_max {
