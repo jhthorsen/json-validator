@@ -14,6 +14,7 @@ use List::Util 'uniq';
 use Mojo::File 'path';
 use Mojo::JSON::Pointer;
 use Mojo::JSON qw(false true);
+use YAML::PP 0.020;
 use Mojo::URL;
 use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
@@ -22,13 +23,13 @@ use constant CASE_TOLERANT     => File::Spec->case_tolerant;
 use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
-use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
 
 our $VERSION   = '3.23';
 our @EXPORT_OK = qw(joi validate_json);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE    = qr{^https?:};
+my $YP = YAML::PP->new( boolean => 'JSON::PP' );
 
 has cache_paths => sub {
   return [split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''),
@@ -300,12 +301,7 @@ sub _load_schema_from_text {
   return Mojo::JSON::decode_json($$text) if $$text =~ /^\s*\{/s;
 
   # YAML
-  die "[JSON::Validator] YAML::XS 0.67 is missing or could not be loaded."
-    unless YAML_SUPPORT;
-
-  no warnings 'once';
-  local $YAML::XS::Boolean = 'JSON::PP';
-  return YAML::XS::Load($$text);
+  return $YP->load_string($$text);
 }
 
 sub _load_schema_from_url {
