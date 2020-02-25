@@ -1,7 +1,7 @@
 package JSON::Validator::Util;
 use Mojo::Base -strict;
 
-use Carp         ();
+use Carp ();
 use Exporter 'import';
 use JSON::Validator::Error;
 use List::Util;
@@ -10,18 +10,19 @@ use Mojo::JSON;
 use Mojo::Loader;
 use Mojo::Util;
 use Scalar::Util 'blessed';
+use YAML::XS;
 
 our @EXPORT_OK
   = qw(E data_checksum data_section data_type is_type schema_extract json_pointer prefix_errors schema_type);
 
 sub E { JSON::Validator::Error->new(@_) }
 
+my $serializer
+  = eval 'use Sereal::Encoder;1' ? \&_sereal_encode : \&YAML::XS::Dump;
+
 sub data_checksum {
   return Mojo::Util::md5_sum(
-    ref $_[0]
-    ? Mojo::JSON::encode_json([@_])
-    : defined $_[0] ? qq('$_[0]')
-    :                 'undef');
+    ref $_[0] ? $serializer->($_[0]) : defined $_[0] ? qq('$_[0]') : 'undef');
 }
 
 sub data_section {
@@ -192,6 +193,11 @@ sub _schema_extract {
 
   return $cb->($data, $pos) if $cb;
   return $data;
+}
+
+sub _sereal_encode {
+  state $s = Sereal::Encoder->new({canonical => 1});
+  return $s->encode($_[0]);
 }
 
 1;
