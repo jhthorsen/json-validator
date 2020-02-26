@@ -56,4 +56,14 @@ validate_ok 'hello',
   E('/', '/allOf/0/allOf/1 String is too long: 5/2.'),
   E('/', '/allOf/1 Expected integer - got string.');
 
+validate_ok {foo => 'not an arrayref'},
+  {
+  allOf => [
+    {type => 'object', properties => {foo => {type => 'array'}}},
+    {type => 'boolean'},
+  ]
+  },
+  E('/foo', '/allOf/0 Expected array - got string.'),
+  E('/',    '/allOf/1 Expected boolean - got object.');
+
 done_testing;
