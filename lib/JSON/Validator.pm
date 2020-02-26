@@ -883,7 +883,7 @@ sub _validate_type_object {
   if (my $n_schema = $schema->{propertyNames}) {
     for my $name (keys %$data) {
       next unless my @e = $self->_validate($name, $path, $n_schema);
-      push @errors, prefix_errors propertyName => [map { ($name, $_) } @e];
+      push @errors, prefix_errors propertyName => map [$name, $_], @e;
     }
   }
 
