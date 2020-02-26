@@ -573,12 +573,13 @@ sub _validate {
 
 sub _validate_all_of {
   my ($self, $data, $path, $rules) = @_;
-  my @errors;
+  my (@errors, @errors_with_prefix);
 
   my $i = 0;
   for my $rule (@$rules) {
     next unless my @e = $self->_validate($_[1], $path, $rule);
-    push @errors, [$i, @e];
+    push @errors, @e;
+    push @errors_with_prefix, [$i, @e];
   }
   continue {
     $i++;
@@ -586,13 +587,13 @@ sub _validate_all_of {
 
   return if not @errors;
 
-  my @details = map { my ($i, @e) = @$_; map $_->details, @e } @errors;
+  return prefix_errors(allOf => @errors_with_prefix)
+    if @errors == 1
+    or
+    (grep { $_->details->[1] ne 'type' or $_->path ne ($path || '/') } @errors);
 
-  return prefix_errors(allOf => @errors)
-    if @details == 1
-    or grep $_->[1] ne 'type', @details;
-
-  # combine all 'type' errors together
+  # combine all 'type' errors at the base path together
+  my @details    = map $_->details, @errors;
   my $want_types = join '/', uniq map $_->[0], @details;
   return E $path, [allOf => type => $want_types, $details[-1][2]];
 }
@@ -606,12 +607,14 @@ sub _validate_any_of_types {
     push @errors, @e;
   }
 
- # disregard any 'type' errors in favour of a more specific error, when possible
-  if (my @e = grep $_->details->[1] ne 'type', @errors) {
+  # favour a non-type error from one of the rules
+  if (my @e
+    = grep { $_->details->[1] ne 'type' or $_->path ne ($path || '/') } @errors)
+  {
     return @e;
   }
 
-  # combine all 'type' errors together
+  # the type didn't match any of the rules: combine the errors together
   my @details    = map $_->details, @errors;
   my $want_types = join '/', uniq map $_->[0], @details;
   return E $path, [$want_types => 'type', $details[-1][2]];
@@ -619,36 +622,38 @@ sub _validate_any_of_types {
 
 sub _validate_any_of {
   my ($self, $data, $path, $rules) = @_;
-  my @errors;
+  my (@errors, @errors_with_prefix);
 
   my $i = 0;
   for my $rule (@$rules) {
     return unless my @e = $self->_validate($_[1], $path, $rule);
-    push @errors, [$i, @e];
+    push @errors, @e;
+    push @errors_with_prefix, [$i, @e];
   }
   continue {
     $i++;
   }
 
-  my @details = map { my ($i, @e) = @$_; map $_->details, @e } @errors;
+  return prefix_errors(anyOf => @errors_with_prefix)
+    if @errors == 1
+    or
+    (grep { $_->details->[1] ne 'type' or $_->path ne ($path || '/') } @errors);
 
-  return prefix_errors(anyOf => @errors)
-    if @details == 1
-    or grep $_->[1] ne 'type', @details;
-
-  # combine all 'type' errors together
+  # combine all 'type' errors at the base path together
+  my @details    = map $_->details, @errors;
   my $want_types = join '/', uniq map $_->[0], @details;
   return E $path, [anyOf => type => $want_types, $details[-1][2]];
 }
 
 sub _validate_one_of {
   my ($self, $data, $path, $rules) = @_;
-  my @errors;
+  my (@errors, @errors_with_prefix);
 
   my ($i, @passed) = (0);
   for my $rule (@$rules) {
     my @e = $self->_validate($_[1], $path, $rule) or push @passed, $i and next;
-    push @errors, [$i, @e];
+    push @errors_with_prefix, [$i, @e];
+    push @errors, @e;
   }
   continue {
     $i++;
@@ -658,13 +663,13 @@ sub _validate_one_of {
   return E $path, [oneOf => 'all_rules_match'] unless @errors;
   return E $path, [oneOf => 'n_rules_match', join(', ', @passed)] if @passed;
 
-  my @details = map { my ($i, @e) = @$_; map $_->details, @e } @errors;
+  return prefix_errors(oneOf => @errors_with_prefix)
+    if @errors == 1
+    or
+    (grep { $_->details->[1] ne 'type' or $_->path ne ($path || '/') } @errors);
 
-  return prefix_errors(oneOf => @errors)
-    if @details == 1
-    or grep $_->[1] ne 'type', @details;
-
-  # combine all 'type' errors together
+  # the type didn't match any of the rules: combine the errors together
+  my @details    = map $_->details, @errors;
   my $want_types = join '/', uniq map $_->[0], @details;
   return E $path, [oneOf => type => $want_types, $details[-1][2]];
 }
