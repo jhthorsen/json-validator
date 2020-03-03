@@ -1,5 +1,14 @@
 Revision history for perl distribution JSON-Validator
 
+3.24 2020-03-03T15:46:39+0900
+  - Optimize checksum generation #202
+    Contributor: Ere Maijala
+  - Improved "type":[...] error messages #199
+    Contributor: Karen Etheridge
+  - Fix handle validation of true, false schemas in oneOf #201 #203
+    Contributor: Karen Etheridge
+  - Fix guessing type:object if "dependencies" is present #206
+
 3.23 2020-02-19T09:37:44+0900
  - Using List::Util::uniq() instead of JSON::Validator::Util::uniq() #198
 
