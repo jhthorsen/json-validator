@@ -189,4 +189,21 @@ validate_ok {foo => 'bar'},
 , {additionalProperties => {'$ref' => '#/definitions/my_false_ref'}},
   {patternProperties => {foo => {'$ref' => '#/definitions/my_false_ref'}}};
 
+$schema = {dependencies => {bar => ['foo']}};
+validate_ok {bar => 2}, $schema, E('/foo', 'Missing property. Dependee: bar.');
+
+validate_ok {FOO => 1},
+  {
+  type          => 'object',
+  propertyNames => {
+    anyOf => [
+      {type => 'string', enum => ['foo', 'bar', 'baz']},
+      {type => 'string', enum => ['hello']},
+    ],
+  },
+  additionalProperties => {type => 'integer'},
+  },
+  E('/', '/propertyName/FOO /anyOf/0 Not in enum list: foo, bar, baz.'),
+  E('/', '/propertyName/FOO /anyOf/1 Not in enum list: hello.');
+
 done_testing;
