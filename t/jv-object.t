@@ -52,9 +52,10 @@ my $schema;
     number      => 1600,
     street_name => 'Pennsylvania',
     street_type => 'Avenue',
-    direction   => 'NW'
+    direction   => 'NW',
+    foo         => 'nope',
     },
-    $schema, E('/', 'Properties not allowed: direction.');
+    $schema, E('/', 'Properties not allowed: direction, foo.');
 
   $schema->{additionalProperties} = {type => 'string'};
   validate_ok {

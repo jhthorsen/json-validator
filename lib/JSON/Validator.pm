@@ -929,7 +929,7 @@ sub _validate_type_object {
   }
   elsif (my @k = grep { !$rules{$_} } @dkeys) {
     local $" = ', ';
-    return E $path, [object => additionalProperties => join '/', @k];
+    return E $path, [object => additionalProperties => join ', ', sort @k];
   }
 
   for my $k (sort { $a cmp $b } uniq @{$schema->{required} || []}) {
