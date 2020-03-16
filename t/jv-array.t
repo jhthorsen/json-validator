@@ -104,4 +104,13 @@ validate_ok [], {type => 'array', contains => {const => 'foo'}},
 validate_ok [1], {contains => {const => 'foo'}},
   E('/0', 'Does not match const: "foo".');
 
+validate_ok [1], {items => {not => {}}}, E('/0', 'Should not match.');
+validate_ok [1], {items => false}, E('/0', 'Should not match.');
+
+validate_ok [1, 2], {contains => {not => {}}}, E('/0', 'Should not match.'),
+  E('/1', 'Should not match.');
+
+validate_ok [1, 2], {contains => false}, E('/0', 'Should not match.'),
+  E('/1', 'Should not match.');
+
 done_testing;

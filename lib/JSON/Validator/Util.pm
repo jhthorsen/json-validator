@@ -134,9 +134,9 @@ sub schema_type {
     if defined $_[0]->{maxProperties}
     or defined $_[0]->{minProperties};
   return _guessed_right(array => $_[1]) if $_[0]->{additionalItems};
-  return _guessed_right(array => $_[1]) if $_[0]->{items};
+  return _guessed_right(array => $_[1]) if defined $_[0]->{items};
   return _guessed_right(array => $_[1]) if $_[0]->{uniqueItems};
-  return _guessed_right(array => $_[1]) if $_[0]->{contains};
+  return _guessed_right(array => $_[1]) if defined $_[0]->{contains};
   return _guessed_right(array => $_[1])
     if defined $_[0]->{maxItems}
     or defined $_[0]->{minItems};

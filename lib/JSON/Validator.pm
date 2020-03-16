@@ -779,7 +779,7 @@ sub _validate_type_array {
     }
   }
 
-  if ($schema->{contains}) {
+  if (exists $schema->{contains}) {
     my @e;
     for my $i (0 .. @$data - 1) {
       my @tmp = $self->_validate($data->[$i], "$path/$i", $schema->{contains});
