@@ -113,4 +113,12 @@ validate_ok [1, 2], {contains => {not => {}}}, E('/0', 'Should not match.'),
 validate_ok [1, 2], {contains => false}, E('/0', 'Should not match.'),
   E('/1', 'Should not match.');
 
+validate_ok [1, 'hello'],
+  {contains => {const => 1}, items => {type => 'number'}},
+  E('/1', 'Expected number - got string.');
+
+validate_ok [1, 'hello'],
+  {contains => {const => 1}, items => [{type => 'string'}]},
+  E('/0', 'Expected string - got number.');
+
 done_testing;
