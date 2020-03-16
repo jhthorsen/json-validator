@@ -11,6 +11,7 @@ our $MESSAGES = {
     maxItems        => 'Too many items: %3/%4.',
     minItems        => 'Not enough items: %3/%4.',
     uniqueItems     => 'Unique items required.',
+    contains        => 'No items contained.',
   },
   const   => {const => 'Does not match const: %3.'},
   enum    => {enum  => 'Not in enum list: %3.'},

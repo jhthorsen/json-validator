@@ -786,6 +786,7 @@ sub _validate_type_array {
       push @e, \@tmp if @tmp;
     }
     push @errors, map {@$_} @e if @e >= @$data;
+    push @errors, E $path, [array => 'contains'] if not @$data;
   }
   elsif (ref $schema->{items} eq 'ARRAY') {
     my $additional_items = $schema->{additionalItems} // {type => 'any'};

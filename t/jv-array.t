@@ -98,4 +98,7 @@ validate_ok [1, 'foo', 1.2],
   },
   E('/2', 'Should not match.');
 
+validate_ok [], {type => 'array', contains => {const => 'foo'}},
+  E('/', 'No items contained.');
+
 done_testing;
