@@ -394,16 +394,18 @@ sub _register_schema {
 sub _resolve {
   my ($self, $schema) = @_;
   my $id_key = $self->_id_key;
-  my ($id, $resolved);
+  my $id;
 
   local $self->{level} = $self->{level} || 0;
   delete $_[0]->{schemas}{''} unless $self->{level};
 
   if (ref $schema eq 'HASH') {
     $id = $schema->{$id_key} // '';
-    return $resolved if $resolved = $self->{schemas}{$id};
+    if (my $resolved = $self->{schemas}{$id}) {
+      return $resolved;
+    }
   }
-  elsif ($resolved = $self->{schemas}{$schema // ''}) {
+  elsif (my $resolved = $self->{schemas}{$schema // ''}) {
     return $resolved;
   }
   elsif (is_type $schema, 'BOOL') {
