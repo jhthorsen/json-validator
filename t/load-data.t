@@ -6,6 +6,9 @@ my $jv = JSON::Validator->new;
 my @errors
   = $jv->schema('data://main/spec.json')->validate({firstName => 'yikes!'});
 
+is $jv->{schemas}{'data://main/spec.json'}{title}, 'Example Schema',
+  'registered this schema for reuse';
+
 is int(@errors), 1, 'one error';
 is $errors[0]->path,    '/lastName',         'lastName';
 is $errors[0]->message, 'Missing property.', 'required';

@@ -254,40 +254,55 @@ sub _get { shift; JSON::Validator::Util::_schema_extract(@_) }
 
 sub _id_key { $_[0]->version < 7 ? 'id' : '$id' }
 
+# returns two values - the second is the initial base uri (if one can be determined).
 sub _load_schema {
   my ($self, $url) = @_;
-
-  if ($url =~ m!^https?://!) {
-    warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
-    return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)),
-      "$url";
-  }
-
-  if ($url =~ m!^data://([^/]*)/(.*)!) {
-    my ($class, $file) = ($1, $2);
-    my $text = data_section $class, $file, {confess => 1, encoding => 'UTF-8'};
-    return $self->_load_schema_from_text(\$text), "$url";
-  }
-
   if ($url =~ m!^\s*[\[\{]!) {
+
+    # NOTE: this path has no test coverage!
     warn "[JSON::Validator] Loading schema from string.\n" if DEBUG;
     return $self->_load_schema_from_text(\$url), '';
   }
 
+  die '_load_schema called with a non-empty fragment' if $url =~ /#./;
+  $url =~ s/#$//;
+
+  if ($url =~ m!^https?://!) {
+    return $self->{schemas}{$url}, $url if exists $self->{schemas}{$url};
+    warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
+    return $self->_register_schema($self->_load_schema_from_url($url), $url),
+      $url;
+  }
+
+  if ($url =~ m!^data://([^/]*)/(.*)!) {
+    return $self->{schemas}{$url}, $url if exists $self->{schemas}{$url};
+    my ($class, $file) = ($1, $2);
+    my $text = data_section $class, $file, {confess => 1, encoding => 'UTF-8'};
+    return $self->_register_schema($self->_load_schema_from_text(\$text), $url),
+      $url;
+  }
+
   my $file = $url;
   $file =~ s!^file://!!;
-  $file =~ s!#$!!;
-  $file = path(split '/', $file);
+  $file = Mojo::File->new($file);
+
+  $file = $file->to_abs   if not $file->is_abs;
+  $file = $file->realpath if -e $file;
+  return $self->{schemas}{$file}, $file if exists $self->{schemas}{$file};
+  return $self->{schemas}{lc $file}, $file
+    if CASE_TOLERANT and exists $self->{schemas}{lc $file};
+
   if (-e $file) {
-    $file = $file->realpath;
     warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
-    return $self->_load_schema_from_text(\$file->slurp),
-      CASE_TOLERANT ? path(lc $file) : $file;
+    return $self->_register_schema(
+      $self->_load_schema_from_text(\$file->slurp),
+      CASE_TOLERANT ? path(lc $file) : "$file"
+    ), $file;
   }
   elsif ($url =~ m!^/! and $self->ua->server->app) {
     warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
-    return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)),
-      "$url";
+    return $self->_register_schema($self->_load_schema_from_url($url), $url),
+      $url;
   }
 
   confess "Unable to load schema '$url' ($file)";
@@ -367,6 +382,7 @@ sub _ref_to_schema {
   return $schema;
 }
 
+# the schema registry always contains absolute uris, with no fragment.
 sub _register_schema {
   my ($self, $schema, $fqn) = @_;
   $fqn =~ s!(.)#$!$1!;
@@ -397,6 +413,7 @@ sub _resolve {
   else {
     ($schema, $id) = $self->_load_schema($schema);
     $id = $schema->{$id_key} if $schema->{$id_key};
+    $self->_register_schema($schema, $id) if $id;
   }
 
   unless ($self->{level}) {
@@ -411,10 +428,10 @@ sub _resolve {
     }
     warn sprintf "[JSON::Validator] Using root_schema_url of '$rid'\n" if DEBUG;
     $self->{root_schema_url} = $rid;
+    $self->_register_schema($schema, $rid);
   }
 
   $self->{level}++;
-  $self->_register_schema($schema, $id);
 
   my (%seen, @refs);
   my @topics
