@@ -202,7 +202,7 @@ my @tests = (
   ],
 );
 
-my $draft7_validator = JSON::Validator->new;
+my $draft7_validator = JSON::Validator->new->version(7);
 $draft7_validator->schema('http://json-schema.org/draft-07/schema#');
 
 my $bundler_validator = JSON::Validator->new;

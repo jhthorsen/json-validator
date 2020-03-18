@@ -15,7 +15,7 @@ my $bundled;
   $jv->_load_schema_from_url("http://json-schema.org/draft-07/schema");
 }
 
-note 'Run multiple times to make sure _reset() works';
+note 'Run multiple times to make sure _resolve level works';
 for my $n (1 .. 3) {
   note "[$n] replace=1";
   $bundled = $jv->bundle({

@@ -4,7 +4,7 @@ definitions:
   ref1:
     type: array
     items:
-      $ref: /definitions/ref2
+      $ref: "#/definitions/ref2"
   ref2:
     type: string
     minLength: 1
@@ -16,9 +16,9 @@ definitions:
     type: object
     properties:
       my_key1:
-        $ref: /definitions/ref1
+        $ref: "#/definitions/ref1"
       my_key2:
-        $ref: /definitions/ref1
+        $ref: "#/definitions/ref1"
   # actually a person, as in https://json-schema.org/understanding-json-schema/structuring.html
   i_have_a_recursive_ref:
     type: object
@@ -28,7 +28,7 @@ definitions:
       children:
         type: array
         items:
-          $ref: /definitions/i_have_a_recursive_ref
+          $ref: "#/definitions/i_have_a_recursive_ref"
         default: []
   i_have_a_ref_to_another_file:
     type: object
@@ -38,13 +38,13 @@ definitions:
       address:
         $ref: more-bundle2.yaml#/definitions/my_address
       secrets:
-        $ref: /definitions/ref1
+        $ref: "#/definitions/ref1"
   i_am_a_ref:
-    $ref: /definitions/ref1
+    $ref: "#/definitions/ref1"
   i_am_a_ref_level_1:
-    $ref: /definitions/i_am_a_ref_level_2
+    $ref: "#/definitions/i_am_a_ref_level_2"
   i_am_a_ref_level_2:
-    $ref: /definitions/ref3
+    $ref: "#/definitions/ref3"
   i_am_a_ref_to_another_file:
     $ref: more-bundle2.yaml#/definitions/i_have_a_ref_to_the_first_filename
   i_am_a_ref_with_the_same_name:
@@ -53,12 +53,12 @@ definitions:
     type: object
     properties:
       me:
-        $ref: /definitions/i_am_a_ref_with_the_same_name
+        $ref: "#/definitions/i_am_a_ref_with_the_same_name"
   i_contain_refs_to_same_named_definitions:
     type: object
     properties:
       foo:
-        $ref: /definitions/dupe_name
+        $ref: "#/definitions/dupe_name"
       bar:
         $ref: more-bundle2.yaml#/definitions/dupe_name
   i_have_a_ref_with_the_same_name:

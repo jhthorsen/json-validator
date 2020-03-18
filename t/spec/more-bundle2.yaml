@@ -11,7 +11,7 @@ definitions:
         type: string
       city:
         # this is a local ref in a secondary file - resolution is extra tricky
-        $ref: /definitions/my_name
+        $ref: "#/definitions/my_name"
   dupe_name:
     type: string
   i_am_a_ref_with_the_same_name:

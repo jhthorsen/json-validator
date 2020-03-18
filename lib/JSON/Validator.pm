@@ -436,8 +436,7 @@ sub _resolve {
   $self->{level}++;
 
   my (%seen, @refs);
-  my @topics
-    = ([$schema, is_type($id, 'Mojo::File') ? $id : Mojo::URL->new($id)]);
+  my @topics = ([$schema, Mojo::URL->new($id)]);
   while (@topics) {
     my ($topic, $base) = @{shift @topics};
 
@@ -454,7 +453,7 @@ sub _resolve {
       if ($topic->{$id_key} and !ref $topic->{$id_key}) {
         my $fqn = Mojo::URL->new($topic->{$id_key});
         $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
-        $self->_register_schema($topic, $fqn->to_string);
+        $self->_register_schema($topic, url_unescape $fqn);
       }
 
       push @topics, map { [$_, $base] } values %$topic;
@@ -467,22 +466,8 @@ sub _resolve {
   return $schema;
 }
 
-sub _location_to_abs {
-  my ($location, $base) = @_;
-  my $location_as_url = Mojo::URL->new($location);
-  return $location_as_url if $location_as_url->is_abs;
-
-  # definitely relative now
-  if (is_type $base, 'Mojo::File') {
-    return $base if !length $location;
-    my $path = $base->sibling(split '/', $location)->realpath;
-    return CASE_TOLERANT ? lc($path) : $path;
-  }
-  return $location_as_url->to_abs($base);
-}
-
 sub _resolve_ref {
-  my ($self, $topic, $url) = @_;
+  my ($self, $topic, $base_uri) = @_;    # base_uri is always a Mojo::URL
   return if tied %$topic;
 
   my $other = $topic;
@@ -495,15 +480,14 @@ sub _resolve_ref {
     confess "Seems like you have a circular reference: @guard"
       if @guard > RECURSION_LIMIT;
     last if !$ref or ref $ref;
-    $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
-    my ($location, $pointer) = split /#/, $fqn, 2;
-    $url     = $location = _location_to_abs($location, $url);
-    $pointer = undef if length $location and !length $pointer;
-    $pointer = url_unescape $pointer if defined $pointer;
-    $fqn     = join '#', grep defined, $location, $pointer;
-    $other   = $self->_resolve($location);
 
-    if (defined $pointer and length $pointer and $pointer =~ m!^/!) {
+    $fqn = Mojo::URL->new($ref)->to_abs($base_uri);
+    my $location = $base_uri = $fqn->clone->fragment(undef);
+    $location = url_unescape $location;
+    my $pointer = $fqn->fragment;
+    $other = $self->_resolve($location);
+
+    if ($pointer and $pointer =~ m!^/!) {
       $other = Mojo::JSON::Pointer->new($other)->get($pointer);
       confess
         qq[Possibly a typo in schema? Could not find "$pointer" in "$location" ($ref)]
@@ -511,7 +495,8 @@ sub _resolve_ref {
     }
   }
 
-  tie %$topic, 'JSON::Validator::Ref', $other, $topic->{'$ref'}, $fqn;
+  tie %$topic, 'JSON::Validator::Ref', $other, $topic->{'$ref'},
+    url_unescape($fqn);
 }
 
 sub _validate {
