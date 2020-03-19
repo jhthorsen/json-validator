@@ -454,6 +454,7 @@ sub _resolve {
         my $fqn = Mojo::URL->new($topic->{$id_key});
         $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
         $self->_register_schema($topic, url_unescape $fqn);
+        $base = $fqn;
       }
 
       push @topics, map { [$_, $base] } values %$topic;

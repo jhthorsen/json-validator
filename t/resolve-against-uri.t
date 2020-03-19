@@ -25,8 +25,12 @@ my $schema2 = {
         {
           '$ref' => '/json_schema/refs/self with spaces/1#/properties/space age'
         },
+        {'$ref' => 'new_base#'},    # this resolves to our document
       ]
     },
+
+    # to_abs = http://127.0.0.1:50754/json_schema/refs/other/new_base
+    new_base => {'$id' => 'new_base', type => 'boolean',},
   },
 };
 
@@ -37,6 +41,7 @@ validate_ok {a => 'hi'}, $schema1, E('/a', 'String is too short: 2/4.');
 validate_ok {a => 'hi'}, $schema2,
   E('/a', '/allOf/0 String is too short: 2/3.'),
   E('/a', '/allOf/1 String is too short: 2/4.'),
-  E('/a', '/allOf/2 Expected number - got string.');
+  E('/a', '/allOf/2 Expected number - got string.'),
+  E('/a', '/allOf/3 Expected boolean - got string.');
 
 done_testing;
