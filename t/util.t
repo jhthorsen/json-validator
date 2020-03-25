@@ -54,8 +54,8 @@ is schema_type({const      => 42}),      'const',  'schema_type const';
 is schema_type({cannot     => 'guess'}), '',       'schema_type no idea';
 
 subtest 'data_checksum with Sereal::Encoder' => sub {
-  plan skip_all => 'Sereal::Encoder not installed'
-    unless eval 'use Sereal::Encoder;1';
+  plan skip_all => 'Sereal::Encoder 4.00+ not installed'
+    unless JSON::Validator::Util->SEREAL_SUPPORT;
 
   my $d_hash  = {foo => {}, bar => {}};
   my $d_hash2 = {bar => {}, foo => {}};

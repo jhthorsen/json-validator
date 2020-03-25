@@ -12,13 +12,15 @@ use Mojo::Util;
 use Scalar::Util 'blessed';
 use YAML::XS;
 
+use constant SEREAL_SUPPORT => !$ENV{JSON_VALIDATOR_NO_SEREAL}
+  && eval 'use Sereal::Encoder 4.00;1';
+
 our @EXPORT_OK
   = qw(E data_checksum data_section data_type is_type schema_extract json_pointer prefix_errors schema_type);
 
 sub E { JSON::Validator::Error->new(@_) }
 
-my $serializer
-  = eval 'use Sereal::Encoder;1' ? \&_sereal_encode : \&YAML::XS::Dump;
+my $serializer = SEREAL_SUPPORT ? \&_sereal_encode : \&YAML::XS::Dump;
 
 sub data_checksum {
   return Mojo::Util::md5_sum(
