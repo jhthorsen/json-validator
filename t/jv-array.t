@@ -98,4 +98,27 @@ validate_ok [1, 'foo', 1.2],
   },
   E('/2', 'Should not match.');
 
+validate_ok [], {type => 'array', contains => {const => 'foo'}},
+  E('/', 'No items contained.');
+
+validate_ok [1], {contains => {const => 'foo'}},
+  E('/0', 'Does not match const: "foo".');
+
+validate_ok [1], {items => {not => {}}}, E('/0', 'Should not match.');
+validate_ok [1], {items => false}, E('/0', 'Should not match.');
+
+validate_ok [1, 2], {contains => {not => {}}}, E('/0', 'Should not match.'),
+  E('/1', 'Should not match.');
+
+validate_ok [1, 2], {contains => false}, E('/0', 'Should not match.'),
+  E('/1', 'Should not match.');
+
+validate_ok [1, 'hello'],
+  {contains => {const => 1}, items => {type => 'number'}},
+  E('/1', 'Expected number - got string.');
+
+validate_ok [1, 'hello'],
+  {contains => {const => 1}, items => [{type => 'string'}]},
+  E('/0', 'Expected string - got number.');
+
 done_testing;
