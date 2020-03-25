@@ -1,7 +1,12 @@
 Revision history for perl distribution JSON-Validator
 
-3.25 Not Released
+3.25 2020-03-26T07:42:16+0900
  - Made "additionalProperties" error message less confusing
+ - Add support for "items" and "contains" can be defined-but-false #207
+   Contributor: Karen Etheridge
+ - Respect "items" when combined with "contains" #207
+   Contributor: Karen Etheridge
+ - Require Sereal::Encoder 4.00 to speed up data_checksum()
 
 3.24 2020-03-03T15:46:39+0900
   - Optimize checksum generation #202
