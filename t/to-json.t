@@ -1,11 +1,9 @@
 use Mojo::Base -strict;
-use JSON::Validator 'validate_json';
+use JSON::Validator;
 use Test::More;
 
-my @errors
-  = validate_json(
-  bless({path => '', message => 'yikes'}, 'JSON::Validator::Error'),
-  'data://main/error_object.json');
+my @errors = JSON::Validator->new->schema('data://main/error_object.json')
+  ->validate(bless({path => '', message => 'yikes'}, 'JSON::Validator::Error'));
 ok !@errors, 'TO_JSON on objects' or diag join ', ', @errors;
 
 my $input = {
@@ -15,7 +13,8 @@ my $input = {
   ],
   valid => Mojo::JSON->false,
 };
-@errors = validate_json $input, 'data://main/error_array.json';
+@errors = JSON::Validator->new->schema('data://main/error_array.json')
+  ->validate($input);
 ok !@errors, 'TO_JSON on objects inside arrays' or diag join ', ', @errors;
 is_deeply $input,
   {

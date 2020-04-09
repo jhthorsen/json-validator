@@ -1,5 +1,5 @@
 use Mojo::Base -strict;
-use JSON::Validator 'validate_json';
+use JSON::Validator;
 use Mojo::File 'path';
 use Mojo::JSON qw(encode_json decode_json false true);
 use Test::Mojo;

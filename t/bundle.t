@@ -107,23 +107,10 @@ note 'no leaking path';
 my $ref_name_prefix = $workdir;
 $ref_name_prefix =~ s![^\w-]!_!g;
 $jv->schema(path $workdir, 'spec', 'bundle-no-leaking-filename.json');
-$jv->generate_definitions_path(
-  sub { [shift->fqn =~ /with-deep-mixed/ ? 'deep' : 'other'] });
-$bundled = $jv->bundle;
-my @deep  = keys %{$bundled->{deep}};
-my @other = keys %{$bundled->{other}};
-is @deep,  2, 'deep present'  or diag join ', ', @deep;
-is @other, 3, 'other present' or diag join ', ', @other;
-is_deeply [grep { 0 == index $_, $ref_name_prefix } @deep, @other], [],
+my @definitions = keys %{$bundled->{definitions}};
+ok @definitions, 'definitions are present';
+is_deeply [grep { 0 == index $_, $ref_name_prefix } @definitions], [],
   'no leaking of path';
-
-$jv->generate_definitions_path(
-  sub { shift->fqn =~ /with-deep-mixed/ ? ['even', 'deeper'] : ['other'] });
-$bundled = $jv->bundle;
-@deep    = keys %{$bundled->{even}{deeper}};
-@other   = keys %{$bundled->{other}};
-is @deep,  2, 'even deeper present' or diag join ', ', @deep;
-is @other, 3, 'other present'       or diag join ', ', @other;
 
 done_testing;
 

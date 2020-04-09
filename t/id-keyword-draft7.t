@@ -16,7 +16,7 @@ eval {
   $t->get_ok('/person.json')->status_is(200);
   $base_url = $t->tx->req->url->to_abs->path('/');
   $jv->load_and_validate_schema("${base_url}person.json",
-    {schema => 'http://json-schema.org/draft-07/schema'});
+    {schema => 'http://json-schema.org/draft-07/schema#'});
 };
 ok !$@, "${base_url}schema.json" or diag $@;
 

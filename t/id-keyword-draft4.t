@@ -17,13 +17,11 @@ $t->get_ok('/relative-to-the-root.json')->status_is(200);
 
 $base_url = $t->tx->req->url->to_abs->path('/');
 like $base_url, qr{^http}, 'got base_url to web server';
-is $jv->version, 4,    'default version';
 is $jv->_id_key, 'id', 'default id_key';
 
 delete $jv->{version};
 eval { $jv->load_and_validate_schema("${base_url}relative-to-the-root.json") };
 ok !$@, "${base_url}relative-to-the-root.json" or diag $@;
-is $jv->{version}, 4, 'detected version from draft-04';
 
 my $schema = $jv->schema;
 is $schema->get('/id'), 'http://example.com/relative-to-the-root.json',

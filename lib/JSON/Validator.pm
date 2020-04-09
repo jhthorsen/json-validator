@@ -37,13 +37,13 @@ has cache_paths => sub {
 
 has formats => sub { shift->_build_formats };
 
-has generate_definitions_path => sub {
+sub version {
   my $self = shift;
-  Scalar::Util::weaken($self);
-  return sub { [$self->{definitions_key} || 'definitions'] };
-};
-
-has version => 4;
+  Mojo::Util::deprecated('version() will be removed in future version.');
+  return $self->{version} || 4 unless @_;
+  $self->{version} = shift;
+  $self;
+}
 
 has ua => sub {
   require Mojo::UserAgent;
@@ -101,10 +101,7 @@ sub bundle {
     };
   }
 
-  Mojo::Util::deprecated('bundle({ref_key => "..."}) will be removed.')
-    if $args->{ref_key};
-  local $self->{definitions_key} = $args->{ref_key};
-  local $self->{bundled_refs}    = {};
+  local $self->{bundled_refs} = {};
 
   while (@topics) {
     my ($from, $to) = @{shift @topics};
@@ -145,6 +142,7 @@ sub coerce {
 sub get { JSON::Validator::Util::schema_extract(shift->schema->data, shift) }
 
 sub joi {
+  Mojo::Util::deprecated('joi() will be removed in future version.');
   return JSON::Validator::Joi->new unless @_;
   my ($data, $joi) = @_;
   return $joi->validate($data, $joi);
@@ -153,7 +151,7 @@ sub joi {
 sub load_and_validate_schema {
   my ($self, $spec, $args) = @_;
   my $schema = $args->{schema} || SPECIFICATION_URL;
-  $self->version($1) if !$self->{version} and $schema =~ /draft-0+(\w+)/;
+  $self->{version} = $1 if !$self->{version} and $schema =~ /draft-0+(\w+)/;
   $spec = $self->_resolve($spec);
   my @errors = $self->new(%$self)->schema($schema)->validate($spec);
   confess join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors
@@ -175,7 +173,10 @@ sub schema {
   return $self;
 }
 
-sub singleton { state $jv = shift->new }
+sub singleton {
+  Mojo::Util::deprecated('singleton() will be removed in future version.');
+  state $jv = shift->new;
+}
 
 sub validate {
   my ($self, $data, $schema) = @_;
@@ -190,6 +191,7 @@ sub validate {
 }
 
 sub validate_json {
+  Mojo::Util::deprecated('validate_json() will be removed in future version.');
   __PACKAGE__->singleton->schema($_[1])->validate($_[0]);
 }
 
@@ -224,7 +226,7 @@ sub _build_formats {
 
 sub _definitions_path {
   my ($self, $bundle, $ref) = @_;
-  my $path = $self->generate_definitions_path->($ref);
+  my $path = $self->_definitions_path_for_ref($ref);
 
   # No need to rewrite, if it already has a nice name
   my $node   = _node($bundle, $path, 2, 0);
@@ -254,10 +256,12 @@ sub _definitions_path {
   return [@$path, $key];
 }
 
+sub _definitions_path_for_ref { ['definitions'] }
+
 # Try not to break JSON::Validator::OpenAPI::Mojolicious
 sub _get { shift; JSON::Validator::Util::_schema_extract(@_) }
 
-sub _id_key { $_[0]->version < 7 ? 'id' : '$id' }
+sub _id_key { ($_[0]->{version} || 4) < 7 ? 'id' : '$id' }
 
 sub _load_schema {
   my ($self, $url) = @_;
@@ -386,7 +390,7 @@ sub _resolve {
   my ($id, $resolved);
 
   local $self->{level} = $self->{level} || 0;
-  delete $_[0]->{schemas}{''} unless $self->{level};
+  delete $self->{schemas}{''} unless $self->{level};
 
   if (ref $schema eq 'HASH') {
     $id = $schema->{$id_key} // '';
@@ -476,8 +480,7 @@ sub _resolve_ref {
 
   while (1) {
     last if is_type $other, 'BOOL';
-    $ref = $other->{'$ref'};
-    push @guard, $other->{'$ref'};
+    push @guard, ($ref = $other->{'$ref'});
     confess "Seems like you have a circular reference: @guard"
       if @guard > RECURSION_LIMIT;
     last if !$ref or ref $ref;
@@ -1173,22 +1176,11 @@ L<JSON::Validator::Error> objects when the input data violates the L</schema>.
 
 =head2 joi
 
-  use JSON::Validator "joi";
-  my $joi    = joi;
-  my @errors = joi($data, $joi); # same as $joi->validate($data);
-
-Used to construct a new L<JSON::Validator::Joi> object or perform validation.
+DEPRECATED.
 
 =head2 validate_json
 
-  use JSON::Validator "validate_json";
-  my @errors = validate_json $data, $schema;
-
-This can be useful in web applications:
-
-  my @errors = validate_json $c->req->json, "data://main/spec.json";
-
-See also L</validate> and L</ERROR OBJECT> for more details.
+DEPRECATED.
 
 =head1 ATTRIBUTES
 
@@ -1218,18 +1210,6 @@ block should return C<undef> on success and an error string on error:
 
 See L<JSON::Validator::Formats> for a list of supported formats.
 
-=head2 generate_definitions_path
-
-  my $cb = $jv->generate_definitions_path;
-  my $jv = $jv->generate_definitions_path(sub { my $ref = shift; return ["definitions"] });
-
-Holds a callback that is used by L</bundle> to figure out where to place
-references. The default location is under "definitions", but this can be
-changed to whatever you want. The input C<$ref> variable passed on is a
-L<JSON::Validator::Ref> object.
-
-This attribute is EXPERIMENTAL and might change without warning.
-
 =head2 ua
 
   my $ua = $jv->ua;
@@ -1243,11 +1223,7 @@ L<Mojo::UserAgent/max_redirects> set to 3.
 
 =head2 version
 
-  my $int = $jv->version;
-  my $jv  = $jv->version(7);
-
-Used to set the JSON Schema version to use. Will be set automatically when
-using L</load_and_validate_schema>, unless already set.
+DEPRECATED.
 
 =head1 METHODS
 
@@ -1396,9 +1372,7 @@ the will be loaded from the app defined in L</ua>. Something like this:
 
 =head2 singleton
 
-  my $jv = JSON::Validator->singleton;
-
-Returns the L<JSON::Validator> object used by L</validate_json>.
+DEPRECATED.
 
 =head2 validate
 

@@ -1,5 +1,13 @@
 Revision history for perl distribution JSON-Validator
 
+3.26 Not Released
+ - Deprecated JSON::Validator::joi()
+ - Deprecated JSON::Validator::singleton()
+ - Deprecated JSON::Validator::validate_json()
+ - Deprecated JSON::Validator::version()
+ - Removed JSON::Validator::generate_definitions_path()
+ - Removed support for JSON::Validator::bundle({ref_key => ...})
+
 3.25 2020-03-26T07:42:16+0900
  - Made "additionalProperties" error message less confusing
  - Add support for "items" and "contains" can be defined-but-false #207
