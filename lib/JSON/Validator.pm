@@ -195,12 +195,17 @@ sub validate_json {
 
 sub _build_formats {
   return {
+    'byte'          => JSON::Validator::Formats->can('check_byte'),
     'date'          => JSON::Validator::Formats->can('check_date'),
     'date-time'     => JSON::Validator::Formats->can('check_date_time'),
+    'double'        => JSON::Validator::Formats->can('check_double'),
     'email'         => JSON::Validator::Formats->can('check_email'),
+    'float'         => JSON::Validator::Formats->can('check_float'),
     'hostname'      => JSON::Validator::Formats->can('check_hostname'),
     'idn-email'     => JSON::Validator::Formats->can('check_idn_email'),
     'idn-hostname'  => JSON::Validator::Formats->can('check_idn_hostname'),
+    'int32'         => JSON::Validator::Formats->can('check_int32'),
+    'int64'         => JSON::Validator::Formats->can('check_int64'),
     'ipv4'          => JSON::Validator::Formats->can('check_ipv4'),
     'ipv6'          => JSON::Validator::Formats->can('check_ipv6'),
     'iri'           => JSON::Validator::Formats->can('check_iri'),

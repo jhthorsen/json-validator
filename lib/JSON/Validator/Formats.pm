@@ -1,14 +1,21 @@
 package JSON::Validator::Formats;
 use Mojo::Base -strict;
 
+use Scalar::Util 'looks_like_number';
+
 require Time::Local;
 
 use constant DATA_VALIDATE_DOMAIN => eval 'require Data::Validate::Domain;1';
 use constant DATA_VALIDATE_IP     => eval 'require Data::Validate::IP;1';
-use constant NET_IDN_ENCODE       => eval 'require Net::IDN::Encode;1';
-use constant WARN_MISSING_MODULE  => $ENV{JSON_VALIDATOR_WARN} // 1;
+use constant IV_SIZE        => eval 'require Config;$Config::Config{ivsize}';
+use constant NET_IDN_ENCODE => eval 'require Net::IDN::Encode;1';
+use constant WARN_MISSING_MODULE => $ENV{JSON_VALIDATOR_WARN} // 1;
 
 our $IRI_TEST_NAME = 'iri-reference';
+
+sub check_byte {
+  $_[0] =~ /^[A-Za-z0-9\+\/\=]+$/ ? undef : 'Does not match byte format.';
+}
 
 sub check_date {
   my @date = $_[0] =~ m!^(\d{4})-(\d\d)-(\d\d)$!io;
@@ -37,6 +44,8 @@ sub check_date_time {
   return $err;
 }
 
+sub check_double { _match_number(double => $_[0], '') }
+
 sub check_email {
   state $email_rfc5322_re = do {
     my $atom          = qr;[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+;o;
@@ -52,6 +61,8 @@ sub check_email {
 
   return $_[0] =~ $email_rfc5322_re ? undef : 'Does not match email format.';
 }
+
+sub check_float { _match_number(float => $_[0], '') }
 
 sub check_hostname {
   return _module_missing(hostname => 'Data::Validate::Domain')
@@ -85,6 +96,9 @@ sub check_idn_hostname {
   my $err = eval { check_hostname(Net::IDN::Encode::domain_to_ascii($_[0])) };
   return $err ? 'Does not match idn-hostname format.' : $@ || undef;
 }
+
+sub check_int32 { _match_number(int32 => $_[0], 'l') }
+sub check_int64 { _match_number(int64 => $_[0], IV_SIZE >= 8 ? 'q' : '') }
 
 sub check_iri {
   local $IRI_TEST_NAME = 'iri';
@@ -183,6 +197,16 @@ sub check_uri_template {
   return check_iri($_[0]);
 }
 
+sub _match_number {
+  my ($name, $val, $format) = @_;
+  return 'Does not look like an integer'
+    if $name =~ m!^int! and $val !~ /^-?\d+(\.\d+)?$/;
+  return 'Does not look like a number.' unless looks_like_number $val;
+  return undef unless $format;
+  return undef if $val eq unpack $format, pack $format, $val;
+  return "Does not match $name format.";
+}
+
 sub _module_missing {
   warn "[JSON::Validator] Cannot validate $_[0] format: $_[1] is missing"
     if WARN_MISSING_MODULE;
@@ -223,6 +247,12 @@ All functions return C<undef> for success or an error message for failure.
 
 =head1 FUNCTIONS
 
+=head2 check_byte
+
+  my $str_or_undef = check_byte $str;
+
+Checks that the string matches byte format.
+
 =head2 check_date
 
   my $str_or_undef = check_date $str;
@@ -236,11 +266,25 @@ Validates the date part of a RFC3339 string.
 Validated against RFC3339 timestamp in UTC time. This is formatted as
 "YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is optional
 
+=head2 check_double
+
+  my $str_or_undef = check_double $number;
+
+Tries to check if the number is a double. Note that this check is not very
+accurate.
+
 =head2 check_email
 
   my $str_or_undef = check_email $str;
 
 Validated against the RFC5322 spec.
+
+=head2 check_float
+
+  my $str_or_undef = check_float $number;
+
+Tries to check if the number is a float. Note that this check is not very
+accurate.
 
 =head2 check_hostname
 
@@ -261,6 +305,20 @@ installed.
 
 Will validate a hostname with non-ASCII characters using L<Net::IDN::Encode> if
 installed.
+
+=head2 check_int32
+
+  my $str_or_undef = check_int32 $number;
+
+Tries to check if the number is a int32. Note that this check is not very
+accurate.
+
+=head2 check_int64
+
+  my $str_or_undef = check_int64 $number;
+
+Tries to check if the number is a int64. Note that this check is not very
+accurate.
 
 =head2 check_ipv4
 
