@@ -92,6 +92,11 @@ JSON::Validator::Schema - Base class for JSON::Validator schemas
 
 =head1 DESCRIPTION
 
+L<JSON::Validator::Schema> is the base class for
+L<JSON::Validator::Schema::Draft4>,
+L<JSON::Validator::Schema::Draft6> and
+L<JSON::Validator::Schema::Draft7>.
+
 L<JSON::Validator::Schema> is currently EXPERIMENTAL, and most probably will
 change over the next versions as
 L<https://github.com/mojolicious/json-validator/pull/189> (or a competing PR)

@@ -1,5 +1,5 @@
 use Mojo::Base -strict;
-use JSON::Validator;
+use JSON::Validator::Schema::Draft4;
 use Mojo::File 'path';
 use Mojo::JSON qw(encode_json decode_json false true);
 use Test::Mojo;
@@ -22,6 +22,7 @@ my $todo_re      = join('|',
   $ENV{TEST_ONLINE} ? () : ('remote ref'),
 );
 
+my $jv = JSON::Validator->new->ua($t->ua);
 for my $file (sort $test_suite->list->each) {
   for my $group (@{decode_json($file->slurp)}) {
     for my $test (@{$group->{tests}}) {
@@ -38,11 +39,12 @@ expect_valid: @{[$test->{valid} ? 'Yes' : 'No']}
 HERE
 
       $schema =~ s!http\W+localhost:1234\b!http://$host_port!g;
-      $schema = decode_json $schema;
-
-      my @errors = eval {
-        JSON::Validator->new->ua($t->ua)->load_and_validate_schema($schema)
-          ->validate($test->{data});
+      my @errors;
+      eval {
+        $schema
+          = JSON::Validator::Schema::Draft4->new(decode_json($schema), %$jv);
+        @errors = @{$jv->schema($schema)->schema->errors};
+        @errors = $jv->validate($test->{data}) unless @errors;
       };
 
       my $e = $@ || join ', ', @errors;

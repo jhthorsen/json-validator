@@ -26,8 +26,11 @@ use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
 our $VERSION   = '3.25';
 our @EXPORT_OK = qw(joi validate_json);
 
-# TODO
-our %SCHEMAS = ();
+our %SCHEMAS = (
+  'http://json-schema.org/draft-04/schema#' => '+Draft4',
+  'http://json-schema.org/draft-06/schema#' => '+Draft6',
+  'http://json-schema.org/draft-07/schema#' => '+Draft7',
+);
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE    = qr{^https?:};
