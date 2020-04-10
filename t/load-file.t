@@ -7,7 +7,7 @@ my $jv   = JSON::Validator->new;
 
 note "file://$spec";
 ok eval { $jv->schema("file://$spec") }, 'loaded from file://';
-isa_ok($jv->schema, 'Mojo::JSON::Pointer');
+isa_ok($jv->schema, 'JSON::Validator::Schema');
 is $jv->schema->get('/title'), 'Example Schema', 'got example schema';
 
 done_testing;

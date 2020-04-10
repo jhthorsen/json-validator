@@ -8,11 +8,11 @@ use JSON::Validator::Error;
 use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
+use JSON::Validator::Schema;
 use JSON::Validator::Util
   qw(E data_checksum data_section data_type is_type json_pointer prefix_errors schema_type);
 use List::Util 'uniq';
 use Mojo::File 'path';
-use Mojo::JSON::Pointer;
 use Mojo::JSON qw(false true);
 use Mojo::URL;
 use Mojo::Util qw(url_unescape sha1_sum);
@@ -55,18 +55,19 @@ has ua => sub {
 
 sub bundle {
   my ($self, $args) = @_;
-  my ($cloner);
+  my $cloner;
 
-  my $schema
-    = $args->{schema} ? $self->_resolve($args->{schema}) : $self->schema->data;
-  my @topics = ([$schema, my $bundle = {}, '']);    # ([$from, $to], ...);
+  my $schema    = $self->_new_schema($args->{schema} || $self->schema);
+  my $schema_id = $schema->id || $self->{root_schema_url} || '';
+  my @topics = ([$schema->data, my $bundle = {}, '']);    # ([$from, $to], ...);
 
   if ($args->{replace}) {
     $cloner = sub {
       my $from      = shift;
       my $from_type = ref $from;
-      my $tied;
-      $from = $tied->schema if $from_type eq 'HASH' and $tied = tied %$from;
+      my $tied      = $from_type eq 'HASH' && tied %$from;
+
+      $from = $tied->schema if $tied;
       my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
       push @topics, [$from, $to] if $from_type;
       return $to;
@@ -76,22 +77,21 @@ sub bundle {
     $cloner = sub {
       my $from      = shift;
       my $from_type = ref $from;
+      my $tied      = $from_type eq 'HASH' && tied %$from;
 
-      my $tied = $from_type eq 'HASH' && tied %$from;
       unless ($tied) {
         my $to = $from_type eq 'ARRAY' ? [] : $from_type eq 'HASH' ? {} : $from;
         push @topics, [$from, $to] if $from_type;
         return $to;
       }
 
-      return $from
-        if !$args->{schema}
-        and $tied->fqn =~ m!^\Q$self->{root_schema_url}\E\#!;
+      return $from if !$args->{schema} and $tied->fqn =~ m!^\Q$schema_id\E\#!;
 
       my $path = $self->_definitions_path($bundle, $tied);
       unless ($self->{bundled_refs}{$tied->fqn}++) {
         push @topics,
-          [_node($schema, $path, 1, 0) || {}, _node($bundle, $path, 1, 1)];
+          [_node($schema->data, $path, 1, 0) || {},
+          _node($bundle, $path, 1, 1)];
         push @topics, [$tied->schema, _node($bundle, $path, 0, 1)];
       }
 
@@ -149,15 +149,17 @@ sub joi {
 }
 
 sub load_and_validate_schema {
-  my ($self, $spec, $args) = @_;
-  my $schema = $args->{schema} || SPECIFICATION_URL;
-  $self->{version} = $1 if !$self->{version} and $schema =~ /draft-0+(\w+)/;
-  $spec = $self->_resolve($spec);
-  my @errors = $self->new(%$self)->schema($schema)->validate($spec);
-  confess join "\n", "Invalid JSON specification $spec:", map {"- $_"} @errors
-    if @errors;
-  $self->{schema} = Mojo::JSON::Pointer->new($spec);
-  $self;
+  my ($self, $schema, $args) = @_;
+  my $specification = $args->{schema} || SPECIFICATION_URL;
+  $self->{version} = $1
+    if !$self->{version} and $specification =~ /draft-0+(\w+)/;
+
+  my $obj = $self->_new_schema($schema, specification => $specification);
+  confess join "\n", "Invalid JSON specification $schema",
+    map {"- $_"} @{$obj->errors}
+    if @{$obj->errors};
+  $self->{schema} = $obj;
+  return $self;
 }
 
 sub new {
@@ -169,7 +171,7 @@ sub new {
 sub schema {
   my $self = shift;
   return $self->{schema} unless @_;
-  $self->{schema} = Mojo::JSON::Pointer->new($self->_resolve(shift));
+  $self->{schema} = $self->_new_schema(shift);
   return $self;
 }
 
@@ -180,10 +182,10 @@ sub singleton {
 
 sub validate {
   my ($self, $data, $schema) = @_;
-  $schema ||= $self->schema->data;
+  $schema //= $self->schema->data;
   return E '/', 'No validation rules defined.' unless defined $schema;
 
-  local $self->{schema} = Mojo::JSON::Pointer->new($schema);
+  local $self->{schema} = $self->_new_schema($schema);
   local $self->{seen}   = {};
   local $self->{temp_schema} = [];    # make sure random-errors.t does not fail
   my @errors = $self->_validate($_[1], '', $schema);
@@ -348,6 +350,16 @@ sub _load_schema_from_url {
   return $self->_load_schema_from_text(\$tx->res->body);
 }
 
+sub _new_schema {
+  my ($self, $schema, @attrs) = @_;
+  return $schema if blessed $schema and $schema->can('specification');
+  return $self->_schema_class->new(
+    $schema, @attrs,
+    version => $self->{version},
+    map { ($_ => $self->$_) } qw(cache_paths formats ua)
+  );
+}
+
 sub _node {
   my ($node, $path, $offset, $create) = @_;
 
@@ -419,6 +431,7 @@ sub _resolve {
         or $rid =~ m!^/!;
     }
     warn sprintf "[JSON::Validator] Using root_schema_url of '$rid'\n" if DEBUG;
+    $self->id($rid) if $self->can('id') and !$self->id;
     $self->{root_schema_url} = $rid;
   }
 
@@ -501,6 +514,22 @@ sub _resolve_ref {
   }
 
   tie %$topic, 'JSON::Validator::Ref', $other, $topic->{'$ref'}, $fqn;
+}
+
+# back compat
+sub _schema_class {
+  return 'JSON::Validator::Schema' if ref $_[0] eq __PACKAGE__;
+
+  my $jv_class = ref($_[0]) || $_[0];
+  my $package  = sprintf 'JSON::Validator::Schema::Backcompat::%s',
+    $jv_class =~ m!^JSON::Validator::(.+)! ? $1 : $jv_class;
+  return $package if $package->can('new');
+
+  die "package $package: $@"
+    unless eval "package $package; use Mojo::Base '$jv_class'; 1";
+  Mojo::Util::monkey_patch($package, $_ => JSON::Validator::Schema->can($_))
+    for qw(bundle contains data errors get id new specification validate);
+  return $package;
 }
 
 sub _validate {
@@ -1332,7 +1361,7 @@ structured that can be used to validate C<$schema>.
 
 Used to set a schema from either a data structure or a URL.
 
-C<$schema> will be a L<Mojo::JSON::Pointer> object when loaded,
+C<$schema> will be a L<JSON::Validator::Schema> object when loaded,
 and C<undef> by default.
 
 The C<$url> can take many forms, but needs to point to a text file in the

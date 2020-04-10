@@ -24,6 +24,8 @@ eval { $jv->load_and_validate_schema("${base_url}relative-to-the-root.json") };
 ok !$@, "${base_url}relative-to-the-root.json" or diag $@;
 
 my $schema = $jv->schema;
+is $schema->specification, 'http://json-schema.org/draft-04/schema#',
+  'specification';
 is $schema->get('/id'), 'http://example.com/relative-to-the-root.json',
   'get /id';
 is $schema->get('/definitions/B/id'), 'b.json', 'id /definitions/B/id';

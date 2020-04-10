@@ -7,6 +7,8 @@ Revision history for perl distribution JSON-Validator
  - Deprecated JSON::Validator::version()
  - Removed JSON::Validator::generate_definitions_path()
  - Removed support for JSON::Validator::bundle({ref_key => ...})
+ - JSON::Validator::schema() now holds a JSON::Validator::Schema object
+   instead of Mojo::JSON::Pointer
 
 3.25 2020-03-26T07:42:16+0900
  - Made "additionalProperties" error message less confusing
