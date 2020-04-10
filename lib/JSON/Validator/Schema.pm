@@ -18,6 +18,12 @@ has id => sub {
   is_type($data, 'HASH') ? $data->{'$id'} || $data->{id} || '' : '';
 };
 
+has moniker => sub {
+  my $self = shift;
+  return "draft$1" if $self->specification =~ m!draft-(\d+)!;
+  return '';
+};
+
 has specification => sub {
   my $data = shift->data;
   is_type($data, 'HASH') ? $data->{'$schema'} || $data->{schema} || '' : '';
@@ -122,6 +128,18 @@ C<$schema> is valid.
 
 Holds the ID for this schema. Usually extracted from C<"$id"> or C<"id"> in
 L</data>.
+
+=head2 moniker
+
+  $str    = $schema->moniker;
+  $schema = $self->moniker("some_name");
+
+Used to get/set the moniker for the given schema. Will be "draft04" if
+L</specification> points to a JSON Schema draft URL, and fallback to
+empty string if unable to guess a moniker name.
+
+This attribute will (probably) detect more monikers from a given
+L</specification> or C</id> in the future.
 
 =head2 specification
 
