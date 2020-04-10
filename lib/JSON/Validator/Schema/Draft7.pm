@@ -22,10 +22,11 @@ sub _build_formats {
     'time'          => JSON::Validator::Formats->can('check_time'),
     'uri'           => JSON::Validator::Formats->can('check_uri'),
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
-    'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-template'  => JSON::Validator::Formats->can('check_uri_template'),
   };
 }
+
+sub _definitions_path_for_ref { ['$defs'] }
 
 1;
 
