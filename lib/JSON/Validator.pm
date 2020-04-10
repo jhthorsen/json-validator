@@ -27,9 +27,11 @@ our $VERSION   = '3.25';
 our @EXPORT_OK = qw(joi validate_json);
 
 our %SCHEMAS = (
-  'http://json-schema.org/draft-04/schema#' => '+Draft4',
-  'http://json-schema.org/draft-06/schema#' => '+Draft6',
-  'http://json-schema.org/draft-07/schema#' => '+Draft7',
+  'http://json-schema.org/draft-04/schema#'             => '+Draft4',
+  'http://json-schema.org/draft-06/schema#'             => '+Draft6',
+  'http://json-schema.org/draft-07/schema#'             => '+Draft7',
+  'http://swagger.io/v2/schema.json'                    => '+OpenAPIv2',
+  'https://spec.openapis.org/oas/3.0/schema/2019-04-02' => '+OpenAPIv3',
 );
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));

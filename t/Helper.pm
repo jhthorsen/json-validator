@@ -2,6 +2,7 @@ package t::Helper;
 use Mojo::Base -base;
 
 use JSON::Validator;
+use Mojo::File;
 use Mojo::JSON 'encode_json';
 use Mojo::Util 'monkey_patch';
 use Test::More;
