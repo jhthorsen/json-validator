@@ -4,7 +4,6 @@ use Mojo::Base -base;
 use B;
 use Carp 'confess';
 use Exporter 'import';
-use JSON::Validator::Error;
 use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
@@ -26,6 +25,9 @@ use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
 
 our $VERSION   = '3.25';
 our @EXPORT_OK = qw(joi validate_json);
+
+# TODO
+our %SCHEMAS = ();
 
 my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
 my $HTTP_SCHEME_RE    = qr{^https?:};
@@ -351,13 +353,24 @@ sub _load_schema_from_url {
 }
 
 sub _new_schema {
-  my ($self, $schema, @attrs) = @_;
-  return $schema if blessed $schema and $schema->can('specification');
-  return $self->_schema_class->new(
-    $schema, @attrs,
+  my ($self, $spec, @attrs) = @_;
+  return $spec if blessed $spec and $spec->can('specification');
+
+  if (!$spec and is_type $spec, 'HASH') {
+    $spec = $spec->{'$spec'} || $spec->{schema};
+  }
+  if (!$spec and $self->{version}) {
+    $spec = sprintf 'http://json-schema.org/draft-%02s/schema#',
+      $self->{version};
+  }
+
+  my $schema = $self->_schema_class($spec)->new(
+    $spec, @attrs,
     version => $self->{version},
     map { ($_ => $self->$_) } qw(cache_paths formats ua)
   );
+  $schema->specification($spec) if $spec and !$schema->specification;
+  return $schema;
 }
 
 sub _node {
@@ -518,16 +531,26 @@ sub _resolve_ref {
 
 # back compat
 sub _schema_class {
-  return 'JSON::Validator::Schema' if ref $_[0] eq __PACKAGE__;
+  my ($self, $spec) = @_;
 
-  my $jv_class = ref($_[0]) || $_[0];
-  my $package  = sprintf 'JSON::Validator::Schema::Backcompat::%s',
+  my $schema_class = $spec && $SCHEMAS{$spec} || 'JSON::Validator::Schema';
+  $schema_class =~ s!^\+(.+)$!JSON::Validator::Schema::$1!;
+  confess "Could not load $schema_class: $@"
+    unless $schema_class->can('new')
+    or eval "require $schema_class;1";
+
+  return $schema_class if ref $_[0] eq __PACKAGE__;
+
+  my $jv_class = ref($self) || $self;
+  my $short_schema_class
+    = $schema_class =~ m!JSON::Validator::Schema::(.+)! ? $1 : $schema_class;
+  my $package = sprintf 'JSON::Validator::Schema::Backcompat::%s',
     $jv_class =~ m!^JSON::Validator::(.+)! ? $1 : $jv_class;
   return $package if $package->can('new');
 
   die "package $package: $@"
     unless eval "package $package; use Mojo::Base '$jv_class'; 1";
-  Mojo::Util::monkey_patch($package, $_ => JSON::Validator::Schema->can($_))
+  Mojo::Util::monkey_patch($package, $_ => $schema_class->can($_))
     for qw(bundle contains data errors get id new specification validate);
   return $package;
 }
