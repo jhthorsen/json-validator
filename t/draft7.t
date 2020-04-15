@@ -30,6 +30,24 @@ my $bundle
 is $bundle->data->{properties}{name}{'$ref'}, '#/$defs/_name', 'bundle ref';
 is $bundle->data->{'$defs'}{_name}{type}, 'string', 'bundled spec under $defs';
 
+note 'formats';
+my $schema = {properties => {str => {type => 'string', format => 'duration'}}};
+schema_validate_ok {str => 'foo'}, $schema,
+  E('/str', 'Does not match duration format.');
+schema_validate_ok {str => 'P4Y'},              $schema;
+schema_validate_ok {str => 'PT0S'},             $schema;
+schema_validate_ok {str => 'P1M'},              $schema;
+schema_validate_ok {str => 'PT1M'},             $schema;
+schema_validate_ok {str => 'PT0.5M'},           $schema;
+schema_validate_ok {str => 'PT0,5M'},           $schema;
+schema_validate_ok {str => 'P23DT23H'},         $schema;
+schema_validate_ok {str => 'P3Y6M4DT12H30M5S'}, $schema;
+
+$schema->{properties}{str}{format} = 'uuid';
+schema_validate_ok {str => '5782165B-6BB6-A72F-B3DD-369D707D6C72'}, $schema,
+  E('/str', 'Does not match uuid format.');
+schema_validate_ok {str => '5782165B-6BB6-472F-B3DD-369D707D6C72'}, $schema;
+
 done_testing;
 
 __DATA__

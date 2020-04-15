@@ -46,6 +46,26 @@ sub check_date_time {
 
 sub check_double { _match_number(double => $_[0], '') }
 
+sub check_duration {
+  state $rfc3339_duration_re = do {
+    my $num  = qr{\d+(?:[,.]\d+)?};
+    my $sec  = qr/${num}S/;
+    my $min  = qr/${num}M(?:$sec)?/;
+    my $hour = qr/${num}H(?:$min)?/;
+    my $day  = qr/${num}D(?:$hour)?/;
+    my $mon  = qr/${num}M(?:$day)?/;
+    my $year = qr/${num}Y(?:$mon)?/;
+    my $week = qr/${num}W/;
+    my $time = qr/T($hour|$min|$sec)/;
+    my $date = qr/(?:$day|$mon|$year)(?:$time)?/;
+    qr{^P(?:$date|$time|$week)$};
+  };
+
+  return $_[0] =~ $rfc3339_duration_re
+    ? undef
+    : 'Does not match duration format.';
+}
+
 sub check_email {
   state $email_rfc5322_re = do {
     my $atom          = qr;[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+;o;
@@ -197,6 +217,15 @@ sub check_uri_template {
   return check_iri($_[0]);
 }
 
+sub check_uuid {
+  state $uuid_re = do {
+    my $x = qr{[0-9A-Fa-f]};
+    qr{^$x$x$x$x$x$x$x$x-$x$x$x$x-[0-9]$x$x$x-$x$x$x$x-$x$x$x$x$x$x$x$x$x$x$x$x$};
+  };
+
+  return $_[0] =~ $uuid_re ? undef : 'Does not match uuid format.';
+}
+
 sub _match_number {
   my ($name, $val, $format) = @_;
   return 'Does not look like an integer'
@@ -265,6 +294,12 @@ Validates the date part of a RFC3339 string.
 
 Validated against RFC3339 timestamp in UTC time. This is formatted as
 "YYYY-MM-DDThh:mm:ss.fffZ". The milliseconds portion (".fff") is optional
+
+=head2 check_duration
+
+  my $str_or_undef = check_duration $str;
+
+Validate a RFC3339 duration string, such as "P3Y6M4DT12H30M5S".
 
 =head2 check_double
 
@@ -392,6 +427,13 @@ against the RFC3986 spec.
   my $str_or_undef = check_uri_reference $str;
 
 Validate an absolute URI with template characters.
+
+=head2 check_uuid
+
+  my $str_or_undef = check_uuid $str;
+
+Will check if C<$str> looks like an UUID. Example UUID:
+"5782165B-6BB6-472F-B3DD-369D707D6C72".
 
 =head1 SEE ALSO
 

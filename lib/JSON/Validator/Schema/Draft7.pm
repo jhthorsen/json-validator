@@ -7,6 +7,7 @@ sub _build_formats {
   return {
     'date'          => JSON::Validator::Formats->can('check_date'),
     'date-time'     => JSON::Validator::Formats->can('check_date_time'),
+    'duration'      => JSON::Validator::Formats->can('check_duration'),
     'email'         => JSON::Validator::Formats->can('check_email'),
     'hostname'      => JSON::Validator::Formats->can('check_hostname'),
     'idn-email'     => JSON::Validator::Formats->can('check_idn_email'),
@@ -23,6 +24,7 @@ sub _build_formats {
     'uri'           => JSON::Validator::Formats->can('check_uri'),
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-template'  => JSON::Validator::Formats->can('check_uri_template'),
+    'uuid'          => JSON::Validator::Formats->can('check_uuid'),
   };
 }
 
