@@ -7,7 +7,7 @@ t::Helper->schema(JSON::Validator::Schema::Draft7->new);
 t::Helper->test(number => qw(basic maximum minimum));
 t::Helper->test(
   array => qw(basic items additional_items contains min_max unique));
-t::Helper->test(array  => qw(unevaluated_items));
+t::Helper->test(array  => qw(min_max_contains unevaluated_items));
 t::Helper->test(object => qw(basic properties));
 t::Helper->test(
   object => qw(additional_properties pattern_properties min_max names));

@@ -8,7 +8,9 @@ our $MESSAGES = {
   anyOf => {type => '/anyOf Expected %3 - got %4.'},
   array => {
     additionalItems => 'Invalid number of items: %3/%4.',
+    maxContains     => 'Contains too many items: %3/%4.',
     maxItems        => 'Too many items: %3/%4.',
+    minContains     => 'Contains not enough items: %3/%4.',
     minItems        => 'Not enough items: %3/%4.',
     uniqueItems     => 'Unique items required.',
     contains        => 'No items contained.',

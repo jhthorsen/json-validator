@@ -54,6 +54,21 @@ sub min_max {
   schema_validate_ok [1, 2, 3], $schema, E('/', 'Too many items: 3/2.');
 }
 
+sub min_max_contains {
+  my $schema = {
+    type        => 'array',
+    contains    => {type => 'string'},
+    maxContains => 3,
+    minContains => 2,
+  };
+  schema_validate_ok [qw(A)], $schema,
+    E('/', 'Contains not enough items: 1/2.');
+  schema_validate_ok [qw(A B C D)], $schema,
+    E('/', 'Contains too many items: 4/3.');
+  schema_validate_ok [qw(A B)],   $schema;
+  schema_validate_ok [qw(A B C)], $schema;
+}
+
 sub unevaluated_items {
   local $TODO
     = 'https://json-schema.org/draft/2019-09/json-schema-core.html#unevaluatedItems';
