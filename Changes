@@ -1,14 +1,17 @@
 Revision history for perl distribution JSON-Validator
 
-3.26 Not Released
+4.00 Not Released
+ - JSON::Validator::schema() now holds a JSON::Validator::Schema object
+   instead of Mojo::JSON::Pointer
+ - Add schema classes for Draft4, Draft6 and Draft7
+ - Add support for "maxContains" and "minContains" in draf7
+ - Add "duration" and "uuid" formats
  - Deprecated JSON::Validator::joi()
  - Deprecated JSON::Validator::singleton()
  - Deprecated JSON::Validator::validate_json()
  - Deprecated JSON::Validator::version()
  - Removed JSON::Validator::generate_definitions_path()
  - Removed support for JSON::Validator::bundle({ref_key => ...})
- - JSON::Validator::schema() now holds a JSON::Validator::Schema object
-   instead of Mojo::JSON::Pointer
 
 3.25 2020-03-26T07:42:16+0900
  - Made "additionalProperties" error message less confusing
