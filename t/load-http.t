@@ -12,5 +12,7 @@ isa_ok($jv->schema, 'JSON::Validator::Schema');
 like $jv->schema->get('/title'), qr{swagger}i, 'got swagger spec';
 ok $jv->schema->get('/patternProperties/^x-/description'),
   'resolved vendorExtension $ref';
+ok $jv->store->get_schema('http://swagger.io/v2/schema.json'),
+  'schema in store';
 
 done_testing;

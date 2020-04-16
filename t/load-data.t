@@ -6,6 +6,7 @@ my $jv = JSON::Validator->new;
 my @errors
   = $jv->schema('data://main/spec.json')->validate({firstName => 'yikes!'});
 
+ok $jv->store->get_schema('data://main/spec.json'), 'schema in store';
 is int(@errors), 1, 'one error';
 is $errors[0]->path,    '/lastName',         'lastName';
 is $errors[0]->message, 'Missing property.', 'required';

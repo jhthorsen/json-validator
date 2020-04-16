@@ -21,11 +21,16 @@ ok eval { JSON::Validator->new->schema("$file.2") },
   or diag $@;
 unlink "$file.2";
 
-# load from cache
-is(
-  eval { JSON::Validator->new->schema('http://swagger.io/v2/schema.json'); 42 },
-  42,
-  'loaded from cache'
-) or diag $@;
+note 'load from cache';
+is(eval { $jv->schema('http://swagger.io/v2/schema.json'); 42 },
+  42, 'loaded from cache')
+  or diag $@;
+
+ok $jv->store->get_schema(sprintf 'file://%s', join '/', @{$file->to_abs}),
+  'schema in store';
+ok $jv->store->get_schema('http://swagger.io/v2/schema.json'),
+  'schema in store';
+ok $jv->store->get_schema('http://json-schema.org/draft-04/schema'),
+  'schema in store';
 
 done_testing;

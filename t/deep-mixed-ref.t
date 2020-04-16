@@ -12,7 +12,7 @@ is int(@errors), 0, 'valid input';
 
 use Mojolicious::Lite;
 push @{app->static->paths}, $workdir;
-$jv->ua(app->ua);
+$jv->store->ua(app->ua);
 $jv->schema(app->ua->server->url->clone->path('/spec/with-relative-ref.json'));
 @errors = $jv->validate({age => 'not a number'});
 is int(@errors), 1, 'invalid age';

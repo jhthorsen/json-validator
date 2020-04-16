@@ -9,5 +9,6 @@ note "file://$spec";
 ok eval { $jv->schema("file://$spec") }, 'loaded from file://';
 isa_ok($jv->schema, 'JSON::Validator::Schema');
 is $jv->schema->get('/title'), 'Example Schema', 'got example schema';
+ok $jv->store->get_schema("file://$spec"), 'schema in store';
 
 done_testing;

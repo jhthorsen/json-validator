@@ -8,8 +8,9 @@ use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
 use JSON::Validator::Schema;
+use JSON::Validator::Store;
 use JSON::Validator::Util
-  qw(E data_checksum data_section data_type is_type json_pointer prefix_errors schema_type);
+  qw(E data_checksum data_type is_type json_pointer prefix_errors schema_type);
 use List::Util 'uniq';
 use Mojo::File 'path';
 use Mojo::JSON qw(false true);
@@ -21,7 +22,6 @@ use constant CASE_TOLERANT     => File::Spec->case_tolerant;
 use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
-use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
 
 our $VERSION   = '4.03';
 our @EXPORT_OK = qw(joi validate_json);
@@ -32,15 +32,25 @@ our %SCHEMAS = (
   'http://json-schema.org/draft-07/schema#' => '+Draft7',
 );
 
-my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
-my $HTTP_SCHEME_RE    = qr{^https?:};
-
-has cache_paths => sub {
-  return [split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''),
-    $BUNDLED_CACHE_DIR];
-};
+sub cache_paths {
+  Mojo::Util::deprecated('ua() is replaced by $jv->store->cache_paths()');
+  shift->store->cache_paths(@_);
+}
 
 has formats => sub { shift->_build_formats };
+
+has store => sub {
+  my $self = shift;
+  my %attrs;
+  $attrs{cache_paths} = $self->{cache_paths} if $self->{cache_paths};
+  $attrs{ua}          = $self->{ua}          if $self->{ua};
+  return JSON::Validator::Store->new(%attrs);
+};
+
+sub ua {
+  Mojo::Util::deprecated('ua() is replaced by $jv->store->ua()');
+  shift->store->ua(@_);
+}
 
 has recursive_data_protection => 1;
 
@@ -51,14 +61,6 @@ sub version {
   $self->{version} = shift;
   $self;
 }
-
-has ua => sub {
-  require Mojo::UserAgent;
-  my $ua = Mojo::UserAgent->new;
-  $ua->proxy->detect;
-  $ua->max_redirects(3);
-  $ua;
-};
 
 sub bundle {
   my ($self, $args) = @_;
@@ -275,89 +277,18 @@ sub _get { shift; JSON::Validator::Util::_schema_extract(@_) }
 
 sub _id_key { ($_[0]->{version} || 4) < 7 ? 'id' : '$id' }
 
-sub _load_schema {
-  my ($self, $url) = @_;
+sub _location_to_abs {
+  my ($location, $base) = @_;
+  my $location_as_url = Mojo::URL->new($location);
+  return $location_as_url if $location_as_url->is_abs;
 
-  if ($url =~ m!^https?://!) {
-    warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
-    return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)),
-      "$url";
+  # definitely relative now
+  if (is_type $base, 'Mojo::File') {
+    return $base if !length $location;
+    my $path = $base->sibling(split '/', $location)->realpath;
+    return CASE_TOLERANT ? lc($path) : $path;
   }
-
-  if ($url =~ m!^data://([^/]*)/(.*)!) {
-    my ($class, $file) = ($1, $2);
-    my $text = data_section $class, $file, {confess => 1, encoding => 'UTF-8'};
-    return $self->_load_schema_from_text(\$text), "$url";
-  }
-
-  if ($url =~ m!^\s*[\[\{]!) {
-    warn "[JSON::Validator] Loading schema from string.\n" if DEBUG;
-    return $self->_load_schema_from_text(\$url), '';
-  }
-
-  my $file = $url;
-  $file =~ s!^file://!!;
-  $file =~ s!#$!!;
-  $file = path(split '/', $file);
-  if (-e $file) {
-    $file = $file->realpath;
-    warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
-    return $self->_load_schema_from_text(\$file->slurp),
-      CASE_TOLERANT ? path(lc $file) : $file;
-  }
-  elsif ($url =~ m!^/! and $self->ua->server->app) {
-    warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
-    return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)),
-      "$url";
-  }
-
-  confess "Unable to load schema '$url' ($file)";
-}
-
-sub _load_schema_from_text {
-  my ($self, $text) = @_;
-
-  # JSON
-  return Mojo::JSON::decode_json($$text) if $$text =~ /^\s*\{/s;
-
-  # YAML
-  die "[JSON::Validator] YAML::XS 0.67 is missing or could not be loaded."
-    unless YAML_SUPPORT;
-
-  no warnings 'once';
-  local $YAML::XS::Boolean = 'JSON::PP';
-  return YAML::XS::Load($$text);
-}
-
-sub _load_schema_from_url {
-  my ($self, $url) = @_;
-  my $cache_path = $self->cache_paths->[0];
-  my $cache_file = Mojo::Util::md5_sum("$url");
-
-  for (@{$self->cache_paths}) {
-    my $path = path $_, $cache_file;
-    warn "[JSON::Validator] Looking for cached spec $path ($url)\n" if DEBUG;
-    next unless -r $path;
-    return $self->_load_schema_from_text(\$path->slurp);
-  }
-
-  my $tx  = $self->ua->get($url);
-  my $err = $tx->error && $tx->error->{message};
-  confess "GET $url == $err"               if DEBUG and $err;
-  die "[JSON::Validator] GET $url == $err" if $err;
-
-  if ($cache_path
-    and
-    ($cache_path ne $BUNDLED_CACHE_DIR or $ENV{JSON_VALIDATOR_CACHE_ANYWAYS})
-    and -w $cache_path)
-  {
-    $cache_file = path $cache_path, $cache_file;
-    warn "[JSON::Validator] Caching $url to $cache_file\n"
-      unless $ENV{HARNESS_ACTIVE};
-    $cache_file->spurt($tx->res->body);
-  }
-
-  return $self->_load_schema_from_text(\$tx->res->body);
+  return $location_as_url->to_abs($base);
 }
 
 sub _new_schema {
@@ -374,7 +305,7 @@ sub _new_schema {
 
   push @attrs, formats => $self->{formats} if $self->{formats};
   push @attrs, version => $self->{version} if $self->{version};
-  unshift @attrs, $spec, map { ($_ => $self->$_) } qw(cache_paths formats ua);
+  unshift @attrs, $spec, store => $self->store;
   my $schema = $self->_schema_class($spec)->new(@attrs);
   $schema->specification($spec) if $spec and !$schema->specification;
   return $schema;
@@ -408,12 +339,6 @@ sub _ref_to_schema {
   return $schema;
 }
 
-sub _register_schema {
-  my ($self, $schema, $fqn) = @_;
-  $fqn =~ s!(.)#$!$1!;
-  $self->{schemas}{$fqn} = $schema;
-}
-
 # _resolve() method is used to convert all "id" into absolute URLs and
 # resolve all the $ref's that we find inside JSON Schema specification.
 sub _resolve {
@@ -422,45 +347,45 @@ sub _resolve {
   my ($id, $resolved);
 
   local $self->{level} = $self->{level} || 0;
-  delete $self->{schemas}{''} unless $self->{level};
+  delete $self->store->schemas->{''} unless $self->{level};
 
   if (ref $schema eq 'HASH') {
     $id = $schema->{$id_key} // '';
-    return $resolved if $resolved = $self->{schemas}{$id};
+    return $resolved if $resolved = $self->store->get_schema($id);
   }
-  elsif ($resolved = $self->{schemas}{$schema // ''}) {
+  elsif ($resolved = $self->store->get_schema($schema // '')) {
     return $resolved;
   }
   elsif (is_type $schema, 'BOOL') {
-    $self->_register_schema($schema, $schema);
     return $schema;
   }
   else {
-    ($schema, $id) = $self->_load_schema($schema);
-    $id = $schema->{$id_key} if $schema->{$id_key};
+    $id     = $schema;
+    $schema = $self->store->load_schema($schema);
+    $id     = $schema->{$id_key} if $schema->{$id_key};
   }
 
+  $id = $self->store->id_obj($id);
+  $self->store->add_schema($id => $schema);
+
   unless ($self->{level}) {
-    my $rid = $schema->{$id_key} // $id;
-    if ($rid) {
-      confess "Root schema cannot have a fragment in the 'id'. ($rid)"
-        if $rid =~ /\#./;
-      confess "Root schema cannot have a relative 'id'. ($rid)"
-        unless $rid =~ /^\w+:/
-        or -e $rid
-        or $rid =~ m!^/!;
+    if ($id->to_string) {
+      confess "Root schema cannot have a fragment in the 'id'. ($id)"
+        if $id =~ /\#./;
+      confess "Root schema cannot have a relative 'id'. ($id)"
+        unless $id =~ /^\w+:/
+        or -e $id
+        or $id =~ m!^/!;
     }
-    warn sprintf "[JSON::Validator] Using root_schema_url of '$rid'\n" if DEBUG;
-    $self->id($rid) if $self->can('id') and !$self->id;
-    $self->{root_schema_url} = $rid;
+    warn sprintf "[JSON::Validator] Using root_schema_url of '$id'\n" if DEBUG;
+    $self->id($id->to_string) if $self->can('id') and !$self->id;
+    $self->{root_schema_url} = $id->to_string;
   }
 
   $self->{level}++;
-  $self->_register_schema($schema, $id);
 
   my (%seen, @refs);
-  my @topics
-    = ([$schema, is_type($id, 'Mojo::File') ? $id : Mojo::URL->new($id)]);
+  my @topics = ([$schema, $id]);
   while (@topics) {
     my ($topic, $base) = @{shift @topics};
 
@@ -477,7 +402,7 @@ sub _resolve {
       if ($topic->{$id_key} and !ref $topic->{$id_key}) {
         my $fqn = Mojo::URL->new($topic->{$id_key});
         $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
-        $self->_register_schema($topic, $fqn->to_string);
+        $self->store->add_schema($fqn->to_string => $topic);
       }
 
       push @topics, map { [$_, $base] } values %$topic;
@@ -488,20 +413,6 @@ sub _resolve {
   $self->_resolve_ref(@$_) for @refs;
 
   return $schema;
-}
-
-sub _location_to_abs {
-  my ($location, $base) = @_;
-  my $location_as_url = Mojo::URL->new($location);
-  return $location_as_url if $location_as_url->is_abs;
-
-  # definitely relative now
-  if (is_type $base, 'Mojo::File') {
-    return $base if !length $location;
-    my $path = $base->sibling(split '/', $location)->realpath;
-    return CASE_TOLERANT ? lc($path) : $path;
-  }
-  return $location_as_url->to_abs($base);
 }
 
 sub _resolve_ref {
@@ -1160,9 +1071,9 @@ don't have to fetch those from the web. These specifications should be up to
 date, but please submit an issue if they are not.
 
 Files referenced to an URL will automatically be cached if the first element in
-L</cache_paths> is a writable directory. Note that the cache headers for the
-remote assets are B<not> honored, so you will manually need to remove any
-cached file, should you need to refresh them.
+L<JSON::Validator::Store/cache_paths> is a writable directory. Note that the
+cache headers for the remote assets are B<not> honored, so you will manually
+need to remove any cached file, should you need to refresh them.
 
 To download and cache an online asset, do this:
 
@@ -1242,16 +1153,9 @@ DEPRECATED.
 
 =head2 cache_paths
 
-  my $jv        = $jv->cache_paths(\@paths);
-  my $array_ref = $jv->cache_paths;
+  $self->cache_paths == $self->store->cache_paths;
 
-A list of directories to where cached specifications are stored. Defaults to
-C<JSON_VALIDATOR_CACHE_PATH> environment variable and the specs that is bundled
-with this distribution.
-
-C<JSON_VALIDATOR_CACHE_PATH> can be a list of directories, each separated by ":".
-
-See L</Bundled specifications> for more details.
+DEPRECATED. Use L<JSON::Validator::Store/cache_paths> instead.
 
 =head2 formats
 
@@ -1285,14 +1189,9 @@ B<Disclaimer: Use at your own risk, if you have any doubt then don't use it>
 
 =head2 ua
 
-  my $ua = $jv->ua;
-  my $jv = $jv->ua(Mojo::UserAgent->new);
+  $jv->ua == $jv->store->ua;
 
-Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
-from remote location.
-
-The default L<Mojo::UserAgent> will detect proxy settings and have
-L<Mojo::UserAgent/max_redirects> set to 3.
+DEPRECATED. Use L<JSON::Validator::Store/ua> instead.
 
 =head2 version
 

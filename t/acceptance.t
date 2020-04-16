@@ -22,10 +22,10 @@ my $todo_re      = join('|',
   $ENV{TEST_ONLINE} ? () : ('remote ref'),
 );
 
-my $jv = JSON::Validator->new->ua($t->ua);
 for my $file (sort $test_suite->list->each) {
   for my $group (@{decode_json($file->slurp)}) {
     for my $test (@{$group->{tests}}) {
+      my $jv     = JSON::Validator->new(ua => $t->ua);
       my $schema = encode_json $group->{schema};
       my $descr  = "$group->{description} - $test->{description}";
 

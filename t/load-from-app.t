@@ -4,8 +4,8 @@ use Mojolicious;
 use Test::More;
 
 my $jv = JSON::Validator->new;
-$jv->ua->server->app(Mojolicious->new);
-$jv->ua->server->app->routes->get(
+$jv->store->ua->server->app(Mojolicious->new);
+$jv->store->ua->server->app->routes->get(
   '/spec' => sub {
     shift->render(json => {'$ref' => 'http://swagger.io/v2/schema.json'});
   }
@@ -17,5 +17,6 @@ plan skip_all => $@ if $@ =~ /\sGET\s/i;
 
 is $@, '', 'loaded schema from app';
 is $jv->get('/properties/swagger/enum/0'), '2.0', 'loaded schema structure';
+ok $jv->store->get_schema('/spec'), 'schema in store';
 
 done_testing;
