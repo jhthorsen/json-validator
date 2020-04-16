@@ -18,6 +18,12 @@ has id => sub {
   is_type($data, 'HASH') ? $data->{'$id'} || $data->{id} || '' : '';
 };
 
+has moniker => sub {
+  my $self = shift;
+  return "draft$1" if $self->specification =~ m!draft-(\d+)!;
+  return '';
+};
+
 has specification => sub {
   my $data = shift->data;
   is_type($data, 'HASH') ? $data->{'$schema'} || $data->{schema} || '' : '';
@@ -26,7 +32,8 @@ has specification => sub {
 sub bundle {
   my $self   = shift;
   my $params = shift || {};
-  return $self->new($self->SUPER::bundle({%$params, schema => $self}), %$self);
+  return $self->new(%$self)
+    ->data($self->SUPER::bundle({%$params, schema => $self}));
 }
 
 sub contains {
@@ -92,6 +99,11 @@ JSON::Validator::Schema - Base class for JSON::Validator schemas
 
 =head1 DESCRIPTION
 
+L<JSON::Validator::Schema> is the base class for
+L<JSON::Validator::Schema::Draft4>,
+L<JSON::Validator::Schema::Draft6> and
+L<JSON::Validator::Schema::Draft7>.
+
 L<JSON::Validator::Schema> is currently EXPERIMENTAL, and most probably will
 change over the next versions as
 L<https://github.com/mojolicious/json-validator/pull/189> (or a competing PR)
@@ -117,6 +129,18 @@ C<$schema> is valid.
 
 Holds the ID for this schema. Usually extracted from C<"$id"> or C<"id"> in
 L</data>.
+
+=head2 moniker
+
+  $str    = $schema->moniker;
+  $schema = $self->moniker("some_name");
+
+Used to get/set the moniker for the given schema. Will be "draft04" if
+L</specification> points to a JSON Schema draft URL, and fallback to
+empty string if unable to guess a moniker name.
+
+This attribute will (probably) detect more monikers from a given
+L</specification> or C</id> in the future.
 
 =head2 specification
 

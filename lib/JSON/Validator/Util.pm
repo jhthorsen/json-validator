@@ -150,7 +150,9 @@ sub schema_type {
   return _guessed_right(number => $_[1]) if $_[0]->{multipleOf};
   return _guessed_right(number => $_[1])
     if defined $_[0]->{maximum}
-    or defined $_[0]->{minimum};
+    or defined $_[0]->{minimum}
+    or defined $_[0]->{exclusiveMaximum}
+    or defined $_[0]->{exclusiveMinimum};
   return 'const' if exists $_[0]->{const};
   return '';
 }

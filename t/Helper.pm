@@ -26,10 +26,33 @@ sub joi_ok {
 
 sub jv { state $obj = $ENV{TEST_VALIDATOR_CLASS}->new }
 
+sub schema { state $schema; $schema = $_[1] if $_[1]; $schema }
+
+sub schema_validate_ok {
+  my ($data, $schema, @expected) = @_;
+  my $description
+    = @expected ? "errors: @expected" : "valid: " . encode_json($data);
+
+  my @errors = t::Helper->schema->data($schema)->validate($data);
+  local $Test::Builder::Level = $Test::Builder::Level + 1;
+  Test::More::is_deeply(
+    [map { $_->TO_JSON } sort { $a->path cmp $b->path } @errors],
+    [map { $_->TO_JSON } sort { $a->path cmp $b->path } @expected],
+    $description)
+    or Test::More::diag(encode_json(\@errors));
+}
+
+sub test {
+  my ($class, $category, @methods) = @_;
+  my $test_class = "t::test::$category";
+  eval "require $test_class;1" or die $@;
+  (note("$category $_"), $test_class->$_) for @methods;
+}
+
 sub validate_ok {
   my ($data, $schema, @expected) = @_;
   my $description
-    ||= @expected ? "errors: @expected" : "valid: " . encode_json($data);
+    = @expected ? "errors: @expected" : "valid: " . encode_json($data);
   my @errors = jv()->schema($schema)->validate($data);
   local $Test::Builder::Level = $Test::Builder::Level + 1;
   Test::More::is_deeply(
@@ -47,14 +70,15 @@ sub import {
   $_->import for qw(strict warnings);
   feature->import(':5.10');
 
-  monkey_patch $caller => E            => \&JSON::Validator::E;
-  monkey_patch $caller => done_testing => \&Test::More::done_testing;
-  monkey_patch $caller => edj          => \&edj;
-  monkey_patch $caller => false        => \&Mojo::JSON::false;
-  monkey_patch $caller => joi_ok       => \&joi_ok;
-  monkey_patch $caller => jv           => \&jv;
-  monkey_patch $caller => true         => \&Mojo::JSON::true;
-  monkey_patch $caller => validate_ok  => \&validate_ok;
+  monkey_patch $caller => E                  => \&JSON::Validator::E;
+  monkey_patch $caller => done_testing       => \&Test::More::done_testing;
+  monkey_patch $caller => edj                => \&edj;
+  monkey_patch $caller => false              => \&Mojo::JSON::false;
+  monkey_patch $caller => joi_ok             => \&joi_ok;
+  monkey_patch $caller => jv                 => \&jv;
+  monkey_patch $caller => schema_validate_ok => \&schema_validate_ok;
+  monkey_patch $caller => true               => \&Mojo::JSON::true;
+  monkey_patch $caller => validate_ok        => \&validate_ok;
 }
 
 1;

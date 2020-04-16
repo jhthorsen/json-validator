@@ -1,5 +1,6 @@
 use Mojo::Base -strict;
 use JSON::Validator;
+use JSON::Validator::Schema::Draft7;
 use Mojo::File 'path';
 use Test::More;
 
@@ -14,6 +15,13 @@ my $bundled;
   $jv->_load_schema_from_url("http://json-schema.org/draft-06/schema");
   $jv->_load_schema_from_url("http://json-schema.org/draft-07/schema");
 }
+
+my $schema = JSON::Validator::Schema::Draft7->new({
+  definitions => {name   => {type => 'string'}},
+  surname     => {'$ref' => '#/definitions/name'},
+});
+is $schema->bundle({replace => 1})->data->{surname}{type}, 'string',
+  "schema->bundle";
 
 note 'Run multiple times to make sure _reset() works';
 for my $n (1 .. 3) {
@@ -60,6 +68,7 @@ $bundled = $jv->schema('data://main/bundled.json')->bundle;
 is_deeply [sort keys %{$bundled->{definitions}}], ['objtype'],
   'no dup definitions';
 
+note 'definitions in disk spec';
 for my $path (
   ['test-definitions-key.json'],
   ['with-deep-mixed-ref.json'],
@@ -76,8 +85,8 @@ for my $path (
   $bundled = $jv->schema($file)->bundle;
   is_deeply [sort map { s!-[a-z0-9]{10}$!-SHA!; $_ }
       keys %{$bundled->{definitions}}], \@expected,
-    'right definitions in disk spec'
-    or diag explain $bundled->{definitions};
+    "right definitions in disk spec @$path"
+    or diag join ', ', sort keys %{$bundled->{definitions}};
 }
 
 note 'ensure filenames with funny characters not mangled by Mojo::URL';
