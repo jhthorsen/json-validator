@@ -7,6 +7,9 @@ my $file   = path(path(__FILE__)->dirname, 'spec', 'person.json');
 my $jv     = JSON::Validator->new->schema($file);
 my @errors = $jv->validate({firstName => 'yikes!'});
 
+is $jv->{schemas}{Mojo::File::path(qw(t spec person.json))->to_abs}{title},
+  'Example Schema', 'registered this schema for reuse';
+
 is int(@errors), 1, 'one error';
 is $errors[0]->path,    '/lastName',         'lastName';
 is $errors[0]->message, 'Missing property.', 'required';
@@ -21,11 +24,23 @@ ok eval { JSON::Validator->new->schema("$file.2") },
   or diag $@;
 unlink "$file.2";
 
-# load from cache
+# we must load from cache, or we will die
 is(
-  eval { JSON::Validator->new->schema('http://swagger.io/v2/schema.json'); 42 },
+  eval {
+    $jv
+      = JSON::Validator->new(ua => undef)
+      ->schema('http://swagger.io/v2/schema.json');
+    42;
+  },
   42,
   'loaded from cache'
 ) or diag $@;
+
+is $jv->{schemas}{'http://swagger.io/v2/schema.json'}{title},
+  'A JSON Schema for Swagger 2.0 API.',
+  'registered this referenced schema for reuse';
+
+is $jv->{schemas}{'http://json-schema.org/draft-04/schema'}{description},
+  'Core schema meta-schema', 'registered this referenced schema for reuse';
 
 done_testing;

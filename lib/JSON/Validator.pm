@@ -370,6 +370,7 @@ sub _new_schema {
   my $schema = $self->_schema_class($spec)->new(
     $spec, @attrs,
     version => $self->{version},
+    schemas => ($self->{schemas} //= {}),
     map { ($_ => $self->$_) } qw(cache_paths formats ua)
   );
   $schema->specification($spec) if $spec and !$schema->specification;
