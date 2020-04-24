@@ -32,30 +32,6 @@ sub _build_formats {
 
 sub _definitions_path_for_ref { ['$defs'] }
 
-sub _validate_type_array_contains {
-  my ($self, $data, $path, $schema) = @_;
-  return unless $schema->{contains};
-
-  my ($n_items, $n_ok, @e, @errors) = (int @$data, 0);
-  for my $i (0 .. @$data - 1) {
-    my @tmp = $self->_validate($data->[$i], "$path/$i", $schema->{contains});
-    $n_ok++ unless @tmp;
-    push @e, \@tmp if @tmp;
-  }
-
-  push @errors, map {@$_} @e if @e >= $n_items;
-  push @errors, E $path, [array => 'contains'] if not $n_items;
-
-  push @errors, E $path,
-    [array => maxContains => $n_items, $schema->{maxContains}]
-    if defined $schema->{maxContains} and $n_ok > $schema->{maxContains};
-  push @errors, E $path,
-    [array => minContains => $n_items, $schema->{minContains}]
-    if defined $schema->{minContains} and $n_ok < $schema->{minContains};
-
-  return @errors;
-}
-
 1;
 
 =encoding utf8

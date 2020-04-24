@@ -4,7 +4,6 @@ Revision history for perl distribution JSON-Validator
  - JSON::Validator::schema() now holds a JSON::Validator::Schema object
    instead of Mojo::JSON::Pointer
  - Add schema classes for Draft4, Draft6 and Draft7
- - Add support for "maxContains" and "minContains" in draf7
  - Add "duration" and "uuid" formats
  - Deprecated JSON::Validator::joi()
  - Deprecated JSON::Validator::singleton()
