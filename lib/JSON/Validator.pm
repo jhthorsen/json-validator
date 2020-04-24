@@ -207,6 +207,7 @@ sub _build_formats {
     'byte'          => JSON::Validator::Formats->can('check_byte'),
     'date'          => JSON::Validator::Formats->can('check_date'),
     'date-time'     => JSON::Validator::Formats->can('check_date_time'),
+    'duration'      => JSON::Validator::Formats->can('check_duration'),
     'double'        => JSON::Validator::Formats->can('check_double'),
     'email'         => JSON::Validator::Formats->can('check_email'),
     'float'         => JSON::Validator::Formats->can('check_float'),
@@ -228,6 +229,7 @@ sub _build_formats {
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
     'uri-template'  => JSON::Validator::Formats->can('check_uri_template'),
+    'uuid'          => JSON::Validator::Formats->can('check_uuid'),
   };
 }
 

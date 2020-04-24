@@ -55,6 +55,19 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 }
 
 {
+  local $schema->{properties}{v}{format} = 'duration';
+  validate_ok {v => 'foo'}, $schema, E('/v', 'Does not match duration format.');
+  validate_ok {v => 'P4Y'},              $schema;
+  validate_ok {v => 'PT0S'},             $schema;
+  validate_ok {v => 'P1M'},              $schema;
+  validate_ok {v => 'PT1M'},             $schema;
+  validate_ok {v => 'PT0.5M'},           $schema;
+  validate_ok {v => 'PT0,5M'},           $schema;
+  validate_ok {v => 'P23DT23H'},         $schema;
+  validate_ok {v => 'P3Y6M4DT12H30M5S'}, $schema;
+}
+
+{
   local $schema->{properties}{v}{format} = 'email';
   validate_ok {v => 'jhthorsen@cpan.org'}, $schema;
   validate_ok {v => 'foo'}, $schema, E('/v', 'Does not match email format.');
@@ -186,6 +199,13 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 {
   local $schema->{properties}{v}{format} = 'unknown';
   validate_ok {v => 'whatever'}, $schema;
+}
+
+{
+  local $schema->{properties}{v}{format} = 'uuid';
+  validate_ok {v => '5782165B-6BB6-A72F-B3DD-369D707D6C72'}, $schema,
+    E('/v', 'Does not match uuid format.');
+  validate_ok {v => '5782165B-6BB6-472F-B3DD-369D707D6C72'}, $schema;
 }
 
 done_testing;
