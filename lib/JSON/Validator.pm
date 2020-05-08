@@ -893,7 +893,9 @@ sub _validate_type_boolean {
       or $value =~ /^(true|false)$/)
     )
   {
-    $_[1] = $value ? true : false;
+    $_[1] = $value eq 'true'  ? true
+          : $value eq 'false' ? false
+                              : ($value ? true : false);
     return;
   }
 
