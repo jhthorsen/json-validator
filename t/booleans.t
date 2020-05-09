@@ -10,6 +10,9 @@ validate_ok {v => 0.5},     $schema, E('/v', 'Expected boolean - got number.');
 validate_ok {v => Mojo::JSON->true},  $schema;
 validate_ok {v => Mojo::JSON->false}, $schema;
 
+validate_ok {v => \1}, $schema;
+validate_ok {v => \0}, $schema;
+
 jv->coerce('booleans');
 validate_ok {v => !!1},     $schema;
 validate_ok {v => !!0},     $schema;

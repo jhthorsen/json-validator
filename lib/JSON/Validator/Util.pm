@@ -57,13 +57,23 @@ sub data_section {
   Carp::confess(qq(Could not find "$file" in __DATA__ section of $err.));
 }
 
+sub _is_boolean {
+  my $ref     = ref $_[0];
+  my $blessed = blessed $_[0];
+  return 1 if $blessed && ("$_[0]" eq "1" or !"$_[0]");
+  return 1 if $blessed && $_[0]->isa('JSON::PP::Boolean');
+  return 1 if $ref eq 'SCALAR' && (${$_[0]} == 1 || ${$_[0]} == 0);
+  return 0;
+}
+
+
 sub data_type {
   my $ref     = ref $_[0];
   my $blessed = blessed $_[0];
   return 'object'  if $ref eq 'HASH';
-  return lc $ref   if $ref and !$blessed;
   return 'null'    if !defined $_[0];
-  return 'boolean' if $blessed and ("$_[0]" eq "1" or !"$_[0]");
+  return 'boolean' if _is_boolean($_[0]);
+  return lc $ref   if $ref and !$blessed;
 
   if (is_type($_[0], 'NUM')) {
     return 'integer' if grep { ($_->{type} // '') eq 'integer' } @{$_[1] || []};
@@ -77,8 +87,7 @@ sub is_type {
   my $type = $_[1];
 
   if ($type eq 'BOOL') {
-    return blessed $_[0]
-      && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]);
+    return _is_boolean($_[0]);
   }
 
   # NUM
