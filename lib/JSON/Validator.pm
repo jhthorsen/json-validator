@@ -883,20 +883,14 @@ sub _validate_type_array {
 
 sub _validate_type_boolean {
   my ($self, $value, $path, $schema) = @_;
-  return if is_type $value, 'BOOL';
 
   # String that looks like a boolean
-  if (
-        defined $value
-    and $self->{coerce}{booleans}
-    and (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK)
-      or $value =~ /^(true|false)$/)
-    )
-  {
-    $_[1] = $value ? true : false;
-    return;
+  if (defined $value and $self->{coerce}{booleans}) {
+    $_[1] = false if $value =~ m!^(0|false|)$!;
+    $_[1] = true  if $value =~ m!^(1|true)$!;
   }
 
+  return if is_type $_[1], 'BOOL';
   return E $path, [boolean => type => data_type $value];
 }
 
