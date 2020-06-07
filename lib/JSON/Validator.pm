@@ -555,7 +555,8 @@ sub _schema_class {
   die "package $package: $@"
     unless eval "package $package; use Mojo::Base '$jv_class'; 1";
   Mojo::Util::monkey_patch($package, $_ => $schema_class->can($_))
-    for qw(bundle contains data errors get id new specification validate);
+    for
+    qw(bundle contains data errors get id new resolve specification validate);
   return $package;
 }
 
