@@ -19,7 +19,7 @@ schema_validate_ok 0, {exclusiveMaximum => true, maximum => 0},
 
 note 'bundle';
 my $bundle
-  = JSON::Validator::Schema::Draft4->new->data('data://main/spec.json')->bundle;
+  = JSON::Validator::Schema::Draft4->new('data://main/spec.json')->bundle;
 is $bundle->data->{properties}{name}{'$ref'}, '#/definitions/_name',
   'bundle ref';
 is $bundle->data->{'definitions'}{_name}{type}, 'string',

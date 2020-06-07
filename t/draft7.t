@@ -25,7 +25,7 @@ schema_validate_ok 0, {exclusiveMinimum => 0}, E('/', '0 <= minimum(0)');
 
 note 'bundle';
 my $bundle
-  = JSON::Validator::Schema::Draft7->new->data('data://main/spec.json')->bundle;
+  = JSON::Validator::Schema::Draft7->new('data://main/spec.json')->bundle;
 is $bundle->data->{properties}{name}{'$ref'}, '#/$defs/_name', 'bundle ref';
 is $bundle->data->{'$defs'}{_name}{type}, 'string', 'bundled spec under $defs';
 

@@ -8,9 +8,9 @@ use Mojo::JSON::Pointer;
 has errors => sub {
   my $self = shift;
   my $url  = $self->specification || 'http://json-schema.org/draft-04/schema#';
-  my $jv   = $self->new(%$self)->data($url);
+  my $validator = $self->new(%$self)->resolve($url);
 
-  return [$jv->validate($self->data)];
+  return [$validator->validate($self->resolve->data)];
 };
 
 has id => sub {
@@ -44,7 +44,7 @@ sub contains {
 sub data {
   my $self = shift;
   return $self->{data} //= {} unless @_;
-  $self->{data} = $self->_resolve(shift);
+  $self->{data} = shift;
   delete $self->{errors};
   return $self;
 }
@@ -57,9 +57,13 @@ sub get {
 
 sub new {
   return shift->SUPER::new(@_) if @_ % 2;
-
   my ($class, $data) = (shift, shift);
-  return $class->SUPER::new(@_)->data($data);
+  return $class->SUPER::new(@_)->resolve($data);
+}
+
+sub resolve {
+  my $self = shift;
+  return $self->data($self->_resolve(@_ ? shift : $self->{data}));
 }
 
 sub validate {
@@ -192,9 +196,8 @@ See L<Mojo::JSON::Pointer/contains>.
   my $schema   = $schema->data($hash_ref);
   my $schema   = $schema->data($url);
 
-Will set a structure representing the schema. If the input is an C<$url> on
-contains "$ref" pointing to an URL, then these schemas will be downloaded and
-resolved.
+Will set a structure representing the schema. In most cases you want to
+use L</resolve> instead of L</data>.
 
 =head2 get
 
@@ -217,9 +220,18 @@ See L<Mojo::JSON::Pointer/get>.
   my $schema = JSON::Validator::Schema->new($data, %attributes);
   my $schema = JSON::Validator::Schema->new(%attributes);
 
-Construct a new L<JSON::Validator::Schema> object. Passing on C<$data> will
-cause L</data> to be called, meaning the constructor might throw an exception
-if the schema could not be found.
+Construct a new L<JSON::Validator::Schema> object. Passing on C<$data> as the
+first argument will cause L</resolve> to be called, meaning the constructor
+might throw an exception if the schema could not be successfully resolved.
+
+=head2 resolve
+
+  $schema = $schema->resolve;
+  $schema = $schema->resolve($data);
+
+Used to resolve L</data> or C<$data> and store the resolved schema in L</data>.
+If C<$data> is an C<$url> on contains "$ref" pointing to an URL, then these
+schemas will be downloaded and resolved as well.
 
 =head2 validate
 
