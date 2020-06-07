@@ -369,11 +369,10 @@ sub _new_schema {
       $self->{version};
   }
 
-  my $schema = $self->_schema_class($spec)->new(
-    $spec, @attrs,
-    version => $self->{version},
-    map { ($_ => $self->$_) } qw(cache_paths formats ua)
-  );
+  push @attrs, formats => $self->{formats} if $self->{formats};
+  push @attrs, version => $self->{version} if $self->{version};
+  unshift @attrs, $spec, map { ($_ => $self->$_) } qw(cache_paths formats ua);
+  my $schema = $self->_schema_class($spec)->new(@attrs);
   $schema->specification($spec) if $spec and !$schema->specification;
   return $schema;
 }
