@@ -907,7 +907,7 @@ sub _validate_type_null {
   my ($self, $value, $path, $schema) = @_;
 
   return unless defined $value;
-  return E $path, ['null', 'null'];
+  return E $path, [null => type => data_type $value];
 }
 
 sub _validate_type_number {
@@ -941,9 +941,8 @@ sub _validate_type_number {
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
 
-  if (ref $data ne 'HASH') {
-    return E $path, [object => type => data_type $data];
-  }
+  return E $path, [object => type => data_type $data]
+    unless ref $data eq 'HASH';
 
   my @errors;
   my @dkeys = sort keys %$data;

@@ -25,7 +25,7 @@ our $MESSAGES = {
     multipleOf => 'Not multiple of %3.',
   },
   not    => {not  => 'Should not match.'},
-  null   => {null => 'Not null.'},
+  null   => {type => 'Not null.'},
   number => {
     ex_maximum => '%3 >= maximum(%4)',
     ex_minimum => '%3 <= minimum(%4)',
