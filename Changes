@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+4.01 2020-06-30T17:42:08+0900
+ - Fix combining "allOf" and "not" #218
+
 4.00 2020-06-08T10:41:55+0900
  - JSON::Validator::schema() now holds a JSON::Validator::Schema object
    instead of Mojo::JSON::Pointer
