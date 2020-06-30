@@ -606,8 +606,8 @@ sub _validate {
   }
 
   if (my $rules = $schema->{not}) {
-    push @errors, $self->_validate($to_json ? $$to_json : $_[1], $path, $rules);
-    return @errors ? () : (E $path, [not => 'not']);
+    my @e = $self->_validate($to_json ? $$to_json : $_[1], $path, $rules);
+    push @errors, E $path, [not => 'not'] unless @e;
   }
 
   if (my $rules = $schema->{allOf}) {
