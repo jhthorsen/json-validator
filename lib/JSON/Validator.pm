@@ -1267,20 +1267,20 @@ See L<JSON::Validator::Formats> for a list of supported formats.
 
 =head2 recursive_data_protection
 
-  my $jv = $jv->recursive_data_protections( $scalar );
-  my $current_state = $jv->recursive_data_protection;
+  my $jv = $jv->recursive_data_protections( $boolean );
+  my $boolean = $jv->recursive_data_protection;
 
 Recursive data protection is active by default, however it can be deactivated
-by assigning a false value to the C<recursive_data_protection> attribute.
+by assigning a false value to the L</recursive_data_protection> attribute.
 
 Recursive data protection can have a noticeable impact on memory usage when
 validating large data structures. If you are encountering issues with memory
 and you can guarantee that you do not have any loops in your data structure
 then deactivating the recursive data protection may help.
 
-B<Note: if you deactivate the recursive data protection and try to validate
-a data structure with a loop in it you'll send your program into an infinite
-loop - if in doubt leave it active!>
+This attribute is EXPERIMENTAL and may change in a future release.
+
+B<Disclaimer: Use at your own risk, if you have any doubt then don't use it>
 
 =head2 ua
 
