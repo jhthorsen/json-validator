@@ -342,7 +342,7 @@ sub _load_schema_from_url {
 
   my $tx  = $self->ua->get($url);
   my $err = $tx->error && $tx->error->{message};
-  confess "GET $url == $err"               if DEBUG and $err;
+  confess "GET $url == $err" if DEBUG and $err;
   die "[JSON::Validator] GET $url == $err" if $err;
 
   if ($cache_path
@@ -518,11 +518,11 @@ sub _resolve_ref {
     last if !$ref or ref $ref;
     $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
     my ($location, $pointer) = split /#/, $fqn, 2;
-    $url     = $location = _location_to_abs($location, $url);
+    $url = $location = _location_to_abs($location, $url);
     $pointer = undef if length $location and !length $pointer;
     $pointer = url_unescape $pointer if defined $pointer;
-    $fqn     = join '#', grep defined, $location, $pointer;
-    $other   = $self->_resolve($location);
+    $fqn   = join '#', grep defined, $location, $pointer;
+    $other = $self->_resolve($location);
 
     if (defined $pointer and length $pointer and $pointer =~ m!^/!) {
       $other = Mojo::JSON::Pointer->new($other)->get($pointer);
@@ -571,7 +571,7 @@ sub _validate {
 
   my @errors;
 
-  if ( $self->recursive_data_protection ) {
+  if ($self->recursive_data_protection) {
     my $seen_addr = join ':', refaddr($schema),
       (ref $data ? refaddr $data : ++$self->{seen}{scalar});
 
@@ -904,7 +904,7 @@ sub _validate_type_integer {
   my @errors = $self->_validate_type_number($_[1], $path, $schema, 'integer');
 
   return @errors if @errors;
-  return         if $value =~ /^-?\d+$/;
+  return if $value =~ /^-?\d+$/;
   return E $path, [integer => type => data_type $value];
 }
 
