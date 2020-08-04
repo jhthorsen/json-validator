@@ -42,7 +42,7 @@ has cache_paths => sub {
 
 has formats => sub { shift->_build_formats };
 
-has recursive_data_protection => sub { return 1 };
+has recursive_data_protection => 1;
 
 sub version {
   my $self = shift;
