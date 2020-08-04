@@ -576,9 +576,7 @@ sub _validate {
       (ref $data ? refaddr $data : ++$self->{seen}{scalar});
 
     # Avoid recursion
-    if ($self->{seen}{$seen_addr}) {
-      return @{$self->{seen}{$seen_addr}};
-    }
+    return @{$self->{seen}{$seen_addr}} if $self->{seen}{$seen_addr};
 
     $self->{seen}{$seen_addr} = \@errors;
   }
