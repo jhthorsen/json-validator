@@ -1,0 +1,29 @@
+name: ci-ubuntu
+on: [push, pull_request]
+jobs:
+  perl:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        perl-version:
+          - '5.16'
+          - '5.24'
+          - '5.30'
+    container:
+      image: perl:${{matrix.perl-version}}
+    steps:
+      - uses: actions/checkout@v2
+      - name: perl -V
+        run: perl -V
+      - name: Fix ExtUtils::MakeMaker (for Perl 5.16 and 5.18)
+        run: cpanm -n App::cpanminus ExtUtils::MakeMaker
+      - name: Install dependencies
+        run: |
+          cpanm -n Test::Pod Test::Pod::Coverage Data::Validate::Domain Data::Validate::IP YAML::LibYAML
+          cpanm -n https://github.com/mojolicious/json-validator/archive/master.tar.gz
+          cpanm -n --installdeps .
+      - name: Run tests
+        run: prove -l t/*.t
+        env:
+          HARNESS_OPTIONS: j6
+          TEST_POD: 1
