@@ -42,6 +42,8 @@ has cache_paths => sub {
 
 has formats => sub { shift->_build_formats };
 
+has recursive_data_protection => 1;
+
 sub version {
   my $self = shift;
   Mojo::Util::deprecated('version() will be removed in future version.');
@@ -340,7 +342,7 @@ sub _load_schema_from_url {
 
   my $tx  = $self->ua->get($url);
   my $err = $tx->error && $tx->error->{message};
-  confess "GET $url == $err"               if DEBUG and $err;
+  confess "GET $url == $err" if DEBUG and $err;
   die "[JSON::Validator] GET $url == $err" if $err;
 
   if ($cache_path
@@ -516,11 +518,11 @@ sub _resolve_ref {
     last if !$ref or ref $ref;
     $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
     my ($location, $pointer) = split /#/, $fqn, 2;
-    $url     = $location = _location_to_abs($location, $url);
+    $url = $location = _location_to_abs($location, $url);
     $pointer = undef if length $location and !length $pointer;
     $pointer = url_unescape $pointer if defined $pointer;
-    $fqn     = join '#', grep defined, $location, $pointer;
-    $other   = $self->_resolve($location);
+    $fqn   = join '#', grep defined, $location, $pointer;
+    $other = $self->_resolve($location);
 
     if (defined $pointer and length $pointer and $pointer =~ m!^/!) {
       $other = Mojo::JSON::Pointer->new($other)->get($pointer);
@@ -567,15 +569,18 @@ sub _validate {
     if ref $schema eq 'HASH' and $schema->{'$ref'};
   return $schema ? () : E $path, [not => 'not'] if is_type $schema, 'BOOL';
 
-  my $seen_addr = join ':', refaddr($schema),
-    (ref $data ? refaddr $data : ++$self->{seen}{scalar});
+  my @errors;
 
-  # Avoid recursion
-  if ($self->{seen}{$seen_addr}) {
-    return @{$self->{seen}{$seen_addr}};
+  if ($self->recursive_data_protection) {
+    my $seen_addr = join ':', refaddr($schema),
+      (ref $data ? refaddr $data : ++$self->{seen}{scalar});
+
+    # Avoid recursion
+    return @{$self->{seen}{$seen_addr}} if $self->{seen}{$seen_addr};
+
+    $self->{seen}{$seen_addr} = \@errors;
   }
 
-  $self->{seen}{$seen_addr} = \my @errors;
   my $to_json
     = (blessed $data and $data->can('TO_JSON')) ? \$data->TO_JSON : undef;
   $data = $$to_json if $to_json;
@@ -899,7 +904,7 @@ sub _validate_type_integer {
   my @errors = $self->_validate_type_number($_[1], $path, $schema, 'integer');
 
   return @errors if @errors;
-  return         if $value =~ /^-?\d+$/;
+  return if $value =~ /^-?\d+$/;
   return E $path, [integer => type => data_type $value];
 }
 
@@ -1259,6 +1264,23 @@ block should return C<undef> on success and an error string on error:
   sub { return defined $_[0] && $_[0] eq "42" ? undef : "Not the answer." };
 
 See L<JSON::Validator::Formats> for a list of supported formats.
+
+=head2 recursive_data_protection
+
+  my $jv = $jv->recursive_data_protections( $boolean );
+  my $boolean = $jv->recursive_data_protection;
+
+Recursive data protection is active by default, however it can be deactivated
+by assigning a false value to the L</recursive_data_protection> attribute.
+
+Recursive data protection can have a noticeable impact on memory usage when
+validating large data structures. If you are encountering issues with memory
+and you can guarantee that you do not have any loops in your data structure
+then deactivating the recursive data protection may help.
+
+This attribute is EXPERIMENTAL and may change in a future release.
+
+B<Disclaimer: Use at your own risk, if you have any doubt then don't use it>
 
 =head2 ua
 
