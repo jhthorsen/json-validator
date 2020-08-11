@@ -1,85 +1,46 @@
 use Mojo::Base -strict;
-use Test::More;
-use Scalar::Util qw( refaddr );
 use JSON::Validator;
+use Mojo::Util 'monkey_patch';
+use Scalar::Util qw(refaddr);
+use Test::More;
 
+my ($original_validate, %ref_counts) = (\&JSON::Validator::_validate);
+monkey_patch 'JSON::Validator', _validate => sub {
+  my ($self, $data, $path, $schema) = @_;
+  $ref_counts{refaddr($data)}++ if ref $data;
+  goto &$original_validate;
+};
 
-my $original_validate;
+for ([1, 1], [0, 3]) {
+  my ($enabled, $exp_ref_counts) = @$_;
+  my $object = {level1 => {level2 => {level3 => 'Test'}}};
+  my $data   = [$object, $object, $object];
 
-BEGIN {
-  $original_validate = \&JSON::Validator::_validate;
+  %ref_counts = ();
+
+  JSON::Validator->new->recursive_data_protection($enabled)->schema(schema())
+    ->validate($data);
+
+  is $ref_counts{refaddr($object->{level1}{level2})}, $exp_ref_counts,
+    "recursive_data_protection($enabled)";
 }
 
-my %refCounts;
+done_testing;
 
-{
-  no warnings 'redefine';
-
-  sub JSON::Validator::_validate {
-    my ($self, $data, $path, $schema) = @_;
-    $refCounts{refaddr($data)}++ if ref $data;
-    goto &$original_validate;
-  }
-}
-
-
-my $schema = <<'EOS';
-{
-  "type": "array",
-  "items": {
-    "type": "object",
-    "properties": {
-      "level1": {
-        "type": "object",
-        "properties": {
-          "level2": {
-            "type": "object",
-            "properties": {
-              "level3": {
-                "type": "string"
-              }
-            }
+sub schema {
+  return {
+    type  => 'array',
+    items => {
+      type       => 'object',
+      properties => {
+        level1 => {
+          type       => 'object',
+          properties => {
+            level2 =>
+              {type => 'object', properties => {level3 => {type => 'string'}}}
           }
         }
       }
     }
-  }
+  };
 }
-EOS
-
-my $object = {level1 => {level2 => {level3 => 'Test',},},};
-
-my $data = [$object, $object, $object,];
-
-
-subtest 'active' => sub {
-  my $validator = JSON::Validator->new();
-  $validator->recursive_data_protection(1);
-
-  $validator->schema($schema);
-
-  %refCounts = ();
-  my @errors = $validator->validate($data);
-
-  is($refCounts{refaddr($object->{level1}->{level2})}, 1,
-    "With recursive_data_protection active we should only see the second level once"
-  );
-};
-
-
-subtest 'inactive' => sub {
-  my $validator = JSON::Validator->new();
-  $validator->recursive_data_protection(0);
-
-  $validator->schema($schema);
-
-  %refCounts = ();
-  my @errors = $validator->validate($data);
-
-  is($refCounts{refaddr($object->{level1}->{level2})}, 3,
-    "With recursive_data_protection deactivated we should see the second level three times"
-  );
-};
-
-
-done_testing;
