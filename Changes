@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+4.02 2020-08-11T13:06:40+0900
+ - Add recursive_data_protection() #220
+   Contributor: Jason Cooper
+
 4.01 2020-06-30T17:42:08+0900
  - Fix combining "allOf" and "not" #218
 
