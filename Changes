@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-4.03 Not Released
+4.03 2020-09-14T18:14:19+0900
  - Add "joi" as exported function to JSON::Validator::Joi
  - Fix SYNOPSIS for JSON::Validator::Joi
 

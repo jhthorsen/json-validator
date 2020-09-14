@@ -23,7 +23,7 @@ use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
 use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
 
-our $VERSION   = '4.02';
+our $VERSION   = '4.03';
 our @EXPORT_OK = qw(joi validate_json);
 
 our %SCHEMAS = (
