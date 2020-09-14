@@ -3,6 +3,9 @@ use t::Helper;
 use JSON::Validator::Joi 'joi';
 use Storable 'dclone';
 
+is_deeply +joi->validator->coerce, {booleans => 1, numbers => 1, strings => 1},
+  'default coercion';
+
 is_deeply(
   edj(joi->object->strict->props(
     age       => joi->integer->min(0)->max(200),

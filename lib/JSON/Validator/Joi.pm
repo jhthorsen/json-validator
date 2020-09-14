@@ -15,6 +15,8 @@ require JSON::Validator;
 has enum                                   => sub { +[] };
 has [qw(format max min multiple_of regex)] => undef;
 has type                                   => 'object';
+has validator =>
+  sub { JSON::Validator->new->coerce('booleans,numbers,strings') };
 
 for my $attr (qw(required strict unique)) {
   Mojo::Util::monkey_patch(__PACKAGE__,
@@ -97,9 +99,7 @@ sub uri       { shift->_type('string')->format('uri') }
 
 sub validate {
   my ($self, $data) = @_;
-  state $jv
-    = JSON::Validator->new->coerce({booleans => 1, numbers => 1, strings => 1});
-  return $jv->validate($data, $self->compile);
+  return $self->validator->validate($data, $self->compile);
 }
 
 sub _compile_array {
@@ -299,6 +299,16 @@ Defines a pattern that L</string> will be validated against.
 Sets the required type. This attribute is set by the convenience methods
 L</array>, L</integer>, L</object> and L</string>, but can be set manually if
 you need to check against a list of type.
+
+=head2 validator
+
+  my $joi = $joi->validator(JSON::Validator::Schema::Draft7->new);
+  my $jv  = $joi->validator;
+
+Defaults to a L<JSON::Validator> object. This object is used by L</validate>.
+
+Note: This might change to L<JSON::Validator::Schema::Draft7> or a later
+schema in the future.
 
 =head1 METHODS
 
