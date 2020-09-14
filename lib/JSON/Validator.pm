@@ -1,9 +1,9 @@
 package JSON::Validator;
 use Mojo::Base -base;
+use Exporter 'import';
 
 use B;
 use Carp 'confess';
-use Exporter 'import';
 use JSON::Validator::Formats;
 use JSON::Validator::Joi;
 use JSON::Validator::Ref;
@@ -149,7 +149,8 @@ sub coerce {
 sub get { JSON::Validator::Util::schema_extract(shift->schema->data, shift) }
 
 sub joi {
-  Mojo::Util::deprecated('joi() will be removed in future version.');
+  Mojo::Util::deprecated(
+    'JSON::Validator::joi() is replaced by JSON::Validator::Joi::joi().');
   return JSON::Validator::Joi->new unless @_;
   my ($data, $joi) = @_;
   return $joi->validate($data, $joi);

@@ -1,9 +1,7 @@
 use lib '.';
 use t::Helper;
-use JSON::Validator::Joi;
+use JSON::Validator::Joi 'joi';
 use Storable 'dclone';
-
-sub joi { JSON::Validator::Joi->new }
 
 is_deeply(
   edj(joi->object->strict->props(
@@ -33,15 +31,15 @@ is_deeply(
       },
       color =>
         {type => 'string', minLength => 2, maxLength => 12, pattern => '^\w+$'},
-      date_time => {type => 'string', format    => 'date-time'},
-      email     => {type => 'string', format    => 'email'},
+      date_time => {type => 'string', format => 'date-time'},
+      email     => {type => 'string', format => 'email'},
       exists    => {type => 'boolean'},
-      lc        => {type => 'string', pattern   => '^\p{Lowercase}*$'},
-      name      => {type => 'string', minLength => 1},
-      pos       => {type => 'number', minimum   => 0},
-      token     => {type => 'string', pattern   => '^[a-zA-Z0-9_]+$'},
-      uc        => {type => 'string', pattern   => '^\p{Uppercase}*$'},
-      uri       => {type => 'string', format    => 'uri'},
+      lc    => {type => 'string', pattern   => '^\p{Lowercase}*$'},
+      name  => {type => 'string', minLength => 1},
+      pos   => {type => 'number', minimum   => 0},
+      token => {type => 'string', pattern   => '^[a-zA-Z0-9_]+$'},
+      uc    => {type => 'string', pattern   => '^\p{Uppercase}*$'},
+      uri   => {type => 'string', format    => 'uri'},
     },
     additionalProperties => false
   },

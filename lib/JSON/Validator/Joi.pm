@@ -1,10 +1,13 @@
 package JSON::Validator::Joi;
 use Mojo::Base -base;
+use Exporter 'import';
 
 use List::Util 'uniq';
 use Mojo::JSON qw(false true);
 use Mojo::Util;
 use Storable 'dclone';
+
+our @EXPORT_OK = qw(joi);
 
 # Avoid "Subroutine redefined" warnings
 require JSON::Validator;
@@ -66,6 +69,7 @@ sub array     { shift->type('array') }
 sub integer   { shift->type('integer') }
 sub iso_date  { shift->date_time }
 sub items     { $_[0]->{items} = $_[1]; $_[0] }
+sub joi       { __PACKAGE__->new(@_) }
 sub length    { shift->min($_[0])->max($_[0]) }
 sub lowercase { shift->_type('string')->regex('^\p{Lowercase}*$') }
 sub negative  { shift->_type('number')->max(0) }
@@ -174,22 +178,29 @@ JSON::Validator::Joi - Joi validation sugar for JSON::Validator
 
 =head1 SYNOPSIS
 
-  use JSON::Validator "joi";
+  use JSON::Validator::Joi "joi";
 
-  my @errors = joi(
-    {
-      name  => "Jan Henning",
-      age   => 34,
-      email => "jhthorsen@cpan.org",
-    },
-    joi->object->props(
-      age   => joi->integer->min(0)->max(200),
-      email => joi->regex(".@.")->required,
-      name  => joi->string->min(1),
-    )
-  );
+  my @errors = joi->object->props(
+    age   => joi->integer->min(0)->max(200),
+    email => joi->regex(".@.")->required,
+    name  => joi->string->min(1),
+  )->validate({
+    name  => "Jan Henning",
+    age   => 34,
+    email => "jhthorsen@cpan.org",
+  });
 
   die "@errors" if @errors;
+
+=head2 EXPORTED FUNCTIONS
+
+=head2 joi
+
+  $joi = joi(%attrs);
+
+Same as:
+
+  JSON::Validator::Joi->new(%attrs);
 
 =head1 DESCRIPTION
 

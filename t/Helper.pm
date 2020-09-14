@@ -16,7 +16,7 @@ sub joi_ok {
   my ($data, $joi, @expected) = @_;
   my $description
     ||= @expected ? "errors: @expected" : "valid: " . encode_json($data);
-  my @errors = JSON::Validator::joi($data, $joi);
+  my @errors = JSON::Validator::Joi->new($joi)->validate($data);
   Test::More::is_deeply(
     [map { $_->TO_JSON } sort { $a->path cmp $b->path } @errors],
     [map { $_->TO_JSON } sort { $a->path cmp $b->path } @expected],
