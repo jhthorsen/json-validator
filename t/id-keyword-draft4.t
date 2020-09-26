@@ -22,6 +22,7 @@ is $jv->_id_key, 'id', 'default id_key';
 delete $jv->{version};
 eval { $jv->load_and_validate_schema("${base_url}relative-to-the-root.json") };
 ok !$@, "${base_url}relative-to-the-root.json" or diag $@;
+isa_ok $jv->schema, 'JSON::Validator::Schema::Draft4';
 
 my $schema = $jv->schema;
 is $schema->moniker, 'draft04', 'moniker';

@@ -19,6 +19,7 @@ eval {
     {schema => 'http://json-schema.org/draft-07/schema#'});
 };
 ok !$@, "${base_url}schema.json" or diag $@;
+isa_ok $jv->schema, 'JSON::Validator::Schema::Draft7';
 
 is $jv->{version}, 7, 'detected version from draft-07';
 is $jv->schema->id,      'http://example.com/person.json', 'schema id';

@@ -2,6 +2,7 @@ Revision history for perl distribution JSON-Validator
 
 4.04 Not Released
  - Add "validator" as attribute to JSON::Validator::Joi
+ - Fix constructing schema() from correct class
 
 4.03 2020-09-14T18:14:19+0900
  - Add "joi" as exported function to JSON::Validator::Joi

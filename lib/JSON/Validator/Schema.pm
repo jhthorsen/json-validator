@@ -15,7 +15,7 @@ has errors => sub {
 
 has id => sub {
   my $data = shift->data;
-  is_type($data, 'HASH') ? $data->{'$id'} || $data->{id} || '' : '';
+  return is_type($data, 'HASH') ? $data->{'$id'} || $data->{id} || '' : '';
 };
 
 has moniker => sub {

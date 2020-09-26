@@ -17,11 +17,10 @@ use Mojo::URL;
 use Mojo::Util qw(url_unescape sha1_sum);
 use Scalar::Util qw(blessed refaddr);
 
-use constant CASE_TOLERANT     => File::Spec->case_tolerant;
-use constant DEBUG             => $ENV{JSON_VALIDATOR_DEBUG} || 0;
-use constant RECURSION_LIMIT   => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
-use constant SPECIFICATION_URL => 'http://json-schema.org/draft-04/schema#';
-use constant YAML_SUPPORT      => eval 'use YAML::XS 0.67;1';
+use constant CASE_TOLERANT   => File::Spec->case_tolerant;
+use constant DEBUG           => $ENV{JSON_VALIDATOR_DEBUG} || 0;
+use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
+use constant YAML_SUPPORT    => eval 'use YAML::XS 0.67;1';
 
 our $VERSION   = '4.03';
 our @EXPORT_OK = qw(joi validate_json);
@@ -158,15 +157,17 @@ sub joi {
 
 sub load_and_validate_schema {
   my ($self, $schema, $args) = @_;
-  my $specification = $args->{schema} || SPECIFICATION_URL;
-  $self->{version} = $1
-    if !$self->{version} and $specification =~ /draft-0+(\w+)/;
 
-  my $obj = $self->_new_schema($schema, specification => $specification);
+  $self->{version} = $1
+    if !$self->{version}
+    and ($args->{schema} || 'draft-04') =~ m!draft-0+(\w+)!;
+
+  my $schema_obj = $self->_new_schema($schema, %$args);
   confess join "\n", "Invalid JSON specification $schema",
-    map {"- $_"} @{$obj->errors}
-    if @{$obj->errors};
-  $self->{schema} = $obj;
+    map {"- $_"} @{$schema_obj->errors}
+    if @{$schema_obj->errors};
+
+  $self->{schema} = $schema_obj;
   return $self;
 }
 
@@ -361,23 +362,27 @@ sub _load_schema_from_url {
 }
 
 sub _new_schema {
-  my ($self, $spec, @attrs) = @_;
-  return $spec if blessed $spec and $spec->can('specification');
+  my ($self, $schema, %attrs) = @_;
+  return $schema if blessed $schema and $schema->can('specification');
 
-  if (!$spec and is_type $spec, 'HASH') {
-    $spec = $spec->{'$spec'} || $spec->{schema};
+  # Compat with load_and_validate_schema()
+  $attrs{specification} = delete $attrs{schema} if $attrs{schema};
+
+  if (!$attrs{specification} and is_type $schema, 'HASH') {
+    $attrs{specification} = $schema->{'$schema'} if $schema->{'$schema'};
   }
-  if (!$spec and $self->{version}) {
-    $spec = sprintf 'http://json-schema.org/draft-%02s/schema#',
+  if (!$attrs{specification} and $self->{version}) {
+    $attrs{specification} = sprintf 'http://json-schema.org/draft-%02s/schema#',
       $self->{version};
   }
 
-  push @attrs, formats => $self->{formats} if $self->{formats};
-  push @attrs, version => $self->{version} if $self->{version};
-  unshift @attrs, $spec, map { ($_ => $self->$_) } qw(cache_paths formats ua);
-  my $schema = $self->_schema_class($spec)->new(@attrs);
-  $schema->specification($spec) if $spec and !$schema->specification;
-  return $schema;
+  $attrs{formats} ||= $self->{formats} if $self->{formats};
+  $attrs{version} ||= $self->{version} if $self->{version};
+  $attrs{$_} = $self->$_ for qw(cache_paths ua);
+
+  my $schema_obj = $self->_schema_class($attrs{specification} || $schema)
+    ->new($schema, %attrs);
+  return $schema_obj;
 }
 
 sub _node {

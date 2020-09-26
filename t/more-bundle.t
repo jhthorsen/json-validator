@@ -204,10 +204,21 @@ my @tests = (
 
 my $draft7_validator = JSON::Validator->new;
 $draft7_validator->schema('http://json-schema.org/draft-07/schema#');
+isa_ok $draft7_validator->schema, 'JSON::Validator::Schema::Draft7';
+is $draft7_validator->schema->id, 'http://json-schema.org/draft-07/schema#',
+  'draft7_validator schema id';
+is $draft7_validator->schema->specification, $draft7_validator->schema->id,
+  'draft7_validator schema specification';
 
 my $bundler_validator = JSON::Validator->new;
 $bundler_validator->load_and_validate_schema('t/spec/more-bundle.yaml',
   {schema => 'http://json-schema.org/draft-07/schema#'});
+isa_ok $bundler_validator->schema, 'JSON::Validator::Schema::Draft7';
+like $bundler_validator->schema->id, qr{more-bundle\.yaml$},
+  'bundler_validator schema id';
+is $bundler_validator->schema->specification,
+  'http://json-schema.org/draft-07/schema#',
+  'bundler_validator schema specification';
 
 subtest $_->[2] => sub {
   my ($schema_name, $expected_output, $test_name) = @$_;
