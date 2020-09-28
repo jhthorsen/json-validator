@@ -19,7 +19,7 @@ use constant CASE_TOLERANT   => File::Spec->case_tolerant;
 use constant DEBUG           => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 
-our $VERSION   = '4.03';
+our $VERSION   = '4.04';
 our @EXPORT_OK = qw(joi validate_json);
 
 our %SCHEMAS = (

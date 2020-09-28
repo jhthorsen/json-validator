@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-4.04 Not Released
+4.04 2020-09-28T10:01:58+0900
  - Add "validator" as attribute to JSON::Validator::Joi
  - Changed YAML::XS to an optional module #205
  - Changed column with to be in sync with mojolicious/mojo
