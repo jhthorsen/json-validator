@@ -4,8 +4,7 @@ use Test::More;
 
 # Note that you might have to run this test many times before it fails:
 # while TEST_RANDOM_ITERATIONS=10000 prove -l t/random-errors.t; do echo "---"; done
-plan skip_all => 'TEST_RANDOM_ITERATIONS=10000'
-  unless my $iterations = $ENV{TEST_RANDOM_ITERATIONS};
+plan skip_all => 'TEST_RANDOM_ITERATIONS=10000' unless my $iterations = $ENV{TEST_RANDOM_ITERATIONS};
 
 my $jv = JSON::Validator->new->schema({
   items => {

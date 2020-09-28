@@ -6,8 +6,7 @@ use Test::More;
 use Mojolicious::Lite;
 post '/' => sub {
   my $c      = shift;
-  my @errors = JSON::Validator->new->schema('data://main/spec.json')
-    ->validate($c->req->json);
+  my @errors = JSON::Validator->new->schema('data://main/spec.json')->validate($c->req->json);
   $c->render(status => @errors ? 400 : 200, json => \@errors);
 };
 
@@ -15,11 +14,9 @@ my $t = Test::Mojo->new;
 
 $t->post_ok('/', json => {})->status_is(400)->content_like(qr{/person});
 $t->post_ok('/', json => {person => {name => 'superwoman'}})->status_is(200);
-$t->post_ok('/',
-  json => {person => {name => 'superwoman', children => [{name => 'batboy'}]}})
-  ->status_is(200);
-$t->post_ok('/', json => {person => {name => 'superwoman', children => [{}]}})
-  ->status_is(400)->json_is('/0/path' => '/person/children/0/name');
+$t->post_ok('/', json => {person => {name => 'superwoman', children => [{name => 'batboy'}]}})->status_is(200);
+$t->post_ok('/', json => {person => {name => 'superwoman', children => [{}]}})->status_is(400)
+  ->json_is('/0/path' => '/person/children/0/name');
 
 done_testing;
 

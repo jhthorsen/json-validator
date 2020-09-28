@@ -7,8 +7,7 @@ BEGIN {
 
 use Test::More;
 
-plan skip_all => 'YAML::PP not available'
-  unless eval 'require JSON::Validator;1';
+plan skip_all => 'YAML::PP not available' unless eval 'require JSON::Validator;1';
 ok $INC{'YAML/PP.pm'}, 'YAML::PP was loaded';
 ok !$INC{'YAML/XS.pm'}, 'YAML::XS was not loaded';
 

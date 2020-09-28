@@ -1,18 +1,14 @@
 use lib '.';
 use t::Helper;
 
-my $schema
-  = {anyOf =>
-    [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]
-  };
+my $schema = {anyOf => [{type => "string", maxLength => 5}, {type => "number", minimum => 0}]};
 
 validate_ok 'short', $schema;
 validate_ok 'too long', $schema, E('/', '/anyOf/0 String is too long: 8/5.'),
   E('/', '/anyOf/1 Expected number - got string.');
 
 validate_ok 12, $schema;
-validate_ok int(-1), $schema, E('/', '/anyOf/0 Expected string - got number.'),
-  E('/', '/anyOf/1 -1 < minimum(0)');
+validate_ok int(-1), $schema, E('/', '/anyOf/0 Expected string - got number.'), E('/', '/anyOf/1 -1 < minimum(0)');
 
 validate_ok {}, $schema, E('/', '/anyOf Expected string/number - got object.');
 
@@ -36,10 +32,7 @@ validate_ok(
         ]
       },
     },
-    definitions => {
-      simpleTypes =>
-        {enum => [qw(array boolean integer null number object string)]}
-    }
+    definitions => {simpleTypes => {enum => [qw(array boolean integer null number object string)]}}
   }
 );
 
@@ -50,9 +43,7 @@ validate_ok(
     type        => 'object',
     title       => 'test',
     description => 'test',
-    properties  => {
-      age => {type => 'number', anyOf => [{multipleOf => 5}, {multipleOf => 3}]}
-    }
+    properties  => {age => {type => 'number', anyOf => [{multipleOf => 5}, {multipleOf => 3}]}}
   }
 );
 
@@ -67,42 +58,26 @@ validate_ok(
   E('/b', '/anyOf/1 Missing property.'),
 );
 
-validate_ok 'hello', {type => ['integer', 'string'], enum => [123, 'HELLO']},
-  E('/', 'Not in enum list: 123, HELLO.');
+validate_ok 'hello', {type => ['integer', 'string'], enum => [123, 'HELLO']}, E('/', 'Not in enum list: 123, HELLO.');
 
-validate_ok 'hello', {anyOf => [false, {type => ['integer', 'boolean']}]},
-  E('/', '/anyOf/0 Should not match.'),
+validate_ok 'hello', {anyOf => [false, {type => ['integer', 'boolean']}]}, E('/', '/anyOf/0 Should not match.'),
   E('/', '/anyOf/1 Expected integer/boolean - got string.');
 
-validate_ok 'hello', {type => ['integer', 'boolean']},
-  E('/', 'Expected integer/boolean - got string.');
+validate_ok 'hello', {type => ['integer', 'boolean']}, E('/', 'Expected integer/boolean - got string.');
 
 validate_ok 'hello', {anyOf => [{type => ['integer', 'boolean']}]},
   E('/', '/anyOf/0 Expected integer/boolean - got string.');
 
 validate_ok 'hello',
-  {
-  anyOf => [
-    {anyOf => [{type => 'boolean'}, {type => 'string', maxLength => 2}]},
-    {type  => 'integer'},
-  ],
-  },
-  E('/', '/anyOf/0/anyOf/0 Expected boolean - got string.'),
-  E('/', '/anyOf/0/anyOf/1 String is too long: 5/2.'),
+  {anyOf => [{anyOf => [{type => 'boolean'}, {type => 'string', maxLength => 2}]}, {type => 'integer'}]},
+  E('/', '/anyOf/0/anyOf/0 Expected boolean - got string.'), E('/', '/anyOf/0/anyOf/1 String is too long: 5/2.'),
   E('/', '/anyOf/1 Expected integer - got string.');
 
-validate_ok {foo => 'not an arrayref'},
-  {type => ['object', 'boolean'], properties => {foo => {type => 'array'}}},
+validate_ok {foo => 'not an arrayref'}, {type => ['object', 'boolean'], properties => {foo => {type => 'array'}}},
   E('/foo', 'Expected array - got string.');
 
 validate_ok {foo => 'not an arrayref'},
-  {
-  anyOf => [
-    {type => 'object', properties => {foo => {type => 'array'}}},
-    {type => 'boolean'},
-  ]
-  },
-  E('/foo', '/anyOf/0 Expected array - got string.'),
-  E('/',    '/anyOf/1 Expected boolean - got object.');
+  {anyOf => [{type => 'object', properties => {foo => {type => 'array'}}}, {type => 'boolean'}]},
+  E('/foo', '/anyOf/0 Expected array - got string.'), E('/', '/anyOf/1 Expected boolean - got object.');
 
 done_testing;

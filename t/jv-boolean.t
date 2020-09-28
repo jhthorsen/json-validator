@@ -16,22 +16,20 @@ validate_ok {v => true}, $schema;
 validate_ok {v => 1000},     $schema, E('/v', 'Expected boolean - got number.');
 validate_ok {v => 0.5},      $schema, E('/v', 'Expected boolean - got number.');
 validate_ok {v => 'active'}, $schema, E('/v', 'Expected boolean - got string.');
-validate_ok {v => bless({}, 'BoolTestOk')},   $schema;
-validate_ok {v => bless({}, 'BoolTestFail')}, $schema,
-  E('/v', 'Expected boolean - got BoolTestFail.');
+validate_ok {v => bless({}, 'BoolTestOk')}, $schema;
+validate_ok {v => bless({}, 'BoolTestFail')}, $schema, E('/v', 'Expected boolean - got BoolTestFail.');
 
 validate_ok j(Mojo::JSON->false), {type => 'boolean'};
 validate_ok j(Mojo::JSON->true),  {type => 'boolean'};
-validate_ok j('foo'),             {type => 'boolean'},
-  E('/', 'Expected boolean - got string.');
+validate_ok j('foo'), {type => 'boolean'}, E('/', 'Expected boolean - got string.');
 validate_ok undef, {properties => {}}, E('/', 'Expected object - got null.');
 
 note 'boolean const';
 my $bool_constant_false = {type => 'boolean', const => false};
 my $bool_constant_true  = {type => 'boolean', const => true};
 validate_ok false, $bool_constant_false;
-validate_ok true, $bool_constant_false, E('/', q{Does not match const: false.});
-validate_ok true, $bool_constant_true;
+validate_ok true,  $bool_constant_false, E('/', q{Does not match const: false.});
+validate_ok true,  $bool_constant_true;
 validate_ok false, $bool_constant_true, E('/', q{Does not match const: true.});
 
 note 'boolean objects';
@@ -41,8 +39,7 @@ validate_ok $data, $schema;
 
 SKIP: {
   skip 'boolean not installed', 1 unless eval 'require boolean;1';
-  validate_ok {type => 'boolean'},
-    {type => 'object', properties => {type => {type => 'string'}}};
+  validate_ok {type => 'boolean'}, {type => 'object', properties => {type => {type => 'string'}}};
 }
 
 note 'coerce check data';

@@ -7,22 +7,15 @@ my @errors = JSON::Validator->new->schema('data://main/error_object.json')
 ok !@errors, 'TO_JSON on objects' or diag join ', ', @errors;
 
 my $input = {
-  errors => [
-    JSON::Validator::Error->new('/', 'foo'),
-    JSON::Validator::Error->new('/', 'bar')
-  ],
-  valid => Mojo::JSON->false,
+  errors => [JSON::Validator::Error->new('/', 'foo'), JSON::Validator::Error->new('/', 'bar')],
+  valid  => Mojo::JSON->false,
 };
-@errors = JSON::Validator->new->schema('data://main/error_array.json')
-  ->validate($input);
+@errors = JSON::Validator->new->schema('data://main/error_array.json')->validate($input);
 ok !@errors, 'TO_JSON on objects inside arrays' or diag join ', ', @errors;
 is_deeply $input,
   {
-  errors => [
-    JSON::Validator::Error->new('/', 'foo'),
-    JSON::Validator::Error->new('/', 'bar')
-  ],
-  valid => Mojo::JSON->false,
+  errors => [JSON::Validator::Error->new('/', 'foo'), JSON::Validator::Error->new('/', 'bar')],
+  valid  => Mojo::JSON->false,
   },
   'input objects are not changed';
 

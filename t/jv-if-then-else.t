@@ -21,10 +21,9 @@ $schema = {
   else => {items => {pattern => '^[a-z]$'}},
 };
 
-validate_ok [qw(2 4 7)], $schema;
-validate_ok [qw(a 1)], $schema, E('/0', 'String does not match ^[0-9]$.');
-validate_ok [qw(6 q a b 8 z)], $schema,
-  E('/0', 'String does not match ^[a-z]$.'),
+validate_ok [qw(2 4 7)],       $schema;
+validate_ok [qw(a 1)],         $schema, E('/0', 'String does not match ^[0-9]$.');
+validate_ok [qw(6 q a b 8 z)], $schema, E('/0', 'String does not match ^[a-z]$.'),
   E('/4', 'String does not match ^[a-z]$.');
 
 done_testing;

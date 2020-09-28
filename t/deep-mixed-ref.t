@@ -6,8 +6,7 @@ use Test::More;
 my $workdir = path(__FILE__)->dirname;
 my $file    = path($workdir, 'spec', 'with-deep-mixed-ref.json');
 my $jv      = JSON::Validator->new(cache_paths => [])->schema($file);
-my @errors  = $jv->validate(
-  {age => 1, weight => {mass => 72, unit => 'kg'}, height => 100});
+my @errors  = $jv->validate({age => 1, weight => {mass => 72, unit => 'kg'}, height => 100});
 is int(@errors), 0, 'valid input';
 
 use Mojolicious::Lite;

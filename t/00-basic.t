@@ -22,10 +22,7 @@ if (!eval 'use Test::CPAN::Changes; 1') {
 }
 
 my @files;
-find(
-  {wanted => sub { /\.pm$/ and push @files, $File::Find::name }, no_chdir => 1},
-  -e 'blib' ? 'blib' : 'lib',
-);
+find({wanted => sub { /\.pm$/ and push @files, $File::Find::name }, no_chdir => 1}, -e 'blib' ? 'blib' : 'lib');
 
 plan tests => @files * 3 + 4;
 
@@ -36,8 +33,7 @@ for my $file (@files) {
   $module =~ s,/,::,g;
   ok eval "use $module; 1", "use $module" or diag $@;
   Test::Pod::pod_file_ok($file);
-  Test::Pod::Coverage::pod_coverage_ok($module,
-    {also_private => [qr/^[A-Z_]+$/]});
+  Test::Pod::Coverage::pod_coverage_ok($module, {also_private => [qr/^[A-Z_]+$/]});
 }
 
 Test::CPAN::Changes::changes_file_ok();

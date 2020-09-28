@@ -7,8 +7,7 @@ use Test::More;
 
 my $test_suite = path(qw(t draft4-tests));
 my $remotes    = path(qw(t remotes));
-plan skip_all => 'Cannot find test files in t/draft4-tests'
-  unless -d $test_suite;
+plan skip_all => 'Cannot find test files in t/draft4-tests' unless -d $test_suite;
 
 use Mojolicious::Lite;
 app->static->paths(["$remotes"]);
@@ -17,10 +16,7 @@ $t->get_ok('/integer.json')->status_is(200);
 my $host_port = $t->ua->server->url->host_port;
 
 my $test_only_re = $ENV{TEST_ONLY} || '';
-my $todo_re      = join('|',
-  'change resolution scope - changed scope ref valid',
-  $ENV{TEST_ONLINE} ? () : ('remote ref'),
-);
+my $todo_re = join('|', 'change resolution scope - changed scope ref valid', $ENV{TEST_ONLINE} ? () : ('remote ref'));
 
 my $jv = JSON::Validator->new->ua($t->ua);
 for my $file (sort $test_suite->list->each) {
@@ -41,8 +37,7 @@ HERE
       $schema =~ s!http\W+localhost:1234\b!http://$host_port!g;
       my @errors;
       eval {
-        $schema
-          = JSON::Validator::Schema::Draft4->new(decode_json($schema), %$jv);
+        $schema = JSON::Validator::Schema::Draft4->new(decode_json($schema), %$jv);
         @errors = @{$jv->schema($schema)->schema->errors};
         @errors = $jv->validate($test->{data}) unless @errors;
       };

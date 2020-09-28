@@ -1,69 +1,45 @@
 use lib '.';
 use t::Helper;
 
-my $schema
-  = {allOf =>
-    [{type => 'string', maxLength => 5}, {type => 'string', minLength => 3}]
-  };
+my $schema = {allOf => [{type => 'string', maxLength => 5}, {type => 'string', minLength => 3}]};
 
 validate_ok 'short', $schema;
 validate_ok 12, $schema, E('/', '/allOf Expected string - got number.');
 
-$schema
-  = {allOf =>
-    [{type => 'string', maxLength => 7}, {type => 'string', maxLength => 5}]
-  };
+$schema = {allOf => [{type => 'string', maxLength => 7}, {type => 'string', maxLength => 5}]};
 validate_ok 'superlong', $schema, E('/', '/allOf/0 String is too long: 9/7.'),
   E('/', '/allOf/1 String is too long: 9/5.');
 validate_ok 'toolong', $schema, E('/', '/allOf/1 String is too long: 7/5.');
 
 
 $schema = {
-  allOf =>
-    [{type => 'string', maxLength => 5}, {type => 'string', minLength => 3}],
-  anyOf => [{pattern => '^[0-9]+$'}, {pattern => '^[a-z]+$'}],
-  oneOf => [{pattern => '^[0-9]+$'}, {pattern => '^[a-z]+$', maxLength => 4}],
+  allOf => [{type    => 'string', maxLength => 5}, {type    => 'string', minLength => 3}],
+  anyOf => [{pattern => '^[0-9]+$'},               {pattern => '^[a-z]+$'}],
+  oneOf => [{pattern => '^[0-9]+$'},               {pattern => '^[a-z]+$', maxLength => 4}],
 };
 
 validate_ok '123',   $schema;
 validate_ok 'aaaa',  $schema;
-validate_ok 'aaaaa', $schema,
-  E('/', '/oneOf/0 String does not match ^[0-9]+$.'),
+validate_ok 'aaaaa', $schema, E('/', '/oneOf/0 String does not match ^[0-9]+$.'),
   E('/', '/oneOf/1 String is too long: 5/4.');
 
-validate_ok 'he110th3re', $schema,
-  E('/', '/allOf/0 String is too long: 10/5.'),
-  E('/', '/anyOf/0 String does not match ^[0-9]+$.'),
-  E('/', '/anyOf/1 String does not match ^[a-z]+$.'),
-  E('/', '/oneOf/0 String does not match ^[0-9]+$.'),
-  E('/', '/oneOf/1 String is too long: 10/4.'),
+validate_ok 'he110th3re', $schema, E('/', '/allOf/0 String is too long: 10/5.'),
+  E('/', '/anyOf/0 String does not match ^[0-9]+$.'), E('/', '/anyOf/1 String does not match ^[a-z]+$.'),
+  E('/', '/oneOf/0 String does not match ^[0-9]+$.'), E('/', '/oneOf/1 String is too long: 10/4.'),
   E('/', '/oneOf/1 String does not match ^[a-z]+$.');
 
-validate_ok 'hello', {type => ['integer', 'boolean']},
-  E('/', 'Expected integer/boolean - got string.');
+validate_ok 'hello', {type => ['integer', 'boolean']}, E('/', 'Expected integer/boolean - got string.');
 
 validate_ok 'hello', {allOf => [{type => ['integer', 'boolean']}]},
   E('/', '/allOf/0 Expected integer/boolean - got string.');
 
 validate_ok 'hello',
-  {
-  allOf => [
-    {allOf => [{type => 'boolean'}, {type => 'string', maxLength => 2}]},
-    {type  => 'integer'},
-  ],
-  },
-  E('/', '/allOf/0/allOf/0 Expected boolean - got string.'),
-  E('/', '/allOf/0/allOf/1 String is too long: 5/2.'),
+  {allOf => [{allOf => [{type => 'boolean'}, {type => 'string', maxLength => 2}]}, {type => 'integer'}]},
+  E('/', '/allOf/0/allOf/0 Expected boolean - got string.'), E('/', '/allOf/0/allOf/1 String is too long: 5/2.'),
   E('/', '/allOf/1 Expected integer - got string.');
 
 validate_ok {foo => 'not an arrayref'},
-  {
-  allOf => [
-    {type => 'object', properties => {foo => {type => 'array'}}},
-    {type => 'boolean'},
-  ]
-  },
-  E('/foo', '/allOf/0 Expected array - got string.'),
-  E('/',    '/allOf/1 Expected boolean - got object.');
+  {allOf => [{type => 'object', properties => {foo => {type => 'array'}}}, {type => 'boolean'}]},
+  E('/foo', '/allOf/0 Expected array - got string.'), E('/', '/allOf/1 Expected boolean - got object.');
 
 done_testing;

@@ -3,8 +3,7 @@ use t::Helper;
 use JSON::Validator::Joi 'joi';
 use Storable 'dclone';
 
-is_deeply +joi->validator->coerce, {booleans => 1, numbers => 1, strings => 1},
-  'default coercion';
+is_deeply +joi->validator->coerce, {booleans => 1, numbers => 1, strings => 1}, 'default coercion';
 
 is_deeply(
   edj(joi->object->strict->props(
@@ -25,15 +24,9 @@ is_deeply(
     type       => 'object',
     required   => ['email'],
     properties => {
-      age      => {type => 'integer', minimum => 0, maximum => 200},
-      alphanum => {
-        type      => 'string',
-        minLength => 12,
-        maxLength => 12,
-        pattern   => '^\w*$'
-      },
-      color =>
-        {type => 'string', minLength => 2, maxLength => 12, pattern => '^\w+$'},
+      age      => {type => 'integer', minimum   => 0,  maximum   => 200},
+      alphanum => {type => 'string',  minLength => 12, maxLength => 12, pattern => '^\w*$'},
+      color    => {type => 'string',  minLength => 2,  maxLength => 12, pattern => '^\w+$'},
       date_time => {type => 'string', format => 'date-time'},
       email     => {type => 'string', format => 'email'},
       exists    => {type => 'boolean'},
@@ -61,17 +54,9 @@ is_deeply(
   'generated correct array schema'
 );
 
-is_deeply(
-  edj(joi->string->enum([qw(1.0 2.0)])),
-  {type => 'string', enum => [qw(1.0 2.0)]},
-  'enum for string'
-);
+is_deeply(edj(joi->string->enum([qw(1.0 2.0)])), {type => 'string', enum => [qw(1.0 2.0)]}, 'enum for string');
 
-is_deeply(
-  edj(joi->integer->enum([qw(1 2 4 8 16)])),
-  {type => 'integer', enum => [qw(1 2 4 8 16)]},
-  'enum for integer'
-);
+is_deeply(edj(joi->integer->enum([qw(1 2 4 8 16)])), {type => 'integer', enum => [qw(1 2 4 8 16)]}, 'enum for integer');
 
 joi_ok(
   {age => 34, email => 'jhthorsen@cpan.org', name => 'Jan Henning Thorsen'},
@@ -94,8 +79,7 @@ joi_ok(
 );
 
 eval { joi->number->extend(joi->integer) };
-like $@, qr{Cannot extend joi 'number' by 'integer'},
-  'need to extend same type';
+like $@, qr{Cannot extend joi 'number' by 'integer'}, 'need to extend same type';
 
 test_extend(
   joi->array->min(0)->max(10),
@@ -105,10 +89,8 @@ test_extend(
 );
 
 test_extend(
-  joi->array->items([joi->integer]),
-  joi->array->items([joi->number]),
-  {type => 'array', items => [{type => 'number'}]},
-  'extended items in an array',
+  joi->array->items([joi->integer]),                joi->array->items([joi->number]),
+  {type => 'array', items => [{type => 'number'}]}, 'extended items in an array',
 );
 
 test_extend(
@@ -122,44 +104,24 @@ test_extend(
 test_extend(
   joi->object->props(x => joi->integer, y => joi->integer),
   joi->object->props(x => joi->number),
-  {
-    type       => 'object',
-    properties => {x => {type => 'number'}, y => {type => 'integer'}}
-  },
+  {type => 'object', properties => {x => {type => 'number'}, y => {type => 'integer'}}},
   'extended object',
 );
 
 is_deeply(
-  edj(joi->object->props(
-    ip => joi->type([qw(string null)])->format('ip'),
-    ns => joi->string
-  )),
-  {
-    type       => 'object',
-    properties => {
-      ip => {format => 'ip', type => [qw(string null)]},
-      ns => {type   => 'string'},
-    }
-  },
+  edj(joi->object->props(ip => joi->type([qw(string null)])->format('ip'), ns => joi->string)),
+  {type => 'object', properties => {ip => {format => 'ip', type => [qw(string null)]}, ns => {type => 'string'}}},
   'null or string',
 );
 
 test_extend(
   joi->object->props(a => joi->integer, b => joi->integer->required),
-  joi->object->props(
-    b => joi->integer->required,
-    x => joi->string->required,
-    y => joi->string->required
-  ),
+  joi->object->props(b => joi->integer->required, x => joi->string->required, y => joi->string->required),
   {
-    type       => 'object',
-    required   => bag(qw(b x y)),
-    properties => {
-      a => {type => 'integer'},
-      b => {type => 'integer'},
-      x => {type => 'string'},
-      y => {type => 'string'},
-    },
+    type     => 'object',
+    required => bag(qw(b x y)),
+    properties =>
+      {a => {type => 'integer'}, b => {type => 'integer'}, x => {type => 'string'}, y => {type => 'string'}},
   },
   'extended object with required',
 );

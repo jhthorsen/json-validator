@@ -18,11 +18,9 @@ for ([1, 1], [0, 3]) {
 
   %ref_counts = ();
 
-  JSON::Validator->new->recursive_data_protection($enabled)->schema(schema())
-    ->validate($data);
+  JSON::Validator->new->recursive_data_protection($enabled)->schema(schema())->validate($data);
 
-  is $ref_counts{refaddr($object->{level1}{level2})}, $exp_ref_counts,
-    "recursive_data_protection($enabled)";
+  is $ref_counts{refaddr($object->{level1}{level2})}, $exp_ref_counts, "recursive_data_protection($enabled)";
 }
 
 done_testing;
@@ -35,10 +33,7 @@ sub schema {
       properties => {
         level1 => {
           type       => 'object',
-          properties => {
-            level2 =>
-              {type => 'object', properties => {level3 => {type => 'string'}}}
-          }
+          properties => {level2 => {type => 'object', properties => {level3 => {type => 'string'}}}}
         }
       }
     }

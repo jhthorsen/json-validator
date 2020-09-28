@@ -20,16 +20,11 @@ my $d_array2 = ['bar', 'foo'];
 ok !$INC{'Sereal/Encoder.pm'}, 'Sereal::Encoder was not loaded';
 
 isnt data_checksum($d_array), data_checksum($d_array2), 'data_checksum array';
-is data_checksum($d_hash), data_checksum($d_hash2),
-  'data_checksum hash field order';
-isnt data_checksum($d_hash), data_checksum($d_undef),
-  'data_checksum hash not undef';
-isnt data_checksum($d_hash), data_checksum($d_obj),
-  'data_checksum hash not object';
-isnt data_checksum($d_obj), data_checksum($d_undef),
-  'data_checksum object not undef';
-isnt data_checksum(3.14), md5_sum(3.15), 'data_checksum numeric';
-is data_checksum(3.14), data_checksum('3.14'),
-  'data_checksum numeric like string';
+is data_checksum($d_hash),    data_checksum($d_hash2),  'data_checksum hash field order';
+isnt data_checksum($d_hash),  data_checksum($d_undef),  'data_checksum hash not undef';
+isnt data_checksum($d_hash),  data_checksum($d_obj),    'data_checksum hash not object';
+isnt data_checksum($d_obj),   data_checksum($d_undef),  'data_checksum object not undef';
+isnt data_checksum(3.14), md5_sum(3.15),         'data_checksum numeric';
+is data_checksum(3.14),   data_checksum('3.14'), 'data_checksum numeric like string';
 
 done_testing;

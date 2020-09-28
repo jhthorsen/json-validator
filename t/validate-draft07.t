@@ -5,8 +5,7 @@ use Test::More;
 
 use JSON::Validator;
 
-my $draft07
-  = path(qw(lib JSON Validator cache 4a31fe43be9e23ca9eb8d9e9faba8892));
+my $draft07 = path(qw(lib JSON Validator cache 4a31fe43be9e23ca9eb8d9e9faba8892));
 plan skip_all => "Cannot open $draft07" unless -r $draft07;
 
 my $schema = decode_json($draft07->slurp);

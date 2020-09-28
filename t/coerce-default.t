@@ -12,10 +12,8 @@ is_deeply($jv->coerce, {defaults => 1}, 'coerce def');
 $jv->schema({
   type        => 'object',
   definitions => {subscribed_to => {type => 'array', default => []}},
-  properties  => {
-    tos           => {type   => 'boolean', default => false},
-    subscribed_to => {'$ref' => '#/definitions/subscribed_to'}
-  },
+  properties =>
+    {tos => {type => 'boolean', default => false}, subscribed_to => {'$ref' => '#/definitions/subscribed_to'}},
 });
 
 my $data   = {};
@@ -25,16 +23,11 @@ is_deeply $data, {tos => false, subscribed_to => []}, 'data was mutated';
 
 $data->{tos} = true;
 @errors = $jv->validate($data);
-is_deeply $data, {tos => true, subscribed_to => []},
-  'only subscribed_to was mutated';
+is_deeply $data, {tos => true, subscribed_to => []}, 'only subscribed_to was mutated';
 
-$jv->schema({
-  type       => 'object',
-  properties => {age => {type => 'number', default => 'invalid'}},
-});
+$jv->schema({type => 'object', properties => {age => {type => 'number', default => 'invalid'}}});
 
 @errors = $jv->validate({});
-is $errors[0]->message, 'Expected number - got string.',
-  'default values must be valid';
+is $errors[0]->message, 'Expected number - got string.', 'default values must be valid';
 
 done_testing;

@@ -2,23 +2,15 @@ use lib '.';
 use utf8;
 use t::Helper;
 
-my $schema = {
-  type       => 'object',
-  properties => {
-    nick =>
-      {type => 'string', minLength => 3, maxLength => 10, pattern => qr{^\w+$}}
-  }
-};
+my $schema = {type => 'object',
+  properties => {nick => {type => 'string', minLength => 3, maxLength => 10, pattern => qr{^\w+$}}}};
 
 validate_ok {nick => 'batman'}, $schema;
-validate_ok {nick => 1000},     $schema,
-  E('/nick', 'Expected string - got number.');
-validate_ok {nick => '1000'}, $schema;
-validate_ok {nick => 'aa'}, $schema, E('/nick', 'String is too short: 2/3.');
-validate_ok {nick => 'a' x 11}, $schema,
-  E('/nick', 'String is too long: 11/10.');
-like +join('', jv->validate({nick => '[nick]'})),
-  qr{/nick: String does not match}, 'String does not match';
+validate_ok {nick => 1000},     $schema, E('/nick', 'Expected string - got number.');
+validate_ok {nick => '1000'},   $schema;
+validate_ok {nick => 'aa'},     $schema, E('/nick', 'String is too short: 2/3.');
+validate_ok {nick => 'a' x 11}, $schema, E('/nick', 'String is too long: 11/10.');
+like +join('', jv->validate({nick => '[nick]'})), qr{/nick: String does not match}, 'String does not match';
 
 delete $schema->{properties}{nick}{pattern};
 validate_ok {nick => 'Déjà vu'}, $schema;
@@ -32,10 +24,7 @@ validate_ok(
   {
     type       => "object",
     required   => ["credit_card_number"],
-    properties => {
-      credit_card_number =>
-        {type => "string", minLength => 15, maxLength => 16},
-    }
+    properties => {credit_card_number => {type => "string", minLength => 15, maxLength => 16}}
   }
 );
 
