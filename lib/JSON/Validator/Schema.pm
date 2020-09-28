@@ -85,6 +85,12 @@ for my $method (qw(load_and_validate_schema schema singleton version)) {
   );
 }
 
+sub _register_root_schema {
+  my ($self, $id, $schema) = @_;
+  $self->SUPER::_register_root_schema($id => $schema);
+  $self->id($id) unless $self->id;
+}
+
 1;
 
 =encoding utf8

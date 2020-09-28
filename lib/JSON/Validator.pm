@@ -60,8 +60,8 @@ sub bundle {
   my $cloner;
 
   my $schema    = $self->_new_schema($args->{schema} || $self->schema);
-  my $schema_id = $schema->id || $self->{root_schema_url} || '';
-  my @topics    = ([$schema->data, my $bundle = {}, '']);                 # ([$from, $to], ...);
+  my $schema_id = $schema->id || ($self->schema ? $self->schema->id : '');
+  my @topics    = ([$schema->data, my $bundle = {}, '']);                    # ([$from, $to], ...);
 
   if ($args->{replace}) {
     $cloner = sub {
@@ -86,6 +86,9 @@ sub bundle {
         push @topics, [$from, $to] if $from_type;
         return $to;
       }
+
+      # Traverse all $ref
+      while (my $tmp = tied %{$tied->schema}) { $tied = $tmp }
 
       return $from if !$args->{schema} and $tied->fqn =~ m!^\Q$schema_id\E\#!;
 
@@ -245,11 +248,11 @@ sub _definitions_path {
   }
 
   # Generate definitions key based on filename
-  my ($spec_path, $fragment) = split '#', $ref->fqn;
-  my $key = $fragment;
-  if (-e $spec_path) {
-    $key = join '-', map { s!^\W+!!; $_ } grep {$_} path($spec_path)->basename, $fragment,
-      substr(sha1_sum($spec_path), 0, 10);
+  my $fqn = Mojo::URL->new($ref->fqn);
+  my $key = $fqn->fragment;
+  if ($fqn->scheme eq 'file') {
+    $key = join '-', map { s!^\W+!!; $_ } grep {$_} path($fqn->path)->basename, $key,
+      substr(sha1_sum($fqn->path), 0, 10);
   }
 
   # Fallback or nicer path name
@@ -261,6 +264,42 @@ sub _definitions_path_for_ref { ['definitions'] }
 
 # Try not to break JSON::Validator::OpenAPI::Mojolicious
 sub _get { shift; JSON::Validator::Util::_schema_extract(@_) }
+
+sub _find_and_resolve_refs {
+  my ($self, $base_url, $schema) = @_;
+  my %root = is_type($schema, 'HASH') ? %$schema : ();
+
+  my ($id_key, @topics, @refs, %seen) = ($self->_id_key, $schema);
+  while (@topics) {
+    my $topic = shift @topics;
+
+    if (is_type $topic, 'ARRAY') {
+      push @topics, @$topic;
+    }
+    elsif (is_type $topic, 'HASH') {
+      next if $seen{refaddr($topic)}++;
+      push @refs, [$topic, $base_url] and next if $topic->{'$ref'} and !ref $topic->{'$ref'} and !tied %$topic;
+
+      if ($topic->{$id_key} and !ref $topic->{$id_key}) {
+        my $fqn = Mojo::URL->new($topic->{$id_key});
+        $fqn = $fqn->to_abs($base_url) unless $fqn->is_abs;
+        $self->_store($fqn->to_string => $topic);
+      }
+
+      push @topics, values %$topic;
+    }
+  }
+
+  while (@refs) {
+    my ($topic, $id) = @{shift @refs};
+    next if is_type $topic, 'BOOL';
+    next if !$topic->{'$ref'} or ref $topic->{'$ref'};
+    my $base = Mojo::URL->new($id || $base_url)->fragment(undef);
+    my ($other, $ref_url, $fqn) = $self->_resolve_ref($topic->{'$ref'}, $base, \%root);
+    tie %$topic, 'JSON::Validator::Ref', $other, "$ref_url", "$fqn";
+    push @refs, [$other, $fqn];
+  }
+}
 
 sub _id_key { ($_[0]->{version} || 4) < 7 ? 'id' : '$id' }
 
@@ -286,11 +325,12 @@ sub _load_schema {
   my $file = $url;
   $file =~ s!^file://!!;
   $file =~ s!#$!!;
-  $file = path(split '/', $file);
+  $file = path(split '/', url_unescape $file);
   if (-e $file) {
     $file = $file->realpath;
     warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
-    return $self->_load_schema_from_text(\$file->slurp), CASE_TOLERANT ? path(lc $file) : $file;
+    my $id = Mojo::URL->new->scheme('file')->host('')->path(CASE_TOLERANT ? lc $file : "$file");
+    return $self->_load_schema_from_text(\$file->slurp), $id;
   }
   elsif ($url =~ m!^/! and $self->ua->server->app) {
     warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
@@ -380,123 +420,57 @@ sub _ref_to_schema {
   return $schema;
 }
 
-sub _register_schema {
-  my ($self, $schema, $fqn) = @_;
-  $fqn =~ s!(.)#$!$1!;
-  $self->{schemas}{$fqn} = $schema;
+sub _register_root_schema {
+  my ($self, $id, $schema) = @_;
+  confess "Root schema cannot have a fragment in the 'id'. ($id)" if $id =~ /\#./;
+  confess "Root schema cannot have a relative 'id'. ($id)" unless $id =~ /^\w+:/ or -e $id or $id =~ m!^/!;
 }
 
 # _resolve() method is used to convert all "id" into absolute URLs and
 # resolve all the $ref's that we find inside JSON Schema specification.
 sub _resolve {
-  my ($self, $schema) = @_;
-  my $id_key = $self->_id_key;
-  my ($id, $resolved);
-
-  local $self->{level} = $self->{level} || 0;
-  delete $self->{schemas}{''} unless $self->{level};
+  my ($self,   $schema, $nested)   = @_;
+  my ($id_key, $id,     $resolved) = ($self->_id_key);
 
   if (ref $schema eq 'HASH') {
     $id = $schema->{$id_key} // '';
-    return $resolved if $resolved = $self->{schemas}{$id};
-  }
-  elsif ($resolved = $self->{schemas}{$schema // ''}) {
-    return $resolved;
+    return $resolved if $resolved = $self->_store($id);
   }
   elsif (is_type $schema, 'BOOL') {
-    $self->_register_schema($schema, $schema);
     return $schema;
+  }
+  elsif ($resolved = $self->_store($schema // '')) {
+    return $resolved;
   }
   else {
     ($schema, $id) = $self->_load_schema($schema);
     $id = $schema->{$id_key} if $schema->{$id_key};
   }
 
-  unless ($self->{level}) {
-    my $rid = $schema->{$id_key} // $id;
-    if ($rid) {
-      confess "Root schema cannot have a fragment in the 'id'. ($rid)" if $rid =~ /\#./;
-      confess "Root schema cannot have a relative 'id'. ($rid)" unless $rid =~ /^\w+:/ or -e $rid or $rid =~ m!^/!;
-    }
-    warn sprintf "[JSON::Validator] Using root_schema_url of '$rid'\n" if DEBUG;
-    $self->id($rid)                                                    if $self->can('id') and !$self->id;
-    $self->{root_schema_url} = $rid;
-  }
-
-  $self->{level}++;
-  $self->_register_schema($schema, $id);
-
-  my (%seen, @refs);
-  my @topics = ([$schema, is_type($id, 'Mojo::File') ? $id : Mojo::URL->new($id)]);
-  while (@topics) {
-    my ($topic, $base) = @{shift @topics};
-
-    if (is_type $topic, 'ARRAY') {
-      push @topics, map { [$_, $base] } @$topic;
-    }
-    elsif (is_type $topic, 'HASH') {
-      my $seen_addr = join ':', $base, refaddr($topic);
-      next if $seen{$seen_addr}++;
-
-      push @refs, [$topic, $base] and next if $topic->{'$ref'} and !ref $topic->{'$ref'};
-
-      if ($topic->{$id_key} and !ref $topic->{$id_key}) {
-        my $fqn = Mojo::URL->new($topic->{$id_key});
-        $fqn = $fqn->to_abs($base) unless $fqn->is_abs;
-        $self->_register_schema($topic, $fqn->to_string);
-      }
-
-      push @topics, map { [$_, $base] } values %$topic;
-    }
-  }
-
-  # Need to register "id":"..." before resolving "$ref":"..."
-  $self->_resolve_ref(@$_) for @refs;
+  $id = Mojo::URL->new("$id");
+  $self->_register_root_schema($id => $schema) if !$nested and "$id";
+  $self->_store($id => $schema)                if "$id";
+  $self->_find_and_resolve_refs($id => $schema);
 
   return $schema;
 }
 
-sub _location_to_abs {
-  my ($location, $base) = @_;
-  my $location_as_url = Mojo::URL->new($location);
-  return $location_as_url if $location_as_url->is_abs;
-
-  # definitely relative now
-  if (is_type $base, 'Mojo::File') {
-    return $base if !length $location;
-    my $path = $base->sibling(split '/', $location)->realpath;
-    return CASE_TOLERANT ? lc($path) : $path;
-  }
-  return $location_as_url->to_abs($base);
-}
-
 sub _resolve_ref {
-  my ($self, $topic, $url) = @_;
-  return if tied %$topic;
+  my ($self, $ref_url, $base_url, $schema) = @_;
+  $ref_url = "#$ref_url" if $ref_url =~ m!^/!;
 
-  my $other = $topic;
-  my ($fqn, $ref, @guard);
+  my $fqn     = Mojo::URL->new($ref_url);
+  my $pointer = $fqn->fragment;
+  $fqn = $fqn->fragment(undef)->to_abs($base_url) if $base_url;
+  my $other = $fqn->is_abs && $fqn ne $base_url ? $self->_resolve($fqn, 1) : $self->_store($fqn) || $schema;
 
-  while (1) {
-    last if is_type $other, 'BOOL';
-    push @guard, ($ref = $other->{'$ref'});
-    confess "Seems like you have a circular reference: @guard" if @guard > RECURSION_LIMIT;
-    last                                                       if !$ref or ref $ref;
-    $fqn = $ref =~ m!^/! ? "#$ref" : $ref;
-    my ($location, $pointer) = split /#/, $fqn, 2;
-    $url     = $location = _location_to_abs($location, $url);
-    $pointer = undef if length $location and !length $pointer;
-    $pointer = url_unescape $pointer if defined $pointer;
-    $fqn     = join '#', grep defined, $location, $pointer;
-    $other   = $self->_resolve($location);
-
-    if (defined $pointer and length $pointer and $pointer =~ m!^/!) {
-      $other = Mojo::JSON::Pointer->new($other)->get($pointer);
-      confess qq[Possibly a typo in schema? Could not find "$pointer" in "$location" ($ref)] if not defined $other;
-    }
+  if (defined $pointer and $pointer =~ m!^/!) {
+    $other = Mojo::JSON::Pointer->new($other)->get($pointer);
+    confess qq[Possibly a typo in schema? Could not find "$pointer" in "$fqn" ($ref_url)] unless defined $other;
   }
 
-  tie %$topic, 'JSON::Validator::Ref', $other, $topic->{'$ref'}, $fqn;
+  $fqn->fragment($pointer);
+  return $other, $ref_url, $fqn;
 }
 
 # back compat
@@ -519,6 +493,13 @@ sub _schema_class {
   Mojo::Util::monkey_patch($package, $_ => $schema_class->can($_))
     for qw(bundle contains data errors get id new resolve specification validate);
   return $package;
+}
+
+sub _store {
+  my ($self, $id, $schema) = @_;
+  $id =~ s!(.)#$!$1!;
+  return $self->{schemas}{$id} unless defined $schema;
+  return $self->{schemas}{$id} = $schema;
 }
 
 sub _validate {

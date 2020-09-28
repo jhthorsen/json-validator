@@ -176,7 +176,7 @@ sub _schema_extract {
       return undef;
     }
 
-    $data = $tied->schema if ref $data eq 'HASH' and $tied = tied %$data;
+    $data = $tied->schema while ref $data eq 'HASH' and $tied = tied %$data;
   }
 
   return $cb->($data, $pos) if $cb;
