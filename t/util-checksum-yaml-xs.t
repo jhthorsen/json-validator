@@ -17,7 +17,6 @@ my $d_obj   = {foo => JSON::Validator::Error->new};
 my $d_array  = ['foo', 'bar'];
 my $d_array2 = ['bar', 'foo'];
 
-use_ok 'YAML::XS';
 ok !$INC{'Sereal/Encoder.pm'}, 'Sereal::Encoder was not loaded';
 
 isnt data_checksum($d_array), data_checksum($d_array2), 'data_checksum array';

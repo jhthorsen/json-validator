@@ -2,7 +2,6 @@ package JSON::Validator;
 use Mojo::Base -base;
 use Exporter 'import';
 
-use B;
 use Carp 'confess';
 use JSON::Validator::Formats;
 use JSON::Validator::Joi;
@@ -20,7 +19,6 @@ use Scalar::Util qw(blessed refaddr);
 use constant CASE_TOLERANT   => File::Spec->case_tolerant;
 use constant DEBUG           => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
-use constant YAML_SUPPORT    => eval 'use YAML::XS 0.67;1';
 
 our $VERSION   = '4.03';
 our @EXPORT_OK = qw(joi validate_json);
@@ -317,17 +315,9 @@ sub _load_schema {
 
 sub _load_schema_from_text {
   my ($self, $text) = @_;
-
-  # JSON
-  return Mojo::JSON::decode_json($$text) if $$text =~ /^\s*\{/s;
-
-  # YAML
-  die "[JSON::Validator] YAML::XS 0.67 is missing or could not be loaded."
-    unless YAML_SUPPORT;
-
-  no warnings 'once';
-  local $YAML::XS::Boolean = 'JSON::PP';
-  return YAML::XS::Load($$text);
+  return $$text =~ /^\s*\{/s
+    ? Mojo::JSON::decode_json($$text)
+    : JSON::Validator::Util::_yaml_load($$text);
 }
 
 sub _load_schema_from_url {
@@ -1141,8 +1131,7 @@ L<JSON::Validator::Joi> to define the schema programmatically.
 
 L<JSON::Validator> can load JSON schemas in multiple formats: Plain perl data
 structured (as shown in L</SYNOPSIS>), JSON or YAML. The JSON parsing is done
-with L<Mojo::JSON>, while YAML files require the optional module L<YAML::XS> to
-be installed.
+with L<Mojo::JSON>, while YAML files requires L<YAML::PP> or L<YAML::XS>.
 
 =head2 Resources
 

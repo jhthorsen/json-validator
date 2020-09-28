@@ -1,6 +1,7 @@
 package JSON::Validator::Util;
 use Mojo::Base -strict;
 
+use B;
 use Carp ();
 use Exporter 'import';
 use JSON::Validator::Error;
@@ -10,7 +11,6 @@ use Mojo::JSON;
 use Mojo::Loader;
 use Mojo::Util;
 use Scalar::Util 'blessed';
-use YAML::XS;
 
 use constant SEREAL_SUPPORT => !$ENV{JSON_VALIDATOR_NO_SEREAL}
   && eval 'use Sereal::Encoder 4.00;1';
@@ -20,7 +20,7 @@ our @EXPORT_OK
 
 sub E { JSON::Validator::Error->new(@_) }
 
-my $serializer = SEREAL_SUPPORT ? \&_sereal_encode : \&YAML::XS::Dump;
+my $serializer = SEREAL_SUPPORT ? \&_sereal_encode : \&_yaml_dump;
 
 sub data_checksum {
   return Mojo::Util::md5_sum(
@@ -205,6 +205,21 @@ sub _schema_extract {
 sub _sereal_encode {
   state $s = Sereal::Encoder->new({canonical => 1});
   return $s->encode($_[0]);
+}
+
+BEGIN {
+  if (eval 'use YAML::XS 0.67;1') {
+    *_yaml_dump
+      = sub { local $YAML::XS::Boolean = 'JSON::PP'; YAML::XS::Dump(@_) };
+    *_yaml_load
+      = sub { local $YAML::XS::Boolean = 'JSON::PP'; YAML::XS::Load(@_) };
+  }
+  else {
+    require YAML::PP;
+    my $pp = YAML::PP->new(boolean => 'JSON::PP');
+    *_yaml_dump = sub { $pp->dump_string(@_) };
+    *_yaml_load = sub { $pp->load_string(@_) };
+  }
 }
 
 1;

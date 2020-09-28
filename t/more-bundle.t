@@ -3,9 +3,6 @@ use JSON::Validator;
 use Test::Deep;
 use Test::More;
 
-plan skip_all => 'YAML::XS is not installed'
-  unless JSON::Validator->YAML_SUPPORT;
-
 # these are triples:
 # - schema name to extract from schema file(s) with bundle()
 # - expected result
