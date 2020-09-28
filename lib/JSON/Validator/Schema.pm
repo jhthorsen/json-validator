@@ -1,13 +1,13 @@
 package JSON::Validator::Schema;
-use Mojo::Base 'JSON::Validator';  # TODO: Change this to "use Mojo::Base -base"
+use Mojo::Base 'JSON::Validator';    # TODO: Change this to "use Mojo::Base -base"
 
 use Carp 'carp';
 use JSON::Validator::Util qw(E is_type);
 use Mojo::JSON::Pointer;
 
 has errors => sub {
-  my $self = shift;
-  my $url  = $self->specification || 'http://json-schema.org/draft-04/schema#';
+  my $self      = shift;
+  my $url       = $self->specification || 'http://json-schema.org/draft-04/schema#';
   my $validator = $self->new(%$self)->resolve($url);
 
   return [$validator->validate($self->resolve->data)];
@@ -32,8 +32,7 @@ has specification => sub {
 sub bundle {
   my $self   = shift;
   my $params = shift || {};
-  return $self->new(%$self)
-    ->data($self->SUPER::bundle({%$params, schema => $self}));
+  return $self->new(%$self)->data($self->SUPER::bundle({%$params, schema => $self}));
 }
 
 sub contains {
@@ -68,9 +67,9 @@ sub resolve {
 
 sub validate {
   my ($self, $data, $schema) = @_;
-  local $self->{schema}      = $self;  # back compat: set $jv->schema()
+  local $self->{schema}      = $self;    # back compat: set $jv->schema()
   local $self->{seen}        = {};
-  local $self->{temp_schema} = [];     # make sure random-errors.t does not fail
+  local $self->{temp_schema} = [];       # make sure random-errors.t does not fail
   return $self->_validate($_[1], '', $schema || $self->data);
 }
 

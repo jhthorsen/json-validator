@@ -23,8 +23,7 @@ sub SCALAR   {1}
 
 sub TIEHASH {
   my ($class, $schema, $ref, $fqn) = @_;
-  bless {'$ref' => $ref, "%%fqn" => $fqn // $ref, "%%schema" => $schema},
-    $class;
+  bless {'$ref' => $ref, "%%fqn" => $fqn // $ref, "%%schema" => $schema}, $class;
 }
 
 # jhthorsen: This cannot return schema() since it might cause circular references

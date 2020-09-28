@@ -15,12 +15,10 @@ require JSON::Validator;
 has enum                                   => sub { +[] };
 has [qw(format max min multiple_of regex)] => undef;
 has type                                   => 'object';
-has validator =>
-  sub { JSON::Validator->new->coerce('booleans,numbers,strings') };
+has validator                              => sub { JSON::Validator->new->coerce('booleans,numbers,strings') };
 
 for my $attr (qw(required strict unique)) {
-  Mojo::Util::monkey_patch(__PACKAGE__,
-    $attr => sub { $_[0]->{$attr} = $_[1] // 1; $_[0]; });
+  Mojo::Util::monkey_patch(__PACKAGE__, $attr => sub { $_[0]->{$attr} = $_[1] // 1; $_[0]; });
 }
 
 sub alphanum { shift->_type('string')->regex('^\w*$') }
@@ -44,8 +42,7 @@ sub email     { shift->_type('string')->format('email') }
 
 sub extend {
   my ($self, $by) = @_;
-  die "Cannot extend joi '@{[$self->type]}' by '@{[$by->type]}'"
-    unless $self->type eq $by->type;
+  die "Cannot extend joi '@{[$self->type]}' by '@{[$by->type]}'" unless $self->type eq $by->type;
 
   my $clone = shift->new(dclone($self));
 
@@ -58,10 +55,8 @@ sub extend {
     $clone->{items} = dclone($by->{items}) if $by->{items};
   }
   elsif ($self->type eq 'object') {
-    $clone->{required} = [uniq @{$clone->{required}}, @{$by->{required}}]
-      if ref $by->{required} eq 'ARRAY';
-    $clone->{properties}{$_} = dclone($by->{properties}{$_})
-      for keys %{$by->{properties} || {}};
+    $clone->{required} = [uniq @{$clone->{required}}, @{$by->{required}}] if ref $by->{required} eq 'ARRAY';
+    $clone->{properties}{$_} = dclone($by->{properties}{$_}) for keys %{$by->{properties} || {}};
   }
 
   return $clone;
@@ -125,7 +120,7 @@ sub _compile_number {
   my $self = shift;
   my $json = {type => $self->type};
 
-  $json->{enum} = $self->{enum} if defined $self->{enum} and @{$self->{enum}};
+  $json->{enum}       = $self->{enum}        if defined $self->{enum} and @{$self->{enum}};
   $json->{maximum}    = $self->{max}         if defined $self->{max};
   $json->{minimum}    = $self->{min}         if defined $self->{min};
   $json->{multipleOf} = $self->{multiple_of} if defined $self->{multiple_of};
@@ -137,13 +132,12 @@ sub _compile_object {
   my $self = shift;
   my $json = {type => $self->type};
 
-  $json->{additionalProperties} = false          if $self->{strict};
-  $json->{maxProperties}        = $self->{max}   if defined $self->{max};
-  $json->{minProperties}        = $self->{min}   if defined $self->{min};
-  $json->{patternProperties}    = $self->{regex} if $self->{regex};
-  $json->{properties}           = $self->{properties}
-    if ref $self->{properties} eq 'HASH';
-  $json->{required} = $self->{required} if ref $self->{required} eq 'ARRAY';
+  $json->{additionalProperties} = false               if $self->{strict};
+  $json->{maxProperties}        = $self->{max}        if defined $self->{max};
+  $json->{minProperties}        = $self->{min}        if defined $self->{min};
+  $json->{patternProperties}    = $self->{regex}      if $self->{regex};
+  $json->{properties}           = $self->{properties} if ref $self->{properties} eq 'HASH';
+  $json->{required}             = $self->{required}   if ref $self->{required} eq 'ARRAY';
 
   return $json;
 }
@@ -152,7 +146,7 @@ sub _compile_string {
   my $self = shift;
   my $json = {type => $self->type};
 
-  $json->{enum} = $self->{enum} if defined $self->{enum} and @{$self->{enum}};
+  $json->{enum}      = $self->{enum}   if defined $self->{enum} and @{$self->{enum}};
   $json->{format}    = $self->{format} if defined $self->{format};
   $json->{maxLength} = $self->{max}    if defined $self->{max};
   $json->{minLength} = $self->{min}    if defined $self->{min};

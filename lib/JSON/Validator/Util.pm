@@ -12,8 +12,7 @@ use Mojo::Loader;
 use Mojo::Util;
 use Scalar::Util 'blessed';
 
-use constant SEREAL_SUPPORT => !$ENV{JSON_VALIDATOR_NO_SEREAL}
-  && eval 'use Sereal::Encoder 4.00;1';
+use constant SEREAL_SUPPORT => !$ENV{JSON_VALIDATOR_NO_SEREAL} && eval 'use Sereal::Encoder 4.00;1';
 
 our @EXPORT_OK
   = qw(E data_checksum data_section data_type is_type schema_extract json_pointer prefix_errors schema_type);
@@ -23,14 +22,12 @@ sub E { JSON::Validator::Error->new(@_) }
 my $serializer = SEREAL_SUPPORT ? \&_sereal_encode : \&_yaml_dump;
 
 sub data_checksum {
-  return Mojo::Util::md5_sum(
-    ref $_[0] ? $serializer->($_[0]) : defined $_[0] ? qq('$_[0]') : 'undef');
+  return Mojo::Util::md5_sum(ref $_[0] ? $serializer->($_[0]) : defined $_[0] ? qq('$_[0]') : 'undef');
 }
 
 sub data_section {
   my ($class, $file, $params) = @_;
-  state $skip_re
-    = qr{(^JSON::Validator|^Mojo::Base$|^Mojolicious$|\w+::_Dynamic)};
+  state $skip_re = qr{(^JSON::Validator|^Mojo::Base$|^Mojolicious$|\w+::_Dynamic)};
 
   my @classes = $class ? ([$class]) : ();
   unless (@classes) {
@@ -41,12 +38,10 @@ sub data_section {
   }
 
   for my $group (@classes) {
-    push @$group,
-      grep { !/$skip_re/ } do { no strict 'refs'; @{"$group->[0]\::ISA"} };
+    push @$group, grep { !/$skip_re/ } do { no strict 'refs'; @{"$group->[0]\::ISA"} };
     for my $class (@$group) {
       next unless my $text = Mojo::Loader::data_section($class, $file);
-      return Mojo::Util::encode($params->{encoding}, $text)
-        if $params->{encoding};
+      return Mojo::Util::encode($params->{encoding}, $text) if $params->{encoding};
       return $text;
     }
   }
@@ -77,16 +72,12 @@ sub is_type {
   my $type = $_[1];
 
   if ($type eq 'BOOL') {
-    return blessed $_[0]
-      && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]);
+    return blessed $_[0] && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]);
   }
 
   # NUM
   if ($type eq 'NUM') {
-    return
-         B::svref_2object(\$_[0])->FLAGS & (B::SVp_IOK | B::SVp_NOK)
-      && 0 + $_[0] eq $_[0]
-      && $_[0] * 0 == 0;
+    return B::svref_2object(\$_[0])->FLAGS & (B::SVp_IOK | B::SVp_NOK) && 0 + $_[0] eq $_[0] && $_[0] * 0 == 0;
   }
 
   # Class or data type
@@ -116,7 +107,7 @@ sub prefix_errors {
     push @errors, map {
       my $msg = sprintf '/%s/%s %s', $type, $index, $_->message;
       $msg =~ s!(\d+)\s/!$1/!g;
-      E +{%$_, message => $msg};   # preserve 'details', for later introspection
+      E +{%$_, message => $msg};    # preserve 'details', for later introspection
     } @$e;
   }
 
@@ -132,21 +123,15 @@ sub schema_type {
   return _guessed_right(object => $_[1]) if $_[0]->{propertyNames};
   return _guessed_right(object => $_[1]) if $_[0]->{required};
   return _guessed_right(object => $_[1]) if $_[0]->{dependencies};
-  return _guessed_right(object => $_[1])
-    if defined $_[0]->{maxProperties}
-    or defined $_[0]->{minProperties};
+  return _guessed_right(object => $_[1]) if defined $_[0]->{maxProperties} or defined $_[0]->{minProperties};
 
- # additionalItems is intentionally omitted - it requires 'items' to take effect
-  return _guessed_right(array => $_[1]) if defined $_[0]->{items};
-  return _guessed_right(array => $_[1]) if $_[0]->{uniqueItems};
-  return _guessed_right(array => $_[1]) if defined $_[0]->{contains};
-  return _guessed_right(array => $_[1])
-    if defined $_[0]->{maxItems}
-    or defined $_[0]->{minItems};
+  # additionalItems is intentionally omitted - it requires 'items' to take effect
+  return _guessed_right(array  => $_[1]) if defined $_[0]->{items};
+  return _guessed_right(array  => $_[1]) if $_[0]->{uniqueItems};
+  return _guessed_right(array  => $_[1]) if defined $_[0]->{contains};
+  return _guessed_right(array  => $_[1]) if defined $_[0]->{maxItems} or defined $_[0]->{minItems};
   return _guessed_right(string => $_[1]) if $_[0]->{pattern};
-  return _guessed_right(string => $_[1])
-    if defined $_[0]->{maxLength}
-    or defined $_[0]->{minLength};
+  return _guessed_right(string => $_[1]) if defined $_[0]->{maxLength} or defined $_[0]->{minLength};
   return _guessed_right(number => $_[1]) if $_[0]->{multipleOf};
   return _guessed_right(number => $_[1])
     if defined $_[0]->{maximum}
@@ -172,13 +157,9 @@ sub _schema_extract {
 
     unless (defined $p) {
       my $i = 0;
-      return Mojo::Collection->new(
-        map {
-          _schema_extract($_->[0], [@$path], json_pointer($pos, $_->[1]), $cb)
-        } ref $data eq 'ARRAY' ? map { [$_, $i++] }
-          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] }
-          sort keys %$data : [$data, '']
-      );
+      return Mojo::Collection->new(map { _schema_extract($_->[0], [@$path], json_pointer($pos, $_->[1]), $cb) }
+          ref $data eq 'ARRAY' ? map { [$_, $i++] }
+          @$data : ref $data eq 'HASH' ? map { [$data->{$_}, $_] } sort keys %$data : [$data, '']);
     }
 
     $p =~ s!~1!/!g;
@@ -209,10 +190,8 @@ sub _sereal_encode {
 
 BEGIN {
   if (eval 'use YAML::XS 0.67;1') {
-    *_yaml_dump
-      = sub { local $YAML::XS::Boolean = 'JSON::PP'; YAML::XS::Dump(@_) };
-    *_yaml_load
-      = sub { local $YAML::XS::Boolean = 'JSON::PP'; YAML::XS::Load(@_) };
+    *_yaml_dump = sub { local $YAML::XS::Boolean = 'JSON::PP'; YAML::XS::Dump(@_) };
+    *_yaml_load = sub { local $YAML::XS::Boolean = 'JSON::PP'; YAML::XS::Load(@_) };
   }
   else {
     require YAML::PP;

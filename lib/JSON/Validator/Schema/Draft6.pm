@@ -12,18 +12,17 @@ has specification => 'http://json-schema.org/draft-06/schema#';
 
 sub _build_formats {
   return {
-    'date-time'    => JSON::Validator::Formats->can('check_date_time'),
-    'email'        => JSON::Validator::Formats->can('check_email'),
-    'hostname'     => JSON::Validator::Formats->can('check_hostname'),
-    'ipv4'         => JSON::Validator::Formats->can('check_ipv4'),
-    'ipv6'         => JSON::Validator::Formats->can('check_ipv6'),
-    'json-pointer' => JSON::Validator::Formats->can('check_json_pointer'),
-    'regex'        => JSON::Validator::Formats->can('check_regex'),
-    'relative-json-pointer' =>
-      JSON::Validator::Formats->can('check_relative_json_pointer'),
-    'uri'           => JSON::Validator::Formats->can('check_uri'),
-    'uri-reference' => JSON::Validator::Formats->can('check_uri_reference'),
-    'uri-template'  => JSON::Validator::Formats->can('check_uri_template'),
+    'date-time'             => JSON::Validator::Formats->can('check_date_time'),
+    'email'                 => JSON::Validator::Formats->can('check_email'),
+    'hostname'              => JSON::Validator::Formats->can('check_hostname'),
+    'ipv4'                  => JSON::Validator::Formats->can('check_ipv4'),
+    'ipv6'                  => JSON::Validator::Formats->can('check_ipv6'),
+    'json-pointer'          => JSON::Validator::Formats->can('check_json_pointer'),
+    'regex'                 => JSON::Validator::Formats->can('check_regex'),
+    'relative-json-pointer' => JSON::Validator::Formats->can('check_relative_json_pointer'),
+    'uri'                   => JSON::Validator::Formats->can('check_uri'),
+    'uri-reference'         => JSON::Validator::Formats->can('check_uri_reference'),
+    'uri-template'          => JSON::Validator::Formats->can('check_uri_template'),
   };
 }
 
@@ -33,12 +32,10 @@ sub _validate_number_max {
   my ($self, $value, $path, $schema, $expected) = @_;
 
   my $cmp_with = $schema->{maximum};
-  return E $path, [$expected => maximum => $value, $cmp_with]
-    if defined $cmp_with and $value > $cmp_with;
+  return E $path, [$expected => maximum => $value, $cmp_with] if defined $cmp_with and $value > $cmp_with;
 
   $cmp_with = $schema->{exclusiveMaximum};
-  return E $path, [$expected => ex_maximum => $value, $cmp_with]
-    if defined $cmp_with and $value >= $cmp_with;
+  return E $path, [$expected => ex_maximum => $value, $cmp_with] if defined $cmp_with and $value >= $cmp_with;
 
   return;
 }
@@ -47,12 +44,10 @@ sub _validate_number_min {
   my ($self, $value, $path, $schema, $expected) = @_;
 
   my $cmp_with = $schema->{minimum};
-  return E $path, [$expected => minimum => $value, $cmp_with]
-    if defined $cmp_with and $value < $cmp_with;
+  return E $path, [$expected => minimum => $value, $cmp_with] if defined $cmp_with and $value < $cmp_with;
 
   $cmp_with = $schema->{exclusiveMinimum};
-  return E $path, [$expected => ex_minimum => $value, $cmp_with]
-    if defined $cmp_with and $value <= $cmp_with;
+  return E $path, [$expected => ex_minimum => $value, $cmp_with] if defined $cmp_with and $value <= $cmp_with;
 
   return;
 }

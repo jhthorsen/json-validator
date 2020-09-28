@@ -7,9 +7,9 @@ require Time::Local;
 
 use constant DATA_VALIDATE_DOMAIN => eval 'require Data::Validate::Domain;1';
 use constant DATA_VALIDATE_IP     => eval 'require Data::Validate::IP;1';
-use constant IV_SIZE        => eval 'require Config;$Config::Config{ivsize}';
-use constant NET_IDN_ENCODE => eval 'require Net::IDN::Encode;1';
-use constant WARN_MISSING_MODULE => $ENV{JSON_VALIDATOR_WARN} // 1;
+use constant IV_SIZE              => eval 'require Config;$Config::Config{ivsize}';
+use constant NET_IDN_ENCODE       => eval 'require Net::IDN::Encode;1';
+use constant WARN_MISSING_MODULE  => $ENV{JSON_VALIDATOR_WARN} // 1;
 
 our $IRI_TEST_NAME = 'iri-reference';
 
@@ -31,8 +31,7 @@ sub check_date {
 }
 
 sub check_date_time {
-  my @dt = $_[0]
-    =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
+  my @dt = $_[0] =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
   return 'Does not match date-time format.' unless @dt;
   @dt = map { s/^0//; $_ } reverse @dt[0 .. 5];
   $dt[4] -= 1;    # month are zero based
@@ -61,20 +60,17 @@ sub check_duration {
     qr{^P(?:$date|$time|$week)$};
   };
 
-  return $_[0] =~ $rfc3339_duration_re
-    ? undef
-    : 'Does not match duration format.';
+  return $_[0] =~ $rfc3339_duration_re ? undef : 'Does not match duration format.';
 }
 
 sub check_email {
   state $email_rfc5322_re = do {
-    my $atom          = qr;[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+;o;
-    my $quoted_string = qr/"(?:\\[^\r\n]|[^\\"])*"/o;
-    my $domain_literal
-      = qr/\[(?:\\[\x01-\x09\x0B-\x0c\x0e-\x7f]|[\x21-\x5a\x5e-\x7e])*\]/o;
-    my $dot_atom   = qr/$atom(?:[.]$atom)*/o;
-    my $local_part = qr/(?:$dot_atom|$quoted_string)/o;
-    my $domain     = qr/(?:$dot_atom|$domain_literal)/o;
+    my $atom           = qr;[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+;o;
+    my $quoted_string  = qr/"(?:\\[^\r\n]|[^\\"])*"/o;
+    my $domain_literal = qr/\[(?:\\[\x01-\x09\x0B-\x0c\x0e-\x7f]|[\x21-\x5a\x5e-\x7e])*\]/o;
+    my $dot_atom       = qr/$atom(?:[.]$atom)*/o;
+    my $local_part     = qr/(?:$dot_atom|$quoted_string)/o;
+    my $domain         = qr/(?:$dot_atom|$domain_literal)/o;
 
     qr/$local_part\@$domain/o;
   };
@@ -85,15 +81,13 @@ sub check_email {
 sub check_float { _match_number(float => $_[0], '') }
 
 sub check_hostname {
-  return _module_missing(hostname => 'Data::Validate::Domain')
-    unless DATA_VALIDATE_DOMAIN;
+  return _module_missing(hostname => 'Data::Validate::Domain') unless DATA_VALIDATE_DOMAIN;
   return undef if Data::Validate::Domain::is_hostname($_[0]);
   return 'Does not match hostname format.';
 }
 
 sub check_idn_email {
-  return _module_missing('idn-email' => 'Net::IDN::Encode')
-    unless NET_IDN_ENCODE;
+  return _module_missing('idn-email' => 'Net::IDN::Encode') unless NET_IDN_ENCODE;
 
   local $@;
   my $err = eval {
@@ -109,8 +103,7 @@ sub check_idn_email {
 }
 
 sub check_idn_hostname {
-  return _module_missing('idn-hostname' => 'Net::IDN::Encode')
-    unless NET_IDN_ENCODE;
+  return _module_missing('idn-hostname' => 'Net::IDN::Encode') unless NET_IDN_ENCODE;
 
   local $@;
   my $err = eval { check_hostname(Net::IDN::Encode::domain_to_ascii($_[0])) };
@@ -128,24 +121,18 @@ sub check_iri {
 
 sub check_iri_reference {
   return "Does not match $IRI_TEST_NAME format."
-    unless $_[0]
-    =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
+    unless $_[0] =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
 
-  my ($scheme, $auth_host, $path, $query, $has_fragment, $fragment)
-    = map { $_ // '' } ($2, $4, $5, $7, $8, $9);
+  my ($scheme, $auth_host, $path, $query, $has_fragment, $fragment) = map { $_ // '' } ($2, $4, $5, $7, $8, $9);
 
   return 'Scheme missing.' if length $auth_host and !length $scheme;
-  return 'Scheme, path or fragment are required.'
-    unless length($scheme) + length($path) + length($has_fragment);
-  return 'Scheme must begin with a letter.'
-    if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
-  return 'Invalid hex escape.' if $_[0] =~ /%[^0-9a-f]/i;
-  return 'Hex escapes are not complete.'
-    if $_[0] =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
+  return 'Scheme, path or fragment are required.' unless length($scheme) + length($path) + length($has_fragment);
+  return 'Scheme must begin with a letter.' if length $scheme and lc($scheme) !~ m!^[a-z][a-z0-9\+\-\.]*$!;
+  return 'Invalid hex escape.'              if $_[0]                          =~ /%[^0-9a-f]/i;
+  return 'Hex escapes are not complete.'    if $_[0]                          =~ /%[0-9a-f](:?[^0-9a-f]|$)/i;
 
   if (defined $auth_host and length $auth_host) {
-    return 'Path cannot be empty and must begin with a /'
-      unless !length $path or $path =~ m!^/!;
+    return 'Path cannot be empty and must begin with a /' unless !length $path or $path =~ m!^/!;
   }
   elsif ($path =~ m!^//!) {
     return 'Path cannot not start with //.';
@@ -155,15 +142,13 @@ sub check_iri_reference {
 }
 
 sub check_json_pointer {
-  return !length $_[0]
-    || $_[0] =~ m!^/! ? undef : 'Does not match json-pointer format.';
+  return !length $_[0] || $_[0] =~ m!^/! ? undef : 'Does not match json-pointer format.';
 }
 
 sub check_ipv4 {
   return undef if DATA_VALIDATE_IP and Data::Validate::IP::is_ipv4($_[0]);
   my (@octets) = $_[0] =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  return undef
-    if 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ } @octets;
+  return undef if 4 == grep { $_ >= 0 && $_ <= 255 && $_ !~ /^0\d{1,2}$/ } @octets;
   return 'Does not match ipv4 format.';
 }
 
@@ -174,13 +159,10 @@ sub check_ipv6 {
 }
 
 sub check_relative_json_pointer {
-  return 'Relative JSON Pointer must start with a non-negative-integer.'
-    unless $_[0] =~ m!^\d+!;
-  return undef if $_[0] =~ m!^(\d+)#?$!;
-  return 'Relative JSON Pointer must have "#" or a JSON Pointer.'
-    unless $_[0] =~ m!^\d+(.+)!;
-  return 'Does not match relative-json-pointer format.'
-    if check_json_pointer($1);
+  return 'Relative JSON Pointer must start with a non-negative-integer.' unless $_[0] =~ m!^\d+!;
+  return undef if $_[0]                                                               =~ m!^(\d+)#?$!;
+  return 'Relative JSON Pointer must have "#" or a JSON Pointer.' unless $_[0]        =~ m!^\d+(.+)!;
+  return 'Does not match relative-json-pointer format.' if check_json_pointer($1);
   return undef;
 }
 
@@ -189,8 +171,7 @@ sub check_regex {
 }
 
 sub check_time {
-  my @time
-    = $_[0] =~ m!^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
+  my @time = $_[0] =~ m!^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d+):(\d+))?$!io;
   return 'Does not match time format.' unless @time;
   @time = map { s/^0//; $_ } reverse @time[0 .. 2];
   local $@;
@@ -202,8 +183,7 @@ sub check_time {
 }
 
 sub check_uri {
-  return 'An URI can only only contain ASCII characters.'
-    if $_[0] =~ m!\P{ASCII}!;
+  return 'An URI can only only contain ASCII characters.' if $_[0] =~ m!\P{ASCII}!;
   local $IRI_TEST_NAME = 'uri';
   return check_iri_reference($_[0]);
 }
@@ -228,17 +208,15 @@ sub check_uuid {
 
 sub _match_number {
   my ($name, $val, $format) = @_;
-  return 'Does not look like an integer'
-    if $name =~ m!^int! and $val !~ /^-?\d+(\.\d+)?$/;
+  return 'Does not look like an integer' if $name =~ m!^int! and $val !~ /^-?\d+(\.\d+)?$/;
   return 'Does not look like a number.' unless looks_like_number $val;
-  return undef unless $format;
+  return undef                          unless $format;
   return undef if $val eq unpack $format, pack $format, $val;
   return "Does not match $name format.";
 }
 
 sub _module_missing {
-  warn "[JSON::Validator] Cannot validate $_[0] format: $_[1] is missing"
-    if WARN_MISSING_MODULE;
+  warn "[JSON::Validator] Cannot validate $_[0] format: $_[1] is missing" if WARN_MISSING_MODULE;
   return undef;
 }
 

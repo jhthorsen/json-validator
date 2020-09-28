@@ -74,8 +74,7 @@ sub _validate_type_array_items {
       }
     }
     elsif (!$additional_items) {
-      push @errors, E $path,
-        [array => additionalItems => int(@$data), int(@rules)];
+      push @errors, E $path, [array => additionalItems => int(@$data), int(@rules)];
     }
   }
   elsif (exists $schema->{items}) {
@@ -92,12 +91,10 @@ sub _validate_type_array_min_max {
   my @errors;
 
   if (defined $schema->{minItems} and $schema->{minItems} > @$data) {
-    push @errors, E $path,
-      [array => minItems => int(@$data), $schema->{minItems}];
+    push @errors, E $path, [array => minItems => int(@$data), $schema->{minItems}];
   }
   if (defined $schema->{maxItems} and $schema->{maxItems} < @$data) {
-    push @errors, E $path,
-      [array => maxItems => int(@$data), $schema->{maxItems}];
+    push @errors, E $path, [array => maxItems => int(@$data), $schema->{maxItems}];
   }
 
   return @errors;
@@ -134,12 +131,10 @@ sub _validate_type_object_min_max {
   my @errors;
   my @dkeys = keys %$data;
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < @dkeys) {
-    push @errors, E $path,
-      [object => maxProperties => int(@dkeys), $schema->{maxProperties}];
+    push @errors, E $path, [object => maxProperties => int(@dkeys), $schema->{maxProperties}];
   }
   if (defined $schema->{minProperties} and $schema->{minProperties} > @dkeys) {
-    push @errors, E $path,
-      [object => minProperties => int(@dkeys), $schema->{minProperties}];
+    push @errors, E $path, [object => minProperties => int(@dkeys), $schema->{minProperties}];
   }
 
   return @errors;
@@ -158,8 +153,7 @@ sub _validate_type_object_dependencies {
         grep { !exists $data->{$_} } @{$dependencies->{$k}};
     }
     elsif (ref $dependencies->{$k} eq 'HASH') {
-      push @errors,
-        $self->_validate_type_object($data, $path, $schema->{dependencies}{$k});
+      push @errors, $self->_validate_type_object($data, $path, $schema->{dependencies}{$k});
     }
   }
 
@@ -174,11 +168,7 @@ sub _validate_type_object_properties {
   for my $k (keys %{$schema->{properties}}) {
     my $r = $schema->{properties}{$k};
     push @{$rules{$k}}, $r;
-    if (  $self->{coerce}{defaults}
-      and ref $r eq 'HASH'
-      and exists $r->{default}
-      and !exists $data->{$k})
-    {
+    if ($self->{coerce}{defaults} and ref $r eq 'HASH' and exists $r->{default} and !exists $data->{$k}) {
       $data->{$k} = $r->{default};
     }
   }
@@ -188,10 +178,7 @@ sub _validate_type_object_properties {
     push @{$rules{$_}}, $r for sort grep { $_ =~ /$p/ } @dkeys;
   }
 
-  my $additional
-    = exists $schema->{additionalProperties}
-    ? $schema->{additionalProperties}
-    : {};
+  my $additional = exists $schema->{additionalProperties} ? $schema->{additionalProperties} : {};
   if ($additional) {
     $additional = {} unless is_type $additional, 'HASH';
     $rules{$_} ||= [$additional] for @dkeys;
@@ -214,12 +201,8 @@ sub _validate_type_object_properties {
       my @e = $self->_validate($data->{$k}, json_pointer($path, $k), $r);
       push @errors, @e;
       next if @e or !is_type $r, 'HASH';
-      push @errors,
-        $self->_validate_type_enum($data->{$k}, json_pointer($path, $k), $r)
-        if $r->{enum};
-      push @errors,
-        $self->_validate_type_const($data->{$k}, json_pointer($path, $k), $r)
-        if $r->{const};
+      push @errors, $self->_validate_type_enum($data->{$k}, json_pointer($path, $k), $r)  if $r->{enum};
+      push @errors, $self->_validate_type_const($data->{$k}, json_pointer($path, $k), $r) if $r->{const};
     }
   }
 
