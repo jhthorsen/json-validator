@@ -36,7 +36,6 @@ is $schema->get('/definitions/C/definitions/X/id'), 'urn:uuid:ee564b8a-7a87-4125
 is $schema->get('/definitions/C/definitions/Y/id'), '#cy', 'id /definitions/C/definitions/Y/id';
 
 my $ref = $schema->get('/definitions/R1');
-ok $ref->{$_}, "got $_" for qw($ref %%fqn %%schema);
 is encode_json($ref), '{"$ref":"b.json#bx"}', 'ref encode_json';
 $ref = tied %$ref;
 is $ref->ref, 'b.json#bx',                    'ref ref';

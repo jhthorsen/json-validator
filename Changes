@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+4.06 Not Released
+ - Changed internals of JSON::Validator::Ref
+
 4.05 2020-10-06T06:29:31+0900
  - Errors are now reported in a predictable order #223
    Contributor: David Cantrell

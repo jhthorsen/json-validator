@@ -4,18 +4,21 @@ use Mojo::Base -strict;
 use Tie::Hash ();
 use base 'Tie::StdHash';
 
-sub fqn    { $_[0]->{'%%fqn'} }
-sub ref    { $_[0]->{'$ref'} }
-sub schema { $_[0]->{"%%schema"} }
+sub fqn    { $_[0][2] }
+sub ref    { $_[0][1] }
+sub schema { $_[0][0] }
 
-# Make it look like there is only one key in the hash
 sub EXISTS {
-  exists $_[0]->{$_[1]} || exists $_[0]->{"%%schema"}{$_[1]};
+  my ($self, $k) = @_;
+  return $k eq '$ref' || (CORE::ref($self->[0]) eq 'HASH' && exists $self->[0]{$k});
 }
 
 sub FETCH {
-  exists $_[0]->{$_[1]} ? $_[0]->{$_[1]} : $_[0]->{"%%schema"}{$_[1]};
+  my ($self, $k) = @_;
+  return $k eq '$ref' ? $self->[1] : (CORE::ref($self->[0]) eq 'HASH' ? $self->[0]{$k} : undef);
 }
+
+# Make it look like there is only one key in the hash
 sub FIRSTKEY {'$ref'}
 sub KEYS     {'$ref'}
 sub NEXTKEY  {undef}
@@ -23,11 +26,11 @@ sub SCALAR   {1}
 
 sub TIEHASH {
   my ($class, $schema, $ref, $fqn) = @_;
-  bless {'$ref' => $ref, "%%fqn" => $fqn // $ref, "%%schema" => $schema}, $class;
+  return bless [$schema, $ref, $fqn // $ref], $class;
 }
 
-# jhthorsen: This cannot return schema() since it might cause circular references
-sub TO_JSON { {'$ref' => $_[0]->ref} }
+# This cannot return schema() since it might cause circular references
+sub TO_JSON { {'$ref' => $_[0][1]} }
 
 1;
 
