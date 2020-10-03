@@ -186,8 +186,8 @@ sub validate {
   local $self->{schema}      = $self->_new_schema($schema);
   local $self->{seen}        = {};
   local $self->{temp_schema} = [];                            # make sure random-errors.t does not fail
-  my @errors = $self->_validate($_[1], '', $schema);
-  return sort { $a->path() cmp $b->path() } @errors;
+  my @errors = sort { $a->path cmp $b->path } $self->_validate($_[1], '', $schema);
+  return @errors;
 }
 
 sub validate_json {

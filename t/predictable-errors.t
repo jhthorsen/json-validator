@@ -5,7 +5,7 @@ use JSON::Validator;
 use Math::Permute::List;
 use Test::More;
 
-my $jv = JSON::Validator->new();
+my $jv = JSON::Validator->new;
 my $num_errors;
 permute {
     $jv->schema(my $schema_text = join('',
@@ -20,7 +20,7 @@ permute {
         dog => 'good boy'
     });
     is_deeply(
-        [map { $_->path() } @errors],
+        [map { $_->path } @errors],
         [qw(/ant /bat /cat /dog)],
         "got errors in expected order with schema: $schema_text"
     );
@@ -40,4 +40,4 @@ permute {
     '"dog": { "type": "integer" }',
 );
 
-done_testing();
+done_testing;
