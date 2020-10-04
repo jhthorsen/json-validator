@@ -18,4 +18,7 @@ plan skip_all => $@ if $@ =~ /\sGET\s/i;
 is $@, '', 'loaded schema from app';
 is $jv->get('/properties/swagger/enum/0'), '2.0', 'loaded schema structure';
 
+is_deeply [sort keys %{$jv->{schemas}}],
+  ['/spec', 'http://json-schema.org/draft-04/schema', 'http://swagger.io/v2/schema.json'], 'schemas in store';
+
 done_testing;

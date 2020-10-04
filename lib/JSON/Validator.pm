@@ -306,6 +306,9 @@ sub _id_key { ($_[0]->{version} || 4) < 7 ? 'id' : '$id' }
 sub _load_schema {
   my ($self, $url) = @_;
 
+  my $cached;
+  return $cached, $url if $cached = $self->_store($url);
+
   if ($url =~ m!^https?://!) {
     warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
     return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)), "$url";
@@ -329,8 +332,9 @@ sub _load_schema {
   if (-e $file) {
     $file = $file->realpath;
     warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
-    my $id = Mojo::URL->new->scheme('file')->host('')->path(CASE_TOLERANT ? lc $file : "$file");
-    return $self->_load_schema_from_text(\$file->slurp), $id;
+    $url = Mojo::URL->new->scheme('file')->host('')->path(CASE_TOLERANT ? lc $file : "$file");
+    return $cached, $url if $cached = $self->_store($url);
+    return $self->_load_schema_from_text(\$file->slurp), $url;
   }
   elsif ($url =~ m!^/! and $self->ua->server->app) {
     warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
@@ -387,6 +391,7 @@ sub _new_schema {
 
   $attrs{formats} ||= $self->{formats} if $self->{formats};
   $attrs{version} ||= $self->{version} if $self->{version};
+  $attrs{schemas} ||= $self->{schemas} ||= {};
   $attrs{$_} = $self->$_ for qw(cache_paths ua);
 
   my $schema_obj = $self->_schema_class($attrs{specification} || $schema)->new($schema, %attrs);
@@ -429,30 +434,28 @@ sub _register_root_schema {
 # _resolve() method is used to convert all "id" into absolute URLs and
 # resolve all the $ref's that we find inside JSON Schema specification.
 sub _resolve {
-  my ($self,   $schema, $nested)   = @_;
-  my ($id_key, $id,     $resolved) = ($self->_id_key);
+  my ($self, $schema, $nested) = @_;
+  return $schema if is_type $schema, 'BOOL';
 
+  my ($id_key, $id, $resolved) = ($self->_id_key);
   if (ref $schema eq 'HASH') {
-    $id = $schema->{$id_key} // '';
-    return $resolved if $resolved = $self->_store($id);
-  }
-  elsif (is_type $schema, 'BOOL') {
-    return $schema;
-  }
-  elsif ($resolved = $self->_store($schema // '')) {
-    return $resolved;
+    $id       = $schema->{$id_key} // '';
+    $resolved = $self->_store($id) // $schema;
   }
   else {
-    ($schema, $id) = $self->_load_schema($schema);
-    $id = $schema->{$id_key} if $schema->{$id_key};
+    ($resolved, $id) = $self->_load_schema($schema);
+    $id = $resolved->{$id_key} if is_type($resolved, 'HASH') and $resolved->{$id_key};
   }
 
   $id = Mojo::URL->new("$id");
-  $self->_register_root_schema($id => $schema) if !$nested and "$id";
-  $self->_store($id => $schema)                if "$id";
-  $self->_find_and_resolve_refs($id => $schema);
+  $self->_register_root_schema($id => $resolved) if !$nested and "$id";
 
-  return $schema;
+  unless ($self->_store($id)) {
+    $self->_store($id => $resolved) if "$id";
+    $self->_find_and_resolve_refs($id => $resolved);
+  }
+
+  return $resolved;
 }
 
 sub _resolve_ref {
@@ -469,7 +472,7 @@ sub _resolve_ref {
     confess qq[Possibly a typo in schema? Could not find "$pointer" in "$fqn" ($ref_url)] unless defined $other;
   }
 
-  $fqn->fragment($pointer);
+  $fqn->fragment($pointer // '');
   return $other, $ref_url, $fqn;
 }
 

@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 4.06 Not Released
+ - Fix caching of schemas across objects #212
  - Changed internals of JSON::Validator::Ref
 
 4.05 2020-10-06T06:29:31+0900
