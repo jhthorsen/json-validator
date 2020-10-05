@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+4.05 2020-10-06T06:29:31+0900
+ - Errors are now reported in a predictable order #223
+   Contributor: David Cantrell
+
 4.04 2020-09-28T10:01:58+0900
  - Add "validator" as attribute to JSON::Validator::Joi
  - Changed YAML::XS to an optional module #205
