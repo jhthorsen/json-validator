@@ -564,8 +564,8 @@ sub _validate {
     push @errors, $self->_validate_one_of($to_json ? $$to_json : $_[1], $path, $rules);
   }
 
-  if ($schema->{if}) {
-    my $rules = $self->_validate($data, $path, $schema->{if}) ? $schema->{else} : $schema->{then};
+  if (exists $schema->{if}) {
+    my $rules = !$schema->{if} || $self->_validate($data, $path, $schema->{if}) ? $schema->{else} : $schema->{then};
     push @errors, $self->_validate($data, $path, $rules // {});
   }
 
