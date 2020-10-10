@@ -61,15 +61,15 @@ sub _validate_type_array_items {
   my @errors;
 
   if (ref $schema->{items} eq 'ARRAY') {
-    my $additional_items = $schema->{additionalItems} // {type => 'any'};
+    my $additional_items = $schema->{additionalItems} // {};
     my @rules            = @{$schema->{items}};
 
     if ($additional_items) {
       push @rules, $additional_items while @rules < @$data;
     }
 
-    if (@rules == @$data) {
-      for my $i (0 .. @rules - 1) {
+    if (@rules >= @$data) {
+      for my $i (0 .. @$data - 1) {
         push @errors, $self->_validate($data->[$i], "$path/$i", $rules[$i]);
       }
     }

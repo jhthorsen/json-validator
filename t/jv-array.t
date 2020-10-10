@@ -24,7 +24,7 @@ validate_ok [1, 2, 3], $length, E('/', 'Too many items: 3/2.');
 validate_ok [123, 124], $unique;
 validate_ok [1, 2, 1], $unique, E('/', 'Unique items required.');
 validate_ok [1600, 'Pennsylvania', 'Avenue', 'NW'], $tuple;
-validate_ok [24, 'Sussex',  'Drive'],  $tuple;
+validate_ok [24, 'Sussex', 'Drive'], $tuple, E('/2', 'Not in enum list: Street, Avenue, Boulevard.');
 validate_ok [10, 'Downing', 'Street'], $tuple;
 validate_ok [1600, 'Pennsylvania', 'Avenue', 'NW', 'Washington'], $tuple;
 
