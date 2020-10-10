@@ -152,8 +152,8 @@ sub _validate_type_object_dependencies {
         map { E json_pointer($path, $_), [object => dependencies => $k] }
         grep { !exists $data->{$_} } @{$dependencies->{$k}};
     }
-    elsif (ref $dependencies->{$k} eq 'HASH') {
-      push @errors, $self->_validate_type_object($data, $path, $schema->{dependencies}{$k});
+    else {
+      push @errors, $self->_validate($data, $path, $dependencies->{$k});
     }
   }
 
