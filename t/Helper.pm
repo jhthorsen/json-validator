@@ -21,6 +21,7 @@ sub acceptance {
     if $acceptance_params{todo_tests};
 
   my $specification = $schema_class =~ m!::(\w+)$! ? lc $1 : 'unknown';
+  $specification = 'draft2019-09' if $specification eq 'draft201909';
   Test::JSON::Schema::Acceptance->new(specification => $specification)->acceptance(
     %acceptance_params,
     validate_data => sub {
