@@ -513,66 +513,53 @@ sub _store {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-
   $schema = $self->_ref_to_schema($schema) if ref $schema eq 'HASH' and $schema->{'$ref'};
   return $schema ? () : E $path, [not => 'not'] if is_type $schema, 'BOOL';
 
   my @errors;
-
   if ($self->recursive_data_protection) {
     my $seen_addr = join ':', refaddr($schema), (ref $data ? refaddr $data : ++$self->{seen}{scalar});
-
-    # Avoid recursion
-    return @{$self->{seen}{$seen_addr}} if $self->{seen}{$seen_addr};
-
+    return @{$self->{seen}{$seen_addr}} if $self->{seen}{$seen_addr};    # Avoid recursion
     $self->{seen}{$seen_addr} = \@errors;
   }
 
-  my $to_json = (blessed $data and $data->can('TO_JSON')) ? \$data->TO_JSON : undef;
-  $data = $$to_json if $to_json;
-  my $type = $schema->{type} || schema_type $schema, $data;
+  local $_[1] = $data->TO_JSON if blessed $data and $data->can('TO_JSON');
 
-  # Test base schema before allOf, anyOf or oneOf
+  if (my $rules = $schema->{not}) {
+    my @e = $self->_validate($_[1], $path, $rules);
+    push @errors, E $path, [not => 'not'] unless @e;
+  }
+  if (my $rules = $schema->{allOf}) {
+    push @errors, $self->_validate_all_of($_[1], $path, $rules);
+  }
+  if (my $rules = $schema->{anyOf}) {
+    push @errors, $self->_validate_any_of($_[1], $path, $rules);
+  }
+  if (my $rules = $schema->{oneOf}) {
+    push @errors, $self->_validate_one_of($_[1], $path, $rules);
+  }
+  if (exists $schema->{if}) {
+    my $rules = !$schema->{if} || $self->_validate($_[1], $path, $schema->{if}) ? $schema->{else} : $schema->{then};
+    push @errors, $self->_validate($_[1], $path, $rules // {});
+  }
+
+  my $type = $schema->{type} || schema_type $schema, $_[1];
   if (ref $type eq 'ARRAY') {
     push @{$self->{temp_schema}}, [map { +{%$schema, type => $_} } @$type];
-    return $self->_validate_any_of_types($to_json ? $$to_json : $_[1], $path, $self->{temp_schema}[-1]);
+    push @errors, $self->_validate_any_of_types($_[1], $path, $self->{temp_schema}[-1]);
   }
   elsif ($type) {
     my $method = sprintf '_validate_type_%s', $type;
-    @errors = $self->$method($to_json ? $$to_json : $_[1], $path, $schema);
-    return @errors if @errors;
+    push @errors, $self->$method($_[1], $path, $schema);
   }
+
+  return @errors if @errors;
 
   if (exists $schema->{const}) {
-    push @errors, $self->_validate_type_const($to_json ? $$to_json : $_[1], $path, $schema);
-    return @errors if @errors;
+    push @errors, $self->_validate_type_const($_[1], $path, $schema);
   }
-
   if ($schema->{enum}) {
-    push @errors, $self->_validate_type_enum($to_json ? $$to_json : $_[1], $path, $schema);
-    return @errors if @errors;
-  }
-
-  if (my $rules = $schema->{not}) {
-    my @e = $self->_validate($to_json ? $$to_json : $_[1], $path, $rules);
-    push @errors, E $path, [not => 'not'] unless @e;
-  }
-
-  if (my $rules = $schema->{allOf}) {
-    push @errors, $self->_validate_all_of($to_json ? $$to_json : $_[1], $path, $rules);
-  }
-
-  if (my $rules = $schema->{anyOf}) {
-    push @errors, $self->_validate_any_of($to_json ? $$to_json : $_[1], $path, $rules);
-  }
-
-  if (my $rules = $schema->{oneOf}) {
-    push @errors, $self->_validate_one_of($to_json ? $$to_json : $_[1], $path, $rules);
-  }
-
-  if (exists $schema->{if}) {
-    my $rules = !$schema->{if} || $self->_validate($data, $path, $schema->{if}) ? $schema->{else} : $schema->{then};
-    push @errors, $self->_validate($data, $path, $rules // {});
+    push @errors, $self->_validate_type_enum($_[1], $path, $schema);
   }
 
   return @errors;
