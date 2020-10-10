@@ -464,8 +464,13 @@ sub _resolve_ref {
 
   my $fqn     = Mojo::URL->new($ref_url);
   my $pointer = $fqn->fragment;
-  $fqn = $fqn->fragment(undef)->to_abs($base_url) if $base_url;
-  my $other = $fqn->is_abs && $fqn ne $base_url ? $self->_resolve($fqn, 1) : $self->_store($fqn) || $schema;
+  my $other;
+
+  $fqn = $fqn->fragment(undef)->to_abs($base_url) if "$base_url";
+  $other //= $self->_resolve($fqn, 1) if $fqn->is_abs && $fqn ne $base_url;
+  $other //= $self->_store($fqn->clone->fragment(undef));
+  $other //= $self->_store($fqn);
+  $other //= $schema;
 
   if (defined $pointer and $pointer =~ m!^/!) {
     $other = Mojo::JSON::Pointer->new($other)->get($pointer);
