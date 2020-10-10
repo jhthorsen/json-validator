@@ -31,7 +31,6 @@ sub dependencies {
 }
 
 sub dependent_required {
-  local $TODO = 'https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.6.5.4';
   my $schema = {
     dependentRequired => {credit_card => ['billing_address']},
     properties =>
@@ -43,8 +42,6 @@ sub dependent_required {
 }
 
 sub dependent_schemas {
-  local $TODO = 'https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.2.4';
-
   my $schema = {
     dependentSchemas => {credit_card => ['billing_address']},
     properties =>

@@ -122,7 +122,10 @@ sub schema_type {
   return _guessed_right(object => $_[1]) if $_[0]->{properties};
   return _guessed_right(object => $_[1]) if exists $_[0]->{propertyNames};
   return _guessed_right(object => $_[1]) if $_[0]->{required};
-  return _guessed_right(object => $_[1]) if $_[0]->{dependencies};
+  return _guessed_right(object => $_[1])
+    if $_[0]->{dependencies}
+    or $_[0]->{dependentSchemas}
+    or $_[0]->{dependentRequired};
   return _guessed_right(object => $_[1]) if defined $_[0]->{maxProperties} or defined $_[0]->{minProperties};
 
   # additionalItems is intentionally omitted - it requires 'items' to take effect

@@ -1,8 +1,6 @@
 package JSON::Validator::Schema::Draft7;
 use Mojo::Base 'JSON::Validator::Schema::Draft6';
 
-use JSON::Validator::Util 'E';
-
 has specification => 'http://json-schema.org/draft-07/schema#';
 
 sub _build_formats {

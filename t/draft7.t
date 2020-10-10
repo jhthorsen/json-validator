@@ -9,7 +9,6 @@ t::Helper->test(array  => qw(basic items additional_items contains min_max));
 t::Helper->test(array  => qw(unique unevaluated_items));
 t::Helper->test(object => qw(basic properties));
 t::Helper->test(object => qw(additional_properties pattern_properties min_max names));
-t::Helper->test(object => qw(dependent_required dependent_schemas unevaluated_properties));
 
 note 'exclusiveMaximum';
 schema_validate_ok 2.4, {exclusiveMaximum => 2.4}, E('/', '2.4 >= maximum(2.4)');
