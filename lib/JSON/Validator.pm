@@ -61,7 +61,7 @@ sub bundle {
 
   my $schema    = $self->_new_schema($args->{schema} || $self->schema);
   my $schema_id = $schema->id || ($self->schema ? $self->schema->id : '');
-  my @topics    = ([$schema->data, my $bundle = {}, '']);                    # ([$from, $to], ...);
+  my @topics    = ([$schema->data, my $bundle = {}]);                        # ([$from, $to], ...);
 
   if ($args->{replace}) {
     $cloner = sub {
@@ -156,7 +156,8 @@ sub load_and_validate_schema {
   $self->{version} = $1 if !$self->{version} and ($args->{schema} || 'draft-04') =~ m!draft-0+(\w+)!;
 
   my $schema_obj = $self->_new_schema($schema, %$args);
-  confess join "\n", "Invalid JSON specification $schema", map {"- $_"} @{$schema_obj->errors}
+  confess join "\n", "Invalid JSON specification", (ref $schema eq 'HASH' ? Mojo::Util::dumper($schema) : $schema),
+    map {"- $_"} @{$schema_obj->errors}
     if @{$schema_obj->errors};
 
   $self->{schema} = $schema_obj;
@@ -499,7 +500,7 @@ sub _schema_class {
 
   die "package $package: $@" unless eval "package $package; use Mojo::Base '$jv_class'; 1";
   Mojo::Util::monkey_patch($package, $_ => $schema_class->can($_))
-    for qw(bundle contains data errors get id new resolve specification validate);
+    for qw(_register_root_schema bundle contains data errors get id new resolve specification validate);
   return $package;
 }
 
