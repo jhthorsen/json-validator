@@ -165,7 +165,7 @@ sub _validate_type_object_properties {
   my @dkeys = sort keys %$data;
   my (@errors, %rules);
 
-  for my $k (keys %{$schema->{properties}}) {
+  for my $k (keys %{$schema->{properties} || {}}) {
     my $r = $schema->{properties}{$k};
     push @{$rules{$k}}, $r;
     if ($self->{coerce}{defaults} and ref $r eq 'HASH' and exists $r->{default} and !exists $data->{$k}) {
