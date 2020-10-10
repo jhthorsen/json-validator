@@ -1,36 +1,49 @@
 package JSON::Validator::Ref;
 use Mojo::Base -strict;
-
 use Tie::Hash ();
 use base 'Tie::StdHash';
 
-sub fqn    { $_[0][2] }
-sub ref    { $_[0][1] }
-sub schema { $_[0][0] }
+sub fqn { $_[0][2] }
+sub ref { $_[0][0]{'$ref'} }
+
+sub schema {
+  my $self = shift;
+  my @keys = grep { $_ ne '$ref' } keys %{$self->[0]};
+  return $self->[1] if !@keys or CORE::ref($self->[1]) ne 'HASH';
+
+  # Return merged schema
+  my $schema = $self->[1];
+  while (my $tied = tied %$schema) { $schema = $tied->schema }
+  my %schema = %$schema;
+  $schema{$_} = $self->[0]{$_} for @keys;
+  return \%schema;
+}
 
 sub EXISTS {
   my ($self, $k) = @_;
-  return $k eq '$ref' || (CORE::ref($self->[0]) eq 'HASH' && exists $self->[0]{$k});
+  return exists $self->[0]{$k} || (CORE::ref($self->[1]) eq 'HASH' && exists $self->[1]{$k});
 }
 
 sub FETCH {
   my ($self, $k) = @_;
-  return $k eq '$ref' ? $self->[1] : (CORE::ref($self->[0]) eq 'HASH' ? $self->[0]{$k} : undef);
+  return $self->[0]{$k} if exists $self->[0]{$k};
+  return $self->[1]{$k} if CORE::ref($self->[1]) eq 'HASH';
+  return undef;
 }
 
 # Make it look like there is only one key in the hash
-sub FIRSTKEY {'$ref'}
-sub KEYS     {'$ref'}
-sub NEXTKEY  {undef}
-sub SCALAR   {1}
+sub FIRSTKEY { scalar keys %{$_[0][0]}; each %{$_[0][0]} }
+sub NEXTKEY  { each %{$_[0][0]} }
+sub SCALAR   { scalar %{$_[0][0]} }
 
 sub TIEHASH {
   my ($class, $schema, $ref, $fqn) = @_;
-  return bless [$schema, $ref, $fqn // $ref], $class;
+  $ref = CORE::ref($ref) eq 'HASH' ? {%$ref} : {'$ref' => $ref};
+  return bless [$ref, $schema, $fqn // $ref->{'$ref'}], $class;
 }
 
 # This cannot return schema() since it might cause circular references
-sub TO_JSON { {'$ref' => $_[0][1]} }
+sub TO_JSON { $_[0][0] }
 
 1;
 
