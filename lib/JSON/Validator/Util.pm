@@ -126,12 +126,12 @@ sub schema_type {
   return _guessed_right(object => $_[1]) if defined $_[0]->{maxProperties} or defined $_[0]->{minProperties};
 
   # additionalItems is intentionally omitted - it requires 'items' to take effect
-  return _guessed_right(array  => $_[1]) if defined $_[0]->{items};
+  return _guessed_right(array  => $_[1]) if exists $_[0]->{items};
   return _guessed_right(array  => $_[1]) if $_[0]->{uniqueItems};
-  return _guessed_right(array  => $_[1]) if defined $_[0]->{contains};
-  return _guessed_right(array  => $_[1]) if defined $_[0]->{maxItems} or defined $_[0]->{minItems};
+  return _guessed_right(array  => $_[1]) if exists $_[0]->{contains};
+  return _guessed_right(array  => $_[1]) if exists $_[0]->{maxItems} or exists $_[0]->{minItems};
   return _guessed_right(string => $_[1]) if $_[0]->{pattern};
-  return _guessed_right(string => $_[1]) if defined $_[0]->{maxLength} or defined $_[0]->{minLength};
+  return _guessed_right(string => $_[1]) if exists $_[0]->{maxLength} or defined $_[0]->{minLength};
   return _guessed_right(number => $_[1]) if $_[0]->{multipleOf};
   return _guessed_right(number => $_[1])
     if defined $_[0]->{maximum}

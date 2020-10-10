@@ -66,7 +66,7 @@ sub _validate_type_array {
 
 sub _validate_type_array_contains {
   my ($self, $data, $path, $schema) = @_;
-  return unless $schema->{contains};
+  return unless exists $schema->{contains};
 
   my (@e, @errors);
   for my $i (0 .. @$data - 1) {
