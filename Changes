@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-4.06 Not Released
+4.06 2020-10-10T16:21:51+0900
  - Fix caching of schemas across objects #204 #212
    Contributor: Karen Etheridge
  - Fix "contains" can also be boolean "false"
