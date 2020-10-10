@@ -935,6 +935,9 @@ sub _validate_type_string {
   my ($self, $value, $path, $schema) = @_;
   my @errors;
 
+  if (!$schema->{type} and !defined $value) {
+    return;
+  }
   if (!defined $value or ref $value) {
     return E $path, [string => type => data_type $value];
   }
