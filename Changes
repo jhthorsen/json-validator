@@ -1,7 +1,17 @@
 Revision history for perl distribution JSON-Validator
 
 4.06 Not Released
- - Fix caching of schemas across objects #212
+ - Fix caching of schemas across objects #204 #212
+   Contributor: Karen Etheridge
+ - Fix "contains" can also be boolean "false"
+ - Fix "dependencies" can have boolean subschemas
+ - Fix "if" can be false
+ - Fix "null" is valid if "pattern" is defined, but no "type"
+ - Fix "propertyNames" can be false
+ - Fix JSON::Validator::Ref can hold a boolean schema
+ - Fix not adding "properties" to the input schema
+ - Fix resolving "$ref":"#id"
+ - Fix validating data when "additionalItems" is false, but there are enough rules
  - Changed internals of JSON::Validator::Ref
 
 4.05 2020-10-06T06:29:31+0900
