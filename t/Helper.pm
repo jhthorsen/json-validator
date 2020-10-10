@@ -12,17 +12,18 @@ sub acceptance {
   my ($class, $schema_class, %acceptance_params) = @_;
 
   Test::More::plan(skip_all => 'cpanm Test::JSON::Schema::Acceptance')
-    unless eval 'use Test::JSON::Schema::Acceptance 1.000;1';
-  Test::More::plan(skip_all => 'cpanm Test2::Tools::Compare') unless eval 'use Test2::Tools::Compare 0.0001;1';
+    unless eval 'use Test::JSON::Schema::Acceptance 1.000 ();1';
+  Test::More::plan(skip_all => 'cpanm Test2::Tools::Compare') unless eval 'use Test2::Tools::Compare 0.0001 ();1';
   Test::More::plan(skip_all => $@)                            unless eval "require $schema_class;1";
 
-  $acceptance_params{todo_tests}
-    = [map { +{file => $_->[0], group_description => $_->[1], test_description => $_->[2]}; }
-      @{$acceptance_params{todo_tests}}]
+  my $test = sub { +{file => $_[0], group_description => $_[1], test_description => $_[2]} };
+
+  $acceptance_params{todo_tests} = [map { $test->(@$_) } @{$acceptance_params{todo_tests}}]
     if $acceptance_params{todo_tests};
 
   my $specification = $schema_class =~ m!::(\w+)$! ? lc $1 : 'unknown';
   Test::JSON::Schema::Acceptance->new(specification => $specification)->acceptance(
+    tests => $test->(split '/', $ENV{TEST_ACCEPTANCE} || ''),
     %acceptance_params,
     validate_data => sub {
       my ($schema_p, $data_p) = map { Mojo::JSON::Pointer->new(shift @_) } qw(schema data);
