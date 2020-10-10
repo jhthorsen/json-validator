@@ -93,11 +93,11 @@ sub _validate_type_object {
 
 sub _validate_type_object_names {
   my ($self, $data, $path, $schema) = @_;
-  return unless my $names = $schema->{propertyNames};
+  return unless exists $schema->{propertyNames};
 
   my @errors;
   for my $name (keys %$data) {
-    next unless my @e = $self->_validate($name, $path, $names);
+    next unless my @e = $self->_validate($name, $path, $schema->{propertyNames});
     push @errors, prefix_errors propertyName => map [$name, $_], @e;
   }
 

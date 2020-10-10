@@ -866,9 +866,9 @@ sub _validate_type_object {
   if (defined $schema->{minProperties} and $schema->{minProperties} > @dkeys) {
     push @errors, E $path, [object => minProperties => int(@dkeys), $schema->{minProperties}];
   }
-  if (my $n_schema = $schema->{propertyNames}) {
+  if (exists $schema->{propertyNames}) {
     for my $name (keys %$data) {
-      next unless my @e = $self->_validate($name, $path, $n_schema);
+      next unless my @e = $self->_validate($name, $path, $schema->{propertyNames});
       push @errors, prefix_errors propertyName => map [$name, $_], @e;
     }
   }
