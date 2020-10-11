@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-4.07 Not Released
+4.07 2020-10-11T11:48:05+0900
  - Acceptance tests require Test::JSON::Schema::Acceptance 1.000
 
 4.06 2020-10-10T16:21:51+0900
