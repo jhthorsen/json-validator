@@ -13,8 +13,7 @@ sub additional_items {
     ]
   };
 
-  validate_ok [1600, 'Pennsylvania', 'Avenue', 'NW', 'Washington'], $schema,
-    E('/', 'Invalid number of items: 5/4.');
+  validate_ok [1600, 'Pennsylvania', 'Avenue', 'NW', 'Washington'], $schema, E('/', 'Invalid number of items: 5/4.');
 }
 
 sub basic {
@@ -24,13 +23,11 @@ sub basic {
 }
 
 sub contains {
-  my $schema
-    = {type => 'array', contains => {type => 'string', enum => ['NW']}};
+  my $schema = {type => 'array', contains => {type => 'string', enum => ['NW']}};
   schema_validate_ok [1600, 'NW'], $schema;
 
   $schema->{contains}{enum} = ['Nope'];
-  schema_validate_ok [1600, 'NW'], $schema,
-    E('/0', 'Expected string - got number.'),
+  schema_validate_ok [1600, 'NW'], $schema, E('/0', 'Expected string - got number.'),
     E('/1', 'Not in enum list: Nope.');
 }
 
@@ -55,31 +52,21 @@ sub min_max {
 }
 
 sub min_max_contains {
-  my $schema = {
-    type        => 'array',
-    contains    => {type => 'string'},
-    maxContains => 3,
-    minContains => 2,
-  };
-  schema_validate_ok [qw(A)], $schema,
-    E('/', 'Contains not enough items: 1/2.');
-  schema_validate_ok [qw(A B C D)], $schema,
-    E('/', 'Contains too many items: 4/3.');
-  schema_validate_ok [qw(A B)],   $schema;
-  schema_validate_ok [qw(A B C)], $schema;
+  my $schema = {type => 'array', contains => {type => 'string'}, maxContains => 3, minContains => 2};
+  schema_validate_ok [qw(A)],       $schema, E('/', 'Contains not enough items: 1/2.');
+  schema_validate_ok [qw(A B C D)], $schema, E('/', 'Contains too many items: 4/3.');
+  schema_validate_ok [qw(A B)],     $schema;
+  schema_validate_ok [qw(A B C)],   $schema;
 }
 
 sub unevaluated_items {
-  local $TODO
-    = 'https://json-schema.org/draft/2019-09/json-schema-core.html#unevaluatedItems';
+  local $TODO = 'https://json-schema.org/draft/2019-09/json-schema-core.html#unevaluatedItems';
   my $schema = {unevaluatedItems => {}};
-  validate_ok [1600, 'Pennsylvania', 'Avenue', 'NW', 'Washington'], $schema,
-    E('/', 'Invalid number of items: 5/4.');
+  validate_ok [1600, 'Pennsylvania', 'Avenue', 'NW', 'Washington'], $schema, E('/', 'Invalid number of items: 5/4.');
 }
 
 sub unique {
-  my $schema
-    = {type => 'array', uniqueItems => 1, items => {type => 'integer'}};
+  my $schema = {type => 'array', uniqueItems => 1, items => {type => 'integer'}};
   validate_ok [123, 124], $schema;
   validate_ok [1, 2, 1], $schema, E('/', 'Unique items required.');
 }
