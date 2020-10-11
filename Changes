@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+4.08 2020-10-12T08:06:29+0900
+ - Implemented basic support for draft 2019-09 #181
+ - JSON::Validator::Ref can hold sibling attrs #181
+
 4.07 2020-10-11T11:48:05+0900
  - Acceptance tests require Test::JSON::Schema::Acceptance 1.000
 
