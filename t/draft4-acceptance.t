@@ -1,10 +1,6 @@
 use lib '.';
 use t::Helper;
 
-my @todo_tests;
-push @todo_tests, ['ref.json', 'Location-independent identifier with base URI change in subschema'];
-push @todo_tests, ['refRemote.json'];
-
-t::Helper->acceptance('JSON::Validator::Schema::Draft4', todo_tests => \@todo_tests);
+t::Helper->acceptance('JSON::Validator::Schema::Draft4');
 
 done_testing;
