@@ -12,8 +12,9 @@ sub acceptance {
   my ($class, $schema_class, %acceptance_params) = @_;
 
   Test::More::plan(skip_all => 'cpanm Test::JSON::Schema::Acceptance')
-    unless eval 'require Test::JSON::Schema::Acceptance;1';
-  Test::More::plan(skip_all => $@) unless eval "require $schema_class;1";
+    unless eval 'use Test::JSON::Schema::Acceptance 1.000;1';
+  Test::More::plan(skip_all => 'cpanm Test2::Tools::Compare') unless eval 'use Test2::Tools::Compare 0.0001;1';
+  Test::More::plan(skip_all => $@)                            unless eval "require $schema_class;1";
 
   $acceptance_params{todo_tests}
     = [map { +{file => $_->[0], group_description => $_->[1], test_description => $_->[2]}; }
