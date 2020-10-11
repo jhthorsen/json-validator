@@ -2,18 +2,20 @@ use Mojo::Base -strict;
 use JSON::Validator;
 use Test::More;
 
-my $spec = Mojo::URL->new->scheme('file')->host('')->path(Mojo::File::path(qw(t spec person.json))->to_abs);
+my $file = Mojo::File::path(qw(t spec person.json))->to_abs;
+my $spec = Mojo::URL->new->scheme('file')->host('')->path($file->to_string);
 my $jv   = JSON::Validator->new;
+my $id   = File::Spec->case_tolerant ? lc $spec : $spec->to_string;
 
 note $spec->to_string;
-ok eval { $jv->schema($spec->to_string) }, 'loaded from file://' or diag $@;
+ok eval { $jv->schema($file) }, 'loaded from file://' or diag $@;
 isa_ok $jv->schema, 'JSON::Validator::Schema';
 is $jv->schema->get('/title'), 'Example Schema', 'got example schema';
-is $jv->schema->id, $spec->to_string, 'schema id';
+is $jv->schema->id, $id, 'schema id';
 is_deeply [sort keys %{$jv->{schemas}}], [$jv->schema->id], 'schemas in store';
 
 ok eval { $jv->schema($spec->to_string) }, 'loaded from file:// again' or diag $@;
-is $jv->schema->id, $spec->to_string, 'schema id again';
+is $jv->schema->id, $id, 'schema id again';
 is_deeply [sort keys %{$jv->{schemas}}], [$jv->schema->id], 'schemas in store again';
 
 done_testing;
