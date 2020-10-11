@@ -35,12 +35,12 @@ is $schema->get('/definitions/C/definitions/X/id'), 'urn:uuid:ee564b8a-7a87-4125
   'id /definitions/C/definitions/X/id';
 is $schema->get('/definitions/C/definitions/Y/id'), '#cy', 'id /definitions/C/definitions/Y/id';
 
-my $ref = $schema->get('/definitions/R1');
-is encode_json($ref), '{"$ref":"b.json#bx"}', 'ref encode_json';
-$ref = tied %$ref;
-is $ref->ref, 'b.json#bx',                    'ref ref';
-is $ref->fqn, 'http://example.com/b.json#bx', 'ref fqn';
-ok $ref->schema->{definitions}{Y}, 'ref schema';
+my $r1 = $schema->get('/definitions/R1');
+is encode_json($r1), '{"$ref":"b.json#bx"}', 'R1 encode_json';
+$r1 = tied %$r1;
+is $r1->ref, 'b.json#bx',                    'R1 ref';
+is $r1->fqn, 'http://example.com/b.json#bx', 'R1 fqn';
+is_deeply $r1->schema, {id => '#bx'}, 'R1 schema';
 
 eval { $jv->load_and_validate_schema("${base_url}invalid-fragment.json") };
 like $@, qr{cannot have a fragment}, 'Root id cannot have a fragment' or diag $@;

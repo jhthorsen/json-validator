@@ -270,32 +270,40 @@ sub _find_and_resolve_refs {
   my ($self, $base_url, $schema) = @_;
   my %root = is_type($schema, 'HASH') ? %$schema : ();
 
-  my ($id_key, @topics, @refs, %seen) = ($self->_id_key, $schema);
+  my ($id_key, @topics, @refs, %seen) = ($self->_id_key, [$base_url, $schema]);
   while (@topics) {
-    my $topic = shift @topics;
+    my ($base_url, $topic) = @{shift @topics};
 
     if (is_type $topic, 'ARRAY') {
-      push @topics, @$topic;
+      push @topics, map { [$base_url, $_] } @$topic;
     }
     elsif (is_type $topic, 'HASH') {
       next if $seen{refaddr($topic)}++;
-      push @refs, [$topic, $base_url] and next if $topic->{'$ref'} and !ref $topic->{'$ref'} and !tied %$topic;
 
+      my $base_url = $base_url;    # do not change the global $base_url
       if ($topic->{$id_key} and !ref $topic->{$id_key}) {
-        my $fqn = Mojo::URL->new($topic->{$id_key});
-        $fqn = $fqn->to_abs($base_url) unless $fqn->is_abs;
-        $self->_store($fqn->to_string => $topic);
+        my $id = Mojo::URL->new($topic->{$id_key});
+        $id = $id->to_abs($base_url) unless $id->is_abs;
+        $self->_store($id->to_string => $topic);
+        $base_url = $id;
       }
 
-      push @topics, values %$topic;
+      my $has_ref = $topic->{'$ref'} && !ref $topic->{'$ref'} && !tied %$topic ? 1 : 0;
+      push @refs, [$base_url, $topic] if $has_ref;
+
+      for my $key (keys %$topic) {
+        next unless ref $topic->{$key};
+        next if $has_ref and $key eq '$ref';
+        push @topics, [$base_url, $topic->{$key}];
+      }
     }
   }
 
   while (@refs) {
-    my ($topic, $id) = @{shift @refs};
+    my ($base_url, $topic) = @{shift @refs};
     next if is_type $topic, 'BOOL';
     next if !$topic->{'$ref'} or ref $topic->{'$ref'};
-    my $base = Mojo::URL->new($id || $base_url)->fragment(undef);
+    my $base = Mojo::URL->new($base_url || $base_url)->fragment(undef);
     my ($other, $ref_url, $fqn) = $self->_resolve_ref($topic->{'$ref'}, $base, \%root);
     tie %$topic, 'JSON::Validator::Ref', $other, "$ref_url", "$fqn";
     push @refs, [$other, $fqn];
@@ -414,6 +422,7 @@ sub _node {
 
 sub _ref_to_schema {
   my ($self, $schema) = @_;
+  return $schema if ref $schema ne 'HASH';
 
   my @guard;
   while (my $tied = tied %$schema) {
@@ -467,10 +476,10 @@ sub _resolve_ref {
   my $pointer = $fqn->fragment;
   my $other;
 
-  $fqn = $fqn->fragment(undef)->to_abs($base_url) if "$base_url";
-  $other //= $self->_resolve($fqn, 1) if $fqn->is_abs && $fqn ne $base_url;
-  $other //= $self->_store($fqn->clone->fragment(undef));
+  $fqn = $fqn->to_abs($base_url) if "$base_url";
   $other //= $self->_store($fqn);
+  $other //= $self->_store($fqn->clone->fragment(undef));
+  $other //= $self->_resolve($fqn->clone->fragment(undef), 1) if $fqn->is_abs && $fqn ne $base_url;
   $other //= $schema;
 
   if (defined $pointer and $pointer =~ m!^/!) {
@@ -513,7 +522,7 @@ sub _store {
 
 sub _validate {
   my ($self, $data, $path, $schema) = @_;
-  $schema = $self->_ref_to_schema($schema) if ref $schema eq 'HASH' and $schema->{'$ref'};
+  $schema = $self->_ref_to_schema($schema);
   return $schema ? () : E $path, [not => 'not'] if is_type $schema, 'BOOL';
 
   my @errors;
@@ -912,7 +921,7 @@ sub _validate_type_object {
   for my $k (sort keys %rules) {
     for my $r (@{$rules{$k}}) {
       next unless exists $data->{$k};
-      $r = $self->_ref_to_schema($r) if ref $r eq 'HASH' and $r->{'$ref'};
+      $r = $self->_ref_to_schema($r);
       my @e = $self->_validate($data->{$k}, json_pointer($path, $k), $r);
       push @errors, @e;
       next if @e or !is_type $r, 'HASH';

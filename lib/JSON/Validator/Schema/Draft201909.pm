@@ -21,45 +21,59 @@ sub _definitions_path_for_ref { ['$defs'] }
 sub _find_and_resolve_refs {
   my ($self, $base_url, $root) = @_;
 
-  my (@topics, @recursive, @refs, %seen) = ($root);
+  my (@topics, @recursive_refs, @refs, %seen) = ([$base_url, $root]);
   while (@topics) {
-    my $topic = shift @topics;
+    my ($base_url, $topic) = @{shift @topics};
 
     if (is_type $topic, 'ARRAY') {
-      push @topics, @$topic;
+      push @topics, map { [$base_url, $_] } @$topic;
     }
     elsif (is_type $topic, 'HASH') {
       next if $seen{refaddr($topic)}++;
 
-      unless (tied %$topic) {
-        push @refs,      [$topic, $base_url] if $topic->{'$ref'}          and !ref $topic->{'$ref'};
-        push @recursive, [$topic, $base_url] if $topic->{'$recursiveRef'} and !ref $topic->{'$recursiveRef'};
+      my $base_url = $base_url;    # do not change the global $base_url
+      if ($topic->{'$id'} and !ref $topic->{'$id'}) {
+        my $id = Mojo::URL->new($topic->{'$id'});
+        $id = $id->to_abs($base_url) unless $id->is_abs;
+        $self->_store($id->to_string => $topic);
+        $base_url = $id;
       }
 
       if ($topic->{'$anchor'} && !ref $topic->{'$anchor'}) {
         $self->_anchors->{$topic->{'$anchor'}} = $topic;
       }
 
-      push @topics, map { $topic->{$_} } grep { ref $topic->{$_} and !m!^\$(ref|recursiveRef)$! } keys %$topic;
+      my $is_tied           = tied %$topic;
+      my $has_ref           = !$is_tied && $topic->{'$ref'} && !ref $topic->{'$ref'} ? 1 : 0;
+      my $has_recursive_ref = !$is_tied && $topic->{'$recursiveRef'} && !ref $topic->{'$recursiveRef'} ? 1 : 0;
+      push @refs,           [$base_url, $topic] if $has_ref;
+      push @recursive_refs, [$base_url, $topic] if $has_recursive_ref;
+
+      for my $key (keys %$topic) {
+        next unless ref $topic->{$key};
+        next if $has_ref           and $key eq '$ref';
+        next if $has_recursive_ref and $key eq '$recursiveRef';
+        push @topics, [$base_url, $topic->{$key}];
+      }
     }
   }
 
   %seen = ();
   while (@refs) {
-    my ($topic, $id) = @{shift @refs};
+    my ($base_url, $topic) = @{shift @refs};
     next if is_type $topic, 'BOOL';
     next if !$topic->{'$ref'} or ref $topic->{'$ref'};
-    my $base = Mojo::URL->new($id || $base_url)->fragment(undef);
+    my $base = Mojo::URL->new($base_url || $base_url)->fragment(undef);
     my ($other, $ref_url, $fqn) = $self->_resolve_ref($topic->{'$ref'}, $base, $root);
     next if $seen{$fqn}++;
     tie %$topic, 'JSON::Validator::Ref', $other, $topic, "$fqn";
-    push @refs, [$other, $fqn];
+    push @refs, [$fqn, $other];
   }
 
   %seen = ();
-  while (@recursive) {
-    my ($topic, $id) = @{shift @recursive};
-    my $base = Mojo::URL->new($id || $base_url)->fragment(undef);
+  while (@recursive_refs) {
+    my ($base_url, $topic) = @{shift @recursive_refs};
+    my $base = Mojo::URL->new($base_url || $base_url)->fragment(undef);
     my ($other, $ref_url, $fqn) = $self->_resolve_ref($topic->{'$recursiveRef'}, $base, $root);
     next if $seen{$fqn}++;
     tie %$topic, 'JSON::Validator::Ref', $other, $topic, "$fqn";
