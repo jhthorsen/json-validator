@@ -27,15 +27,19 @@ sub acceptance {
     %acceptance_params,
     validate_data => sub {
       my ($schema_p, $data_p) = map { Mojo::JSON::Pointer->new(shift @_) } qw(schema data);
-      my ($schema,   $data)   = map { clone($_->data) } $schema_p, $data_p;
-      my $valid = $schema_class->new($schema)->validate($data) ? 0 : 1;
+      my ($schema_d, $data_d) = map { clone($_->data) } $schema_p, $data_p;
+
+      my $schema = $schema_class->new($schema_d);
+      return 0 if @{$schema->errors};
+
+      my @errors = $schema->validate($data_d);
 
       # Doing internal tests on mutation, since I think Test::JSON::Schema::Acceptance is a bit too strict
-      Test2::Tools::Compare::is(encode_json($data),   encode_json($data_p->data),   'data structure is the same');
-      Test2::Tools::Compare::is(encode_json($schema), encode_json($schema_p->data), 'schema structure is the same')
+      Test2::Tools::Compare::is(encode_json($data_d),   encode_json($data_p->data),   'data structure is the same');
+      Test2::Tools::Compare::is(encode_json($schema_d), encode_json($schema_p->data), 'schema structure is the same')
         unless _acceptance_schema_contains_invalid_ref($schema_p);
 
-      return $valid;
+      return @errors ? 0 : 1;
     },
   );
 }
