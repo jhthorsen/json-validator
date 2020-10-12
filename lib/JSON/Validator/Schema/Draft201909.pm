@@ -35,7 +35,7 @@ sub _find_and_resolve_refs {
       if ($topic->{'$id'} and !ref $topic->{'$id'}) {
         my $id = Mojo::URL->new($topic->{'$id'});
         $id = $id->to_abs($base_url) unless $id->is_abs;
-        $self->_store($id->to_string => $topic);
+        $self->store->add($id->to_string => $topic);
         $base_url = $id;
       }
 

@@ -33,7 +33,7 @@ validate_ok true,  $bool_constant_true;
 validate_ok false, $bool_constant_true, E('/', q{Does not match const: true.});
 
 note 'boolean objects';
-my $data = jv->_load_schema_from_text(\"---\nv: true\n");
+my $data = jv->store->get(jv->store->load(\"---\nv: true\n"));
 isa_ok($data->{v}, 'JSON::PP::Boolean');
 validate_ok $data, $schema;
 

@@ -22,6 +22,6 @@ unlink "$file.2";
 is(eval { JSON::Validator->new->schema('http://swagger.io/v2/schema.json'); 42 }, 42, 'loaded from cache') or diag $@;
 
 like $jv->schema->id, qr{^file:.*person\.json}, 'schema id';
-is_deeply [sort keys %{$jv->{schemas}}], [$jv->schema->id], 'schemas in store';
+is_deeply [sort keys %{$jv->store->schemas}], [$jv->schema->id], 'schemas in store';
 
 done_testing;

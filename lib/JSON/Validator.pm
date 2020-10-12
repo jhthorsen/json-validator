@@ -2,21 +2,18 @@ package JSON::Validator;
 use Mojo::Base -base;
 use Exporter 'import';
 
-use Carp 'confess';
+use Carp qw(confess);
 use JSON::Validator::Formats;
-use JSON::Validator::Joi;
 use JSON::Validator::Ref;
-use JSON::Validator::Schema;
-use JSON::Validator::Util qw(E data_checksum data_section data_type is_type json_pointer prefix_errors schema_type);
-use List::Util 'uniq';
-use Mojo::File 'path';
+use JSON::Validator::Store;
+use JSON::Validator::Util qw(E data_checksum data_type is_type json_pointer prefix_errors schema_type);
+use List::Util qw(uniq);
+use Mojo::File qw(path);
 use Mojo::JSON qw(false true);
 use Mojo::URL;
-use Mojo::Util qw(url_unescape sha1_sum);
+use Mojo::Util qw(sha1_sum);
 use Scalar::Util qw(blessed refaddr);
 
-use constant CASE_TOLERANT   => File::Spec->case_tolerant;
-use constant DEBUG           => $ENV{JSON_VALIDATOR_DEBUG} || 0;
 use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 
 our $VERSION   = '4.09';
@@ -28,16 +25,20 @@ our %SCHEMAS = (
   'http://json-schema.org/draft-07/schema#' => '+Draft7',
 );
 
-my $BUNDLED_CACHE_DIR = path(path(__FILE__)->dirname, qw(Validator cache));
-my $HTTP_SCHEME_RE    = qr{^https?:};
+has formats                   => sub { shift->_build_formats };
+has recursive_data_protection => 1;
 
-has cache_paths => sub {
-  return [split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''), $BUNDLED_CACHE_DIR];
+has store => sub {
+  my $self = shift;
+  my %attrs;
+  $attrs{$_} = delete $self->{$_} for grep { $self->{$_} } qw(cache_paths ua);
+  return JSON::Validator::Store->new(%attrs);
 };
 
-has formats => sub { shift->_build_formats };
-
-has recursive_data_protection => 1;
+# store proxy attributes
+for my $method (qw(cache_paths ua)) {
+  Mojo::Util::monkey_patch(__PACKAGE__, $method => sub { shift->store->$method(@_) });
+}
 
 sub version {
   my $self = shift;
@@ -46,14 +47,6 @@ sub version {
   $self->{version} = shift;
   $self;
 }
-
-has ua => sub {
-  require Mojo::UserAgent;
-  my $ua = Mojo::UserAgent->new;
-  $ua->proxy->detect;
-  $ua->max_redirects(3);
-  $ua;
-};
 
 sub bundle {
   my ($self, $args) = @_;
@@ -145,6 +138,7 @@ sub get { JSON::Validator::Util::schema_extract(shift->schema->data, shift) }
 
 sub joi {
   Mojo::Util::deprecated('JSON::Validator::joi() is replaced by JSON::Validator::Joi::joi().');
+  require JSON::Validator::Joi;
   return JSON::Validator::Joi->new unless @_;
   my ($data, $joi) = @_;
   return $joi->validate($data, $joi);
@@ -284,7 +278,7 @@ sub _find_and_resolve_refs {
       if ($topic->{$id_key} and !ref $topic->{$id_key}) {
         my $id = Mojo::URL->new($topic->{$id_key});
         $id = $id->to_abs($base_url) unless $id->is_abs;
-        $self->_store($id->to_string => $topic);
+        $self->store->add($id => $topic);
         $base_url = $id;
       }
 
@@ -312,78 +306,6 @@ sub _find_and_resolve_refs {
 
 sub _id_key { ($_[0]->{version} || 4) < 7 ? 'id' : '$id' }
 
-sub _load_schema {
-  my ($self, $url) = @_;
-
-  my $cached;
-  return $cached, $url if $cached = $self->_store($url);
-
-  if ($url =~ m!^https?://!) {
-    warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
-    return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)), "$url";
-  }
-
-  if ($url =~ m!^data://([^/]*)/(.*)!) {
-    my ($class, $file) = ($1, $2);
-    my $text = data_section $class, $file, {confess => 1, encoding => 'UTF-8'};
-    return $self->_load_schema_from_text(\$text), "$url";
-  }
-
-  if ($url =~ m!^\s*[\[\{]!) {
-    warn "[JSON::Validator] Loading schema from string.\n" if DEBUG;
-    return $self->_load_schema_from_text(\$url), '';
-  }
-
-  my $file = $url;
-  $file =~ s!^file://!!;
-  $file =~ s!#$!!;
-  $file = path(split '/', url_unescape $file);
-  if (-e $file) {
-    $file = $file->realpath;
-    warn "[JSON::Validator] Loading schema from file: $file\n" if DEBUG;
-    $url = Mojo::URL->new->scheme('file')->host('')->path(CASE_TOLERANT ? lc $file : "$file");
-    return $cached, $url if $cached = $self->_store($url);
-    return $self->_load_schema_from_text(\$file->slurp), $url;
-  }
-  elsif ($url =~ m!^/! and $self->ua->server->app) {
-    warn "[JSON::Validator] Loading schema from URL $url\n" if DEBUG;
-    return $self->_load_schema_from_url(Mojo::URL->new($url)->fragment(undef)), "$url";
-  }
-
-  confess "Unable to load schema '$url' ($file)";
-}
-
-sub _load_schema_from_text {
-  my ($self, $text) = @_;
-  return $$text =~ /^\s*\{/s ? Mojo::JSON::decode_json($$text) : JSON::Validator::Util::_yaml_load($$text);
-}
-
-sub _load_schema_from_url {
-  my ($self, $url) = @_;
-  my $cache_path = $self->cache_paths->[0];
-  my $cache_file = Mojo::Util::md5_sum("$url");
-
-  for (@{$self->cache_paths}) {
-    my $path = path $_, $cache_file;
-    warn "[JSON::Validator] Looking for cached spec $path ($url)\n" if DEBUG;
-    next unless -r $path;
-    return $self->_load_schema_from_text(\$path->slurp);
-  }
-
-  my $tx  = $self->ua->get($url);
-  my $err = $tx->error && $tx->error->{message};
-  confess "GET $url == $err"               if DEBUG and $err;
-  die "[JSON::Validator] GET $url == $err" if $err;
-
-  if ($cache_path and ($cache_path ne $BUNDLED_CACHE_DIR or $ENV{JSON_VALIDATOR_CACHE_ANYWAYS}) and -w $cache_path) {
-    $cache_file = path $cache_path, $cache_file;
-    warn "[JSON::Validator] Caching $url to $cache_file\n" unless $ENV{HARNESS_ACTIVE};
-    $cache_file->spurt($tx->res->body);
-  }
-
-  return $self->_load_schema_from_text(\$tx->res->body);
-}
-
 sub _new_schema {
   my ($self, $schema, %attrs) = @_;
   return $schema if blessed $schema and $schema->can('specification');
@@ -400,11 +322,9 @@ sub _new_schema {
 
   $attrs{formats} ||= $self->{formats} if $self->{formats};
   $attrs{version} ||= $self->{version} if $self->{version};
-  $attrs{schemas} ||= $self->{schemas} ||= {};
-  $attrs{$_} = $self->$_ for qw(cache_paths ua);
+  $attrs{store} = $self->store;
 
-  my $schema_obj = $self->_schema_class($attrs{specification} || $schema)->new($schema, %attrs);
-  return $schema_obj;
+  return $self->_schema_class($attrs{specification} || $schema)->new($schema, %attrs);
 }
 
 sub _node {
@@ -447,21 +367,24 @@ sub _resolve {
   my ($self, $schema, $nested) = @_;
   return $schema if is_type $schema, 'BOOL';
 
-  my ($id_key, $id, $resolved) = ($self->_id_key);
+  my ($id_key, $id, $cached, $resolved) = ($self->_id_key);
   if (ref $schema eq 'HASH') {
     $id       = $schema->{$id_key} // '';
-    $resolved = $self->_store($id) // $schema;
+    $cached   = $self->store->get($id);
+    $resolved = $cached // $schema;
   }
   else {
-    ($resolved, $id) = $self->_load_schema($schema);
-    $id = $resolved->{$id_key} if is_type($resolved, 'HASH') and $resolved->{$id_key};
+    $cached   = $self->store->get($id);
+    $id       = $self->store->load($schema);
+    $resolved = $cached // $self->store->get($id);
+    $id       = $resolved->{$id_key} if is_type($resolved, 'HASH') and $resolved->{$id_key};
   }
 
   $id = Mojo::URL->new("$id");
   $self->_register_root_schema($id => $resolved) if !$nested and "$id";
 
-  unless ($self->_store($id)) {
-    $self->_store($id => $resolved) if "$id";
+  unless ($cached) {
+    $self->store->add($id => $resolved) if "$id";
     $self->_find_and_resolve_refs($id => $resolved);
   }
 
@@ -477,8 +400,8 @@ sub _resolve_ref {
   my $other;
 
   $fqn = $fqn->to_abs($base_url) if "$base_url";
-  $other //= $self->_store($fqn);
-  $other //= $self->_store($fqn->clone->fragment(undef));
+  $other //= $self->store->get($fqn);
+  $other //= $self->store->get($fqn->clone->fragment(undef));
   $other //= $self->_resolve($fqn->clone->fragment(undef), 1) if $fqn->is_abs && $fqn ne $base_url;
   $other //= $schema;
 
@@ -511,13 +434,6 @@ sub _schema_class {
   Mojo::Util::monkey_patch($package, $_ => $schema_class->can($_))
     for qw(_register_root_schema bundle contains data errors get id new resolve specification validate);
   return $package;
-}
-
-sub _store {
-  my ($self, $id, $schema) = @_;
-  $id =~ s!(.)#$!$1!;
-  return $self->{schemas}{$id} unless defined $schema;
-  return $self->{schemas}{$id} = $schema;
 }
 
 sub _validate {
@@ -609,7 +525,7 @@ sub _validate_any_of_types {
     push @errors, @e;
   }
 
-  # favour a non-type error from one of the rules
+  # favor a non-type error from one of the rules
   if (my @e = grep { $_->details->[1] ne 'type' or $_->path ne ($path || '/') } @errors) {
     return @e;
   }
@@ -1134,16 +1050,7 @@ DEPRECATED.
 
 =head2 cache_paths
 
-  my $jv        = $jv->cache_paths(\@paths);
-  my $array_ref = $jv->cache_paths;
-
-A list of directories to where cached specifications are stored. Defaults to
-C<JSON_VALIDATOR_CACHE_PATH> environment variable and the specs that is bundled
-with this distribution.
-
-C<JSON_VALIDATOR_CACHE_PATH> can be a list of directories, each separated by ":".
-
-See L</Bundled specifications> for more details.
+Proxy attribtue for L<JSON::Validator::Store/cache_paths>.
 
 =head2 formats
 
@@ -1177,14 +1084,7 @@ B<Disclaimer: Use at your own risk, if you have any doubt then don't use it>
 
 =head2 ua
 
-  my $ua = $jv->ua;
-  my $jv = $jv->ua(Mojo::UserAgent->new);
-
-Holds a L<Mojo::UserAgent> object, used by L</schema> to load a JSON schema
-from remote location.
-
-The default L<Mojo::UserAgent> will detect proxy settings and have
-L<Mojo::UserAgent/max_redirects> set to 3.
+Proxy attribtue for L<JSON::Validator::Store/ua>.
 
 =head2 version
 

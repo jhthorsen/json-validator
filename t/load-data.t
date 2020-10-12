@@ -31,7 +31,7 @@ package Mojolicious::Plugin::TestX;
 sub validate { $jv->schema($_[1])->validate($_[2]) }
 
 package main;
-is_deeply [sort keys %{$jv->{schemas}}], [qw(data:///spec.json data://main/spec.json)], 'schemas in store';
+is_deeply [sort keys %{$jv->store->schemas}], [qw(data:///spec.json data://main/spec.json)], 'schemas in store';
 
 done_testing;
 

@@ -8,18 +8,11 @@ my $workdir = path(__FILE__)->to_abs->dirname;
 my $jv      = JSON::Validator->new;
 my $bundled;
 
-{
-  note 'bundle files';
-  local $ENV{JSON_VALIDATOR_CACHE_ANYWAYS} = 1;
-  $jv->_load_schema_from_url("http://json-schema.org/draft-04/schema");
-  $jv->_load_schema_from_url("http://json-schema.org/draft-06/schema");
-  $jv->_load_schema_from_url("http://json-schema.org/draft-07/schema");
-}
-
 my $schema
   = JSON::Validator::Schema::Draft7->new({
   definitions => {name => {type => 'string'}}, surname => {'$ref' => '#/definitions/name'},
   });
+
 is $schema->bundle({replace => 1})->data->{surname}{type}, 'string', "schema->bundle";
 
 note 'Run multiple times to make sure _reset() works';
