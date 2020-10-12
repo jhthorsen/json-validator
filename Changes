@@ -1,7 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
-4.09 Not Released
+4.09 2020-10-12T11:04:16+0900
  - Fix handling if "id" and "$id" in subschemas #186
+ - Add CONTRIBUTING.md #161
 
 4.08 2020-10-12T08:06:29+0900
  - Implemented basic support for draft 2019-09 #181
