@@ -11,15 +11,11 @@ my $num_errors;
 # so looping around like this will execute the test with all kinds of
 # different internal ordering
 for (1 .. 20) {
-  $jv->schema(my $schema_text
-      = '{ "type": "object", "properties": { "ant": { "type": "string" }, "bat": { "type": "array" }, "cat": { "type": "object" }, "dog": { "type": "integer" } } }'
-  );
-  my @errors = $jv->validate($broken_data);
-  is_deeply([map { $_->path } @errors], [qw(/ant /bat /cat /dog)], "got errors in expected order");
-  if (!$num_errors) {    # only run this test once
-    $num_errors = $jv->validate($broken_data);
-    is($num_errors, 4, "in scalar context got the right number of errors");
-  }
+  my $schema_text
+    = '{"type":"object","properties":{"ant":{"type":"string"},"bat":{"type":"array"},"cat":{"type":"object"},"dog":{"type":"integer"}}}';
+  $jv->schema($schema_text);
+  is_deeply [map { $_->path } $jv->validate($broken_data)], [qw(/ant /bat /cat /dog)], 'got errors in expected order';
+  is scalar $jv->validate($broken_data), 4, 'in scalar context got the right number of errors';
 }
 
 done_testing;
