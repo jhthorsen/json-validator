@@ -1,6 +1,8 @@
 package JSON::Validator::Schema::OpenAPIv2;
 use Mojo::Base 'JSON::Validator::Schema::Draft4';
 
+use JSON::Validator::Util qw(schema_type);
+
 has moniker       => 'openapiv2';
 has specification => 'http://swagger.io/v2/schema.json';
 
@@ -18,13 +20,46 @@ sub new {
 }
 
 sub parameters_for_request {
-  my ($self, $method_path) = @_;
-  return [];
+  my $self = shift;
+  my ($method, $path) = (lc $_[0][0], $_[0][1]);
+
+  my $cache_key = "parameters_for_request:$method:$path";
+  return $self->{cache}{$cache_key} if $self->{cache}{$cache_key};
+  return undef unless $self->get([paths => $path, $method]);
+
+  my @accepts    = map {@$_} $self->_find_all_nodes([paths => $path, $method], 'consumes');
+  my @parameters = map {@$_} $self->_find_all_nodes([paths => $path, $method], 'parameters');
+  for my $param (@parameters) {
+    $param->{type} ||= schema_type($param->{schema} || $param);
+    $param->{accepts} = \@accepts if $param->{in} eq 'body';
+  }
+
+  return $self->{cache}{$cache_key} = \@parameters;
 }
 
 sub parameters_for_response {
-  my ($self, $method_path) = @_;
-  return [];
+  my $self = shift;
+  my ($method, $path, $status) = (lc $_[0][0], $_[0][1], $_[0][2] || 200);
+
+  $status ||= 200;
+  my $cache_key = "parameters_for_response:$method:$path:$status";
+  return $self->{cache}{$cache_key} if $self->{cache}{$cache_key};
+
+  my $responses = $self->get([paths => $path, $method, 'responses']);
+  my $response  = $responses->{$status} || $responses->{default};
+  return undef unless $response;
+
+  my @parameters;
+  if (my $headers = $response->{headers}) {
+    push @parameters, map { +{%{$headers->{$_}}, in => 'header', name => $_} } sort keys %$headers;
+  }
+
+  my @accepts = $self->_find_all_nodes([paths => $path, $method], 'produces');
+  if (exists $response->{schema}) {
+    push @parameters, {%$response, in => 'body', name => 'body', accepts => pop @accepts || []};
+  }
+
+  return $self->{cache}{$cache_key} = \@parameters;
 }
 
 sub validate_request {
@@ -57,6 +92,21 @@ sub _build_formats {
     'regex'     => JSON::Validator::Formats->can('check_regex'),
     'uri'       => JSON::Validator::Formats->can('check_uri'),
   };
+}
+
+sub _find_all_nodes {
+  my ($self, $pointer, $leaf) = @_;
+  my @found;
+  push @found, $self->data->{$leaf} if ref $self->data->{$leaf} eq 'ARRAY';
+
+  my @path;
+  for my $p (@$pointer) {
+    push @path, $p;
+    my $node = $self->get([@path]);
+    push @found, $node->{$leaf} if ref $node->{$leaf} eq 'ARRAY';
+  }
+
+  return @found;
 }
 
 1;
@@ -120,11 +170,37 @@ See L<JSON::Validator::Schema/new>.
 
 =head2 parameters_for_request
 
-  my $array_ref = $schema->parameters_for_request([$method, $path]);
+  $parameters = $schema->parameters_for_request([$method, $path]);
+
+Finds all the request parameters defined in the schema, including inherited
+parameters. Returns C<undef> if the C<$path> and C<$method> cannot be found.
+
+Example return value:
+
+  [
+    {in => "query", name => "q"},
+    {in => "body", name => "body", accepts => ["application/json"]},
+  ]
+
+The return value MUST not be mutated.
 
 =head2 parameters_for_response
 
-  my $array_ref = $schema->parameters_for_response([$method, $path]);
+  $array_ref = $schema->parameters_for_response([$method, $path, $status]);
+
+Finds the response parameters defined in the schema. Returns C<undef> if the
+C<$path>, C<$method> and C<$status> cannot be found. Will default to the
+"default" response definition if C<$status> could not be found and "default"
+exists.
+
+Example return value:
+
+  [
+    {in => "header", name => "X-Foo"},
+    {in => "body", name => "body", accepts => ["application/json"]},
+  ]
+
+The return value MUST not be mutated.
 
 =head2 validate_request
 
