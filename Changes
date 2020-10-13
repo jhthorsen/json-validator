@@ -2,6 +2,7 @@ Revision history for perl distribution JSON-Validator
 
 4.10 Not Released
  - Add JSON::Validator::Store
+ - Documented what is not supporte in draft 2019-09
 
 4.09 2020-10-12T11:04:16+0900
  - Fix handling if "id" and "$id" in subschemas #186

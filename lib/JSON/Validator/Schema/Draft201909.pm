@@ -151,6 +151,36 @@ See L<JSON::Validator::Schema/SYNOPSIS>.
 This class represents
 L<https://json-schema.org/specification-links.html#2019-09-formerly-known-as-draft-8>.
 
+Support for parsing the draft is not yet complete. Look at
+L<https://github.com/mojolicious/json-validator/blob/master/t/draft2019-09-acceptance.t>
+for the most recent overview of what is not yet supported.
+
+Currently less than 1% of the official test suite gets skipped. Here is a list of known
+limitations:
+
+=over 2
+
+=item * Float and integers are equal up to 64-bit representation limits
+
+This module is unable to say that the 64-bit number "9007199254740992.0" is the
+same as "9007199254740992".
+
+=item * unevaluatedItems
+
+See L</unevaluatedProperties>
+
+=item * unevaluatedProperties
+
+L</unevaluatedItems> and L</unevaluatedProperties> needs to track what has been
+valdated or not using annotations. This is not yet supported.
+
+=item * $recursiveAnchor
+
+Basic support for C<$recursiveRef> is supported, but using it together with
+C<$recursiveAnchor> is not.
+
+=back
+
 =head1 ATTRIBUTES
 
 =head2 specification
