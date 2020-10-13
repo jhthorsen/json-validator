@@ -20,9 +20,10 @@ our $VERSION   = '4.09';
 our @EXPORT_OK = qw(joi validate_json);
 
 our %SCHEMAS = (
-  'http://json-schema.org/draft-04/schema#' => '+Draft4',
-  'http://json-schema.org/draft-06/schema#' => '+Draft6',
-  'http://json-schema.org/draft-07/schema#' => '+Draft7',
+  'http://json-schema.org/draft-04/schema#'      => '+Draft4',
+  'http://json-schema.org/draft-06/schema#'      => '+Draft6',
+  'http://json-schema.org/draft-07/schema#'      => '+Draft7',
+  'https://json-schema.org/draft/2019-09/schema' => '+Draft201909',
 );
 
 has formats                   => sub { shift->_build_formats };
@@ -307,14 +308,21 @@ sub _find_and_resolve_refs {
 sub _id_key { ($_[0]->{version} || 4) < 7 ? 'id' : '$id' }
 
 sub _new_schema {
-  my ($self, $schema, %attrs) = @_;
-  return $schema if blessed $schema and $schema->can('specification');
+  my ($self, $source, %attrs) = @_;
+  return $source if blessed $source and $source->can('specification');
 
   # Compat with load_and_validate_schema()
   $attrs{specification} = delete $attrs{schema} if $attrs{schema};
 
-  if (!$attrs{specification} and is_type $schema, 'HASH') {
-    $attrs{specification} = $schema->{'$schema'} if $schema->{'$schema'};
+  my $loadable
+    = (blessed $source && ($source->can('scheme') || $source->isa('Mojo::File')))
+    || -f $source
+    || (!ref $source && $source =~ /^\w/);
+
+  my $store  = $self->store;
+  my $schema = $loadable ? $store->get($store->load($source)) : $source;
+  if (!$attrs{specification} and is_type $schema, 'HASH' and $schema->{'$schema'}) {
+    $attrs{specification} = $schema->{'$schema'};
   }
   if (!$attrs{specification} and $self->{version}) {
     $attrs{specification} = sprintf 'http://json-schema.org/draft-%02s/schema#', $self->{version};
@@ -322,9 +330,9 @@ sub _new_schema {
 
   $attrs{formats} ||= $self->{formats} if $self->{formats};
   $attrs{version} ||= $self->{version} if $self->{version};
-  $attrs{store} = $self->store;
+  $attrs{store} = $store;
 
-  return $self->_schema_class($attrs{specification} || $schema)->new($schema, %attrs);
+  return $self->_schema_class($attrs{specification} || $schema)->new($source, %attrs);
 }
 
 sub _node {
@@ -367,26 +375,24 @@ sub _resolve {
   my ($self, $schema, $nested) = @_;
   return $schema if is_type $schema, 'BOOL';
 
-  my ($id_key, $id, $cached, $resolved) = ($self->_id_key);
+  my ($id_key, $id, $cached_id, $resolved) = ($self->_id_key);
   if (ref $schema eq 'HASH') {
-    $id       = $schema->{$id_key} // '';
-    $cached   = $self->store->get($id);
-    $resolved = $cached // $schema;
+    $id        = $schema->{$id_key} // '';
+    $cached_id = $self->store->exists($id);
+    $resolved  = $cached_id ? $self->store->get($cached_id) : $schema;
   }
   else {
-    $cached   = $self->store->get($id);
-    $id       = $self->store->load($schema);
-    $resolved = $cached // $self->store->get($id);
-    $id       = $resolved->{$id_key} if is_type($resolved, 'HASH') and $resolved->{$id_key};
+    $cached_id = $self->store->exists($id);
+    $id        = $cached_id // $self->store->load($schema);
+    $resolved  = $self->store->get($id);
+    $id        = $resolved->{$id_key} if is_type($resolved, 'HASH') and $resolved->{$id_key};
   }
 
+  $cached_id //= '';
   $id = Mojo::URL->new("$id");
   $self->_register_root_schema($id => $resolved) if !$nested and "$id";
-
-  unless ($cached) {
-    $self->store->add($id => $resolved) if "$id";
-    $self->_find_and_resolve_refs($id => $resolved);
-  }
+  $self->store->add($id => $resolved)            if "$id"    and "$id" ne $cached_id;
+  $self->_find_and_resolve_refs($id => $resolved) unless $cached_id;
 
   return $resolved;
 }

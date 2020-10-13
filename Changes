@@ -2,7 +2,9 @@ Revision history for perl distribution JSON-Validator
 
 4.10 Not Released
  - Add JSON::Validator::Store
- - Documented what is not supporte in draft 2019-09
+ - Changed JSON::Validator->schema() to also load
+ - JSON::Validator->schema() can handle draft 2019-09 schemas
+ - Documented what is not supported in draft 2019-09
 
 4.09 2020-10-12T11:04:16+0900
  - Fix handling if "id" and "$id" in subschemas #186

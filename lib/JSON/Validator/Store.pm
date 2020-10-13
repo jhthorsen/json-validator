@@ -28,6 +28,13 @@ sub add {
   return $id;
 }
 
+sub exists {
+  my ($self, $id) = @_;
+  return undef unless defined $id;
+  $id =~ s!(.)#$!$1!;
+  return $self->schemas->{$id} && $id;
+}
+
 sub get {
   my ($self, $id) = @_;
   return undef unless defined $id;
@@ -42,20 +49,15 @@ sub load {
     || $_[0]->_load_from_text($_[1])
     || $_[0]->_load_from_file($_[1])
     || $_[0]->_load_from_app($_[1])
+    || $_[0]->get($_[1])
     || raise 'JSON::Validator::Exception', "Unable to load schema $_[1]";
-}
-
-sub _has {
-  my ($self, $id) = @_;
-  $id =~ s!(.)#$!$1!;
-  return $self->schemas->{$id} && $id;
 }
 
 sub _load_from_app {
   return undef unless $_[1] =~ m!^/!;
 
   my ($self, $url, $id) = @_;
-  return $id if $id = $self->_has($url);
+  return $id if $id = $self->exists($url);
 
   my $tx  = $self->ua->get($url);
   my $err = $tx->error && $tx->error->{message};
@@ -67,7 +69,7 @@ sub _load_from_data {
   return undef unless $_[1] =~ m!^data://([^/]*)/(.*)!;
 
   my ($self, $url, $id) = @_;
-  return $id if $id = $self->_has($url);
+  return $id if $id = $self->exists($url);
 
   my ($class, $file) = ($1, $2);    # data://([^/]*)/(.*)
   my $text = data_section $class, $file, {encoding => 'UTF-8'};
@@ -85,7 +87,7 @@ sub _load_from_file {
 
   $file = $file->realpath;
   my $id = Mojo::URL->new->scheme('file')->host('')->path(CASE_TOLERANT ? lc $file : "$file");
-  return $self->_has($id) || $self->add($id => _parse($file->slurp));
+  return $self->exists($id) || $self->add($id => _parse($file->slurp));
 }
 
 sub _load_from_text {
@@ -94,17 +96,17 @@ sub _load_from_text {
   return undef unless $is_scalar_ref or $text =~ m!^\s*(?:---|\{)!s;
 
   my $id = sprintf 'urn:text:%s', Mojo::Util::md5_sum($is_scalar_ref ? $$text : $text);
-  return $self->_has($id) || $self->add($id => _parse($is_scalar_ref ? $$text : $text));
+  return $self->exists($id) || $self->add($id => _parse($is_scalar_ref ? $$text : $text));
 }
 
 sub _load_from_url {
   return undef unless $_[1] =~ m!^https?://!;
 
   my ($self, $url, $id) = @_;
-  return $id if $id = $self->_has($url);
+  return $id if $id = $self->exists($url);
 
   $url = Mojo::URL->new($url)->fragment(undef);
-  return $id if $id = $self->_has($url);
+  return $id if $id = $self->exists($url);
 
   my $cache_path = $self->cache_paths->[0];
   my $cache_file = Mojo::Util::md5_sum("$url");
@@ -190,6 +192,12 @@ L<Mojo::UserAgent/max_redirects> set to 3.
 
 Used to add a schema data structure. Note that C<$id> might not be the same as
 C<$normalized_id>.
+
+=head2 exists
+
+  my $normalized_id = $store->exists($id);
+
+Returns a C<$normalized_id> if it is present in the L</schemas>.
 
 =head2 get
 
