@@ -24,6 +24,7 @@ our %SCHEMAS = (
   'http://json-schema.org/draft-06/schema#'      => '+Draft6',
   'http://json-schema.org/draft-07/schema#'      => '+Draft7',
   'https://json-schema.org/draft/2019-09/schema' => '+Draft201909',
+  'http://swagger.io/v2/schema.json'             => '+OpenAPIv2',
 );
 
 has formats                   => sub { shift->_build_formats };
@@ -423,6 +424,7 @@ sub _resolve_ref {
 # back compat
 sub _schema_class {
   my ($self, $spec) = @_;
+  $spec = 'http://swagger.io/v2/schema.json' if ref $spec eq 'HASH' and $spec->{swagger} and $spec->{paths};
 
   my $schema_class = $spec && $SCHEMAS{$spec} || 'JSON::Validator::Schema';
   $schema_class =~ s!^\+(.+)$!JSON::Validator::Schema::$1!;
