@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::OpenAPIv2;
 use Mojo::Base 'JSON::Validator::Schema::Draft4';
 
-use JSON::Validator::Util qw(schema_type);
+use JSON::Validator::Util qw(E schema_type);
 
 has moniker       => 'openapiv2';
 has specification => 'http://swagger.io/v2/schema.json';
@@ -64,12 +64,32 @@ sub parameters_for_response {
 
 sub validate_request {
   my ($self, $method_path, $req) = @_;
-  return;
+  my $parameters = $self->parameters_for_request($method_path);
+
+  my %get;
+  for my $in (qw(body formData header path query)) {
+    $get{$in} = ref $req->{$in} eq 'CODE' ? $req->{$in} : sub {
+      my ($name, $param) = @_;
+      return {exists => exists $req->{$in}{$name}, value => $req->{$in}{$name}};
+    };
+  }
+
+  return $self->_validate_request_or_response(request => $parameters, \%get);
 }
 
 sub validate_response {
-  my ($self, $method_path, $res) = @_;
-  return;
+  my ($self, $method_path_status, $res) = @_;
+  my $parameters = $self->parameters_for_response($method_path_status);
+
+  my %get;
+  for my $in (qw(body header)) {
+    $get{$in} = ref $res->{$in} eq 'CODE' ? $res->{$in} : sub {
+      my ($name, $param) = @_;
+      return {exists => exists $res->{$in}{$name}, value => $res->{$in}{$name}};
+    };
+  }
+
+  return $self->_validate_request_or_response(response => $parameters, \%get);
 }
 
 sub _build_formats {
@@ -107,6 +127,55 @@ sub _find_all_nodes {
   }
 
   return @found;
+}
+
+sub _prefix_error_path {
+  return join '', "/$_[0]", $_[1] =~ /\w/ ? ($_[1]) : ();
+}
+
+sub _validate_request_or_response {
+  my ($self, $direction, $parameters, $get) = @_;
+
+  my @errors;
+  for my $param (@$parameters) {
+    my $val = $get->{$param->{in}}->($param->{name}, $param);
+    @$val{qw(in name)} = (@$param{qw(in name)});
+
+    if ($param->{in} eq 'body') {
+      $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
+
+      if (@{$param->{accepts}} and !grep { $_ eq $val->{content_type} } @{$param->{accepts}}) {
+        my $expected = join ', ', @{$param->{accepts}};
+        push @errors, E "/$param->{name}", [$expected => type => $val->{content_type}];
+        $val->{valid} = 0;
+        next;
+      }
+      if ($param->{required} and !$val->{exists}) {
+        push @errors, E "/$param->{name}", [qw(object required)];
+        $val->{valid} = 0;
+        next;
+      }
+      if ($val->{exists}) {
+        local $self->{"validate_$direction"} = 1;
+        my @e = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
+          $self->validate($val->{value}, $param->{schema});
+        push @errors, @e;
+        $val->{valid} = @e ? 0 : 1;
+      }
+    }
+    elsif ($val->{exists}) {
+      local $self->{"validate_$direction"} = 1;
+      my @e = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ } $self->validate($val->{value}, $param);
+      push @errors, @e;
+      $val->{valid} = @e ? 0 : 1;
+    }
+    elsif ($param->{required}) {
+      push @errors, E "/$param->{name}", [qw(object required)];
+      $val->{valid} = 0;
+    }
+  }
+
+  return @errors;
 }
 
 1;
@@ -204,11 +273,55 @@ The return value MUST not be mutated.
 
 =head2 validate_request
 
-  my @errors = $schema->validate_request([$method, $path], \%req);
+  @errors = $schema->validate_request([$method, $path], \%req);
+
+This method can be used to validate a HTTP request. C<%req> should contain
+key/value pairs representing the request parameters. Example:
+
+  %req = (
+    body => sub {
+      my ($param_name, $param_for_request) = shift;
+      return {exists => 1, value => {email => "..."}};
+    },
+    formData => {email => "..."},
+    header => {"X-Request-Base" => "..."},
+    path => {id => "..."},
+    query => {limit => 42},
+  );
+
+"formData", "header", "path" and "query" can be either a hash-ref, a hash-like
+object or a code ref, while "body" MUST be a code ref. The return value from
+the code ref will get mutated, making it possible to check if an individual
+parameter was validated or not.
+
+  # Before: "exists" and "value" must be present
+  my @evaluated;
+  $req{query} =  sub { push @evaluated, {exists => 1, value => 42}, return $evaluated[-1] };
+
+  # Validate
+  $schema->validate_request(get => "/user"], \%req);
+
+  # After: "in", "name" and "valid" are added
+  $evaluated[-1] ==> {exists => 1, value => 42, in => "query", name => "foo", valid => 1};
+
+A plain hash-ref will I</not> get mutated.
 
 =head2 validate_response
 
-  my @errors = $schema->validate_response([$method, $path], \%res);
+  @errors = $schema->validate_response([$method, $path, $status], \%res);
+
+This method can be used to validate a HTTP response. C<%res> should contain
+key/value pairs representing the response parameters. Example:
+
+  %res = (
+    body => sub {
+      my ($param_name, $param_for_response) = shift;
+      return {exists => 1, value => {email => "..."}};
+    },
+    header => {"Location" => "..."},
+  );
+
+C<%res> follows the same rules as C<%req> in L</validate_request>.
 
 =head1 SEE ALSO
 
