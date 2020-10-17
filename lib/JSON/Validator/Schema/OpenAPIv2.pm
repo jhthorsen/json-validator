@@ -201,6 +201,25 @@ sub _validate_request_or_response {
   return @errors;
 }
 
+sub _validate_type_object {
+  my ($self, $data, $path, $schema) = @_;
+  return E $path, [object => type => data_type $data] if ref $data ne 'HASH';
+
+  my $discriminator = $schema->{discriminator};
+  if ($discriminator and !$self->{inside_discriminator}) {
+    return E $path, "Discriminator $discriminator has no value." unless my $name    = $data->{$discriminator};
+    return E $path, "No definition for discriminator $name."     unless my $dschema = $self->get("/definitions/$name");
+    local $self->{inside_discriminator} = 1;    # prevent recursion
+    return $self->_validate($data, $path, $dschema);
+  }
+
+  return (
+    $self->_validate_type_object_min_max($_[1], $path, $schema),
+    $self->_validate_type_object_dependencies($_[1], $path, $schema),
+    $self->_validate_type_object_properties($_[1], $path, $schema),
+  );
+}
+
 1;
 
 =encoding utf8
