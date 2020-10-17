@@ -133,6 +133,15 @@ sub _prefix_error_path {
   return join '', "/$_[0]", $_[1] =~ /\w/ ? ($_[1]) : ();
 }
 
+sub _coerce_by_collection_format {
+  my ($self, $val, $format) = @_;
+  return $val->{value} = ref $val->{value} eq 'ARRAY' ? $val->{value} : [$val->{value}] if $format eq 'multi';
+  return $val->{value} = [split /\|/,  $val->{value}] if $format eq 'pipes';
+  return $val->{value} = [split /[ ]/, $val->{value}] if $format eq 'ssv';
+  return $val->{value} = [split /\t/,  $val->{value}] if $format eq 'tsv';
+  return $val->{value} = [split /,/,   $val->{value}];
+}
+
 sub _validate_request_or_response {
   my ($self, $direction, $parameters, $get) = @_;
 
@@ -164,6 +173,8 @@ sub _validate_request_or_response {
       }
     }
     elsif ($val->{exists}) {
+      $self->_coerce_by_collection_format($val, $param->{collectionFormat})
+        if $direction eq 'request' and $param->{collectionFormat};
       local $self->{"validate_$direction"} = 1;
       my @e = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ } $self->validate($val->{value}, $param);
       push @errors, @e;
