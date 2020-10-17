@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::OpenAPIv2;
 use Mojo::Base 'JSON::Validator::Schema::Draft4';
 
-use JSON::Validator::Util qw(E schema_type);
+use JSON::Validator::Util qw(E data_type schema_type);
 
 has moniker       => 'openapiv2';
 has specification => 'http://swagger.io/v2/schema.json';
@@ -133,6 +133,15 @@ sub _prefix_error_path {
   return join '', "/$_[0]", $_[1] =~ /\w/ ? ($_[1]) : ();
 }
 
+sub _coerce_arrays {
+  my ($self, $val, $param) = @_;
+  my $data_type   = data_type $val->{value};
+  my $schema_type = schema_type $param;
+  return $val->{value} = [$val->{value}] if $schema_type eq 'array' and $data_type ne 'array';
+  return $val->{value} = @{$val->{value}} ? $val->{value}[-1] : undef
+    if $schema_type ne 'array' and $data_type eq 'array';
+}
+
 sub _coerce_by_collection_format {
   my ($self, $val, $format) = @_;
   return $val->{value} = ref $val->{value} eq 'ARRAY' ? $val->{value} : [$val->{value}] if $format eq 'multi';
@@ -185,6 +194,7 @@ sub _validate_request_or_response {
     elsif ($val->{exists}) {
       $self->_coerce_by_collection_format($val, $param->{collectionFormat})
         if $direction eq 'request' and $param->{collectionFormat};
+      $self->_coerce_arrays($val, $param);
       local $self->{"validate_$direction"} = 1;
       my @e = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ } $self->validate($val->{value}, $param);
       $val->{valid} = 1 unless @e;
