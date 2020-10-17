@@ -201,6 +201,12 @@ sub _validate_request_or_response {
   return @errors;
 }
 
+sub _validate_type_file {
+  my ($self, $data, $path, $schema) = @_;
+  return unless $schema->{required} and (not defined $data or not length $data);
+  return E $path => 'Missing property.';
+}
+
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
   return E $path, [object => type => data_type $data] if ref $data ne 'HASH';
