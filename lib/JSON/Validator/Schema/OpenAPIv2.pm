@@ -142,6 +142,17 @@ sub _coerce_by_collection_format {
   return $val->{value} = [split /,/,   $val->{value}];
 }
 
+sub _coerce_default_value {
+  my ($self, $val, $param) = @_;
+
+  if ($param->{schema} and exists $param->{schema}{default}) {
+    @$val{qw(exists value)} = (1, $param->{schema}{default});
+  }
+  elsif (exists $param->{default}) {
+    @$val{qw(exists value)} = (1, $param->{default});
+  }
+}
+
 sub _validate_request_or_response {
   my ($self, $direction, $parameters, $get) = @_;
 
@@ -149,6 +160,7 @@ sub _validate_request_or_response {
   for my $param (@$parameters) {
     my $val = $get->{$param->{in}}->($param->{name}, $param);
     @$val{qw(in name)} = (@$param{qw(in name)});
+    $self->_coerce_default_value($val, $param) unless $val->{exists};
 
     if ($param->{in} eq 'body') {
       $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
