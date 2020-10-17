@@ -217,6 +217,16 @@ sub _validate_type_file {
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
   return E $path, [object => type => data_type $data] if ref $data ne 'HASH';
+  return shift->SUPER::_validate_type_object(@_) unless $self->{validate_request};
+
+  my (@errors, %ro);
+  for my $name (keys %{$schema->{properties} || {}}) {
+    next unless $schema->{properties}{$name}{readOnly};
+    push @errors, E "$path/$name", "Read-only." if exists $data->{$name};
+    $ro{$name} = 1;
+  }
+
+  local $schema->{required} = [grep { !$ro{$_} } @{$schema->{required} || []}];
 
   my $discriminator = $schema->{discriminator};
   if ($discriminator and !$self->{inside_discriminator}) {
@@ -227,6 +237,7 @@ sub _validate_type_object {
   }
 
   return (
+    @errors,
     $self->_validate_type_object_min_max($_[1], $path, $schema),
     $self->_validate_type_object_dependencies($_[1], $path, $schema),
     $self->_validate_type_object_properties($_[1], $path, $schema),
