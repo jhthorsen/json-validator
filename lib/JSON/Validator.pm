@@ -20,11 +20,12 @@ our $VERSION   = '4.10';
 our @EXPORT_OK = qw(joi validate_json);
 
 our %SCHEMAS = (
-  'http://json-schema.org/draft-04/schema#'      => '+Draft4',
-  'http://json-schema.org/draft-06/schema#'      => '+Draft6',
-  'http://json-schema.org/draft-07/schema#'      => '+Draft7',
-  'https://json-schema.org/draft/2019-09/schema' => '+Draft201909',
-  'http://swagger.io/v2/schema.json'             => '+OpenAPIv2',
+  'http://json-schema.org/draft-04/schema#'             => '+Draft4',
+  'http://json-schema.org/draft-06/schema#'             => '+Draft6',
+  'http://json-schema.org/draft-07/schema#'             => '+Draft7',
+  'https://json-schema.org/draft/2019-09/schema'        => '+Draft201909',
+  'http://swagger.io/v2/schema.json'                    => '+OpenAPIv2',
+  'https://spec.openapis.org/oas/3.0/schema/2019-04-02' => '+OpenAPIv3',
 );
 
 has formats                   => sub { shift->_build_formats };
@@ -424,7 +425,16 @@ sub _resolve_ref {
 # back compat
 sub _schema_class {
   my ($self, $spec) = @_;
-  $spec = 'http://swagger.io/v2/schema.json' if ref $spec eq 'HASH' and $spec->{swagger} and $spec->{paths};
+
+  # Detect openapiv2 and v3 schemas by content, since no "$schema" is present
+  if (ref $spec eq 'HASH' and $spec->{paths}) {
+    if ($spec->{swagger} and $spec->{swagger} eq '2.0') {
+      $spec = 'http://swagger.io/v2/schema.json';
+    }
+    elsif ($spec->{openapi} and $spec->{openapi} =~ m!^3\.0\.\d+$!) {
+      $spec = 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
+    }
+  }
 
   my $schema_class = $spec && $SCHEMAS{$spec} || 'JSON::Validator::Schema';
   $schema_class =~ s!^\+(.+)$!JSON::Validator::Schema::$1!;
