@@ -81,6 +81,37 @@ $body   = {exists => 1, value => {code => 42}};
 @errors = $schema->validate_response([post => '/pets', 200], {body => \&body});
 is "@errors", '/body/message: Missing property.', 'valid response body default';
 
+eval {
+  my $schema = JSON::Validator->new->schema('data://main/spec-resolve-refs.json')->schema->resolve;
+  is $schema->get([qw(paths /user get responses 200 schema type)]), 'object', 'resolved "User"';
+} or do {
+  diag $@;
+  ok 0, 'Could not resolve "User"';
+};
+
 done_testing;
 
 sub body {$body}
+
+__DATA__
+@@ spec-resolve-refs.json
+{
+  "swagger": "2.0",
+  "info": {"version": "", "title": "Test non standard refs"},
+  "basePath": "/api",
+  "paths": {
+    "/user": {
+      "get": {
+        "responses": {
+          "200": { "description": "ok", "schema": { "$ref": "User" } }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "User": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}
