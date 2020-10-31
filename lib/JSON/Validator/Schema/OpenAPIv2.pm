@@ -114,25 +114,6 @@ sub _build_formats {
   };
 }
 
-sub _find_all_nodes {
-  my ($self, $pointer, $leaf) = @_;
-  my @found;
-  push @found, $self->data->{$leaf} if ref $self->data->{$leaf} eq 'ARRAY';
-
-  my @path;
-  for my $p (@$pointer) {
-    push @path, $p;
-    my $node = $self->get([@path]);
-    push @found, $node->{$leaf} if ref $node->{$leaf} eq 'ARRAY';
-  }
-
-  return @found;
-}
-
-sub _prefix_error_path {
-  return join '', "/$_[0]", $_[1] =~ /\w/ ? ($_[1]) : ();
-}
-
 sub _coerce_arrays {
   my ($self, $val, $param) = @_;
   my $data_type   = data_type $val->{value};
@@ -160,6 +141,31 @@ sub _coerce_default_value {
   elsif (exists $param->{default}) {
     @$val{qw(exists value)} = (1, $param->{default});
   }
+}
+
+sub _find_all_nodes {
+  my ($self, $pointer, $leaf) = @_;
+  my @found;
+  push @found, $self->data->{$leaf} if ref $self->data->{$leaf} eq 'ARRAY';
+
+  my @path;
+  for my $p (@$pointer) {
+    push @path, $p;
+    my $node = $self->get([@path]);
+    push @found, $node->{$leaf} if ref $node->{$leaf} eq 'ARRAY';
+  }
+
+  return @found;
+}
+
+sub _prefix_error_path {
+  return join '', "/$_[0]", $_[1] =~ /\w/ ? ($_[1]) : ();
+}
+
+sub _resolve_ref {
+  my ($self, $ref_url, $base_url, $root) = @_;
+  $ref_url = "#/definitions/$ref_url" if $ref_url =~ /^\w+$/;
+  return $self->SUPER::_resolve_ref($ref_url, $base_url, $root);
 }
 
 sub _validate_request_or_response {
