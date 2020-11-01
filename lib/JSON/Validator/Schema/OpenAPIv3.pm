@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::OpenAPIv3;
 use Mojo::Base 'JSON::Validator::Schema::OpenAPIv2';
 
-use JSON::Validator::Util qw(schema_type);
+use JSON::Validator::Util qw(E schema_type);
 
 has moniker       => 'openapiv3';
 has specification => 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
@@ -21,7 +21,14 @@ sub parameters_for_request {
 
   if (my $request_body = $self->get([paths => $path, $method, 'requestBody'])) {
     my @accepts = sort keys %{$request_body->{content} || {}};
-    push @parameters, {accepts => \@accepts, in => 'body', name => 'body', required => $request_body->{required}};
+    push @parameters,
+      {
+      accepts  => \@accepts,
+      content  => $request_body->{content},
+      in       => 'body',
+      name     => 'body',
+      required => $request_body->{required},
+      };
   }
 
   return $self->{cache}{$cache_key} = \@parameters;
@@ -45,7 +52,7 @@ sub parameters_for_response {
   }
 
   if (my @accepts = sort keys %{$response->{content} || {}}) {
-    push @parameters, {accepts => \@accepts, in => 'body', name => 'body'};
+    push @parameters, {accepts => \@accepts, content => $response->{content}, in => 'body', name => 'body'};
   }
 
   return $self->{cache}{$cache_key} = \@parameters;
@@ -82,6 +89,31 @@ sub _build_formats {
     'uri-template'          => JSON::Validator::Formats->can('check_uri_template'),
     'uuid'                  => JSON::Validator::Formats->can('check_uuid'),
   };
+}
+
+sub _prefix_error_path { goto &JSON::Validator::Schema::OpenAPIv2::_prefix_error_path }
+
+sub _validate_body {
+  my ($self, $direction, $val, $param) = @_;
+  $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
+
+  my $ct = $self->negotiate_content_type($param->{accepts}, $val->{content_type});
+  if (@{$param->{accepts}} and !$ct) {
+    my $expected = join ', ', @{$param->{accepts}};
+    return E "/$param->{name}", [$expected => type => $val->{content_type}];
+  }
+  if ($param->{required} and !$val->{exists}) {
+    return E "/$param->{name}", [qw(object required)];
+  }
+  if ($val->{exists}) {
+    local $self->{"validate_$direction"} = 1;
+    my @errors = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
+      $self->validate($val->{value}, $param->{content}{$ct}{schema});
+    $val->{valid} = @errors ? 0 : 1;
+    return @errors;
+  }
+
+  return;
 }
 
 1;

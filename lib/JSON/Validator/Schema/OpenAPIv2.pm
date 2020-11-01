@@ -13,6 +13,35 @@ sub coerce {
   return $self->{coerce};
 }
 
+sub negotiate_content_type {
+  my ($self, $accepts, $header) = @_;
+  return '' unless $header;
+
+  my %header_map;
+  /^\s*([^,; ]+)(?:\s*\;\s*q\s*=\s*(\d+(?:\.\d+)?))?\s*$/i and $header_map{lc $1} = $2 // 1 for split /,/, $header;
+  my @headers = sort { $header_map{$b} <=> $header_map{$a} } sort keys %header_map;
+
+  # Check for exact match
+  for my $ct (@$accepts) {
+    return $ct if $header_map{$ct};
+  }
+
+  # Check for closest match
+  for my $re (map { my $re = "$_"; $re =~ s!\*!.*!g; $re = qr{$re}; [$_, $re] } grep {/\*/} @$accepts) {
+    for my $ct (@headers) {
+      return $re->[0] if $ct =~ $re->[1];
+    }
+  }
+  for my $re (map { local $_ = "$_"; s!\*!.*!g; qr{$_} } grep {/\*/} @headers) {
+    for my $ct (@$accepts) {
+      return $ct if $ct =~ $re;
+    }
+  }
+
+  # Could not find any valid content type
+  return '';
+}
+
 sub new {
   my $self = shift->SUPER::new(@_);
   $self->coerce;    # make sure this attribute is built
@@ -67,7 +96,7 @@ sub validate_request {
   my $parameters = $self->parameters_for_request($method_path);
 
   my %get;
-  for my $in (qw(body formData header path query)) {
+  for my $in (qw(body cookie formData header path query)) {
     $get{$in} = ref $req->{$in} eq 'CODE' ? $req->{$in} : sub {
       my ($name, $param) = @_;
       return {exists => exists $req->{$in}{$name}, value => $req->{$in}{$name}};
@@ -82,7 +111,7 @@ sub validate_response {
   my $parameters = $self->parameters_for_response($method_path_status);
 
   my %get;
-  for my $in (qw(body header)) {
+  for my $in (qw(body cookie header)) {
     $get{$in} = ref $res->{$in} eq 'CODE' ? $res->{$in} : sub {
       my ($name, $param) = @_;
       return {exists => exists $res->{$in}{$name}, value => $res->{$in}{$name}};
@@ -218,7 +247,8 @@ sub _validate_request_or_response {
     if ($val->{exists}) {
       $self->_coerce_arrays($val, $param);
       local $self->{"validate_$direction"} = 1;
-      my @e = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ } $self->validate($val->{value}, $param);
+      my @e = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
+        $self->validate($val->{value}, $param->{schema} || $param);
       push @errors, @e;
       $val->{valid} = @e ? 0 : 1;
     }
@@ -321,6 +351,14 @@ Coercion is enabled by default, since headers, path parts, query parameters,
 ... are in most cases strings.
 
 See also L<JSON::Validator/coerce>.
+
+=head2 negotiate_content_type
+
+  $content_type = $schema->negotiate_content_type(\@content_types, $header);
+
+This method can take a "Content-Type" or "Accept" header and find the closest
+matching content type in C<@content_types>. C<@content_types> can contain
+wildcards, meaning "*/*" will match anything.
 
 =head2 new
 
