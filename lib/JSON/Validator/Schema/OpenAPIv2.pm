@@ -99,6 +99,7 @@ sub validate_request {
   for my $in (qw(body cookie formData header path query)) {
     $get{$in} = ref $req->{$in} eq 'CODE' ? $req->{$in} : sub {
       my ($name, $param) = @_;
+      return {exists => exists $req->{$in}, value => $req->{$in}} unless defined $name;
       return {exists => exists $req->{$in}{$name}, value => $req->{$in}{$name}};
     };
   }
@@ -408,7 +409,8 @@ key/value pairs representing the request parameters. Example:
   %req = (
     body => sub {
       my ($param_name, $param_for_request) = shift;
-      return {exists => 1, value => {email => "..."}};
+      return {exists => 1, value => \%all_params} unless defined $param_name;
+      return {exists => 1, value => "..."};
     },
     formData => {email => "..."},
     header => {"X-Request-Base" => "..."},
@@ -443,7 +445,8 @@ key/value pairs representing the response parameters. Example:
   %res = (
     body => sub {
       my ($param_name, $param_for_response) = shift;
-      return {exists => 1, value => {email => "..."}};
+      return {exists => 1, value => \%all_params} unless defined $param_name;
+      return {exists => 1, value => "..."};
     },
     header => {"Location" => "..."},
   );
