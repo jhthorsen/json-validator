@@ -18,6 +18,18 @@ note 'validate schema';
 @errors = @{JSON::Validator->new->schema({swagger => '2.0', paths => {}})->schema->errors};
 is "@errors", '/info: Missing property.', 'invalid schema';
 
+note 'negotiate content type';
+is $schema->negotiate_content_type([]), '', 'accepts nothing';
+is $schema->negotiate_content_type(['application/json']), '', 'header missing';
+is $schema->negotiate_content_type(['application/json', 'text/plain'], 'application/json'), 'application/json',
+  'exact match';
+is $schema->negotiate_content_type(['application/json', 'text/*'], 'text/plain'), 'text/*', 'closest accept';
+is $schema->negotiate_content_type(
+  ['text/plain', 'application/xml'],
+  'text/html;text/plain;q=0.2,application/xml;q=0.9,*/*;q=0.8'
+  ),
+  'application/xml', 'exact match with weight';
+
 note 'parameters_for_request';
 is $schema->parameters_for_request([GET => '/pets/nope']), undef, 'no such path';
 cmp_deeply $schema->parameters_for_request([GET => '/pets']), [superhashof({in => 'query', name => 'limit'})],
