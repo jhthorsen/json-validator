@@ -2,6 +2,7 @@ package JSON::Validator::Schema::OpenAPIv3;
 use Mojo::Base 'JSON::Validator::Schema::OpenAPIv2';
 
 use JSON::Validator::Util qw(E schema_type);
+use Mojo::JSON qw(false true);
 
 has moniker       => 'openapiv3';
 has specification => 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
@@ -91,7 +92,121 @@ sub _build_formats {
   };
 }
 
+sub _coerce_parameter_format {
+  my ($self, $val, $param) = @_;
+  return unless $val->{exists};
+
+  state $in_style = {cookie => 'form', header => 'simple', path => 'simple', query => 'form'};
+  $param->{style} = $in_style->{$param->{in}} unless $param->{style};
+  return $self->_coerce_parameter_style_object_deep($val, $param) if $param->{style} eq 'deepObject';
+
+  my $schema_type = schema_type $param;
+  return $self->_coerce_parameter_style_array($val, $param)  if $schema_type eq 'array';
+  return $self->_coerce_parameter_style_object($val, $param) if $schema_type eq 'object';
+}
+
+sub _coerce_parameter_style_array {
+  my ($self, $val, $param) = @_;
+  my $style   = $param->{style};
+  my $explode = $param->{explode} // $param->{style} eq 'form' ? true : false;
+  my $re;
+
+  if ($style =~ m!^(form|pipeDelimited|spaceDelimited|simple)$!) {
+    return $val->{value} = ref $val->{value} eq 'ARRAY' ? $val->{value} : [$val->{value}] if $explode;
+    $re = $style eq 'pipeDelimited' ? qr{\|} : $style eq 'spaceDelimited' ? $re = qr{[ ]} : qr{,};
+  }
+  elsif ($style eq 'label') {
+    $re = qr{\.};
+    $re = qr{,} if $val->{value} =~ s/^$re// and !$explode;
+  }
+  elsif ($style eq 'matrix') {
+    $re = qr{;\Q$param->{name}\E=};
+    $re = qr{,} if $val->{value} =~ s/^$re// and !$explode;
+  }
+
+  return $val->{value} = [_split($re, $val->{value})];
+}
+
+sub _coerce_parameter_style_object {
+  my ($self, $val, $param) = @_;
+  my $style   = $param->{style};
+  my $explode = $param->{explode} // (grep { $style eq $_ } qw(cookie query)) ? 1 : 0;
+
+  if ($explode) {
+    return if $style eq 'form';
+    state $style_re = {label => qr{\.}, matrix => qr{;}, simple => qr{,}};
+    return unless my $re = $style_re->{$style};
+    return if $style eq 'matrix' && $val->{value} !~ s/^;//;
+    return if $style eq 'label'  && $val->{value} !~ s/^\.//;
+    my $params = Mojo::Parameters->new;
+    $params->append(Mojo::Parameters->new($_)) for _split($re, $val->{value});
+    return $val->{value} = $params->to_hash;
+  }
+  else {
+    state $style_re = {
+      form           => qr{,},
+      label          => qr{\.},
+      matrix         => qr{,},
+      pipeDelimited  => qr{\|},
+      simple         => qr{,},
+      spaceDelimited => qr{[ ]},
+    };
+    return unless my $re = $style_re->{$style};
+    return if $style eq 'matrix' && $val->{value} !~ s/^;\Q$param->{name}\E=//;
+    return if $style eq 'label'  && $val->{value} !~ s/^\.//;
+    return $val->{value} = Mojo::Parameters->new->pairs([_split($re, $val->{value})])->to_hash;
+  }
+}
+
+sub _coerce_parameter_style_object_deep {
+  my ($self, $val, $param) = @_;
+  my %res;
+
+  for my $k (keys %{$val->{value}}) {
+    next unless $k =~ /^\Q$param->{name}\E\[(.*)\]/;
+
+    my @path   = $k =~ m!\[([^]]*)\]!g;
+    my $values = ref $val->{value}{$k} eq 'ARRAY' ? $val->{value}{$k} : [$val->{value}{$k}];
+    my $node   = \%res;
+    while (defined(my $p = shift @path)) {
+      if (@path) {
+        my $next = $path[0] =~ m!^(|\d+)$! ? [] : {};
+        $node = ref $node eq 'ARRAY' ? ($node->[$p] ||= $next) : ($node->{$p} ||= $next);
+      }
+      elsif ($p eq '') {
+        @$node = @$values;
+      }
+      elsif ($p =~ /^\d+$/) {
+        $node->[$p] = $values->[0];
+      }
+      else {
+        $node->{$p} = @$values > 1 ? $values : $values->[0];
+      }
+    }
+  }
+
+  return $val->{value}  = \%res if %res;
+  return $val->{exists} = 0;
+}
+
+sub _get_parameter_value {
+  my ($self, $param, $get) = @_;
+  my $schema_type = schema_type $param;
+  my $name        = $param->{name};
+  $name = undef if $schema_type eq 'object' && $param->{explode} && ($param->{style} || '') =~ m!^(form|deepObject)$!;
+
+  my $val = $get->{$param->{in}}->($name, $param);
+  @$val{qw(in name)} = (@$param{qw(in name)});
+  return $val;
+}
+
 sub _prefix_error_path { goto &JSON::Validator::Schema::OpenAPIv2::_prefix_error_path }
+
+sub _split {
+  my ($re, $val) = @_;
+  $val = @$val ? $val->[-1] : '' if ref $val;
+  return split /$re/, $val;
+}
 
 sub _validate_body {
   my ($self, $direction, $val, $param) = @_;
