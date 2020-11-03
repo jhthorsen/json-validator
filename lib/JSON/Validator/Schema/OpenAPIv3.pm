@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::OpenAPIv3;
 use Mojo::Base 'JSON::Validator::Schema::OpenAPIv2';
 
-use JSON::Validator::Util qw(E schema_type);
+use JSON::Validator::Util qw(E data_type schema_type);
 use Mojo::JSON qw(false true);
 use Mojo::Path;
 
@@ -215,6 +215,8 @@ sub _split {
   return split /$re/, $val;
 }
 
+sub _to_list { ref $_[0] eq 'ARRAY' ? @{$_[0]} : $_[0] ? ($_[0]) : () }
+
 sub _validate_body {
   my ($self, $direction, $val, $param) = @_;
   $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
@@ -236,6 +238,27 @@ sub _validate_body {
   }
 
   return;
+}
+
+sub _validate_type_object {
+  my ($self, $data, $path, $schema) = @_;
+  return E $path, [object => type => data_type $data] if ref $data ne 'HASH';
+  return shift->SUPER::_validate_type_object(@_) unless $self->{validate_request} or $self->{validate_response};
+
+  my %properties = %{$schema->{properties} || {}};
+  local $schema->{properties} = \%properties;
+  for my $key (keys %properties) {
+    next unless $properties{$key}{nullable};
+    my $tied = tied %{$properties{$key}};
+    $properties{$key} = $tied ? {%{$tied->schema}} : {%{$properties{$key}}};
+    $properties{$key}{type} = ['null', _to_list($properties{$key}{type})];
+  }
+
+  return (
+    $self->_validate_type_object_min_max($_[1], $path, $schema),
+    $self->_validate_type_object_dependencies($_[1], $path, $schema),
+    $self->_validate_type_object_properties($_[1], $path, $schema),
+  );
 }
 
 1;
