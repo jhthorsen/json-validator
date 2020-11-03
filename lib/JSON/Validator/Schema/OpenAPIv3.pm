@@ -254,7 +254,45 @@ sub _validate_type_object {
     $properties{$key}{type} = ['null', _to_list($properties{$key}{type})];
   }
 
+  return $self->{validate_request}
+    ? $self->_validate_type_object_request($_[1], $path, $schema)
+    : $self->_validate_type_object_response($_[1], $path, $schema);
+}
+
+sub _validate_type_object_request {
+  my ($self, $data, $path, $schema) = @_;
+
+  my (@errors, %ro);
+  for my $name (keys %{$schema->{properties} || {}}) {
+    next unless $schema->{properties}{$name}{readOnly};
+    push @errors, E "$path/$name", "Read-only." if exists $data->{$name};
+    $ro{$name} = 1;
+  }
+
+  local $schema->{required} = [grep { !$ro{$_} } @{$schema->{required} || []}];
+
   return (
+    @errors,
+    $self->_validate_type_object_min_max($_[1], $path, $schema),
+    $self->_validate_type_object_dependencies($_[1], $path, $schema),
+    $self->_validate_type_object_properties($_[1], $path, $schema),
+  );
+}
+
+sub _validate_type_object_response {
+  my ($self, $data, $path, $schema) = @_;
+
+  my (@errors, %rw);
+  for my $name (keys %{$schema->{properties} || {}}) {
+    next unless $schema->{properties}{$name}{writeOnly};
+    push @errors, E "$path/$name", "Write-only." if exists $data->{$name};
+    $rw{$name} = 1;
+  }
+
+  local $schema->{required} = [grep { !$rw{$_} } @{$schema->{required} || []}];
+
+  return (
+    @errors,
     $self->_validate_type_object_min_max($_[1], $path, $schema),
     $self->_validate_type_object_dependencies($_[1], $path, $schema),
     $self->_validate_type_object_properties($_[1], $path, $schema),
