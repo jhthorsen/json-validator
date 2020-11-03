@@ -245,6 +245,17 @@ sub _validate_type_object {
   return E $path, [object => type => data_type $data] if ref $data ne 'HASH';
   return shift->SUPER::_validate_type_object(@_) unless $self->{validate_request} or $self->{validate_response};
 
+  # TODO: Support external URLs in "mapping"
+  my $discriminator = $schema->{discriminator};
+  if (ref $discriminator eq 'HASH' and $discriminator->{propertyName} and !$self->{inside_discriminator}) {
+    my ($name, $mapping) = @$discriminator{qw(propertyName mapping)};
+    return E $path, "Discriminator $name has no value."          unless my $map_name = $data->{$name};
+    return E $path, "No definition for discriminator $map_name." unless my $url      = $mapping->{$map_name};
+    return E $path, "TODO: Not yet supported: $url"              unless $url =~ s!^#!!;
+    local $self->{inside_discriminator} = 1;    # prevent recursion
+    return $self->_validate($data, $path, $self->get($url));
+  }
+
   my %properties = %{$schema->{properties} || {}};
   local $schema->{properties} = \%properties;
   for my $key (keys %properties) {
