@@ -3,6 +3,7 @@ use Mojo::Base 'JSON::Validator::Schema::OpenAPIv2';
 
 use JSON::Validator::Util qw(E schema_type);
 use Mojo::JSON qw(false true);
+use Mojo::Path;
 
 has moniker       => 'openapiv3';
 has specification => 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
@@ -187,6 +188,12 @@ sub _coerce_parameter_style_object_deep {
 
   return $val->{value}  = \%res if %res;
   return $val->{exists} = 0;
+}
+
+sub _definitions_path_for_ref {
+  my ($self, $ref) = @_;
+  my $path = Mojo::Path->new($ref->fqn =~ m!^.*#/(components/.+)$!)->to_dir->parts;
+  return $path->[0] ? $path : ['definitions'];
 }
 
 sub _get_parameter_value {
