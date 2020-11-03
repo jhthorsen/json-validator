@@ -123,15 +123,6 @@ sub _coerce_arrays {
     if $schema_type ne 'array' and $data_type eq 'array';
 }
 
-sub _coerce_by_collection_format {
-  my ($self, $val, $format) = @_;
-  return $val->{value} = ref $val->{value} eq 'ARRAY' ? $val->{value} : [$val->{value}] if $format eq 'multi';
-  return $val->{value} = [split /\|/,  $val->{value}] if $format eq 'pipes';
-  return $val->{value} = [split /[ ]/, $val->{value}] if $format eq 'ssv';
-  return $val->{value} = [split /\t/,  $val->{value}] if $format eq 'tsv';
-  return $val->{value} = [split /,/,   $val->{value}];
-}
-
 sub _coerce_default_value {
   my ($self, $val, $param) = @_;
 
@@ -141,6 +132,17 @@ sub _coerce_default_value {
   elsif (exists $param->{default}) {
     @$val{qw(exists value)} = (1, $param->{default});
   }
+}
+
+sub _coerce_parameter_format {
+  my ($self, $val, $param) = @_;
+  return unless $val->{exists};
+  return unless my $format = $param->{collectionFormat};
+  return $val->{value} = ref $val->{value} eq 'ARRAY' ? $val->{value} : [$val->{value}] if $format eq 'multi';
+  return $val->{value} = [split /\|/,  $val->{value}] if $format eq 'pipes';
+  return $val->{value} = [split /[ ]/, $val->{value}] if $format eq 'ssv';
+  return $val->{value} = [split /\t/,  $val->{value}] if $format eq 'tsv';
+  return $val->{value} = [split /,/,   $val->{value}];
 }
 
 sub _find_all_nodes {
@@ -158,6 +160,13 @@ sub _find_all_nodes {
   return @found;
 }
 
+sub _get_parameter_value {
+  my ($self, $param, $get) = @_;
+  my $val = $get->{$param->{in}}->($param->{name}, $param);
+  @$val{qw(in name)} = (@$param{qw(in name)});
+  return $val;
+}
+
 sub _prefix_error_path {
   return join '', "/$_[0]", $_[1] =~ /\w/ ? ($_[1]) : ();
 }
@@ -168,40 +177,45 @@ sub _resolve_ref {
   return $self->SUPER::_resolve_ref($ref_url, $base_url, $root);
 }
 
+sub _validate_body {
+  my ($self, $direction, $val, $param) = @_;
+  $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
+
+  if (@{$param->{accepts}} and !grep { $_ eq $val->{content_type} } @{$param->{accepts}}) {
+    $val->{valid} = 0;
+    return E "/$param->{name}", [join(', ', @{$param->{accepts}}) => type => $val->{content_type}];
+  }
+  if ($param->{required} and !$val->{exists}) {
+    $val->{valid} = 0;
+    return E "/$param->{name}", [qw(object required)];
+  }
+  if ($val->{exists}) {
+    local $self->{"validate_$direction"} = 1;
+    my @errors = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
+      $self->validate($val->{value}, $param->{schema});
+    $val->{valid} = @errors ? 0 : 1;
+    return @errors;
+  }
+
+  return;
+}
+
 sub _validate_request_or_response {
   my ($self, $direction, $parameters, $get) = @_;
 
   my @errors;
   for my $param (@$parameters) {
-    my $val = $get->{$param->{in}}->($param->{name}, $param);
-    @$val{qw(in name)} = (@$param{qw(in name)});
+    my $val = $self->_get_parameter_value($param, $get);
     $self->_coerce_default_value($val, $param) unless $val->{exists};
 
     if ($param->{in} eq 'body') {
-      $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
-
-      if (@{$param->{accepts}} and !grep { $_ eq $val->{content_type} } @{$param->{accepts}}) {
-        my $expected = join ', ', @{$param->{accepts}};
-        push @errors, E "/$param->{name}", [$expected => type => $val->{content_type}];
-        $val->{valid} = 0;
-        next;
-      }
-      if ($param->{required} and !$val->{exists}) {
-        push @errors, E "/$param->{name}", [qw(object required)];
-        $val->{valid} = 0;
-        next;
-      }
-      if ($val->{exists}) {
-        local $self->{"validate_$direction"} = 1;
-        my @e = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
-          $self->validate($val->{value}, $param->{schema});
-        push @errors, @e;
-        $val->{valid} = @e ? 0 : 1;
-      }
+      push @errors, $self->_validate_body($direction, $val, $param);
+      next;
     }
-    elsif ($val->{exists}) {
-      $self->_coerce_by_collection_format($val, $param->{collectionFormat})
-        if $direction eq 'request' and $param->{collectionFormat};
+
+    $self->_coerce_parameter_format($val, $param) if $direction eq 'request';
+
+    if ($val->{exists}) {
       $self->_coerce_arrays($val, $param);
       local $self->{"validate_$direction"} = 1;
       my @e = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ } $self->validate($val->{value}, $param);
