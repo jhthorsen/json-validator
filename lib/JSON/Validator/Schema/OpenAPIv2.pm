@@ -3,14 +3,49 @@ use Mojo::Base 'JSON::Validator::Schema::Draft4';
 
 use JSON::Validator::Util qw(E data_type schema_type);
 
+has errors => sub {
+  my $self      = shift;
+  my $url       = $self->specification;
+  my $validator = $self->new(%$self, allow_invalid_ref => 0)->resolve($url);
+
+  return [$validator->validate($self->resolve->data)];
+};
+
 has moniker       => 'openapiv2';
 has specification => 'http://swagger.io/v2/schema.json';
+
+sub allow_invalid_ref {
+  my $self = shift;
+  return $self->{allow_invalid_ref} || 0 unless @_;
+
+  delete $self->{errors};
+  $self->{allow_invalid_ref} = shift;
+  $self->data($self->{data}) if $self->{data};
+
+  return $self;
+}
 
 sub coerce {
   my $self = shift;
   return $self->SUPER::coerce(@_) if @_;
   $self->{coerce} ||= {booleans => 1, numbers => 1, strings => 1};
   return $self->{coerce};
+}
+
+sub data {
+  my $self = shift;
+  return $self->{data} ||= {} unless @_;
+
+  if ($self->allow_invalid_ref) {
+    my $clone = $self->new(%$self, allow_invalid_ref => 0);
+    $self->{data} = $clone->data(shift)->bundle({replace => 1})->data;
+  }
+  else {
+    $self->{data} = $self->_resolve(shift);
+  }
+
+  delete $self->{errors};
+  return $self;
 }
 
 sub negotiate_content_type {
@@ -346,12 +381,30 @@ Defaults to "L<http://swagger.io/v2/schema.json>".
 
 =head1 METHODS
 
+=head2 allow_invalid_ref
+
+  $bool   = $schema->allow_invalid_ref;
+  $schema = $schema->allow_invalid_ref(1);
+
+Setting this to true will replace all C<$ref>s in the schema before validating
+it. This can be useful if you have a complex schema that you want to split into
+different files where OpenAPIv2 normally does not allow you to.
+
+Setting this attribute will not work if the schema has recursive C<$ref>s.
+
+This method is highly EXPERIMENTAL, and it is not advices to use this method.
+
 =head2 coerce
 
 Coercion is enabled by default, since headers, path parts, query parameters,
 ... are in most cases strings.
 
 See also L<JSON::Validator/coerce>.
+
+=head2 data
+
+Same as L</JSON::Validator::Schema/data>, but will bundle the schema if
+L</allow_invalid_ref> is set.
 
 =head2 negotiate_content_type
 
