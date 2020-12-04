@@ -314,12 +314,10 @@ sub _new_schema {
   # Compat with load_and_validate_schema()
   $attrs{specification} = delete $attrs{schema} if $attrs{schema};
 
-  my $loadable = do {
-    no warnings 'newline';
-    (blessed $source && ($source->can('scheme') || $source->isa('Mojo::File')))
-    || -f $source
+  my $loadable
+    = (blessed $source && ($source->can('scheme') || $source->isa('Mojo::File')))
+    || ($source !~ /\n/ && -f $source)
     || (!ref $source && $source =~ /^\w/);
-};
 
   my $store  = $self->store;
   my $schema = $loadable ? $store->get($store->load($source)) : $source;
