@@ -2,7 +2,8 @@ use Mojo::Base -strict;
 use Mojo::JSON 'false';
 use Mojo::Util 'md5_sum';
 use JSON::Validator;
-use JSON::Validator::Util qw(E data_checksum data_type schema_type prefix_errors is_type json_pointer);
+use JSON::Validator::Util
+  qw(E data_checksum data_type negotiate_content_type schema_type prefix_errors is_type json_pointer);
 use Test::More;
 
 my $e = E '/path/x', 'some error';
@@ -26,8 +27,8 @@ ok is_type({},    'HASH'),            'is_type HASH';
 ok is_type(4.2,   'NUM'),             'is_type 4.2';
 ok is_type(42,    'NUM'),             'is_type 42';
 ok is_type(false, 'BOOL'),            'is_type BOOL';
-ok !is_type('2', 'NUM'),  'is_type 2';
-ok !is_type(0,   'BOOL'), 'is_type BOOL';
+ok !is_type('2',  'NUM'),             'is_type 2';
+ok !is_type(0,    'BOOL'),            'is_type BOOL';
 
 is json_pointer(qw(foo bar)),    'foo/bar',      'json_pointer foo bar';
 is json_pointer(qw(f/oo bar)),   'f/oo/bar',     'json_pointer f/oo bar';
@@ -36,16 +37,26 @@ is json_pointer(qw(f/oo ~b/ar)), 'f/oo/~0b~1ar', 'json_pointer f/oo ~b/ar';
 my $yikes = E {path => '/path/100/y', message => 'yikes'};
 is_deeply(
   [map {"$_"} prefix_errors 'allOf', [2, $e], [5, $yikes]],
-  ['/path/x: /allOf/2 some error', '/path/100/y: /allOf/5 yikes'],
+  ['/path/x: /allOf/2 some error',   '/path/100/y: /allOf/5 yikes'],
   'prefix_errors',
 );
 
-is schema_type({type                 => 'integer'}), 'integer', 'schema_type integer';
+is negotiate_content_type([]), '', 'accepts nothing';
+is negotiate_content_type(['application/json']), '', 'header missing';
+is negotiate_content_type(['application/json', 'text/plain'], 'application/json'), 'application/json', 'exact match';
+is negotiate_content_type(['application/json', 'text/*'], 'text/plain'),           'text/*',           'closest accept';
+is negotiate_content_type(
+  ['text/plain', 'application/xml'],
+  'text/html;text/plain;q=0.2,application/xml;q=0.9,*/*;q=0.8'
+  ),
+  'application/xml', 'exact match with weight';
+
+is schema_type({type => 'integer'}), 'integer', 'schema_type integer';
 is schema_type({additionalProperties => {}}), 'object', 'schema_type object';
 is schema_type({additionalProperties => {}}, {}), 'object', 'schema_type object';
 is schema_type({additionalProperties => {}}, []), '',       'schema_type not object';
-is schema_type({items => {}}), 'array', 'schema_type array';
-is schema_type({items => {}}, {}), '', 'schema_type not array';
+is schema_type({items      => {}}), 'array', 'schema_type array';
+is schema_type({items      => {}}, {}), '', 'schema_type not array';
 is schema_type({minLength  => 4}),       'string', 'schema_type string';
 is schema_type({multipleOf => 2}),       'number', 'schema_type number';
 is schema_type({const      => 42}),      'const',  'schema_type const';
@@ -54,10 +65,10 @@ is schema_type({cannot     => 'guess'}), '',       'schema_type no idea';
 subtest 'data_checksum with Sereal::Encoder' => sub {
   plan skip_all => 'Sereal::Encoder 4.00+ not installed' unless JSON::Validator::Util->SEREAL_SUPPORT;
 
-  my $d_hash  = {foo => {}, bar => {}};
-  my $d_hash2 = {bar => {}, foo => {}};
-  my $d_undef = {foo => undef};
-  my $d_obj   = {foo => JSON::Validator::Error->new};
+  my $d_hash   = {foo => {}, bar => {}};
+  my $d_hash2  = {bar => {}, foo => {}};
+  my $d_undef  = {foo => undef};
+  my $d_obj    = {foo => JSON::Validator::Error->new};
   my $d_array  = ['foo', 'bar'];
   my $d_array2 = ['bar', 'foo'];
 

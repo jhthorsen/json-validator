@@ -14,8 +14,10 @@ use Scalar::Util 'blessed';
 
 use constant SEREAL_SUPPORT => !$ENV{JSON_VALIDATOR_NO_SEREAL} && eval 'use Sereal::Encoder 4.00;1';
 
-our @EXPORT_OK
-  = qw(E data_checksum data_section data_type is_type schema_extract json_pointer prefix_errors schema_type);
+our @EXPORT_OK = (
+  qw(E data_checksum data_section data_type is_type negotiate_content_type),
+  qw(schema_extract json_pointer prefix_errors schema_type),
+);
 
 sub E { JSON::Validator::Error->new(@_) }
 
@@ -84,6 +86,35 @@ sub is_type {
   return blessed $_[0] ? $_[0]->isa($type) : ref $_[0] eq $type;
 }
 
+sub negotiate_content_type {
+  my ($accepts, $header) = @_;
+  return '' unless $header;
+
+  my %header_map;
+  /^\s*([^,; ]+)(?:\s*\;\s*q\s*=\s*(\d+(?:\.\d+)?))?\s*$/i and $header_map{lc $1} = $2 // 1 for split /,/, $header;
+  my @headers = sort { $header_map{$b} <=> $header_map{$a} } sort keys %header_map;
+
+  # Check for exact match
+  for my $ct (@$accepts) {
+    return $ct if $header_map{$ct};
+  }
+
+  # Check for closest match
+  for my $re (map { my $re = "$_"; $re =~ s!\*!.*!g; $re = qr{$re}; [$_, $re] } grep {/\*/} @$accepts) {
+    for my $ct (@headers) {
+      return $re->[0] if $ct =~ $re->[1];
+    }
+  }
+  for my $re (map { local $_ = "$_"; s!\*!.*!g; qr{$_} } grep {/\*/} @headers) {
+    for my $ct (@$accepts) {
+      return $ct if $ct =~ $re;
+    }
+  }
+
+  # Could not find any valid content type
+  return '';
+}
+
 sub schema_extract {
   my ($data, $p, $cb) = @_;
   $p = [ref $p ? @$p : length $p ? split('/', $p, -1) : $p];
@@ -115,8 +146,8 @@ sub prefix_errors {
 }
 
 sub schema_type {
-  return ''            if ref $_[0] ne 'HASH';
-  return $_[0]->{type} if $_[0]->{type};
+  return ''                              if ref $_[0] ne 'HASH';
+  return $_[0]->{type}                   if $_[0]->{type};
   return _guessed_right(object => $_[1]) if $_[0]->{additionalProperties};
   return _guessed_right(object => $_[1]) if $_[0]->{patternProperties};
   return _guessed_right(object => $_[1]) if $_[0]->{properties};
@@ -271,6 +302,14 @@ Checks if C<$any> is indeed a number.
 
 Will concat C<$append> on to C<$path>, but will also escape the two special
 characters "~" and "/" in C<$append>.
+
+=head2 negotiate_content_type
+
+  $content_type = negotiate_content_type($header, \@content_types);
+
+This method can take a "Content-Type" or "Accept" header and find the closest
+matching content type in C<@content_types>. C<@content_types> can contain
+wildcards, meaning "*/*" will match anything.
 
 =head2 prefix_errors
 

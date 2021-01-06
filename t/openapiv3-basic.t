@@ -53,17 +53,6 @@ is "@errors", '', 'limit ok, even as string';
 @errors = $schema->validate_request([get => '/pets'], {query => {limit => 'foo'}});
 is "@errors", '/limit: Expected integer - got string.', 'limit failed';
 
-$body   = {content_type => 'text/plain'};
-@errors = $schema->validate_request([POST => '/pets'], {body => \&body});
-is "@errors", '/body: Expected application/json, application/x-www-form-urlencoded - got text/plain.',
-  'invalid request content_type';
-is_deeply $body, {content_type => 'text/plain', in => 'body', name => 'body'}, 'input was mutated';
-
-$body   = {content_type => 'text/plain'};
-@errors = $schema->validate_response([get => '/pets'], {body => \&body});
-is "@errors", '/body: Expected application/json, application/xml - got text/plain.', 'invalid response content_type';
-is_deeply $body, {content_type => 'text/plain', in => 'body', name => 'body'}, 'input was mutated';
-
 $body   = {exists => 0};
 @errors = $schema->validate_request([POST => '/pets'], {body => \&body});
 is "@errors", '/body: Missing property.', 'default content type, but missing body';
@@ -88,6 +77,20 @@ is "@errors", '', 'valid response body 201';
 $body   = {exists => 1, value => {code => 42}};
 @errors = $schema->validate_response([post => '/pets', 200], {body => \&body});
 is "@errors", '/body/message: Missing property.', 'valid response body default';
+
+note 'validate_response - accept';
+$body   = {accept => 'text/plain'};
+@errors = $schema->validate_response([get => '/pets'], {body => \&body});
+is "@errors", '/header/Accept: Expected application/json, application/xml - got text/plain.', 'invalid accept';
+is_deeply $body, {accept => 'text/plain', content_type => '', in => 'body', name => 'body', valid => 0},
+  'failed to negotiate content type';
+
+$body   = {accept => 'application/*'};
+@errors = $schema->validate_response([get => '/pets'], {body => \&body});
+is "@errors", '', 'valid accept';
+is_deeply $body,
+  {accept => 'application/*', content_type => 'application/json', in => 'body', name => 'body', valid => 1},
+  'negotiated content type';
 
 done_testing;
 

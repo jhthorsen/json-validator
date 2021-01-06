@@ -18,18 +18,6 @@ note 'validate schema';
 @errors = @{JSON::Validator->new->schema({swagger => '2.0', paths => {}})->schema->errors};
 is "@errors", '/info: Missing property.', 'invalid schema';
 
-note 'negotiate content type';
-is $schema->negotiate_content_type([]), '', 'accepts nothing';
-is $schema->negotiate_content_type(['application/json']), '', 'header missing';
-is $schema->negotiate_content_type(['application/json', 'text/plain'], 'application/json'), 'application/json',
-  'exact match';
-is $schema->negotiate_content_type(['application/json', 'text/*'], 'text/plain'), 'text/*', 'closest accept';
-is $schema->negotiate_content_type(
-  ['text/plain', 'application/xml'],
-  'text/html;text/plain;q=0.2,application/xml;q=0.9,*/*;q=0.8'
-  ),
-  'application/xml', 'exact match with weight';
-
 note 'parameters_for_request';
 is $schema->parameters_for_request([GET => '/pets/nope']), undef, 'no such path';
 cmp_deeply $schema->parameters_for_request([GET => '/pets']), [superhashof({in => 'query', name => 'limit'})],
@@ -57,16 +45,6 @@ is "@errors", '', 'limit ok, even as string';
 @errors = $schema->validate_request([get => '/pets'], {query => {limit => 'foo'}});
 is "@errors", '/limit: Expected integer - got string.', 'limit failed';
 
-$body   = {content_type => 'text/plain'};
-@errors = $schema->validate_request([POST => '/pets'], {body => \&body});
-is "@errors", '/body: Expected application/json - got text/plain.', 'invalid request content_type';
-is_deeply $body, {content_type => 'text/plain', in => 'body', name => 'body', valid => 0}, 'input was mutated';
-
-$body   = {content_type => 'text/plain'};
-@errors = $schema->validate_response([post => '/pets'], {body => \&body});
-is "@errors", '/body: Expected application/json - got text/plain.', 'invalid response content_type';
-is_deeply $body, {content_type => 'text/plain', in => 'body', name => 'body', valid => 0}, 'input was mutated';
-
 $body   = {exists => 0};
 @errors = $schema->validate_request([POST => '/pets'], {body => \&body});
 is "@errors", '/body: Missing property.', 'default content type, but missing body';
@@ -92,6 +70,20 @@ is "@errors", '', 'valid response body 201';
 $body   = {exists => 1, value => {code => 42}};
 @errors = $schema->validate_response([post => '/pets', 200], {body => \&body});
 is "@errors", '/body/message: Missing property.', 'valid response body default';
+
+note 'validate_response - accept';
+$body   = {accept => 'text/plain'};
+@errors = $schema->validate_response([get => '/pets'], {body => \&body});
+is "@errors", '/header/Accept: Expected application/json - got text/plain.', 'invalid accept';
+is_deeply $body, {accept => 'text/plain', content_type => '', in => 'body', name => 'body', valid => 0},
+  'failed to negotiate content type';
+
+$body   = {accept => 'application/*'};
+@errors = $schema->validate_response([get => '/pets'], {body => \&body});
+is "@errors", '', 'valid accept';
+is_deeply $body,
+  {accept => 'application/*', content_type => 'application/json', in => 'body', name => 'body', valid => 1},
+  'negotiated content type';
 
 eval {
   my $schema = JSON::Validator->new->schema('data://main/spec-resolve-refs.json')->schema->resolve;

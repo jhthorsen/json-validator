@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::OpenAPIv2;
 use Mojo::Base 'JSON::Validator::Schema::Draft4';
 
-use JSON::Validator::Util qw(E data_type schema_type);
+use JSON::Validator::Util qw(E data_type negotiate_content_type schema_type);
 
 has errors => sub {
   my $self      = shift;
@@ -46,35 +46,6 @@ sub data {
 
   delete $self->{errors};
   return $self;
-}
-
-sub negotiate_content_type {
-  my ($self, $accepts, $header) = @_;
-  return '' unless $header;
-
-  my %header_map;
-  /^\s*([^,; ]+)(?:\s*\;\s*q\s*=\s*(\d+(?:\.\d+)?))?\s*$/i and $header_map{lc $1} = $2 // 1 for split /,/, $header;
-  my @headers = sort { $header_map{$b} <=> $header_map{$a} } sort keys %header_map;
-
-  # Check for exact match
-  for my $ct (@$accepts) {
-    return $ct if $header_map{$ct};
-  }
-
-  # Check for closest match
-  for my $re (map { my $re = "$_"; $re =~ s!\*!.*!g; $re = qr{$re}; [$_, $re] } grep {/\*/} @$accepts) {
-    for my $ct (@headers) {
-      return $re->[0] if $ct =~ $re->[1];
-    }
-  }
-  for my $re (map { local $_ = "$_"; s!\*!.*!g; qr{$_} } grep {/\*/} @headers) {
-    for my $ct (@$accepts) {
-      return $ct if $ct =~ $re;
-    }
-  }
-
-  # Could not find any valid content type
-  return '';
 }
 
 sub new {
@@ -246,7 +217,12 @@ sub _validate_body {
   my ($self, $direction, $val, $param) = @_;
   $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
 
-  if (@{$param->{accepts}} and !grep { $_ eq $val->{content_type} } @{$param->{accepts}}) {
+  if ($val->{accept}) {
+    $val->{content_type} = negotiate_content_type($param->{accepts}, $val->{accept});
+    $val->{valid}        = $val->{content_type} ? 1 : 0;
+    return E "/header/Accept", [join(', ', @{$param->{accepts}}), type => $val->{accept}] unless $val->{valid};
+  }
+  if (@{$param->{accepts}} and !$val->{content_type}) {
     $val->{valid} = 0;
     return E "/$param->{name}", [join(', ', @{$param->{accepts}}) => type => $val->{content_type}];
   }
@@ -406,14 +382,6 @@ See also L<JSON::Validator/coerce>.
 Same as L</JSON::Validator::Schema/data>, but will bundle the schema if
 L</allow_invalid_ref> is set.
 
-=head2 negotiate_content_type
-
-  $content_type = $schema->negotiate_content_type(\@content_types, $header);
-
-This method can take a "Content-Type" or "Accept" header and find the closest
-matching content type in C<@content_types>. C<@content_types> can contain
-wildcards, meaning "*/*" will match anything.
-
 =head2 new
 
 See L<JSON::Validator::Schema/new>.
@@ -488,6 +456,9 @@ parameter was validated or not.
 
 A plain hash-ref will I</not> get mutated.
 
+The body hash-ref can also have a "content_type" key. This will be checked
+against the list of valid request or response content types in the spec.
+
 =head2 validate_response
 
   @errors = $schema->validate_response([$method, $path, $status], \%res);
@@ -499,12 +470,14 @@ key/value pairs representing the response parameters. Example:
     body => sub {
       my ($param_name, $param_for_response) = shift;
       return {exists => 1, value => \%all_params} unless defined $param_name;
-      return {exists => 1, value => "..."};
+      return {accept => "application/json", exists => 1, value => "..."};
     },
     header => {"Location" => "..."},
   );
 
-C<%res> follows the same rules as C<%req> in L</validate_request>.
+C<%res> follows the same rules as C<%req> in L</validate_request>, but also
+supports "accept", instead of specifying "content_type". "accept" should have
+the same format as an "Accept" HTTP header.
 
 =head1 SEE ALSO
 

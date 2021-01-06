@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::OpenAPIv3;
 use Mojo::Base 'JSON::Validator::Schema::OpenAPIv2';
 
-use JSON::Validator::Util qw(E data_type schema_type);
+use JSON::Validator::Util qw(E data_type negotiate_content_type schema_type);
 use Mojo::JSON qw(false true);
 use Mojo::Path;
 
@@ -221,10 +221,14 @@ sub _validate_body {
   my ($self, $direction, $val, $param) = @_;
   $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
 
-  my $ct = $self->negotiate_content_type($param->{accepts}, $val->{content_type});
-  if (@{$param->{accepts}} and !$ct) {
-    my $expected = join ', ', @{$param->{accepts}};
-    return E "/$param->{name}", [$expected => type => $val->{content_type}];
+  if ($val->{accept}) {
+    $val->{content_type} = negotiate_content_type($param->{accepts}, $val->{accept});
+    $val->{valid}        = $val->{content_type} ? 1 : 0;
+    return E "/header/Accept", [join(', ', @{$param->{accepts}}), type => $val->{accept}] unless $val->{valid};
+  }
+  if (@{$param->{accepts}} and !$val->{content_type}) {
+    $val->{valid} = 0;
+    return E "/$param->{name}", [join(', ', @{$param->{accepts}}) => type => $val->{content_type}];
   }
   if ($param->{required} and !$val->{exists}) {
     return E "/$param->{name}", [qw(object required)];
@@ -232,7 +236,7 @@ sub _validate_body {
   if ($val->{exists}) {
     local $self->{"validate_$direction"} = 1;
     my @errors = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
-      $self->validate($val->{value}, $param->{content}{$ct}{schema});
+      $self->validate($val->{value}, $param->{content}{$val->{content_type}}{schema});
     $val->{valid} = @errors ? 0 : 1;
     return @errors;
   }
