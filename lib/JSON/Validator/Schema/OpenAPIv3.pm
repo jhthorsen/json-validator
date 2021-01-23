@@ -1,12 +1,26 @@
 package JSON::Validator::Schema::OpenAPIv3;
-use Mojo::Base 'JSON::Validator::Schema::OpenAPIv2';
+use Mojo::Base 'JSON::Validator::Schema::Draft201909';
 
+use JSON::Validator::Schema::OpenAPIv2;
 use JSON::Validator::Util qw(E data_type negotiate_content_type schema_type);
 use Mojo::JSON qw(false true);
 use Mojo::Path;
+use Mojo::Util qw(monkey_patch);
 
 has moniker       => 'openapiv3';
 has specification => 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
+
+# some methods are shared with OpenAPIv2
+monkey_patch __PACKAGE__,
+  $_ => JSON::Validator::Schema::OpenAPIv2->can($_)
+  for qw(coerce validate_request validate_response),
+  qw(_coerce_arrays _coerce_default_value _find_all_nodes _prefix_error_path), qw(_validate_request_or_response);
+
+sub new {
+  my $self = shift->SUPER::new(@_);
+  $self->coerce;    # make sure this attribute is built
+  $self;
+}
 
 sub parameters_for_request {
   my $self = shift;
@@ -207,8 +221,6 @@ sub _get_parameter_value {
   return $val;
 }
 
-sub _prefix_error_path { goto &JSON::Validator::Schema::OpenAPIv2::_prefix_error_path }
-
 sub _split {
   my ($re, $val) = @_;
   $val = @$val ? $val->[-1] : '' if ref $val;
@@ -335,18 +347,33 @@ This class represents L<https://spec.openapis.org/oas/3.0/schema/2019-04-02>.
 =head2 moniker
 
   $str    = $schema->moniker;
-  $schema = $schema->moniker("openapiv2");
+  $schema = $schema->moniker("openapiv3");
 
-Used to get/set the moniker for the given schema. Default value is "openapiv2".
+Used to get/set the moniker for the given schema. Default value is "openapiv3".
 
 =head2 specification
 
   my $str    = $schema->specification;
   my $schema = $schema->specification($str);
 
-Defaults to "L<http://swagger.io/v2/schema.json>".
+Defaults to "L<https://spec.openapis.org/oas/3.0/schema/2019-04-02>".
 
 =head1 METHODS
+
+=head2 coerce
+
+  my $schema   = $schema->coerce({booleans => 1, numbers => 1, strings => 1});
+  my $hash_ref = $schema->coerce;
+
+Coercion is enabled by default, since headers, path parts, query parameters,
+... are in most cases strings.
+
+=head2 new
+
+  $schema = JSON::Validator::Schema::OpenAPIv2->new(\%attrs);
+  $schema = JSON::Validator::Schema::OpenAPIv2->new;
+
+Same as L<JSON::Validator::Schema/new>, but will also build L/coerce>.
 
 =head2 parameters_for_request
 
@@ -382,8 +409,21 @@ Example return value:
 
 The return value MUST not be mutated.
 
+=head2 validate_request
+
+  @errors = $schema->validate_request([$method, $path], \%req);
+
+Shares the same interface as L<JSON::Validator::Schema::OpenAPIv2/validate_request>.
+
+=head2 validate_response
+
+  @errors = $schema->validate_response([$method, $path], \%req);
+
+Shares the same interface as L<JSON::Validator::Schema::OpenAPIv2/validate_response>.
+
 =head1 SEE ALSO
 
-L<JSON::Validator::Schema::OpenAPIv2> and L<JSON::Validator>.
+L<JSON::Validator::Schema>, L<JSON::Validator::Schema::OpenAPIv2> and and
+L<JSON::Validator>.
 
 =cut

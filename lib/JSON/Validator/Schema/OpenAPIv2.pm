@@ -5,9 +5,7 @@ use JSON::Validator::Util qw(E data_type negotiate_content_type schema_type);
 
 has errors => sub {
   my $self      = shift;
-  my $url       = $self->specification;
-  my $validator = $self->new(%$self, allow_invalid_ref => 0)->resolve($url);
-
+  my $validator = $self->new(%$self, allow_invalid_ref => 0)->resolve($self->specification);
   return [$validator->validate($self->resolve->data)];
 };
 
@@ -325,11 +323,13 @@ JSON::Validator::Schema::OpenAPIv2 - OpenAPI version 2 / Swagger
   # Check for specification errors
   my $errors = $schema->errors;
 
+  # Returns a list of zero or more JSON::Validator::Error objects
   my @request_errors = $schema->validate_request(
     [get => "/path"],
     {body => sub { return {exists => 1, value => {}} }},
   );
 
+  # Returns a list of zero or more JSON::Validator::Error objects
   my @response_errors = $schema->validate_response(
     [get => "/path", 200],
     {body => sub { return {exists => 1, value => {}} }},
@@ -372,6 +372,9 @@ This method is highly EXPERIMENTAL, and it is not advices to use this method.
 
 =head2 coerce
 
+  my $schema   = $schema->coerce({booleans => 1, numbers => 1, strings => 1});
+  my $hash_ref = $schema->coerce;
+
 Coercion is enabled by default, since headers, path parts, query parameters,
 ... are in most cases strings.
 
@@ -379,12 +382,20 @@ See also L<JSON::Validator/coerce>.
 
 =head2 data
 
+  my $hash_ref = $schema->data;
+  my $schema   = $schema->data($bool);
+  my $schema   = $schema->data($hash_ref);
+  my $schema   = $schema->data($url);
+
 Same as L</JSON::Validator::Schema/data>, but will bundle the schema if
 L</allow_invalid_ref> is set.
 
 =head2 new
 
-See L<JSON::Validator::Schema/new>.
+  $schema = JSON::Validator::Schema::OpenAPIv2->new(\%attrs);
+  $schema = JSON::Validator::Schema::OpenAPIv2->new;
+
+Same as L<JSON::Validator::Schema/new>, but will also build L/coerce>.
 
 =head2 parameters_for_request
 
