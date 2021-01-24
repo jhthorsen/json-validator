@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-4.12 Not Released
+4.12 2021-01-25T07:52:34+0900
  - Fix not using Mojo::Exception::raise() #235
  - Fix uninitialized warning when looking up schema for an internal $ref
 

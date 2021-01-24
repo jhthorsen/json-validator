@@ -16,7 +16,7 @@ use Scalar::Util qw(blessed refaddr);
 
 use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 
-our $VERSION   = '4.11';
+our $VERSION   = '4.12';
 our @EXPORT_OK = qw(joi validate_json);
 
 our %SCHEMAS = (
