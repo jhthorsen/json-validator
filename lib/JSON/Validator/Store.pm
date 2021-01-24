@@ -1,7 +1,7 @@
 package JSON::Validator::Store;
 use Mojo::Base -base;
 
-use Mojo::Exception qw(raise);
+use Mojo::Exception;
 use Mojo::File qw(path);
 use Mojo::JSON;
 use Mojo::UserAgent;
@@ -11,6 +11,8 @@ use JSON::Validator::Util qw(data_section);
 
 use constant BUNDLED_PATH  => path(path(__FILE__)->dirname, 'cache')->to_string;
 use constant CASE_TOLERANT => File::Spec->case_tolerant;
+
+die $@ unless eval q(package JSON::Validator::Exception; use Mojo::Base 'Mojo::Exception'; 1);
 
 has cache_paths => sub { [split(/:/, $ENV{JSON_VALIDATOR_CACHE_PATH} || ''), BUNDLED_PATH] };
 has schemas     => sub { +{} };
@@ -50,7 +52,7 @@ sub load {
     || $_[0]->_load_from_file($_[1])
     || $_[0]->_load_from_app($_[1])
     || $_[0]->get($_[1])
-    || raise 'JSON::Validator::Exception', "Unable to load schema $_[1]";
+    || _raise("Unable to load schema $_[1]");
 }
 
 sub _load_from_app {
@@ -62,7 +64,7 @@ sub _load_from_app {
 
   my $tx  = $self->ua->get($url);
   my $err = $tx->error && $tx->error->{message};
-  raise 'JSON::Validator::Exception', $err if $err;
+  _raise($err) if $err;
   return $self->add($url => _parse($tx->res->body));
 }
 
@@ -74,7 +76,7 @@ sub _load_from_data {
 
   my ($class, $file) = ($1, $2);    # data://([^/]*)/(.*)
   my $text = data_section $class, $file, {encoding => 'UTF-8'};
-  raise 'JSON::Validator::Exception', "Could not find $url" unless $text;
+  _raise("Could not find $url") unless $text;
   return $self->add($url => _parse($text));
 }
 
@@ -118,7 +120,7 @@ sub _load_from_url {
 
   my $tx  = $self->ua->get($url);
   my $err = $tx->error && $tx->error->{message};
-  raise 'JSON::Validator::Exception', $err if $err;
+  _raise($err) if $err;
 
   if ($cache_path and $cache_path ne BUNDLED_PATH and -w $cache_path) {
     $cache_file = path $cache_path, $cache_file;
@@ -132,6 +134,8 @@ sub _parse {
   return Mojo::JSON::decode_json($_[0]) if $_[0] =~ m!^\s*\{!s;
   return JSON::Validator::Util::_yaml_load($_[0]);
 }
+
+sub _raise { die JSON::Validator::Exception->new(@_)->trace }
 
 1;
 
