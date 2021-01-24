@@ -1,5 +1,35 @@
 Revision history for perl distribution JSON-Validator
 
+4.11 2021-01-24T16:02:02+0900
+ - Add JSON::Validator::Schema::OpenAPIv2
+   * Extends JSON::Validator::Schema::Draft4
+   * Can validate OpenAPIv2 API specifiation
+   * Can validate HTTP request and response
+   * Can validate "Accept" and "Content-Type"
+   * Can handle "discriminator"
+   * Can handle "readOnly" parameters
+   * Can handle collectionFormat
+   * Can handle default values for parameters
+   * Can convert specifiation with invalid "$ref" into a valid OpenAPIv2 specifiation
+   * Will coerce query parameters and headers into arrays if needed
+ - Add JSON::Validator::Schema::OpenAPIv3
+   * Extends JSON::Validator::Schema::Draft201909
+   * Can validate OpenAPIv3 API specifiation
+   * Can validate HTTP request and response
+   * Can validate "Accept" and "Content-Type"
+   * Can handle "discriminator"
+   * Can handle "nullable" parameters
+   * Can handle "readOnly" parameters
+   * Can handle "style" and "explode" for arrays and objects parameters
+   * Can handle "writeOnly" parameters
+   * Can handle default values for parameters
+   * Will coerce query parameters and headers into arrays if needed
+ - Add negotiate_content_type() utility function
+ - Fix t/load-file.t on Windows #234
+ - Fix not checking if input schema is a file if it has a newline #223 #233
+   Contributor: David Cantrell
+ - Improved error message when loading non-existing file #231
+
 4.10 2020-10-13T10:53:11+0900
  - Add JSON::Validator::Store
  - Changed JSON::Validator->schema() to also load
