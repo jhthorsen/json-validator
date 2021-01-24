@@ -3,7 +3,7 @@ use JSON::Validator;
 use Test::More;
 
 my $file = Mojo::File::path(qw(t spec person.json))->to_abs;
-my $spec = Mojo::URL->new->scheme('file')->host('')->path($file->to_string);
+my $spec = Mojo::URL->new->scheme('file')->host('')->path(join '/', @$file);
 my $jv   = JSON::Validator->new;
 my $id   = File::Spec->case_tolerant ? lc $spec : $spec->to_string;
 
