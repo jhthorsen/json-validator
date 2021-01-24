@@ -449,7 +449,7 @@ sub _schema_class {
   return $package if $package->can('new');
 
   die "package $package: $@" unless eval "package $package; use Mojo::Base '$jv_class'; 1";
-  Mojo::Util::monkey_patch($package, $_ => $schema_class->can($_))
+  Mojo::Util::monkey_patch($package, $_ => JSON::Validator::Schema->can($_))
     for qw(_register_root_schema bundle contains data errors get id new resolve specification validate);
   return $package;
 }
@@ -515,7 +515,7 @@ sub _validate_all_of {
   my $i = 0;
   for my $rule (@$rules) {
     next unless my @e = $self->_validate($_[1], $path, $rule);
-    push @errors, @e;
+    push @errors,             @e;
     push @errors_with_prefix, [$i, @e];
   }
   continue {
@@ -561,7 +561,7 @@ sub _validate_any_of {
   my $i = 0;
   for my $rule (@$rules) {
     return unless my @e = $self->_validate($_[1], $path, $rule);
-    push @errors, @e;
+    push @errors,             @e;
     push @errors_with_prefix, [$i, @e];
   }
   continue {
@@ -586,7 +586,7 @@ sub _validate_one_of {
   for my $rule (@$rules) {
     my @e = $self->_validate($_[1], $path, $rule) or push @passed, $i and next;
     push @errors_with_prefix, [$i, @e];
-    push @errors, @e;
+    push @errors,             @e;
   }
   continue {
     $i++;
