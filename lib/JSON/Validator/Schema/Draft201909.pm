@@ -44,7 +44,7 @@ sub _find_and_resolve_refs {
       }
 
       my $is_tied           = tied %$topic;
-      my $has_ref           = !$is_tied && $topic->{'$ref'} && !ref $topic->{'$ref'} ? 1 : 0;
+      my $has_ref           = !$is_tied && $topic->{'$ref'}          && !ref $topic->{'$ref'}          ? 1 : 0;
       my $has_recursive_ref = !$is_tied && $topic->{'$recursiveRef'} && !ref $topic->{'$recursiveRef'} ? 1 : 0;
       push @refs,           [$base_url, $topic] if $has_ref;
       push @recursive_refs, [$base_url, $topic] if $has_recursive_ref;
@@ -65,7 +65,7 @@ sub _find_and_resolve_refs {
     next if !$topic->{'$ref'} or ref $topic->{'$ref'};
     my $base = Mojo::URL->new($base_url || $base_url)->fragment(undef);
     my ($other, $ref_url, $fqn) = $self->_resolve_ref($topic->{'$ref'}, $base, $root);
-    next if $seen{$fqn}++;
+    next if $seen{$fqn}++ and tied %$topic;
     tie %$topic, 'JSON::Validator::Ref', $other, $topic, "$fqn";
     push @refs, [$fqn, $other];
   }
@@ -75,7 +75,7 @@ sub _find_and_resolve_refs {
     my ($base_url, $topic) = @{shift @recursive_refs};
     my $base = Mojo::URL->new($base_url || $base_url)->fragment(undef);
     my ($other, $ref_url, $fqn) = $self->_resolve_ref($topic->{'$recursiveRef'}, $base, $root);
-    next if $seen{$fqn}++;
+    next if $seen{$fqn}++ and tied %$topic;
     tie %$topic, 'JSON::Validator::Ref', $other, $topic, "$fqn";
   }
 }
