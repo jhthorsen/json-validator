@@ -57,6 +57,7 @@ sub _load_from_app {
   return undef unless $_[1] =~ m!^/!;
 
   my ($self, $url, $id) = @_;
+  return undef unless $self->ua->server->app;
   return $id if $id = $self->exists($url);
 
   my $tx  = $self->ua->get($url);
