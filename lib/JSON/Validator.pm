@@ -248,7 +248,7 @@ sub _definitions_path {
   # Generate definitions key based on filename
   my $fqn = Mojo::URL->new($ref->fqn);
   my $key = $fqn->fragment;
-  if ($fqn->scheme eq 'file') {
+  if ($fqn->scheme and $fqn->scheme eq 'file') {
     $key = join '-', map { s!^\W+!!; $_ } grep {$_} path($fqn->path)->basename, $key,
       substr(sha1_sum($fqn->path), 0, 10);
   }

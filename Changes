@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+4.12 Not Released
+ - Fix uninitialized warning when looking up schema for an internal $ref
+
 4.11 2021-01-24T16:02:02+0900
  - Add JSON::Validator::Schema::OpenAPIv2
    * Extends JSON::Validator::Schema::Draft4
