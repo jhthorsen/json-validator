@@ -5,13 +5,11 @@ use Test::More;
 
 my $jv     = JSON::Validator->new;
 my %coerce = (booleans => 1);
-is_deeply($jv->coerce(%coerce)->coerce, {booleans => 1}, 'hash is accepted');
+is_deeply($jv->coerce(%coerce)->coerce,  {booleans => 1}, 'hash is accepted');
 is_deeply($jv->coerce(\%coerce)->coerce, {booleans => 1}, 'hash reference is accepted');
 
-note 'coerce(1) is here for back compat reasons, even though not documented any more';
-is_deeply($jv->coerce(1)->coerce, {%coerce, numbers => 1, strings => 1}, '1 is accepted');
-
 note 'make sure input is coerced';
+is_deeply($jv->coerce('booleans,numbers,strings')->coerce, {%coerce, numbers => 1, strings => 1}, '1 is accepted');
 my @items = ([boolean => 'true'], [integer => '42'], [number => '4.2']);
 for my $i (@items) {
   for my $schema (schemas($i->[0])) {
@@ -38,6 +36,6 @@ sub schemas {
     {type  => ['array', $base->{type}]},
     {allOf => [$base]},
     {anyOf => [{type => 'array'}, $base]},
-    {oneOf => [$base, {type => 'array'}]},
+    {oneOf => [$base,             {type => 'array'}]},
   );
 }

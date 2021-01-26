@@ -83,7 +83,8 @@ sub test {
   my ($class, $category, @methods) = @_;
   my $test_class = "t::test::$category";
   eval "require $test_class;1" or die $@;
-  (note("$category $_"), $test_class->$_) for @methods;
+  subtest "$category $_", sub { $test_class->$_ }
+    for @methods;
 }
 
 sub validate_ok {
