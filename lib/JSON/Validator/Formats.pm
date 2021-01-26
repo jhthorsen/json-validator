@@ -33,6 +33,8 @@ sub check_date {
 sub check_date_time {
   my @dt = $_[0] =~ m!^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d\d):(\d\d))?$!io;
   return 'Does not match date-time format.' unless @dt;
+  return 'Time offset hours out of range.' if defined $dt[7] and $dt[7] > 23;
+  return 'Time offset minutes out of range.' if defined $dt[8] and $dt[8] > 59;
   @dt = map { s/^0//; $_ } reverse @dt[0 .. 5];
   $dt[4] -= 1;    # month are zero based
   local $@;
