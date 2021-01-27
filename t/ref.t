@@ -25,6 +25,18 @@ test(
   }
 );
 
+test(
+  'ref clear',
+  {'$ref' => '#/inner', b => 2, foo => 44},
+  {'$ref' => '#/main',  a => 1, foo => 42},
+  undef,
+  sub {
+    my ($ref, $tied) = @_;
+    %$ref = ();
+    pass 'still alive';
+  }
+);
+
 done_testing;
 
 sub test {
