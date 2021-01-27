@@ -31,6 +31,11 @@ sub FETCH {
   return undef;
 }
 
+sub CLEAR {
+  my ($self) = @_;
+  $self->[0] = {};
+}
+
 # Make it look like there is only one key in the hash
 sub FIRSTKEY { scalar keys %{$_[0][0]}; each %{$_[0][0]} }
 sub NEXTKEY  { each %{$_[0][0]} }
