@@ -9,16 +9,19 @@ t::Helper->test(array  => qw(basic items additional_items min_max unique));
 t::Helper->test(object => qw(basic properties));
 t::Helper->test(object => qw(additional_properties pattern_properties min_max));
 
-note 'exclusiveMaximum';
-schema_validate_ok 2.4, {exclusiveMaximum => true, maximum => 2.4}, E('/', '2.4 >= maximum(2.4)');
+subtest 'exclusiveMaximum' => sub {
+  schema_validate_ok 2.4, {exclusiveMaximum => true, maximum => 2.4}, E('/', '2.4 >= maximum(2.4)');
+};
 
-note 'exclusiveMinimum';
-schema_validate_ok 0, {exclusiveMaximum => true, maximum => 0}, E('/', '0 >= maximum(0)');
+subtest 'exclusiveMinimum' => sub {
+  schema_validate_ok 0, {exclusiveMaximum => true, maximum => 0}, E('/', '0 >= maximum(0)');
+};
 
-note 'bundle';
-my $bundle = JSON::Validator::Schema::Draft4->new('data://main/spec.json')->bundle;
-is $bundle->data->{properties}{name}{'$ref'},   '#/definitions/_name', 'bundle ref';
-is $bundle->data->{'definitions'}{_name}{type}, 'string',              'bundled spec under definitions';
+subtest 'bundle' => sub {
+  my $bundle = JSON::Validator::Schema::Draft4->new('data://main/spec.json')->bundle;
+  is $bundle->data->{properties}{name}{'$ref'},   '#/definitions/_name', 'bundle ref';
+  is $bundle->data->{'definitions'}{_name}{type}, 'string',              'bundled spec under definitions';
+};
 
 done_testing;
 
