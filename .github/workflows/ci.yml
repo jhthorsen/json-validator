@@ -18,7 +18,8 @@ jobs:
         run: cpanm -n App::cpanminus ExtUtils::MakeMaker
       - name: Install dependencies
         run: |
-          cpanm -n Test::Pod Test::Pod::Coverage Data::Validate::Domain Data::Validate::IP YAML::LibYAML
+          cpanm -n Test::Pod Test::Pod::Coverage YAML::LibYAML
+          cpanm -n Net::IDN::Encode Data::Validate::Domain Data::Validate::IP
           cpanm -n https://github.com/mojolicious/json-validator/archive/master.tar.gz
           cpanm -n Test::JSON::Schema::Acceptance
           cpanm -n --installdeps .

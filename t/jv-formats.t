@@ -38,7 +38,7 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 
 {
   local $schema->{properties}{v}{format} = 'duration';
-  validate_ok {v => 'foo'}, $schema, E('/v', 'Does not match duration format.');
+  validate_ok {v => 'foo'},              $schema, E('/v', 'Does not match duration format.');
   validate_ok {v => 'P4Y'},              $schema;
   validate_ok {v => 'PT0S'},             $schema;
   validate_ok {v => 'P1M'},              $schema;
@@ -136,12 +136,12 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 
 {
   local $schema->{properties}{v}{format} = 'uri';
-  validate_ok {v => '//example.com/no-scheme'}, $schema, E('/v', 'Scheme missing.');
-  validate_ok {v => ''},                        $schema, E('/v', 'Scheme, path or fragment are required.');
-  validate_ok {v => '0://mojolicio.us/?x=123'}, $schema, E('/v', 'Scheme must begin with a letter.');
-  validate_ok {v => 'http://example.com/%z'},   $schema, E('/v', 'Invalid hex escape.');
-  validate_ok {v => 'http://example.com/%a'},   $schema, E('/v', 'Hex escapes are not complete.');
-  validate_ok {v => 'http:////'},               $schema, E('/v', 'Path cannot not start with //.');
+  validate_ok {v => '//example.com/no-scheme'},    $schema, E('/v', 'Scheme missing.');
+  validate_ok {v => ''},                           $schema, E('/v', 'Scheme, path or fragment are required.');
+  validate_ok {v => '0://mojolicio.us/?x=123'},    $schema, E('/v', 'Scheme must begin with a letter.');
+  validate_ok {v => 'http://example.com/%z'},      $schema, E('/v', 'Invalid hex escape.');
+  validate_ok {v => 'http://example.com/%a'},      $schema, E('/v', 'Hex escapes are not complete.');
+  validate_ok {v => 'http:////'},                  $schema, E('/v', 'Path cannot not start with //.');
   validate_ok {v => 'http://mojolicio.us/?x=123'}, $schema;
 
   note 'TODO: relative paths should only be valid in draft4';
@@ -162,8 +162,11 @@ my $schema = {type => 'object', properties => {v => {type => 'string'}}};
 }
 
 {
+  my $warn = 'no warnings seen';
+  local $SIG{__WARN__} = sub { $warn = shift };
   local $schema->{properties}{v}{format} = 'unknown';
   validate_ok {v => 'whatever'}, $schema;
+  like $warn, qr{Format rule for 'unknown' is missing}, 'unknown format cause a warning';
 }
 
 {

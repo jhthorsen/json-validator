@@ -55,8 +55,9 @@ sub bundle {
   my ($self, $args) = @_;
   my $cloner;
 
-  my $schema    = $self->_new_schema($args->{schema} || $self->schema);
-  my $schema_id = $schema->id || ($self->schema ? $self->schema->id : '');
+  my $get_data  = $self->can('data') ? 'data' : 'schema';
+  my $schema    = $self->_new_schema($args->{schema} || $self->$get_data);
+  my $schema_id = $schema->id;
   my @topics    = ([$schema->data, my $bundle = {}]);                        # ([$from, $to], ...);
 
   if ($args->{replace}) {

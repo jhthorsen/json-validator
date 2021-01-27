@@ -5,6 +5,7 @@ use Test::More;
 
 my $jv = JSON::Validator->new;
 $jv->ua->server->app(Mojolicious->new);
+$jv->ua->server->app->log(Mojo::Log->new->level('fatal'));
 $jv->ua->server->app->routes->get(
   '/spec' => sub {
     my $c = shift;
