@@ -1,4 +1,5 @@
 use lib '.';
+use lib './lib';
 use t::Helper;
 use Mojo::Util 'decode';
 
