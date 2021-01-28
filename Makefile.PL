@@ -16,10 +16,10 @@ my %WriteMakefileArgs = (
   VERSION_FROM  => 'lib/JSON/Validator.pm',
   META_MERGE    => {
     'dynamic_config' => 0,
-    'meta-spec' => {version   => 2},
-    'no_index'  => {directory => ['examples', 't']},
-    'prereqs'   => {runtime   => {requires => {perl => '5.010001'}}},
-    'resources' => {
+    'meta-spec'      => {version   => 2},
+    'no_index'       => {directory => ['examples', 't']},
+    'prereqs'        => {runtime   => {requires => {perl => '5.010001'}}},
+    'resources'      => {
       bugtracker => {web => 'https://github.com/mojolicious/json-validator/issues'},
       homepage   => 'https://mojolicious.org',
       license    => ['http://www.opensource.org/licenses/artistic-license-2.0'],
@@ -28,7 +28,7 @@ my %WriteMakefileArgs = (
         url  => 'https://github.com/mojolicious/json-validator.git',
         web  => 'https://github.com/mojolicious/json-validator',
       },
-      x_IRC => 'irc://irc.freenode.net/#mojo',
+      x_IRC => 'irc://irc.freenode.net/#perl-openapi',
     },
   },
   PREREQ_PM     => {'List::Util' => '1.45', 'Mojolicious' => '7.28', @PREREQ_YAML},
