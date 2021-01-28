@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+4.13 2021-01-28T18:22:43+0900
+ - Fix handling offset in RFC3339 date-time #236
+ - Add CLEAR method to JSON::Validator::Ref #237
+
 4.12 2021-01-25T07:52:34+0900
  - Fix not using Mojo::Exception::raise() #235
  - Fix uninitialized warning when looking up schema for an internal $ref
