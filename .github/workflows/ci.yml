@@ -27,5 +27,6 @@ jobs:
         run: prove -l t/*.t
         env:
           HARNESS_OPTIONS: j6
+          MOJO_LOG_LEVEL: info
           TEST_ACCEPTANCE: 1
           TEST_POD: 1
