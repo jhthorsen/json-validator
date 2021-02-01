@@ -920,7 +920,7 @@ JSON::Validator - Validate data against a JSON schema
       firstName => joi->string->required,
       lastName  => joi->string->required,
       age       => joi->integer->min(0),
-    });
+    }),
   );
 
 =head1 DESCRIPTION
