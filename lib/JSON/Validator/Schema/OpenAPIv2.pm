@@ -2,6 +2,9 @@ package JSON::Validator::Schema::OpenAPIv2;
 use Mojo::Base 'JSON::Validator::Schema::Draft4';
 
 use JSON::Validator::Util qw(E data_type negotiate_content_type schema_type);
+use Mojo::Collection;
+
+my $X_RE = qr{^x-};
 
 has errors => sub {
   my $self      = shift;
@@ -93,6 +96,26 @@ sub parameters_for_response {
   }
 
   return $self->{cache}{$cache_key} = \@parameters;
+}
+
+sub routes {
+  my $self = shift;
+
+  my @sorted_paths
+    = map { $_->[0] }
+    sort  { $a->[1] <=> $b->[1] || length $a->[0] <=> length $b->[0] }
+    map   { [$_, /\{/ ? 1 : 0] } grep { $_ !~ $X_RE } keys %{$self->get('/paths') || {}};
+
+  my @operations;
+  for my $path (@sorted_paths) {
+    next unless my $methods = $self->get([paths => $path]);
+    for my $method (sort keys %$methods) {
+      next if $method =~ $X_RE or $method eq 'parameters';
+      push @operations, {method => $method, operation_id => $methods->{$method}{operationId}, path => $path};
+    }
+  }
+
+  return Mojo::Collection->new(@operations);
 }
 
 sub validate_request {
@@ -430,6 +453,20 @@ Example return value:
   ]
 
 The return value MUST not be mutated.
+
+=head2 routes
+
+  $collection = $schema->routes;
+
+Used to gather all available routes in the schema and return them sorted. The
+result is a L<Mojo::Collection> object, where each item has a hash looking like
+this:
+
+  {
+    method       => 'get',
+    path         => '/user/{id}',
+    operation_id => 'getUser', # Might be undef()
+  }
 
 =head2 validate_request
 

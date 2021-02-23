@@ -13,8 +13,8 @@ has specification => 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
 # some methods are shared with OpenAPIv2
 monkey_patch __PACKAGE__,
   $_ => JSON::Validator::Schema::OpenAPIv2->can($_)
-  for qw(coerce validate_request validate_response),
-  qw(_coerce_arrays _coerce_default_value _find_all_nodes _prefix_error_path), qw(_validate_request_or_response);
+  for qw(coerce routes validate_request validate_response),
+  qw(_coerce_arrays _coerce_default_value _find_all_nodes _prefix_error_path _validate_request_or_response);
 
 sub new {
   my $self = shift->SUPER::new(@_);
@@ -408,6 +408,12 @@ Example return value:
   ]
 
 The return value MUST not be mutated.
+
+=head2 routes
+
+  $collection = $schema->routes;
+
+Shares the same interface as L<JSON::Validator::Schema::OpenAPIv2/routes>.
 
 =head2 validate_request
 

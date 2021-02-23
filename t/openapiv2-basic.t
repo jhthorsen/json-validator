@@ -21,6 +21,16 @@ subtest 'basic' => sub {
 
   $schema = JSON::Validator->new->schema($cwd->child(qw(spec v2-petstore.json)))->schema->resolve;
   isa_ok $schema, 'JSON::Validator::Schema::OpenAPIv2';
+
+  is_deeply(
+    $schema->routes->to_array,
+    [
+      {method => 'get',  operation_id => 'listPets',    path => '/pets'},
+      {method => 'post', operation_id => 'createPets',  path => '/pets'},
+      {method => 'get',  operation_id => 'showPetById', path => '/pets/{petId}'},
+    ],
+    'routes'
+  );
 };
 
 subtest 'validate schema' => sub {

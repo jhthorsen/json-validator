@@ -17,6 +17,16 @@ subtest 'basic' => sub {
 
   @errors = @{JSON::Validator->new->schema({openapi => '3.0.0', paths => {}})->schema->errors};
   is "@errors", '/info: Missing property.', 'invalid schema';
+
+  is_deeply(
+    $schema->routes->to_array,
+    [
+      {method => 'get',  operation_id => 'listPets',    path => '/pets'},
+      {method => 'post', operation_id => 'createPets',  path => '/pets'},
+      {method => 'get',  operation_id => 'showPetById', path => '/pets/{petId}'},
+    ],
+    'routes'
+  );
 };
 
 subtest 'parameters_for_request' => sub {
