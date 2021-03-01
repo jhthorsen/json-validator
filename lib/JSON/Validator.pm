@@ -43,14 +43,6 @@ for my $method (qw(cache_paths ua)) {
   Mojo::Util::monkey_patch(__PACKAGE__, $method => sub { shift->store->$method(@_) });
 }
 
-sub version {
-  my $self = shift;
-  Mojo::Util::deprecated('version() will be removed in future version.');
-  return $self->{version} || 4 unless @_;
-  $self->{version} = shift;
-  $self;
-}
-
 sub bundle {
   my ($self, $args) = @_;
   my $cloner;
@@ -140,19 +132,10 @@ sub coerce {
 
 sub get { JSON::Validator::Util::schema_extract(shift->schema->data, shift) }
 
-sub joi {
-  Mojo::Util::deprecated('JSON::Validator::joi() is replaced by JSON::Validator::Joi::joi().');
-  require JSON::Validator::Joi;
-  return JSON::Validator::Joi->new unless @_;
-  my ($data, $joi) = @_;
-  return $joi->validate($data, $joi);
-}
-
 sub load_and_validate_schema {
   my ($self, $schema, $args) = @_;
 
-  $self->{version} = $1 if !$self->{version} and ($args->{schema} || 'draft-04') =~ m!draft-0+(\w+)!;
-
+  delete $self->{schema};
   my $schema_obj = $self->_new_schema($schema, %$args);
   confess join "\n", "Invalid JSON specification", (ref $schema eq 'HASH' ? Mojo::Util::dumper($schema) : $schema),
     map {"- $_"} @{$schema_obj->errors}
@@ -175,11 +158,6 @@ sub schema {
   return $self;
 }
 
-sub singleton {
-  Mojo::Util::deprecated('singleton() will be removed in future version.');
-  state $jv = shift->new;
-}
-
 sub validate {
   my ($self, $data, $schema) = @_;
   $schema //= $self->schema->data;
@@ -190,11 +168,6 @@ sub validate {
   local $self->{temp_schema} = [];                            # make sure random-errors.t does not fail
   my @errors = sort { $a->path cmp $b->path } $self->_validate($_[1], '', $schema);
   return @errors;
-}
-
-sub validate_json {
-  Mojo::Util::deprecated('validate_json() will be removed in future version.');
-  __PACKAGE__->singleton->schema($_[1])->validate($_[0]);
 }
 
 sub _build_formats {
@@ -308,7 +281,7 @@ sub _find_and_resolve_refs {
   }
 }
 
-sub _id_key { ($_[0]->{version} || 4) < 7 ? 'id' : '$id' }
+sub _id_key { $_[0]->schema ? $_[0]->schema->_id_key : 'id' }
 
 sub _new_schema {
   my ($self, $source, %attrs) = @_;
@@ -324,15 +297,12 @@ sub _new_schema {
 
   my $store  = $self->store;
   my $schema = $loadable ? $store->get($store->load($source)) : $source;
-  if (!$attrs{specification} and is_type $schema, 'HASH' and $schema->{'$schema'}) {
-    $attrs{specification} = $schema->{'$schema'};
-  }
-  if (!$attrs{specification} and $self->{version}) {
-    $attrs{specification} = sprintf 'http://json-schema.org/draft-%02s/schema#', $self->{version};
-  }
 
   $attrs{formats} ||= $self->{formats} if $self->{formats};
-  $attrs{version} ||= $self->{version} if $self->{version};
+  $attrs{specification} = $schema->{'$schema'}
+    if !$attrs{specification}
+    and is_type $schema, 'HASH'
+    and $schema->{'$schema'};
   $attrs{store} = $store;
 
   return $self->_schema_class($attrs{specification} || $schema)->new($source, %attrs);
@@ -437,7 +407,7 @@ sub _schema_class {
     }
   }
 
-  my $schema_class = $spec && $SCHEMAS{$spec} || 'JSON::Validator::Schema';
+  my $schema_class = $spec && $SCHEMAS{$spec} || 'JSON::Validator::Schema::Draft4';
   $schema_class =~ s!^\+(.+)$!JSON::Validator::Schema::$1!;
   confess "Could not load $schema_class: $@" unless $schema_class->can('new') or eval "require $schema_class;1";
 

@@ -54,6 +54,8 @@ sub get {
   return JSON::Validator::Util::schema_extract(shift->data, @_);
 }
 
+sub load_and_validate_schema { Carp::confess('load_and_validate_schema(...) is unsupported.') }
+
 sub new {
   return shift->SUPER::new(@_) if @_ % 2;
   my ($class, $data) = (shift, shift);
@@ -73,17 +75,11 @@ sub validate {
   return $self->_validate($_[1], '', $schema || $self->data);
 }
 
-# Should not be called on JSON::Validator::Schema
-for my $method (qw(load_and_validate_schema schema singleton version)) {
-  my $super = "JSON::Validator::$method";
-  Mojo::Util::monkey_patch(__PACKAGE__,
-    $method => sub {
-      my $class = ref $_[0];
-      carp "$class\::$method(...) is unsupported and will be removed.";
-      shift->$super(@_);
-    }
-  );
-}
+sub schema { $_[0]->can('data') ? $_[0] : $_[0]->SUPER::schema }
+
+sub _definitions_path_for_ref { ['definitions'] }
+
+sub _id_key {'id'}
 
 sub _register_root_schema {
   my ($self, $id, $schema) = @_;
@@ -220,6 +216,10 @@ The second argument can be C<undef()>, if you don't care about the callback.
 
 See L<Mojo::JSON::Pointer/get>.
 
+=head2 load_and_validate_schema
+
+This method will be removed in a future release.
+
 =head2 new
 
   my $schema = JSON::Validator::Schema->new($data);
@@ -238,6 +238,10 @@ might throw an exception if the schema could not be successfully resolved.
 Used to resolve L</data> or C<$data> and store the resolved schema in L</data>.
 If C<$data> is an C<$url> on contains "$ref" pointing to an URL, then these
 schemas will be downloaded and resolved as well.
+
+=head2 schema
+
+This method will be removed in a future release.
 
 =head2 validate
 

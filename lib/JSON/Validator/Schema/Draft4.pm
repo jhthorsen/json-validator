@@ -23,10 +23,6 @@ sub _build_formats {
   };
 }
 
-sub _definitions_path_for_ref { ['definitions'] }
-
-sub _id_key {'id'}
-
 sub _validate_number_max {
   my ($self, $value, $path, $schema, $expected) = @_;
   return unless defined(my $cmp_with = $schema->{maximum});

@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+4.15 Not Released
+ - Removed deprecated functions joi() and validate_json()
+ - Removed deprecated methods singleton() and version()
+
 4.14 2021-02-23T14:58:07+0900
  - Add routes() to Schema::OpenAPIv2 and OpenAPIv3
 
