@@ -202,6 +202,12 @@ sub _coerce_parameter_format {
   return $val->{value} = [split /,/,   $val->{value}];
 }
 
+sub _definitions_path_for_ref {
+  my ($self, $ref) = @_;
+  my $path = Mojo::Path->new($ref->fqn =~ m!^.*#/(definitions|parameters|responses/.+)$!)->to_dir->parts;
+  return $path->[0] ? $path : ['definitions'];
+}
+
 sub _find_all_nodes {
   my ($self, $pointer, $leaf) = @_;
   my @found;

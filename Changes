@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+4.16 Not Released
+ - Fix handling OpenAPIv2 "responses" $ref when bundling
+
 4.15 2021-03-24T07:57:58+0900
  - Fix validating nullable inside anyOf for OpenAPIv3 #241
  - Fix t/id-keyword-draft*.t test failures with Mojolicious 9.11 #242 #243
