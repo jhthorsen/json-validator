@@ -1,9 +1,10 @@
 Revision history for perl distribution JSON-Validator
 
-4.15 Not Released
+4.15 2021-03-24T07:57:58+0900
+ - Fix validating nullable inside anyOf for OpenAPIv3 #241
+ - Fix t/id-keyword-draft*.t test failures with Mojolicious 9.11 #242 #243
  - Removed deprecated functions joi() and validate_json()
  - Removed deprecated methods singleton() and version()
- - Fix t/id-keyword-draft*.t test failures with Mojolicious 9.11 #242
 
 4.14 2021-02-23T14:58:07+0900
  - Add routes() to Schema::OpenAPIv2 and OpenAPIv3
