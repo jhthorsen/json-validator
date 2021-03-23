@@ -6,8 +6,8 @@ use Test::More;
 my ($base_url, $jv, $t, @e);
 
 use Mojolicious::Lite;
-get '/person'           => 'person';
-get '/invalid-relative' => 'invalid-relative';
+get '/person'           => [format => ['json']] => 'person';
+get '/invalid-relative' => [format => ['json']] => 'invalid-relative';
 
 $t  = Test::Mojo->new;
 $jv = JSON::Validator->new(ua => $t->ua);

@@ -7,9 +7,9 @@ use Test::More;
 my ($base_url, $jv, $t, @e);
 
 use Mojolicious::Lite;
-get '/invalid-fragment'     => 'invalid-fragment';
-get '/invalid-relative'     => 'invalid-relative';
-get '/relative-to-the-root' => 'relative-to-the-root';
+get '/invalid-fragment'     => [format => ['json']] => 'invalid-fragment';
+get '/invalid-relative'     => [format => ['json']] => 'invalid-relative';
+get '/relative-to-the-root' => [format => ['json']] => 'relative-to-the-root';
 
 $t  = Test::Mojo->new;
 $jv = JSON::Validator->new(ua => $t->ua);
