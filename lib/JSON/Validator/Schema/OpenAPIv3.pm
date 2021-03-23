@@ -256,6 +256,21 @@ sub _validate_body {
   return;
 }
 
+sub _validate_type_boolean {
+  my $self = shift;
+  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_boolean(@_);
+}
+
+sub _validate_type_integer {
+  my $self = shift;
+  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_integer(@_);
+}
+
+sub _validate_type_number {
+  my $self = shift;
+  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_number(@_);
+}
+
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
   return E $path, [object => type => data_type $data] if ref $data ne 'HASH';
@@ -270,15 +285,6 @@ sub _validate_type_object {
     return E $path, "TODO: Not yet supported: $url"              unless $url =~ s!^#!!;
     local $self->{inside_discriminator} = 1;    # prevent recursion
     return $self->_validate($data, $path, $self->get($url));
-  }
-
-  my %properties = %{$schema->{properties} || {}};
-  local $schema->{properties} = \%properties;
-  for my $key (keys %properties) {
-    next unless $properties{$key}{nullable};
-    my $tied = tied %{$properties{$key}};
-    $properties{$key} = $tied ? {%{$tied->schema}} : {%{$properties{$key}}};
-    $properties{$key}{type} = ['null', _to_list($properties{$key}{type})];
   }
 
   return $self->{validate_request}
@@ -324,6 +330,11 @@ sub _validate_type_object_response {
     $self->_validate_type_object_dependencies($_[1], $path, $schema),
     $self->_validate_type_object_properties($_[1], $path, $schema),
   );
+}
+
+sub _validate_type_string {
+  my $self = shift;
+  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_string(@_);
 }
 
 1;

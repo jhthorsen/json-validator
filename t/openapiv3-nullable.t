@@ -15,6 +15,11 @@ for my $path (qw(/nullable-data /nullable-ref)) {
   is "@errors", "", "$path - name is undef";
 }
 
+$schema = JSON::Validator->new->schema('data://main/issue-241.json')->schema;
+$body   = {exists => 1, value => {name => undef}};
+@errors = $schema->validate_response([get => '/test'], {body => \&body});
+is "@errors", "", "nullable inside oneOf";
+
 done_testing;
 
 sub body {$body}
@@ -62,5 +67,40 @@ __DATA__
         }
       }
     }
+  }
+}
+@@ issue-241.json
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Nullable", "version": "" },
+  "paths": {
+    "/test": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "oneOf": [
+                        { "$ref": "#/components/schemas/name1" },
+                        { "$ref": "#/components/schemas/name2" }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "name1": { "type": "string", "nullable": "true" },
+      "name2": { "type": "integer" } }
   }
 }
