@@ -14,7 +14,25 @@ has specification => 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
 monkey_patch __PACKAGE__,
   $_ => JSON::Validator::Schema::OpenAPIv2->can($_)
   for qw(coerce routes validate_request validate_response),
-  qw(_coerce_arrays _coerce_default_value _find_all_nodes _prefix_error_path _validate_request_or_response);
+  qw(_coerce_arrays _coerce_default_value _find_all_nodes _params_for_add_default_response _prefix_error_path _validate_request_or_response);
+
+sub add_default_response {
+  my ($self, $params) = ($_[0], shift->_params_for_add_default_response(@_));
+
+  my $responses = $self->data->{components}{schemas} ||= {};
+  my $ref       = $responses->{$params->{name}}      ||= $params->{schema};
+  my %schema    = ('$ref' => "#/components/schemas/$params->{name}");
+  tie %schema, 'JSON::Validator::Ref', $ref, $schema{'$ref'}, $schema{'$ref'};
+
+  for my $route ($self->routes->each) {
+    my $op = $self->get([paths => @$route{qw(path method)}]);
+    $op->{responses}{$_}
+      ||= {description => $params->{description}, content => {'application/json' => {schema => \%schema}}}
+      for @{$params->{status}};
+  }
+
+  return $self;
+}
 
 sub new {
   my $self = shift->SUPER::new(@_);
@@ -370,6 +388,12 @@ Used to get/set the moniker for the given schema. Default value is "openapiv3".
 Defaults to "L<https://spec.openapis.org/oas/3.0/schema/2019-04-02>".
 
 =head1 METHODS
+
+=head2 add_default_response
+
+  $schema = $schema->add_default_response(\%params);
+
+See L<JSON::Validator::Schema::OpenAPIv2/add_default_response> for details.
 
 =head2 coerce
 

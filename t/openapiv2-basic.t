@@ -31,6 +31,8 @@ subtest 'basic' => sub {
     ],
     'routes'
   );
+
+  is_deeply $schema->errors, [], 'errors';
 };
 
 subtest 'validate schema' => sub {
@@ -115,6 +117,21 @@ subtest 'validate_response - accept' => sub {
   is_deeply $body,
     {accept => 'application/*', content_type => 'application/json', in => 'body', name => 'body', valid => 1},
     'negotiated content type';
+};
+
+subtest add_default_response => sub {
+  $schema = JSON::Validator->new->schema($cwd->child(qw(spec v2-petstore.json)))->schema->resolve;
+  ok !$schema->get('/definitions/DefaultResponse'), 'default response missing';
+  ok !$schema->get([paths => '/petss', 'get', 'responses', '400']), 'default response missing for 400';
+  $schema->add_default_response;
+  ok $schema->get('/definitions/DefaultResponse'), 'default response added';
+
+  for my $status (400, 401, 404, 500, 501) {
+    ok $schema->get([paths => '/pets', 'get', 'responses', $status]), "default response for $status";
+  }
+
+  delete $schema->{errors};
+  is_deeply $schema->errors, [], 'errors';
 };
 
 done_testing;
