@@ -286,6 +286,11 @@ sub _validate_body {
   return;
 }
 
+sub _validate_type_array {
+  my $self = shift;
+  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_array(@_);
+}
+
 sub _validate_type_boolean {
   my $self = shift;
   return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_boolean(@_);
@@ -303,6 +308,7 @@ sub _validate_type_number {
 
 sub _validate_type_object {
   my ($self, $data, $path, $schema) = @_;
+  return if $schema->{nullable} && !defined $data;
   return E $path, [object => type => data_type $data] if ref $data ne 'HASH';
   return shift->SUPER::_validate_type_object(@_) unless $self->{validate_request} or $self->{validate_response};
 

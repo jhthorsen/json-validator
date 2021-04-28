@@ -3,6 +3,7 @@ Revision history for perl distribution JSON-Validator
 4.17 Not Released
  - Add add_default_response() to OpenAPIv2 and OpenAPIv3
  - Add base_url() to OpenAPIv2 and OpenAPIv3
+ - Fix validating "nullable" for "array" and "object"
 
 4.16 2021-03-24T08:57:46+0900
  - Fix handling OpenAPIv2 "responses" $ref when bundling

@@ -15,6 +15,18 @@ for my $path (qw(/nullable-data /nullable-ref)) {
   is "@errors", "", "$path - name is undef";
 }
 
+for my $extra ({}, undef) {
+  $body   = {exists => 1, value => {extra => $extra, id => 42, name => undef}};
+  @errors = $schema->validate_response([get => '/nullable-data'], {body => \&body});
+  is "@errors", "", sprintf 'extra %s', $extra ? 'object' : 'null';
+}
+
+for my $stuff ([], undef) {
+  $body   = {exists => 1, value => {stuff => $stuff, id => 42, name => undef}};
+  @errors = $schema->validate_response([get => '/nullable-data'], {body => \&body});
+  is "@errors", "", sprintf 'stuff %s', $stuff ? 'array' : 'null';
+}
+
 $schema = JSON::Validator->new->schema('data://main/issue-241.json')->schema;
 $body   = {exists => 1, value => {name => undef}};
 @errors = $schema->validate_response([get => '/test'], {body => \&body});
@@ -55,8 +67,10 @@ __DATA__
       "WithNullable": {
         "required": [ "id", "name" ],
         "properties": {
+          "extra": { "type": "object", "nullable": true },
           "id": { "type": "integer", "format": "int64" },
-          "name": { "type": "string", "nullable": true }
+          "name": { "type": "string", "nullable": true },
+          "stuff": { "type": "array", "nullable": true }
         }
       },
       "WithNullableRef": {
