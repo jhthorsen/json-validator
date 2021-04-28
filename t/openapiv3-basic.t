@@ -29,6 +29,18 @@ subtest 'basic' => sub {
   );
 };
 
+subtest base_url => sub {
+  is $schema->base_url, 'http://petstore.swagger.io/v1', 'get';
+  is $schema->base_url('https://api.example.com:8080/api'), $schema, 'set url';
+  is $schema->get('/servers/0/url'), 'https://api.example.com:8080/api', 'servers changed';
+
+  is $schema->base_url(Mojo::URL->new('//api2.example.com')), $schema, 'set without scheme';
+  is $schema->get('/servers/0/url'), 'https://api2.example.com', 'servers changed';
+
+  is $schema->base_url(Mojo::URL->new('/v1')), $schema, 'set path';
+  is $schema->base_url->to_string, 'https://api2.example.com/v1', 'get';
+};
+
 subtest 'parameters_for_request' => sub {
   is $schema->parameters_for_request([GET => '/pets/nope']), undef, 'no such path';
   cmp_deeply $schema->parameters_for_request([GET => '/pets']), [superhashof({in => 'query', name => 'limit'})],

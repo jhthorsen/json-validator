@@ -43,6 +43,28 @@ sub allow_invalid_ref {
   return $self;
 }
 
+sub base_url {
+  my ($self, $url) = @_;
+  my $spec = $self->data;
+
+  # Get
+  unless ($url) {
+    $url = Mojo::URL->new;
+    $url->host($spec->{host}) if $spec->{host};
+    $url->path($spec->{basePath} || '/');
+    $url->scheme($spec->{schemes} && $spec->{schemes}[0] || undef);
+    $url->host('localhost') if $url->scheme and !$url->host;
+    return $url;
+  }
+
+  # Set
+  $url                = Mojo::URL->new($url)->to_abs($self->base_url);
+  $spec->{host}       = $url->host_port if $url->host_port;
+  $spec->{schemes}[0] = $url->scheme    if $url->scheme;
+  $spec->{basePath}   = $url->path->to_string || '/';
+  return $self;
+}
+
 sub coerce {
   my $self = shift;
   return $self->SUPER::coerce(@_) if @_;
@@ -496,6 +518,16 @@ different files where OpenAPIv2 normally does not allow you to.
 Setting this attribute will not work if the schema has recursive C<$ref>s.
 
 This method is highly EXPERIMENTAL, and it is not advices to use this method.
+
+=head2 base_url
+
+  $url = $schema->base_url;
+  $schema = $schema->base_url($url);
+
+Can get or set the default URL for this schema. C<$url> can be either a
+L<Mojo::URL> object or a plain string.
+
+This method will read or write "basePath", "host" and/or "schemas" in L</data>.
 
 =head2 coerce
 

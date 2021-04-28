@@ -34,6 +34,18 @@ sub add_default_response {
   return $self;
 }
 
+sub base_url {
+  my ($self, $url) = @_;
+
+  # Get
+  return Mojo::URL->new($self->get('/servers/0/url') || '') unless $url;
+
+  # Set
+  $url = Mojo::URL->new($url)->to_abs($self->base_url);
+  $self->data->{servers}[0]{url} = $url->to_string;
+  return $self;
+}
+
 sub new {
   my $self = shift->SUPER::new(@_);
   $self->coerce;    # make sure this attribute is built
@@ -394,6 +406,16 @@ Defaults to "L<https://spec.openapis.org/oas/3.0/schema/2019-04-02>".
   $schema = $schema->add_default_response(\%params);
 
 See L<JSON::Validator::Schema::OpenAPIv2/add_default_response> for details.
+
+=head2 base_url
+
+  $url = $schema->base_url;
+  $schema = $schema->base_url($url);
+
+Can get or set the default URL for this schema. C<$url> can be either a
+L<Mojo::URL> object or a plain string.
+
+This method will read or write "/servers/0/url" in L</data>.
 
 =head2 coerce
 
