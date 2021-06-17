@@ -298,6 +298,7 @@ sub _new_schema {
   my $store  = $self->store;
   my $schema = $loadable ? $store->get($store->load($source)) : $source;
 
+  $attrs{coerce}  ||= $self->{coerce}  if $self->{coerce};
   $attrs{formats} ||= $self->{formats} if $self->{formats};
   $attrs{specification} = $schema->{'$schema'}
     if !$attrs{specification}
