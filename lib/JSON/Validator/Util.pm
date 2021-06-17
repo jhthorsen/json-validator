@@ -90,13 +90,16 @@ sub negotiate_content_type {
   my ($accepts, $header) = @_;
   return '' unless $header;
 
-  my %header_map;
-  /^\s*([^,; ]+)(?:\s*\;\s*q\s*=\s*(\d+(?:\.\d+)?))?\s*$/i and $header_map{lc $1} = $2 // 1 for split /,/, $header;
+  my %header_map = map {
+        /^\s*([^,; ]+)(?:\s*\;\s*q\s*=\s*(\d+(?:\.\d+)?))?\s*$/i ? (lc $1, $2)
+      : /^\s*([^,; ]+)(?:\s*\;\s*\w+\s*=\S+)?\s*$/i              ? (lc $1, -1)
+      :                                                            (lc $_, -2);
+  } split /,/, $header;
   my @headers = sort { $header_map{$b} <=> $header_map{$a} } sort keys %header_map;
 
   # Check for exact match
   for my $ct (@$accepts) {
-    return $ct if $header_map{$ct};
+    return $ct if exists $header_map{$ct};
   }
 
   # Check for closest match

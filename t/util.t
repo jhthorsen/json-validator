@@ -42,9 +42,11 @@ is_deeply(
 );
 
 is negotiate_content_type([]), '', 'accepts nothing';
+is negotiate_content_type(['multipart/form-data'], 'multipart/form-data; boundary=mgkBX'), 'multipart/form-data',
+  'form-data boundary';
 is negotiate_content_type(['application/json']), '', 'header missing';
 is negotiate_content_type(['application/json', 'text/plain'], 'application/json'), 'application/json', 'exact match';
-is negotiate_content_type(['application/json', 'text/*'], 'text/plain'),           'text/*',           'closest accept';
+is negotiate_content_type(['application/json', 'text/*'],     'text/plain'),       'text/*',           'closest accept';
 is negotiate_content_type(
   ['text/plain', 'application/xml'],
   'text/html;text/plain;q=0.2,application/xml;q=0.9,*/*;q=0.8'
