@@ -16,6 +16,8 @@ has errors => sub {
   return [$validator->validate($self->resolve->data)];
 };
 
+has formats => sub { shift->_build_formats };
+
 has id => sub {
   my $data = shift->data;
   return is_type($data, 'HASH') ? $data->{'$id'} || $data->{id} || '' : '';
@@ -79,6 +81,36 @@ sub validate {
 }
 
 sub schema { $_[0]->can('data') ? $_[0] : $_[0]->SUPER::schema }
+
+sub _build_formats {
+  return {
+    'byte'                  => JSON::Validator::Formats->can('check_byte'),
+    'date'                  => JSON::Validator::Formats->can('check_date'),
+    'date-time'             => JSON::Validator::Formats->can('check_date_time'),
+    'duration'              => JSON::Validator::Formats->can('check_duration'),
+    'double'                => JSON::Validator::Formats->can('check_double'),
+    'email'                 => JSON::Validator::Formats->can('check_email'),
+    'float'                 => JSON::Validator::Formats->can('check_float'),
+    'hostname'              => JSON::Validator::Formats->can('check_hostname'),
+    'idn-email'             => JSON::Validator::Formats->can('check_idn_email'),
+    'idn-hostname'          => JSON::Validator::Formats->can('check_idn_hostname'),
+    'int32'                 => JSON::Validator::Formats->can('check_int32'),
+    'int64'                 => JSON::Validator::Formats->can('check_int64'),
+    'ipv4'                  => JSON::Validator::Formats->can('check_ipv4'),
+    'ipv6'                  => JSON::Validator::Formats->can('check_ipv6'),
+    'iri'                   => JSON::Validator::Formats->can('check_iri'),
+    'iri-reference'         => JSON::Validator::Formats->can('check_iri_reference'),
+    'json-pointer'          => JSON::Validator::Formats->can('check_json_pointer'),
+    'regex'                 => JSON::Validator::Formats->can('check_regex'),
+    'relative-json-pointer' => JSON::Validator::Formats->can('check_relative_json_pointer'),
+    'time'                  => JSON::Validator::Formats->can('check_time'),
+    'uri'                   => JSON::Validator::Formats->can('check_uri'),
+    'uri-reference'         => JSON::Validator::Formats->can('check_uri_reference'),
+    'uri-reference'         => JSON::Validator::Formats->can('check_uri_reference'),
+    'uri-template'          => JSON::Validator::Formats->can('check_uri_template'),
+    'uuid'                  => JSON::Validator::Formats->can('check_uuid'),
+  };
+}
 
 sub _definitions_path_for_ref { ['definitions'] }
 
