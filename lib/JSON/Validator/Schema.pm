@@ -60,6 +60,8 @@ sub get {
   return JSON::Validator::Util::schema_extract(shift->data, @_);
 }
 
+sub is_invalid { !!@{shift->errors} }
+
 sub load_and_validate_schema { Carp::confess('load_and_validate_schema(...) is unsupported.') }
 
 sub new {
@@ -581,9 +583,34 @@ JSON::Validator::Schema - Base class for JSON::Validator schemas
 
 =head1 SYNOPSIS
 
+=head2 Basics
+
+  # Create a new schema from a file on disk
+  # It is also possible to create the object from JSON::Validator::Schema,
+  # but you most likely want to use one of the subclasses.
+  my $schema = JSON::Validator::Schema::Draft7->new('file:///cool/beans.yaml');
+
+  # Validate the schema
+  die $schema->errors->[0] if $schema->is_invalid;
+
+  # Validate data
+  my @errors = $schema->validate({some => 'data'});
+  die $errors[0] if @errors;
+
+=head2 Shared store
+
+  my $store = JSON::Validator::Store->new;
+  my $schema = JSON::Validator::Schema::Draft7->new(store => $store);
+
+  # Will not fetch the fike from web, if the $store has already retrived
+  # the schema
+  $schema->resolve('https://api.example.com/cool/beans.json');
+
+=head2 Make a new validation class
+
   package JSON::Validator::Schema::SomeSchema;
-  use Mojo::Base "JSON::Validator::Schema";
-  has specification => "https://api.example.com/my/spec.json#";
+  use Mojo::Base 'JSON::Validator::Schema';
+  has specification => 'https://api.example.com/my/spec.json#';
   1;
 
 =head1 DESCRIPTION
@@ -591,13 +618,13 @@ JSON::Validator::Schema - Base class for JSON::Validator schemas
 L<JSON::Validator::Schema> is the base class for
 L<JSON::Validator::Schema::Draft4>,
 L<JSON::Validator::Schema::Draft6>,
-L<JSON::Validator::Schema::Draft7> and
-L<JSON::Validator::Schema::Draft201909>.
+L<JSON::Validator::Schema::Draft7>,
+L<JSON::Validator::Schema::Draft201909>,
+L<JSON::Validator::Schema::OpenAPIv2> and
+L<JSON::Validator::Schema::OpenAPIv3>.
 
-L<JSON::Validator::Schema> is currently EXPERIMENTAL, and most probably will
-change over the next versions as
-L<https://github.com/mojolicious/json-validator/pull/189> (or a competing PR)
-evolves.
+Any of the classes above can be used instead of L<JSON::Validator> if you know
+which draft/version you are working with up front.
 
 =head1 ATTRIBUTES
 
@@ -639,6 +666,14 @@ L</specification> or C</id> in the future.
 
 The URL to the specification used when checking for L</errors>. Usually
 extracted from C<"$schema"> or C<"schema"> in L</data>.
+
+=head2 store
+
+  $store = $jv->store;
+
+Holds a L<JSON::Validator::Store> object that caches the retrieved schemas.
+This object can be shared amongst different schema objects to prevent
+a schema from having to be downloaded again.
 
 =head1 METHODS
 
@@ -699,6 +734,13 @@ L<JSON::Validator::Util/schema_extract> instead:
 The second argument can be C<undef()>, if you don't care about the callback.
 
 See L<Mojo::JSON::Pointer/get>.
+
+=head2 is_invalid
+
+  my $bool = $schema->is_invalid;
+
+Returns true if the schema in L</data> is invalid. Internally this method calls
+L</errors> which will validate L</data> agains L</specification>.
 
 =head2 load_and_validate_schema
 

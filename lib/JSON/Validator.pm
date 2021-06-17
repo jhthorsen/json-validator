@@ -399,6 +399,13 @@ JSON::Validator - Validate data against a JSON schema
 
 =head1 SYNOPSIS
 
+=head2 Using a schema object
+
+L<JSON::Validator::Schema> or any of the sub classes can be used instead of
+L<JSON::Validator>.
+
+=head2 Basics
+
   use JSON::Validator;
   my $jv = JSON::Validator->new;
 
@@ -419,6 +426,8 @@ JSON::Validator - Validate data against a JSON schema
 
   # Do something if any errors was found
   die "@errors" if @errors;
+
+=head2 Using joi
 
   # Use joi() to build the schema
   use JSON::Validator::Joi 'joi';
@@ -576,6 +585,14 @@ then deactivating the recursive data protection may help.
 This attribute is EXPERIMENTAL and may change in a future release.
 
 B<Disclaimer: Use at your own risk, if you have any doubt then don't use it>
+
+=head2 store
+
+  $store = $jv->store;
+
+Holds a L<JSON::Validator::Store> object that caches the retrieved schemas.
+This object can be shared amongst different schema objects to prevent
+a schema from having to be downloaded again.
 
 =head2 ua
 
