@@ -3,6 +3,7 @@ Revision history for perl distribution JSON-Validator
 4.20 Not Released
  - Fix coerce() will be passed on to schema() objects
  - Changed joi validator to default to a JSON::Validator::Schema::Draft7 object
+ - Removed support for coerce(1)
  - Removed support for subclassing JSON::Validator. Need to subclass a schema
    class instead.
  - Simpler inheritance for Schema classes

@@ -114,13 +114,7 @@ sub coerce {
   my $self = shift;
   return $self->{coerce} ||= {} unless defined(my $what = shift);
 
-  if ($what eq '1') {
-    Mojo::Util::deprecated('coerce(1) will be deprecated.');
-    $what = {booleans => 1, numbers => 1, strings => 1};
-  }
-
   state $short = {bool => 'booleans', def => 'defaults', num => 'numbers', str => 'strings'};
-
   $what                                 = {map { ($_ => 1) } split /,/, $what} unless ref $what;
   $self->{coerce}                       = {};
   $self->{coerce}{($short->{$_} || $_)} = $what->{$_} for keys %$what;
