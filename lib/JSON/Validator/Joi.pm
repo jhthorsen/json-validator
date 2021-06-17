@@ -10,12 +10,13 @@ use Storable 'dclone';
 our @EXPORT_OK = qw(joi);
 
 # Avoid "Subroutine redefined" warnings
-require JSON::Validator;
+require JSON::Validator::Schema::Draft7;
 
-has enum                                   => sub { +[] };
-has [qw(format max min multiple_of regex)] => undef;
-has type                                   => 'object';
-has validator                              => sub { JSON::Validator->new->coerce('booleans,numbers,strings') };
+has enum      => sub { +[] };
+has type      => 'object';
+has validator => sub { JSON::Validator::Schema::Draft7->new->coerce('booleans,numbers,strings') };
+
+has [qw(format max min multiple_of regex)];
 
 for my $attr (qw(required strict unique)) {
   Mojo::Util::monkey_patch(__PACKAGE__, $attr => sub { $_[0]->{$attr} = $_[1] // 1; $_[0]; });
