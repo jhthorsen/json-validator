@@ -1,6 +1,7 @@
 package JSON::Validator::Schema::Draft6;
-use Mojo::Base 'JSON::Validator::Schema::Draft4';
+use Mojo::Base 'JSON::Validator::Schema';
 
+use JSON::Validator::Schema::Draft4;
 use JSON::Validator::Util qw(E data_type is_type prefix_errors);
 
 has id => sub {
@@ -103,6 +104,13 @@ sub _validate_type_object_names {
 
   return @errors;
 }
+
+*_validate_type_array_items         = \&JSON::Validator::Schema::Draft4::_validate_type_array_items;
+*_validate_type_array_min_max       = \&JSON::Validator::Schema::Draft4::_validate_type_array_min_max;
+*_validate_type_array_unique        = \&JSON::Validator::Schema::Draft4::_validate_type_array_unique;
+*_validate_type_object_dependencies = \&JSON::Validator::Schema::Draft4::_validate_type_object_dependencies;
+*_validate_type_object_min_max      = \&JSON::Validator::Schema::Draft4::_validate_type_object_min_max;
+*_validate_type_object_properties   = \&JSON::Validator::Schema::Draft4::_validate_type_object_properties;
 
 1;
 

@@ -1,5 +1,14 @@
 package JSON::Validator::Schema::Draft7;
-use Mojo::Base 'JSON::Validator::Schema::Draft6';
+use Mojo::Base 'JSON::Validator::Schema';
+
+use JSON::Validator::Schema::Draft4;
+use JSON::Validator::Schema::Draft6;
+use JSON::Validator::Util qw(E is_type);
+
+has id => sub {
+  my $data = shift->data;
+  return is_type($data, 'HASH') ? $data->{'$id'} || '' : '';
+};
 
 has specification => 'http://json-schema.org/draft-07/schema#';
 
@@ -26,6 +35,20 @@ sub _build_formats {
 }
 
 sub _definitions_path_for_ref { ['$defs'] }
+sub _id_key                   {'$id'}
+
+*_validate_number_max               = \&JSON::Validator::Schema::Draft6::_validate_number_max;
+*_validate_number_min               = \&JSON::Validator::Schema::Draft6::_validate_number_min;
+*_validate_type_array               = \&JSON::Validator::Schema::Draft6::_validate_type_array;
+*_validate_type_array_contains      = \&JSON::Validator::Schema::Draft6::_validate_type_array_contains;
+*_validate_type_array_items         = \&JSON::Validator::Schema::Draft4::_validate_type_array_items;
+*_validate_type_array_min_max       = \&JSON::Validator::Schema::Draft4::_validate_type_array_min_max;
+*_validate_type_array_unique        = \&JSON::Validator::Schema::Draft4::_validate_type_array_unique;
+*_validate_type_object              = \&JSON::Validator::Schema::Draft6::_validate_type_object;
+*_validate_type_object_dependencies = \&JSON::Validator::Schema::Draft4::_validate_type_object_dependencies;
+*_validate_type_object_min_max      = \&JSON::Validator::Schema::Draft4::_validate_type_object_min_max;
+*_validate_type_object_names        = \&JSON::Validator::Schema::Draft6::_validate_type_object_names;
+*_validate_type_object_properties   = \&JSON::Validator::Schema::Draft4::_validate_type_object_properties;
 
 1;
 

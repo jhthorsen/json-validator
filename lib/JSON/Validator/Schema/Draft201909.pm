@@ -1,6 +1,9 @@
 package JSON::Validator::Schema::Draft201909;
-use Mojo::Base 'JSON::Validator::Schema::Draft7';
+use Mojo::Base 'JSON::Validator::Schema';
 
+use JSON::Validator::Schema::Draft4;
+use JSON::Validator::Schema::Draft6;
+use JSON::Validator::Schema::Draft7;
 use JSON::Validator::Util qw(E is_type json_pointer);
 use Scalar::Util qw(blessed refaddr);
 
@@ -10,13 +13,14 @@ has specification => 'https://json-schema.org/draft/2019-09/schema';
 has _anchors      => sub { +{} };
 
 sub _build_formats {
-  my $formats = shift->SUPER::_build_formats;
+  my $formats = shift->JSON::Validator::Schema::Draft7::_build_formats;
   $formats->{duration} = JSON::Validator::Formats->can('check_duration');
   $formats->{uuid}     = JSON::Validator::Formats->can('check_uuid');
   return $formats;
 }
 
 sub _definitions_path_for_ref { ['$defs'] }
+sub _id_key                   {'$id'}
 
 sub _find_and_resolve_refs {
   my ($self, $base_url, $root) = @_;
@@ -133,6 +137,17 @@ sub _validate_type_object_dependencies {
 
   return @errors;
 }
+
+*_validate_number_max             = \&JSON::Validator::Schema::Draft6::_validate_number_max;
+*_validate_number_min             = \&JSON::Validator::Schema::Draft6::_validate_number_min;
+*_validate_type_array             = \&JSON::Validator::Schema::Draft6::_validate_type_array;
+*_validate_type_array_items       = \&JSON::Validator::Schema::Draft4::_validate_type_array_items;
+*_validate_type_array_min_max     = \&JSON::Validator::Schema::Draft4::_validate_type_array_min_max;
+*_validate_type_array_unique      = \&JSON::Validator::Schema::Draft4::_validate_type_array_unique;
+*_validate_type_object            = \&JSON::Validator::Schema::Draft6::_validate_type_object;
+*_validate_type_object_min_max    = \&JSON::Validator::Schema::Draft4::_validate_type_object_min_max;
+*_validate_type_object_names      = \&JSON::Validator::Schema::Draft6::_validate_type_object_names;
+*_validate_type_object_properties = \&JSON::Validator::Schema::Draft4::_validate_type_object_properties;
 
 1;
 

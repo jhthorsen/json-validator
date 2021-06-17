@@ -4,6 +4,7 @@ Revision history for perl distribution JSON-Validator
  - Fix coerce() will be passed on to schema() objects
  - Removed support for subclassing JSON::Validator. Need to subclass a schema
    class instead.
+ - Simpler inheritance for Schema classes
 
 4.19 2021-06-17T12:37:10+0900
  - Fix generating correct base_url() object with host and port
