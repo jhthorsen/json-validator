@@ -2,6 +2,7 @@ package JSON::Validator::Schema;
 use Mojo::Base 'JSON::Validator';    # TODO: Change this to "use Mojo::Base -base"
 
 use Carp qw(carp);
+use JSON::Validator::Formats;
 use JSON::Validator::Util qw(E data_checksum data_type is_type json_pointer prefix_errors schema_type);
 use List::Util qw(uniq);
 use Mojo::JSON qw(false true);

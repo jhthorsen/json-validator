@@ -1,9 +1,7 @@
 package JSON::Validator;
 use Mojo::Base -base;
-use Exporter 'import';
 
 use Carp qw(confess);
-use JSON::Validator::Formats;
 use JSON::Validator::Ref;
 use JSON::Validator::Store;
 use JSON::Validator::Util qw(E data_checksum is_type);
@@ -14,8 +12,7 @@ use Scalar::Util qw(blessed refaddr);
 
 use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 
-our $VERSION   = '4.19';
-our @EXPORT_OK = qw(joi validate_json);
+our $VERSION = '4.19';
 
 our %SCHEMAS = (
   'http://json-schema.org/draft-04/schema#'             => '+Draft4',
@@ -152,6 +149,8 @@ sub schema {
 
 sub validate {
   my ($self, $data, $schema) = @_;
+  Mojo::Util::deprecated('validation(..., $schema) will be deprecated. Set schema() first instead') if $schema;
+
   $schema //= $self->schema->data;
   return E '/', 'No validation rules defined.' unless defined $schema;
 
@@ -422,7 +421,7 @@ JSON::Validator - Validate data against a JSON schema
   die "@errors" if @errors;
 
   # Use joi() to build the schema
-  use JSON::Validator 'joi';
+  use JSON::Validator::Joi 'joi';
 
   $jv->schema(joi->object->props({
     firstName => joi->string->required,
@@ -486,7 +485,7 @@ Here is the list of the bundled specifications:
 
 =over 2
 
-=item * JSON schema, draft 4, 6, 7
+=item * JSON schema, draft 4, 6, 7, 2019-09.
 
 Web page: L<http://json-schema.org>
 
@@ -539,28 +538,18 @@ to do validation of specific "format", such as "hostname", "ipv4" and others.
 
 =head1 ERROR OBJECT
 
-The methods L</validate> and the function L</validate_json> returns a list of
-L<JSON::Validator::Error> objects when the input data violates the L</schema>.
-
-=head1 FUNCTIONS
-
-=head2 joi
-
-DEPRECATED.
-
-=head2 validate_json
-
-DEPRECATED.
+The method L</validate> returns a list of L<JSON::Validator::Error> objects
+when the input data violates the L</schema>.
 
 =head1 ATTRIBUTES
 
 =head2 cache_paths
 
-Proxy attribtue for L<JSON::Validator::Store/cache_paths>.
+Proxy attribute for L<JSON::Validator::Store/cache_paths>.
 
 =head2 formats
 
-  my $hash_ref  = $jv->formats;
+  my $hash_ref = $jv->formats;
   my $jv = $jv->formats(\%hash);
 
 Holds a hash-ref, where the keys are supported JSON type "formats", and
@@ -573,8 +562,8 @@ See L<JSON::Validator::Formats> for a list of supported formats.
 
 =head2 recursive_data_protection
 
-  my $jv = $jv->recursive_data_protections( $boolean );
-  my $boolean = $jv->recursive_data_protection;
+  my $jv = $jv->recursive_data_protection($bool);
+  my $bool = $jv->recursive_data_protection;
 
 Recursive data protection is active by default, however it can be deactivated
 by assigning a false value to the L</recursive_data_protection> attribute.
@@ -590,11 +579,7 @@ B<Disclaimer: Use at your own risk, if you have any doubt then don't use it>
 
 =head2 ua
 
-Proxy attribtue for L<JSON::Validator::Store/ua>.
-
-=head2 version
-
-DEPRECATED.
+Proxy attribute for L<JSON::Validator::Store/ua>.
 
 =head1 METHODS
 
@@ -699,6 +684,7 @@ structured that can be used to validate C<$schema>.
   my $jv     = $jv->schema($url);
   my $jv     = $jv->schema(\%schema);
   my $jv     = $jv->schema(JSON::Validator::Joi->new);
+  my $jv     = $jv->schema(JSON::Validator::Schema->new);
   my $schema = $jv->schema;
 
 Used to set a schema from either a data structure or a URL.
@@ -741,30 +727,36 @@ the will be loaded from the app defined in L</ua>. Something like this:
 
 =back
 
-=head2 singleton
-
-DEPRECATED.
-
 =head2 validate
 
   my @errors = $jv->validate($data);
-  my @errors = $jv->validate($data, $schema);
 
-Validates C<$data> against a given JSON L</schema>. C<@errors> will
-contain validation error objects, in a predictable order (specifically,
-ASCIIbetically sorted by the error objects' C<path>) or be an empty
-list on success.
+Validates C<$data> against L</schema>. C<@errors> will contain validation error
+objects, in a predictable order (specifically, alphanumerically sorted by the
+error objects' C<path>) or be an empty list on success.
 
 See L</ERROR OBJECT> for details.
 
-C<$schema> is optional, but when specified, it will override schema stored in
-L</schema>. Example:
-
-  $jv->validate({hero => "superwoman"}, {type => "object"});
-
-=head2 SEE ALSO
+=head1 SEE ALSO
 
 =over 2
+
+=item * L<JSON::Validator::Formats>
+
+L<JSON::Validator::Formats> contains utility functions for validating data
+types. Could be useful for validating data without loading a schema.
+
+=item * L<JSON::Validator::Schema>
+
+L<JSON::Validator::Schema> is the base class for
+L<JSON::Validator::Schema::Draft4>, L<JSON::Validator::Schema::Draft6>
+L<JSON::Validator::Schema::Draft7>, L<JSON::Validator::Schema::Draft201909>,
+L<JSON::Validator::Schema::OpenAPIv2> or L<JSON::Validator::Schema::OpenAPIv3>.
+
+=item * L<JSON::Validator::Util>
+
+L<JSON::Validator::Util> contains many useful function when working with
+schemas.
 
 =item * L<Mojolicious::Plugin::OpenAPI>
 
@@ -776,7 +768,7 @@ to build routes with input and output validation.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014-2018, Jan Henning Thorsen
+Copyright (C) 2014-2021, Jan Henning Thorsen
 
 This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.

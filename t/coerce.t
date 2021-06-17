@@ -14,15 +14,15 @@ my @items = ([boolean => 'true'], [integer => '42'], [number => '4.2']);
 for my $i (@items) {
   for my $schema (schemas($i->[0])) {
     my $x = $i->[1];
-    $jv->validate($x, $schema);
+    $jv->schema($schema)->validate($x);
     is to_json($x), $i->[1], sprintf 'no quotes around %s %s', $i->[0], to_json($schema);
 
     $x = {v => $i->[1]};
-    $jv->validate($x, {type => 'object', properties => {v => $schema}});
+    $jv->schema({type => 'object', properties => {v => $schema}})->validate($x);
     is to_json($x->{v}), $i->[1], sprintf 'no quotes around %s %s', $i->[0], to_json($schema);
 
     $x = [$i->[1]];
-    $jv->validate($x, {type => 'array', items => $schema});
+    $jv->schema({type => 'array', items => $schema})->validate($x);
     is to_json($x->[0]), $i->[1], sprintf 'no quotes around %s %s', $i->[0], to_json($schema);
   }
 }
