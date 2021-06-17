@@ -7,6 +7,9 @@ use Mojo::Collection;
 
 my $X_RE = qr{^x-};
 
+# Some of the keywords are OpenAPIv3 keywords
+my %SKIP_KEYWORDS_IN_PATH = map { ($_, 1) } qw(description parameters servers summary);
+
 has errors => sub {
   my $self      = shift;
   my $validator = $self->new(%$self, allow_invalid_ref => 0)->resolve($self->specification);
@@ -149,7 +152,7 @@ sub routes {
   for my $path (@sorted_paths) {
     next unless my $methods = $self->get([paths => $path]);
     for my $method (sort keys %$methods) {
-      next if $method =~ $X_RE or $method eq 'parameters';
+      next if $method =~ $X_RE or $SKIP_KEYWORDS_IN_PATH{$method};
       push @operations, {method => $method, operation_id => $methods->{$method}{operationId}, path => $path};
     }
   }
