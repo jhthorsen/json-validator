@@ -49,6 +49,10 @@ subtest base_url => sub {
 
   is $schema->base_url(Mojo::URL->new('/v1')), $schema, 'set path';
   is $schema->base_url->to_string, 'https://api2.example.com/v1', 'get';
+
+  my $schema_with_port = JSON::Validator->new->schema($cwd->child(qw(spec bundlecheck.json)))->schema->resolve;
+  is $schema_with_port->base_url->host, 'localhost', 'host';
+  is $schema_with_port->base_url->port, 3000,        'port';
 };
 
 subtest 'validate schema' => sub {

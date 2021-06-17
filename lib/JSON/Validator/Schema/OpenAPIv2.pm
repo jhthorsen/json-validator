@@ -53,7 +53,9 @@ sub base_url {
   # Get
   unless ($url) {
     $url = Mojo::URL->new;
-    $url->host($spec->{host}) if $spec->{host};
+    my @host_port = split ':', ($spec->{host} // '');
+    $url->host($host_port[0]) if $host_port[0];
+    $url->port($host_port[1]) if $host_port[1];
     $url->path($spec->{basePath} || '/');
     $url->scheme($spec->{schemes} && $spec->{schemes}[0] || undef);
     $url->host('localhost') if $url->scheme and !$url->host;
