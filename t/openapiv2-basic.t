@@ -88,8 +88,7 @@ subtest 'validate_request' => sub {
   $body   = {exists => 0};
   @errors = $schema->validate_request([POST => '/pets'], {body => \&body});
   is "@errors", '/body: Missing property.', 'default content type, but missing body';
-  is_deeply $body, {content_type => 'application/json', exists => 0, in => 'body', name => 'body', valid => 0},
-    'input was mutated';
+  is_deeply $body, {exists => 0, in => 'body', name => 'body', valid => 0}, 'input was mutated';
 
   $body   = {exists => 1, value => {name => 'kitty'}};
   @errors = $schema->validate_request([POST => '/pets'], {body => \&body});
@@ -132,6 +131,21 @@ subtest 'validate_response - accept' => sub {
   is "@errors", '', 'valid accept';
   is_deeply $body,
     {accept => 'application/*', content_type => 'application/json', in => 'body', name => 'body', valid => 1},
+    'negotiated content type';
+};
+
+subtest 'validate_response - content_type' => sub {
+  $body   = {content_type => 'text/plain'};
+  @errors = $schema->validate_response([get => '/pets'], {body => \&body});
+  is "@errors", '/body: Expected application/json - got text/plain.', 'invalid content_type';
+  is_deeply $body, {content_type => 'text/plain', in => 'body', name => 'body', valid => 0},
+    'failed to negotiate content type';
+
+  $body   = {content_type => 'application/json'};
+  @errors = $schema->validate_response([get => '/pets'], {body => \&body});
+  is "@errors", '', 'valid content_type';
+  is_deeply $body,
+    {content_type => 'application/json', content_type => 'application/json', in => 'body', name => 'body', valid => 1},
     'negotiated content type';
 };
 

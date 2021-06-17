@@ -310,16 +310,16 @@ sub _resolve_ref {
 
 sub _validate_body {
   my ($self, $direction, $val, $param) = @_;
-  $val->{content_type} = $param->{accepts}[0] if !$val->{content_type} and @{$param->{accepts}};
 
   if ($val->{accept}) {
     $val->{content_type} = negotiate_content_type($param->{accepts}, $val->{accept});
     $val->{valid}        = $val->{content_type} ? 1 : 0;
     return E "/header/Accept", [join(', ', @{$param->{accepts}}), type => $val->{accept}] unless $val->{valid};
   }
-  if (@{$param->{accepts}} and !$val->{content_type}) {
-    $val->{valid} = 0;
-    return E "/$param->{name}", [join(', ', @{$param->{accepts}}) => type => $val->{content_type}];
+  if (@{$param->{accepts}} and $val->{content_type}) {
+    my $negotiated = negotiate_content_type($param->{accepts}, $val->{content_type});
+    $val->{valid} = $negotiated ? 1 : 0;
+    return E "/$param->{name}", [join(', ', @{$param->{accepts}}) => type => $val->{content_type}] unless $negotiated;
   }
   if ($param->{required} and !$val->{exists}) {
     $val->{valid} = 0;
@@ -327,6 +327,7 @@ sub _validate_body {
   }
   if ($val->{exists}) {
     local $self->{"validate_$direction"} = 1;
+    $val->{content_type} //= $param->{accepts}[0];
     my @errors = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
       $self->validate($val->{value}, $param->{schema});
     $val->{valid} = @errors ? 0 : 1;
