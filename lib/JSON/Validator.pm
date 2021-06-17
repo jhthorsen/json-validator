@@ -306,7 +306,21 @@ sub _new_schema {
     and $schema->{'$schema'};
   $attrs{store} = $store;
 
-  return $self->_schema_class($attrs{specification} || $schema)->new($source, %attrs);
+  # Detect openapiv2 and v3 schemas by content, since no "$schema" is present
+  my $spec = $attrs{specification} || $schema;
+  if (ref $spec eq 'HASH' and $spec->{paths}) {
+    if ($spec->{swagger} and $spec->{swagger} eq '2.0') {
+      $spec = 'http://swagger.io/v2/schema.json';
+    }
+    elsif ($spec->{openapi} and $spec->{openapi} =~ m!^3\.0\.\d+$!) {
+      $spec = 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
+    }
+  }
+
+  my $schema_class = $spec && $SCHEMAS{$spec} || 'JSON::Validator::Schema::Draft4';
+  $schema_class =~ s!^\+(.+)$!JSON::Validator::Schema::$1!;
+  confess "Could not load $schema_class: $@" unless $schema_class->can('new') or eval "require $schema_class;1";
+  return $schema_class->new($source, %attrs);
 }
 
 sub _node {
@@ -392,38 +406,6 @@ sub _resolve_ref {
 
   $fqn->fragment($pointer // '');
   return $other, $ref_url, $fqn;
-}
-
-# back compat
-sub _schema_class {
-  my ($self, $spec) = @_;
-
-  # Detect openapiv2 and v3 schemas by content, since no "$schema" is present
-  if (ref $spec eq 'HASH' and $spec->{paths}) {
-    if ($spec->{swagger} and $spec->{swagger} eq '2.0') {
-      $spec = 'http://swagger.io/v2/schema.json';
-    }
-    elsif ($spec->{openapi} and $spec->{openapi} =~ m!^3\.0\.\d+$!) {
-      $spec = 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
-    }
-  }
-
-  my $schema_class = $spec && $SCHEMAS{$spec} || 'JSON::Validator::Schema::Draft4';
-  $schema_class =~ s!^\+(.+)$!JSON::Validator::Schema::$1!;
-  confess "Could not load $schema_class: $@" unless $schema_class->can('new') or eval "require $schema_class;1";
-
-  return $schema_class if ref $_[0] eq __PACKAGE__;
-
-  my $jv_class           = ref($self) || $self;
-  my $short_schema_class = $schema_class =~ m!JSON::Validator::Schema::(.+)! ? $1 : $schema_class;
-  my $package            = sprintf 'JSON::Validator::Schema::Backcompat::%s',
-    $jv_class =~ m!^JSON::Validator::(.+)! ? $1 : $jv_class;
-  return $package if $package->can('new');
-
-  die "package $package: $@" unless eval "package $package; use Mojo::Base '$jv_class'; 1";
-  Mojo::Util::monkey_patch($package, $_ => JSON::Validator::Schema->can($_))
-    for qw(_register_root_schema bundle contains data errors get id new resolve specification validate);
-  return $package;
 }
 
 sub _validate {
