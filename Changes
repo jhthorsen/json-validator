@@ -1,8 +1,11 @@
 Revision history for perl distribution JSON-Validator
 
-4.18 Not Released
+4.18 2021-06-17T11:13:58+0900
  - Fix content_type validation for OpenAPIv2 and OpenAPIv3
  - Fix validating multipart\/form-data with boundary
+ - Fix validating content-type with charset
+ - Fix parsing OpenAPIv3 spec with "description", "servers" and "summary" in a
+   path specifiation.
 
 4.17 2021-04-28T11:30:56+0900
  - Add add_default_response() to OpenAPIv2 and OpenAPIv3
