@@ -2,10 +2,11 @@ package JSON::Validator::Joi;
 use Mojo::Base -base;
 use Exporter 'import';
 
-use List::Util 'uniq';
+use List::Util qw(uniq);
 use Mojo::JSON qw(false true);
 use Mojo::Util;
-use Storable 'dclone';
+use Scalar::Util qw(blessed);
+use Storable qw(dclone);
 
 our @EXPORT_OK = qw(joi);
 
@@ -95,18 +96,24 @@ sub uri       { shift->_type('string')->format('uri') }
 
 sub validate {
   my ($self, $data) = @_;
-  return $self->validator->validate($data, $self->compile);
+  return $self->validator->data($self->compile)->validate($data);
 }
 
 sub _compile_array {
   my $self = shift;
   my $json = {type => $self->type};
 
-  $json->{additionalItems} = false          if $self->{strict};
-  $json->{items}           = $self->{items} if $self->{items};
-  $json->{maxItems}        = $self->{max}   if defined $self->{max};
-  $json->{minItems}        = $self->{min}   if defined $self->{min};
-  $json->{uniqueItems}     = true           if $self->{unique};
+  $json->{additionalItems} = false        if $self->{strict};
+  $json->{maxItems}        = $self->{max} if defined $self->{max};
+  $json->{minItems}        = $self->{min} if defined $self->{min};
+  $json->{uniqueItems}     = true         if $self->{unique};
+
+  if ($self->{items}) {
+    $json->{items} = $self->{items};
+    for my $item (ref $json->{items} eq 'ARRAY' ? @{$json->{items}} : $json->{items}) {
+      $item = $item->compile if blessed $item and $item->can('compile');
+    }
+  }
 
   return $json;
 }

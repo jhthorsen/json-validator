@@ -79,6 +79,14 @@ joi_ok(
   E('/email', 'Missing property.'),
 );
 
+note 'test that compile and not compile generates same strict result';
+my $strict_obj = joi->object->strict->props({ns => joi->string->required});
+joi_ok({ns => 'plop', toto => 'plouf'}, $strict_obj, E('/', 'Properties not allowed: toto.'));
+for my $item ($strict_obj->compile, $strict_obj) {
+  joi_ok([{ns => 'plop', toto => 'plouf'}], joi->array->strict->items($item), E('/0', 'Properties not allowed: toto.'),
+  );
+}
+
 eval { joi->number->extend(joi->integer) };
 like $@, qr{Cannot extend joi 'number' by 'integer'}, 'need to extend same type';
 

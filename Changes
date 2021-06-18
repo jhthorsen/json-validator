@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 4.20 Not Released
+ - Fix compiling array items #249
  - Fix coerce() will be passed on to schema() objects
  - Add is_invalid() to JSON::Validator::Schema
  - Improved documentation for JSON::Validator and JSON::Validator::Schema
