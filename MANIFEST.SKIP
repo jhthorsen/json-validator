@@ -80,3 +80,5 @@
 ^.proverc
 ^README.md
 ^cover_db
+^nytprof
+^nytprof.out
