@@ -154,7 +154,7 @@ subtest add_default_response => sub {
   }
 
   delete $schema->{errors};
-  is_deeply $schema->errors, [], 'errors';
+  is_deeply $schema->errors, [], 'errors' or diag explain $schema->errors;
 };
 
 done_testing;
