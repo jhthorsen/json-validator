@@ -1,23 +1,22 @@
 package JSON::Validator::Schema;
 use Mojo::Base 'JSON::Validator';    # TODO: Change this to "use Mojo::Base -base"
 
-use Carp qw(carp confess);
+use Carp qw(carp);
 use JSON::Validator::Formats;
-use JSON::Validator::Util qw(E data_checksum data_type json_pointer prefix_errors schema_type);
-use JSON::Validator::Util qw(is_bool is_num is_type);
+use JSON::Validator::URI qw(uri);
+use JSON::Validator::Util qw(E data_checksum data_type is_bool is_num is_type json_pointer prefix_errors schema_type);
 use List::Util qw(uniq);
 use Mojo::JSON qw(false true);
 use Mojo::JSON::Pointer;
-use Scalar::Util qw(blessed refaddr);
+use Scalar::Util qw(blessed);
 
-use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
+our %VALIDATORS;
 
 has errors => sub {
   my $self      = shift;
-  my $url       = $self->specification || 'http://json-schema.org/draft-04/schema#';
-  my $validator = $self->new(%$self)->resolve($url);
-
-  return [$validator->validate($self->resolve->data)];
+  my $uri       = $self->specification || 'http://json-schema.org/draft-04/schema#';
+  my $validator = $VALIDATORS{$uri} //= $self->new(store => $self->store, _refs => {})->data($uri)->resolve;
+  return [$self->_validate_id($self->id), $validator->validate($self->data)];
 };
 
 has formats => sub { shift->_build_formats };
@@ -40,10 +39,29 @@ has specification => sub {
   is_type($data, 'HASH') ? $data->{'$schema'} || $data->{schema} || '' : '';
 };
 
+has _refs => sub { +{} };
+
 sub bundle {
-  my $self   = shift;
-  my $params = shift || {};
-  return $self->new(%$self)->data($self->SUPER::bundle({schema => $self, %$params}));
+  my ($self, $args) = @_;
+  my $data = $args->{schema} // $self->data;
+
+  # Avoid $ref on top level
+  while (ref $data eq 'HASH' and $data->{'$ref'} and !ref $data->{'$ref'}) {
+    $data = $self->_refs->{$data}{schema};
+  }
+
+  # Check if we have a complex schema or not
+  return $self->new(%$self) unless ref $data eq 'HASH';
+
+  my $bundle = $self->new(%$self, data => {}, _refs => {});
+  local $bundle->{seen_bundle_ref} = {};
+  local $bundle->{seen_schema}     = {};
+  $bundle->_bundle_from({base_url => $self->id, root => $self->data, schema => $data});
+
+  my $id = JSON::Validator::URI->new->from_data($bundle->data);
+  $bundle->id($bundle->store->exists($id) ? $id : $self->store->add($id, $bundle->data));
+
+  return $bundle;
 }
 
 sub contains {
@@ -61,7 +79,7 @@ sub data {
 
 sub get {
   my ($self, $pointer, $cb) = @_;
-  my %state = (data => $self->data, pos => '');
+  my %state = (root => $self->data, schema => $self->data, pos => '');
   return $self->_get([@$pointer], \%state, $cb) if is_type $pointer, 'ARRAY';
   return $self->_get([split '/', $pointer], \%state, $cb) if $pointer =~ s!^/!!;
   return length $pointer ? undef : $self->data;
@@ -72,20 +90,65 @@ sub is_invalid { !!@{shift->errors} }
 sub load_and_validate_schema { Carp::confess('load_and_validate_schema(...) is unsupported.') }
 
 sub new {
-  return shift->SUPER::new(@_) if @_ % 2;
-  my ($class, $data) = (shift, shift);
-  return $class->SUPER::new(@_)->resolve($data);
+  my $class = shift;
+  return $class->SUPER::new(@_) unless @_ % 2;
+  return $class->SUPER::new(data => shift, @_)->resolve;
 }
 
 sub resolve {
   my $self = shift;
-  return $self->data($self->_resolve(@_ ? shift : $self->{data}));
+
+  my $data = $self->data;
+  my $state
+    = !ref $data                              ? $self->store->resolve($data)
+    : (blessed $data && $data->can('to_abs')) ? $self->store->resolve($data->to_abs)
+    :                                           {root => $data, schema => $data};
+
+  $self->_refs({});
+  $self->data($state->{schema});
+  $self->id($state->{id} || JSON::Validator::URI->new->from_data($state->{schema})) unless $self->id;
+  $state->{id}       ||= $self->store->exists($self->id) || $self->store->add($self->id, $self->data);
+  $state->{base_url} ||= $self->id;
+
+  my (@topics, @refs, %seen) = ([$state, $state->{schema}]);
+
+  # Search the whole document for id/$id/$ref/$recursiveRef/...
+TOPIC:
+  while (@topics) {
+    my ($state, $schema) = @{shift @topics};
+
+    if (is_type $schema, 'ARRAY') {
+      push @topics, map { [$state, $_] } @$schema;
+    }
+    elsif (is_type $schema, 'HASH') {
+      next TOPIC if $seen{$schema}++;
+      $state = $self->_resolve_object($state, $schema, \@refs, \my %found);
+      ref $schema->{$_} and !$found{$_} and push @topics, [$state, $schema->{$_}] for keys %$schema;
+    }
+  }
+
+  # Need to resolve the $ref/$recursiveRef/... after id/$id/$anchor/... is found above
+  @topics = ();
+  while (my $r = shift @refs) {
+    my ($schema, $state) = @$r;
+    my $resolved = $self->store->resolve($self->_extract_ref_from_schema($schema), $state);
+    $self->_refs->{$schema} = $resolved;
+    push @topics, [$resolved, $resolved->{schema}];
+  }
+
+  # Traverse the newly discovered sub documents, if any
+  goto TOPIC if @topics;
+
+  return $self;
 }
 
 sub validate {
   my ($self, $data, $schema) = @_;
-  my %state  = (path => '', root => $self->data, schema => $schema // $self->data, seen => {});
-  my @errors = sort { $a->path cmp $b->path } $self->_validate($_[1], $self->_state(\%state));
+
+  local $self->{seen} = {};
+  my %state = (base_url => $self->id, path => '', root => $self->data);
+  my @errors
+    = sort { $a->path cmp $b->path } $self->_validate($_[1], $self->_state(\%state, schema => $schema // $self->data));
   return @errors;
 }
 
@@ -121,67 +184,154 @@ sub _build_formats {
   };
 }
 
-sub _definitions_path_for_ref { ['definitions'] }
+# $self inside _bundle() is the target bundle schema object and not the source
+sub _bundle_from {
+  my ($self, $root_state) = @_;
+
+  my @topics = ([$root_state, $root_state->{schema}, $self->data]);
+  while (my $topic = shift @topics) {
+    my ($state, $source, $target) = @$topic;
+    next if $state->{seen_schema}{$target}++;    # Avoid recursion
+
+    if (ref $source eq 'HASH') {
+      for my $k (keys %$source) {
+        if ($k eq '$ref') {
+          my $uri = $state->{base_url} eq $root_state->{base_url} ? uri $source->{'$ref'} : uri $source->{'$ref'},
+            $state->{base_url};
+          my @path = $self->_bundle_ref_path($state, $uri);
+          $target->{'$ref'} = join '/', '#', @path;
+
+          my $def_target = $self->data;
+          $def_target = $def_target->{$_} //= {} for @path;
+          my $source_state = $self->store->resolve($source->{'$ref'}, $state);
+          push @topics, [$source_state, $source_state->{schema}, $def_target];
+          $self->_refs->{$def_target} = $source_state;
+        }
+        else {
+          my $type = ref $source->{$k};
+          $target->{$k} //= $type eq 'HASH' ? {} : $type eq 'ARRAY' ? [] : $source->{$k};
+          push @topics, [$state, $source->{$k}, $target->{$k}] if $type eq 'HASH' or $type eq 'ARRAY';
+        }
+      }
+    }
+    elsif (ref $source eq 'ARRAY') {
+      for my $i (0 .. @$source - 1) {
+        my $type = ref $source->[$i];
+        $target->[$i] //= $type eq 'HASH' ? {} : $type eq 'ARRAY' ? [] : $source->[$i];
+        push @topics, [$state, $source->[$i], $target->[$i]] if $type eq 'HASH' or $type eq 'ARRAY';
+      }
+    }
+    else {
+      warn "This should not happen! _bundle_from << $source => $target";
+    }
+  }
+}
+
+sub _bundle_ref_path {
+  my ($self, $state, $uri) = @_;
+  my $prefix = join '-', map { s!^/+!!; $_ } grep { length $_ } pop @{$uri->path}, $uri->fragment;
+  my $suffix = data_checksum $state->{schema};
+
+  my $i = -1;
+  while (++$i <= 30) {
+    my @path = $self->_bundle_ref_path_expand($i ? join '-', $prefix, substr $suffix, 0, $i * 4 : $prefix);
+    $path[-1] =~ s!^\W+!!;
+    $path[-1] =~ s![^\w-]!_!g;    # Make a pretty path
+    return @path unless $self->{seen_bundle_ref}{@path};
+  }
+
+  Carp::confess("Unable to create bundle ref from $uri.");
+}
+
+sub _bundle_ref_path_expand  { local $_ = $_[1]; s!^definitions/!!; return 'definitions', $_; }
+sub _extract_ref_from_schema { $_[1]->{'$ref'} }
 
 sub _get {
   my ($self, $pointer, $state, $cb) = @_;
-  my $data = $state->{data};
+  my $schema;
 
+  $state  = $self->_state_for_get($state->{schema}, $state) if $pointer->[0] and $pointer->[0] ne '$ref';
+  $schema = $state->{schema};
   while (@$pointer) {
     my $p = shift @$pointer;
 
     unless (defined $p) {
       my $i = 0;
       return Mojo::Collection->new(
-        map { $self->_get([@$pointer], {data => $_->[0], pos => json_pointer($state->{pos}, $_->[1])}, $cb) }
-          ref $data eq 'ARRAY' ? (map { [$_, $i++] } @$data)
-        : ref $data eq 'HASH' ? (map { [$data->{$_}, $_] } sort keys %$data)
-        :                       ([$data, '']));
+        map { $self->_get([@$pointer], {%$state, schema => $_->[0], pos => json_pointer($state->{pos}, $_->[1])}, $cb) }
+          ref $schema eq 'ARRAY' ? (map { [$_, $i++] } @$schema)
+        : ref $schema eq 'HASH' ? (map { [$schema->{$_}, $_] } sort keys %$schema)
+        :                         ([$schema, ''])
+      );
     }
 
     $p =~ s!~1!/!g;
     $p =~ s/~0/~/g;
     $state->{pos} = json_pointer $state->{pos}, $p;
 
-    if (ref $data eq 'HASH' and exists $data->{$p}) {
-      $data = $data->{$p};
+    if (ref $schema eq 'HASH' and exists $schema->{$p}) {
+      $schema = $schema->{$p};
     }
-    elsif (ref $data eq 'ARRAY' and $p =~ /^\d+$/ and @$data > $p) {
-      $data = $data->[$p];
+    elsif (ref $schema eq 'ARRAY' and $p =~ /^\d+$/ and @$schema > $p) {
+      $schema = $schema->[$p];
     }
     else {
       return undef;
     }
 
-    my ($continue, $tied) = (@$pointer && $pointer->[0] ne '$ref');
-    $data = $tied->schema while $continue and ref $data eq 'HASH' and $tied = tied %$data;
+    if ($pointer->[0] and $pointer->[0] ne '$ref') {
+      $state  = $self->_state_for_get($schema, $state);
+      $schema = $state->{schema};
+    }
   }
 
-  return $cb->($data, $state->{pos}) if $cb;
-  return $data;
+  return $cb->($schema, $state->{pos}) if $cb;
+  return $schema;
 }
 
-sub _id_key {'id'}
+sub _register_ref {
+  my ($self, $ref, %state) = @_;
+  $state{base_url} //= $self->id;
+  $state{id}       //= $self->id;
+  $state{root}     //= $self->data;
+  $state{source}   //= '_register_ref';
+  $self->_refs->{$ref} = \%state;
+}
 
-sub _register_root_schema {
-  my ($self, $id, $schema) = @_;
-  $self->SUPER::_register_root_schema($id => $schema);
-  $self->id($id) unless $self->id;
+sub _resolve_object {
+  my ($self, $state, $schema, $refs, $found) = @_;
+
+  if ($schema->{id} and !ref $schema->{id}) {
+    my $id = uri $schema->{id}, $state->{base_url};
+    $self->store->add($id => $schema);
+    $state = {%$state, base_url => $id->fragment(undef), id => $id};
+  }
+
+  if ($found->{'$ref'} = $schema->{'$ref'} && !ref $schema->{'$ref'}) {
+    push @$refs, [$schema, $state];
+  }
+
+  return $state;
 }
 
 sub _state {
   my ($self, $curr, %override) = @_;
 
-  my ($schema, @guard) = ($override{schema} // $curr->{schema});
-  while (1) {
-    last unless ref $schema eq 'HASH';
-    last unless my $tied = tied %$schema;
-    push @guard, $tied->ref;
-    confess "Seems like you have a circular reference: @guard" if @guard > RECURSION_LIMIT;
-    $schema = $tied->schema;
+  my $schema = $override{schema} // $curr->{schema};
+  my %seen;
+  while (ref $schema eq 'HASH' and $schema->{'$ref'} and !ref $schema->{'$ref'}) {
+    last if $seen{$schema}++;
+    $schema = $self->_refs->{$schema}{schema}
+      // Carp::confess(qq(resolve() must be called before validate() to lookup "$schema->{'$ref'}".));
   }
 
   return {%$curr, %override, schema => $schema};
+}
+
+sub _state_for_get {
+  my ($self, $schema, $state) = @_;
+  return $self->_refs->{$schema} if ref $schema eq 'HASH' and $schema->{'$ref'} and !ref $schema->{'$ref'};
+  return {%$state, schema => $schema};
 }
 
 sub _validate {
@@ -190,10 +340,10 @@ sub _validate {
   return $schema ? () : E $state->{path}, [not => 'not'] if is_bool $schema;
 
   my @errors;
-  if ($self->recursive_data_protection) {
-    my $seen_addr = join ':', refaddr($schema), (ref $data ? refaddr $data : ++$state->{seen}{scalar});
-    return @{$state->{seen}{$seen_addr}} if $state->{seen}{$seen_addr};    # Avoid recursion
-    $state->{seen}{$seen_addr} = \@errors;
+  if ($self->recursive_data_protection and 2 == grep { ref $_ && !is_bool($_) } $data, $schema) {
+    my $seen_addr = "$schema:$data";
+    return @{$self->{seen}{$seen_addr}} if $self->{seen}{$seen_addr};    # Avoid recursion
+    $self->{seen}{$seen_addr} = \@errors;
   }
 
   local $_[1] = $data->TO_JSON if blessed $data and $data->can('TO_JSON');
@@ -307,6 +457,14 @@ sub _validate_any_of {
   my @details    = map $_->details, @errors;
   my $want_types = join '/', uniq map $_->[0], @details;
   return E $state->{path}, [anyOf => type => $want_types, $details[-1][2]];
+}
+
+sub _validate_id {
+  my ($self, $id) = @_;
+  return unless length $id;
+  return E '/id', 'Fragment not allowed.' if $id =~ /\#./;
+  return E '/id', 'Relative URL not allowed.' unless $id =~ /^\w+:/ or -e $id or $id =~ m!^/!;
+  return;
 }
 
 sub _validate_one_of {
@@ -673,7 +831,7 @@ JSON::Validator::Schema - Base class for JSON::Validator schemas
 
   # Will not fetch the fike from web, if the $store has already retrived
   # the schema
-  $schema->resolve('https://api.example.com/cool/beans.json');
+  $schema->data('https://api.example.com/cool/beans.json')->resolve;
 
 =head2 Make a new validation class
 
@@ -784,7 +942,7 @@ See L<Mojo::JSON::Pointer/contains>.
   my $hash_ref = $schema->data;
   my $schema   = $schema->data($bool);
   my $schema   = $schema->data($hash_ref);
-  my $schema   = $schema->data($url);
+  my $schema   = $schema->data($uri);
 
 Will set a structure representing the schema. In most cases you want to
 use L</resolve> instead of L</data>.
@@ -832,11 +990,14 @@ might throw an exception if the schema could not be successfully resolved.
 =head2 resolve
 
   $schema = $schema->resolve;
-  $schema = $schema->resolve($data);
 
-Used to resolve L</data> or C<$data> and store the resolved schema in L</data>.
-If C<$data> is an C<$url> on contains "$ref" pointing to an URL, then these
-schemas will be downloaded and resolved as well.
+Used to resolve L</data> and store the resolved schema in L</data>.  If
+C<$data> is an C<$uri> or contains "$ref", then these schemas will be
+downloaded and resolved as well.
+
+If L</data> does not contain an "id" or "$id", then L</id> will be assigned a
+autogenerated "urn". This "urn" might be changed in future releases, but should
+always be the same for the same L</data>.
 
 =head2 schema
 

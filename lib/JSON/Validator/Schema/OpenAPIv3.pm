@@ -24,16 +24,17 @@ require JSON::Validator::Schema::OpenAPIv2;
 sub add_default_response {
   my ($self, $params) = ($_[0], shift->_params_for_add_default_response(@_));
 
-  my $responses = $self->data->{components}{schemas} ||= {};
-  my $ref       = $responses->{$params->{name}}      ||= $params->{schema};
-  my %schema    = ('$ref' => "#/components/schemas/$params->{name}");
-  tie %schema, 'JSON::Validator::Ref', $ref, $schema{'$ref'}, $schema{'$ref'};
+  my $schemas = $self->data->{components}{schemas} ||= {};
+  $schemas->{$params->{name}} ||= $params->{schema};
+  my $ref = {'$ref' => "#/components/schemas/$params->{name}"};
+  $self->_register_ref($ref, schema => $schemas->{$params->{name}});
 
   for my $route ($self->routes->each) {
     my $op = $self->get([paths => @$route{qw(path method)}]);
-    $op->{responses}{$_}
-      ||= {description => $params->{description}, content => {'application/json' => {schema => \%schema}}}
-      for @{$params->{status}};
+    for my $status (@{$params->{status}}) {
+      $op->{responses}{$status}{description} //= $params->{description};
+      $op->{responses}{$status}{content}{'application/json'} //= {schema => $ref};
+    }
   }
 
   return $self;
@@ -142,6 +143,11 @@ sub _build_formats {
   };
 }
 
+sub _bundle_ref_path_expand {
+  my ($self, $ref) = @_;
+  return $ref =~ m!\bcomponents/([^/]+)/(.+)! ? ('components', $1, $2) : ('components', 'schemas', $ref);
+}
+
 sub _coerce_parameter_format {
   my ($self, $val, $param) = @_;
   return unless $val->{exists};
@@ -239,12 +245,6 @@ sub _coerce_parameter_style_object_deep {
   return $val->{exists} = 0;
 }
 
-sub _definitions_path_for_ref {
-  my ($self, $ref) = @_;
-  my $path = Mojo::Path->new($ref->fqn =~ m!^.*#/(components/.+)$!)->to_dir->parts;
-  return $path->[0] ? $path : ['definitions'];
-}
-
 sub _get_parameter_value {
   my ($self, $param, $get) = @_;
   my $schema_type = schema_type $param;
@@ -293,6 +293,8 @@ sub _validate_body {
   return;
 }
 
+sub _validate_id { }
+
 sub _validate_type_array {
   my $self = shift;
   return $_[1]->{schema}{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_array(@_);
@@ -327,12 +329,13 @@ sub _validate_type_object {
 
   # TODO: Support external URLs in "mapping"
   my $discriminator = $schema->{discriminator};
-  if (ref $discriminator eq 'HASH' and $discriminator->{propertyName} and !$state->{inside_discriminator}) {
+  if (ref $discriminator eq 'HASH' and $discriminator->{propertyName} and !$self->{inside_discriminator}) {
     my ($name, $mapping) = @$discriminator{qw(propertyName mapping)};
     return E $path, "Discriminator $name has no value."          unless my $map_name = $data->{$name};
     return E $path, "No definition for discriminator $map_name." unless my $url      = $mapping->{$map_name};
     return E $path, "TODO: Not yet supported: $url"              unless $url =~ s!^#!!;
-    return $self->_validate($data, $self->_state($state, inside_discriminator => 1, schema => $self->get($url)));
+    local $self->{inside_discriminator} = 1;
+    return $self->_validate($data, $self->_state($state, schema => $self->get($url)));
   }
 
   return $self->{validate_request}

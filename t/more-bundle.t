@@ -3,21 +3,23 @@ use JSON::Validator;
 use Test::Deep;
 use Test::More;
 
-plan skip_all => 'need to fix bundle()';
-
 my $draft7_validator = JSON::Validator->new;
-$draft7_validator->schema('http://json-schema.org/draft-07/schema#');
-isa_ok $draft7_validator->schema, 'JSON::Validator::Schema::Draft7';
-is $draft7_validator->schema->id, 'http://json-schema.org/draft-07/schema#', 'draft7_validator schema id';
-is $draft7_validator->schema->specification, $draft7_validator->schema->id, 'draft7_validator schema specification';
+
+subtest 'setup draft7_validator' => sub {
+  $draft7_validator->schema('http://json-schema.org/draft-07/schema#');
+  isa_ok $draft7_validator->schema, 'JSON::Validator::Schema::Draft7';
+  is $draft7_validator->schema->id, 'http://json-schema.org/draft-07/schema#', 'draft7_validator schema id';
+  is $draft7_validator->schema->specification, $draft7_validator->schema->id, 'draft7_validator schema specification';
+};
 
 my $bundler_validator = JSON::Validator->new;
-$bundler_validator->load_and_validate_schema('t/spec/more-bundle.yaml',
-  {schema => 'http://json-schema.org/draft-07/schema#'});
-isa_ok $bundler_validator->schema, 'JSON::Validator::Schema::Draft7';
-like $bundler_validator->schema->id, qr{more-bundle\.yaml$}, 'bundler_validator schema id';
-is $bundler_validator->schema->specification, 'http://json-schema.org/draft-07/schema#',
-  'bundler_validator schema specification';
+subtest 'setup bundler_validator' => sub {
+  $bundler_validator->load_and_validate_schema('t/spec/more-bundle.yaml');
+  isa_ok $bundler_validator->schema, 'JSON::Validator::Schema::Draft7';
+  like $bundler_validator->schema->id, qr{more-bundle\.yaml$}, 'bundler_validator schema id';
+  is $bundler_validator->schema->specification, 'http://json-schema.org/draft-07/schema#',
+    'bundler_validator schema specification';
+};
 
 bundle_test(
   'find and resolve nested $refs; main schema is at the top level',
@@ -64,9 +66,12 @@ bundle_test(
   'i_have_a_ref_to_another_file',
   {
     definitions => {
-      my_name    => {type => 'string', minLength => 2},
-      my_address =>
-        {type => 'object', properties => {street => {type => 'string'}, city => {'$ref' => '#/definitions/my_name'}},},
+      'more-bundle2_yaml-definitions_my_name'    => {type => 'string', minLength => 2},
+      'more-bundle2_yaml-definitions_my_address' => {
+        type       => 'object',
+        properties =>
+          {street => {type => 'string'}, city => {'$ref' => '#/definitions/more-bundle2_yaml-definitions_my_name'}}
+      },
       ref1 => {type => 'array',  items     => {'$ref' => '#/definitions/ref2'}},
       ref2 => {type => 'string', minLength => 1},
     },
@@ -76,8 +81,8 @@ bundle_test(
     properties => {
 
       # these ref targets are rewritten
-      name    => {'$ref' => '#/definitions/my_name'},
-      address => {'$ref' => '#/definitions/my_address'},
+      name    => {'$ref' => '#/definitions/more-bundle2_yaml-definitions_my_name'},
+      address => {'$ref' => '#/definitions/more-bundle2_yaml-definitions_my_address'},
       secrets => {'$ref' => '#/definitions/ref1'},
     },
   },
@@ -108,7 +113,11 @@ bundle_test(
   '$refs which are simply $refs themselves are traversed automatically during resolution',
   'i_have_refs_with_the_same_name',
   {
-    definitions => {i_am_a_ref_with_the_same_name => {type => 'string'}},
+    definitions => {
+      i_am_a_ref_with_the_same_name =>
+        {'$ref' => '#/definitions/more-bundle2_yaml-definitions_i_am_a_ref_with_the_same_name'},
+      'more-bundle2_yaml-definitions_i_am_a_ref_with_the_same_name' => {type => 'string'},
+    },
 
     # begin i_have_a_ref_with_the_same_name definition
     type       => 'object',
@@ -140,18 +149,15 @@ bundle_test(
       return 1
         if (eq_deeply($got->{dupe_name}, {type => 'integer'})
         and eq_deeply($got->{$other_key}, {type => 'string'})
-        and $other_key =~ qr/\bmore-bundle2_yaml-definitions_dupe_name-\w+$/)
-        or (eq_deeply($got->{dupe_name}, {type => 'string'})
-        and eq_deeply($got->{$other_key}, {type => 'integer'})
-        and $other_key =~ qr/\bmore-bundle_yaml-definitions_dupe_name-\w+$/);
+        and $other_key =~ qr/\bmore-bundle2_yaml-definitions_dupe_name$/);
       return (0, 'uh oh, got: ' . (Test::More::explain($got))[0]);
     }),
 
     # begin i_contain_refs_to_same_named_definitions definition
     type       => 'object',
     properties => {
-      foo => {'$ref' => re(qr/^#\/definitions\/(dupe_name|more-bundle_yaml-.*)$/)},
-      bar => {'$ref' => re(qr/^#\/definitions\/(dupe_name|more-bundle2_yaml-.*)$/)},
+      foo => {'$ref' => '#/definitions/dupe_name'},
+      bar => {'$ref' => '#/definitions/more-bundle2_yaml-definitions_dupe_name'},
     },
   },
 );
@@ -160,14 +166,17 @@ bundle_test(
   'we can handle pulling in references that have the same root name as the top level name',
   'i_have_a_ref_with_the_same_name',
   {
-    definitions => {i_have_a_ref_with_the_same_name => {type => 'string'}},
+    definitions => {'more-bundle2_yaml-definitions_i_have_a_ref_with_the_same_name' => {type => 'string'}},
 
     # begin i_have_a_ref_with_the_same_name definition
     type       => 'object',
     properties => {
       name     => {type => 'string'},
-      children =>
-        {type => 'array', items => {'$ref' => '#/definitions/i_have_a_ref_with_the_same_name'}, default => []},
+      children => {
+        type    => 'array',
+        items   => {'$ref' => '#/definitions/more-bundle2_yaml-definitions_i_have_a_ref_with_the_same_name'},
+        default => []
+      },
     },
   },
 );
@@ -176,25 +185,25 @@ bundle_test(
   'find and resolve a reference that immediately leaps to another file',
   'i_am_a_ref_to_another_file',
   {
-    definitions => {ref3 => {type => 'integer'}},
+    definitions => {'more-bundle_yaml-definitions_ref3' => {type => 'integer'}},
 
     # begin i_am_a_ref_to_another_file definition - which is actually
     # i_have_a_ref_to_the_first_filename
     type       => 'object',
-    properties => {gotcha => {'$ref' => '#/definitions/ref3'}},
+    properties => {gotcha => {'$ref' => '#/definitions/more-bundle_yaml-definitions_ref3'}},
   },
 );
 
 done_testing;
 
 sub bundle_test {
-  my ($desc, $schema_name, $expected_output) = @_;
+  my ($desc, $schema_name, $expected) = @_;
   subtest "$desc - $schema_name" => sub {
 
-    my $partial = $bundler_validator->schema->data->{definitions}{$schema_name};
-    my $got     = $bundler_validator->bundle({schema => $partial});
-    cmp_deeply($got, $expected_output, 'extracted schema for ' . $schema_name)
-      or diag 'got: ', explain([$partial, $got]);
+    my $source = $bundler_validator->schema->data->{definitions}{$schema_name};
+    my $got    = $bundler_validator->bundle({schema => $source});
+    cmp_deeply($got, $expected, 'extracted schema for ' . $schema_name)
+      or diag explain({expected => $expected, source => $source, got => $got});
 
     my @errors = $draft7_validator->validate($got);
     ok !@errors, 'bundled schema conforms to the draft 7 spec';
@@ -203,7 +212,7 @@ sub bundle_test {
     $fresh_draft7_validator->load_and_validate_schema($got, {schema => 'http://json-schema.org/draft-07/schema#'});
     cmp_deeply(
       $fresh_draft7_validator->schema->data,
-      $expected_output, 'our generated schema does not lose any data when parsed again by a new validator',
+      $expected, 'our generated schema does not lose any data when parsed again by a new validator',
     );
   };
 }

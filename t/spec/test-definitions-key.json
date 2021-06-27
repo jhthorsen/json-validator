@@ -1,7 +1,7 @@
 {
   "type": "object",
   "properties": {
-    "age": { "type": { "$ref": "../definitions/age.json#type" } },
+    "age": { "$ref": "../definitions/age.json#" },
     "weight": { "$ref": "../definitions/weight.json" },
     "height": { "$ref": "#/definitions/height" }
   },
