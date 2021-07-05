@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::Draft4;
 use Mojo::Base 'JSON::Validator::Schema';
 
-use JSON::Validator::Util qw(E data_checksum data_type is_type json_pointer);
+use JSON::Validator::Util qw(data_checksum data_type is_type);
 use List::Util 'uniq';
 
 has id => sub {
@@ -29,7 +29,7 @@ sub _validate_number_max {
 
   my $key = $state->{schema}{exclusiveMaximum} ? 'ex_maximum' : 'maximum';
   return if $key eq 'maximum' ? $value <= $cmp_with : $value < $cmp_with;
-  return E $state->{path}, [$expected => $key => $value, $cmp_with];
+  return [$state->{path}, $expected => $key => $value, $cmp_with];
 }
 
 sub _validate_number_min {
@@ -38,12 +38,12 @@ sub _validate_number_min {
 
   my $key = $state->{schema}{exclusiveMinimum} ? 'ex_minimum' : 'minimum';
   return if $key eq 'minimum' ? $value >= $cmp_with : $value > $cmp_with;
-  return E $state->{path}, [$expected => $key => $value, $cmp_with];
+  return [$state->{path}, $expected => $key => $value, $cmp_with];
 }
 
 sub _validate_type_array {
   my ($self, $data, $state) = @_;
-  return E $state->{path}, [array => type => data_type $data] if ref $data ne 'ARRAY';
+  return [$state->{path}, array => type => data_type $data] if ref $data ne 'ARRAY';
 
   return (
     $self->_validate_type_array_min_max($_[1], $state),
@@ -67,17 +67,17 @@ sub _validate_type_array_items {
 
     if (@rules >= @$data) {
       for my $i (0 .. @$data - 1) {
-        push @errors, $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $rules[$i]));
+        push @errors, $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $rules[$i]));
       }
     }
     elsif (!$additional_items) {
-      push @errors, E $path, [array => additionalItems => int(@$data), int(@rules)];
+      push @errors, [$path, array => additionalItems => int(@$data), int(@rules)];
     }
   }
   elsif (exists $schema->{items}) {
     for my $i (0 .. @$data - 1) {
       push @errors,
-        $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $schema->{items}));
+        $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $schema->{items}));
     }
   }
 
@@ -89,10 +89,10 @@ sub _validate_type_array_min_max {
   my @errors;
 
   if (defined $state->{schema}{minItems} and $state->{schema}{minItems} > @$data) {
-    push @errors, E $state->{path}, [array => minItems => int(@$data), $state->{schema}{minItems}];
+    push @errors, [$state->{path}, array => minItems => int(@$data), $state->{schema}{minItems}];
   }
   if (defined $state->{schema}{maxItems} and $state->{schema}{maxItems} < @$data) {
-    push @errors, E $state->{path}, [array => maxItems => int(@$data), $state->{schema}{maxItems}];
+    push @errors, [$state->{path}, array => maxItems => int(@$data), $state->{schema}{maxItems}];
   }
 
   return @errors;
@@ -105,7 +105,7 @@ sub _validate_type_array_unique {
   my (@errors, %uniq);
   for (@$data) {
     next if !$uniq{data_checksum($_)}++;
-    push @errors, E $state->{path}, [array => 'uniqueItems'];
+    push @errors, [$state->{path}, array => 'uniqueItems'];
     last;
   }
 
@@ -114,7 +114,7 @@ sub _validate_type_array_unique {
 
 sub _validate_type_object {
   my ($self, $data, $state) = @_;
-  return E $state->{path}, [object => type => data_type $data] if ref $data ne 'HASH';
+  return [$state->{path}, object => type => data_type $data] if ref $data ne 'HASH';
 
   return (
     $self->_validate_type_object_min_max($_[1], $state),
@@ -129,10 +129,10 @@ sub _validate_type_object_min_max {
   my @errors;
   my @dkeys = keys %$data;
   if (defined $state->{schema}{maxProperties} and $state->{schema}{maxProperties} < @dkeys) {
-    push @errors, E $state->{path}, [object => maxProperties => int(@dkeys), $state->{schema}{maxProperties}];
+    push @errors, [$state->{path}, object => maxProperties => int(@dkeys), $state->{schema}{maxProperties}];
   }
   if (defined $state->{schema}{minProperties} and $state->{schema}{minProperties} > @dkeys) {
-    push @errors, E $state->{path}, [object => minProperties => int(@dkeys), $state->{schema}{minProperties}];
+    push @errors, [$state->{path}, object => minProperties => int(@dkeys), $state->{schema}{minProperties}];
   }
 
   return @errors;
@@ -147,7 +147,7 @@ sub _validate_type_object_dependencies {
     next if not exists $data->{$k};
     if (ref $dependencies->{$k} eq 'ARRAY') {
       push @errors,
-        map { E json_pointer($state->{path}, $_), [object => dependencies => $k] }
+        map { [[@{$state->{path}}, $_], object => dependencies => $k] }
         grep { !exists $data->{$_} } @{$dependencies->{$k}};
     }
     else {
@@ -183,19 +183,19 @@ sub _validate_type_object_properties {
   }
   elsif (my @k = grep { !$rules{$_} } @dkeys) {
     local $" = ', ';
-    return E $path, [object => additionalProperties => join ', ', sort @k];
+    return [$path, object => additionalProperties => join ', ', sort @k];
   }
 
   for my $k (uniq @{$schema->{required} || []}) {
     next if exists $data->{$k};
-    push @errors, E json_pointer($path, $k), [object => 'required'];
+    push @errors, [[@$path, $k], object => 'required'];
     delete $rules{$k};
   }
 
   for my $k (keys %rules) {
     for my $r (@{$rules{$k}}) {
       next unless exists $data->{$k};
-      my $s2 = $self->_state($state, path => json_pointer($path, $k), schema => $r);
+      my $s2 = $self->_state($state, path => [@$path, $k], schema => $r);
       my @e  = $self->_validate($data->{$k}, $s2);
       push @errors, @e;
       next if @e or !is_type $r, 'HASH';

@@ -4,7 +4,7 @@ use Mojo::Base 'JSON::Validator::Schema';
 use JSON::Validator::Schema::Draft4;
 use JSON::Validator::Schema::Draft6;
 use JSON::Validator::Schema::Draft7;
-use JSON::Validator::Util qw(E is_bool is_type json_pointer);
+use JSON::Validator::Util qw(is_bool is_type);
 use Scalar::Util qw(blessed refaddr);
 
 my $ANCHOR_RE = qr{[A-Za-z][A-Za-z0-9:._-]*};
@@ -98,16 +98,16 @@ sub _validate_type_array_contains {
 
   my ($n_valid, @e, @errors) = (0);
   for my $i (0 .. @$data - 1) {
-    my @tmp = $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $schema->{contains}));
+    my @tmp = $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $schema->{contains}));
     @tmp ? push @e, \@tmp : $n_valid++;
   }
 
   push @errors, map {@$_} @e if @e >= @$data;
-  push @errors, E $path, [array => 'maxContains', int @$data, $schema->{maxContains}]
+  push @errors, [$path, array => 'maxContains', int @$data, $schema->{maxContains}]
     if exists $schema->{maxContains} and $n_valid > $schema->{maxContains};
-  push @errors, E $path, [array => 'minContains', int @$data, $schema->{minContains}]
+  push @errors, [$path, array => 'minContains', int @$data, $schema->{minContains}]
     if $schema->{minContains} and $n_valid < $schema->{minContains};
-  push @errors, E $path, [array => 'contains'] if not @$data;
+  push @errors, [$path, array => 'contains'] if not @$data;
   return @errors;
 }
 
@@ -120,7 +120,7 @@ sub _validate_type_object_dependencies {
     next if not exists $data->{$k};
     if (ref $dependencies->{$k} eq 'ARRAY') {
       push @errors,
-        map { E json_pointer($state->{path}, $_), [object => dependencies => $k] }
+        map { [[@{$state->{path}}, $_], object => dependencies => $k] }
         grep { !exists $data->{$_} } @{$dependencies->{$k}};
     }
     else {
@@ -132,7 +132,7 @@ sub _validate_type_object_dependencies {
   for my $k (keys %$dependencies) {
     next if not exists $data->{$k};
     push @errors,
-      map { E json_pointer($state->{path}, $_), [object => dependencies => $k] }
+      map { [[@{$state->{path}}, $_], object => dependencies => $k] }
       grep { !exists $data->{$_} } @{$dependencies->{$k}};
   }
 

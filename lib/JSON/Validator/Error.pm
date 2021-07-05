@@ -53,10 +53,47 @@ our $MESSAGES = {
 };
 
 has details => sub { [qw(generic generic)] };
+has message => sub { $_[0]->_build_message($_[0]->details) };
+has path    => '/';
 
-has message => sub {
-  my $self    = shift;
-  my $details = $self->details;
+sub expand {
+  my ($class, $error) = @_;
+  my $expander = $class->can(sprintf '_expand_from_%s', $error->[1] || '');
+  return $expander
+    ? $class->$expander($class->_build_path($error->[0]), $error->[2])
+    : $class->new(shift @$error, $error);
+}
+
+sub new {
+  my $class = shift;
+  return $class->SUPER::new unless @_;
+
+  # Constructed with attributes
+  return $class->SUPER::new($_[0]) if ref $_[0] eq 'HASH';
+
+  # Constructed with ($path, ...)
+  my $self = $class->SUPER::new;
+  $self->{path} = $self->_build_path(shift);
+
+  # Constructed with ($path, $message)
+  $self->message(shift) unless ref $_[0];
+
+  # Constructed with ($path, \@details)
+  $self->details(shift) if ref $_[0];
+
+  return $self;
+}
+
+sub to_string { sprintf '%s: %s', $_[0]->path, $_[0]->message }
+
+sub _build_path {
+  my ($self, $path) = @_;
+  $path = join '/', map { s!~!~0!g; s!/!~1!g; $_ } @$path if ref $path;
+  return $path || '/';
+}
+
+sub _build_message {
+  my ($self, $details) = @_;
   my $message;
 
   if (($details->[0] || '') eq 'format') {
@@ -73,31 +110,31 @@ has message => sub {
 
   $message =~ s!\%(\d)\b!{$details->[$1 - 1] // ''}!ge;
   return $message;
-};
-
-has path => '/';
-
-sub new {
-  my $class = shift;
-
-  # Constructed with attributes
-  return $class->SUPER::new($_[0]) if ref $_[0] eq 'HASH';
-
-  # Constructed with ($path, ...)
-  my $self = $class->SUPER::new;
-  $self->{path} = shift || '/';
-
-  # Constructed with ($path, $message)
-  $self->message(shift) unless ref $_[0];
-
-  # Constructed with ($path, \@details)
-  $self->details(shift) if ref $_[0];
-
-  return $self;
 }
 
-sub to_string { sprintf '%s: %s', $_[0]->path, $_[0]->message }
-sub TO_JSON   { {message => $_[0]->message, path => $_[0]->path} }
+sub _expand_from_oneOf {
+  my ($class, $path, $errors) = @_;
+  warn Mojo::Util::dumper($errors);
+
+  my @errors;
+  for my $e (@$errors) {
+    push @errors, map {
+      my $msg = sprintf '/oneOf/%s %s', $e->[0], $_->message;
+      $msg =~ s!(\d+)\s/!$1/!g;
+      $_->message($msg);
+    } $class->expand($e->[1]);
+  }
+
+  return @errors;
+}
+
+sub _expand_from_types {
+  my ($class, $path, $errors) = @_;
+  my @errors = map { $class->expand($_) } @$errors;
+  return @errors;
+}
+
+sub TO_JSON { {message => $_[0]->message, path => $_[0]->path} }
 
 1;
 

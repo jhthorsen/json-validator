@@ -23,7 +23,7 @@ use constant UUID_NAMESPACE => do {
 
 our @EXPORT_OK = (
   qw(E data_checksum data_section data_type is_bool is_num is_type),
-  qw(negotiate_content_type json_pointer prefix_errors schema_type urn),
+  qw(negotiate_content_type json_pointer schema_type urn),
 );
 
 sub E { JSON::Validator::Error->new(@_) }
@@ -118,22 +118,6 @@ sub json_pointer {
   s!~!~0!g;
   s!/!~1!g;
   "$_[0]/$_";
-}
-
-sub prefix_errors {
-  my ($type, @errors_with_index) = @_;
-  my @errors;
-
-  for my $e (@errors_with_index) {
-    my $index = shift @$e;
-    push @errors, map {
-      my $msg = sprintf '/%s/%s %s', $type, $index, $_->message;
-      $msg =~ s!(\d+)\s/!$1/!g;
-      E +{%$_, message => $msg};    # preserve 'details', for later introspection
-    } @$e;
-  }
-
-  return @errors;
 }
 
 sub schema_type {
@@ -273,12 +257,6 @@ characters "~" and "/" in C<$append>.
 This method can take a "Content-Type" or "Accept" header and find the closest
 matching content type in C<@content_types>. C<@content_types> can contain
 wildcards, meaning "*/*" will match anything.
-
-=head2 prefix_errors
-
-  @errors = prefix_errors $prefix, @errors;
-
-Consider this internal for now.
 
 =head2 schema_type
 

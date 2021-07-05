@@ -2,7 +2,7 @@ package JSON::Validator::Schema::Draft6;
 use Mojo::Base 'JSON::Validator::Schema';
 
 use JSON::Validator::Schema::Draft4;
-use JSON::Validator::Util qw(E data_type is_type prefix_errors);
+use JSON::Validator::Util qw(data_type is_type);
 
 has id => sub {
   my $data = shift->data;
@@ -33,10 +33,10 @@ sub _validate_number_max {
   my ($self, $value, $state, $expected) = @_;
 
   my $cmp_with = $state->{schema}{maximum};
-  return E $state->{path}, [$expected => maximum => $value, $cmp_with] if defined $cmp_with and $value > $cmp_with;
+  return [$state->{path}, $expected => maximum => $value, $cmp_with] if defined $cmp_with and $value > $cmp_with;
 
   $cmp_with = $state->{schema}{exclusiveMaximum};
-  return E $state->{path}, [$expected => ex_maximum => $value, $cmp_with] if defined $cmp_with and $value >= $cmp_with;
+  return [$state->{path}, $expected => ex_maximum => $value, $cmp_with] if defined $cmp_with and $value >= $cmp_with;
 
   return;
 }
@@ -45,17 +45,17 @@ sub _validate_number_min {
   my ($self, $value, $state, $expected) = @_;
 
   my $cmp_with = $state->{schema}{minimum};
-  return E $state->{path}, [$expected => minimum => $value, $cmp_with] if defined $cmp_with and $value < $cmp_with;
+  return [$state->{path}, $expected => minimum => $value, $cmp_with] if defined $cmp_with and $value < $cmp_with;
 
   $cmp_with = $state->{schema}{exclusiveMinimum};
-  return E $state->{path}, [$expected => ex_minimum => $value, $cmp_with] if defined $cmp_with and $value <= $cmp_with;
+  return [$state->{path}, $expected => ex_minimum => $value, $cmp_with] if defined $cmp_with and $value <= $cmp_with;
 
   return;
 }
 
 sub _validate_type_array {
   my ($self, $data, $state) = @_;
-  return E $state->{path}, [array => type => data_type $data] if ref $data ne 'ARRAY';
+  return [$state->{path}, array => type => data_type $data] if ref $data ne 'ARRAY';
 
   return (
     $self->_validate_type_array_min_max($_[1], $state),
@@ -72,18 +72,18 @@ sub _validate_type_array_contains {
   my (@e, @errors);
   for my $i (0 .. @$data - 1) {
     my @tmp = $self->_validate($data->[$i],
-      $self->_state($state, path => "$state->{path}/$i", schema => $state->{schema}{contains}));
+      $self->_state($state, path => [@{$state->{path}}, $i], schema => $state->{schema}{contains}));
     push @e, \@tmp if @tmp;
   }
 
-  push @errors, map {@$_} @e if @e >= @$data;
-  push @errors, E $state->{path}, [array => 'contains'] if not @$data;
+  push @errors, map {@$_} @e                          if @e >= @$data;
+  push @errors, [$state->{path}, array => 'contains'] if not @$data;
   return @errors;
 }
 
 sub _validate_type_object {
   my ($self, $data, $state) = @_;
-  return E $state->{path}, [object => type => data_type $data] if ref $data ne 'HASH';
+  return [$state->{path}, object => type => data_type $data] if ref $data ne 'HASH';
 
   return (
     $self->_validate_type_object_min_max($_[1], $state),
@@ -100,7 +100,7 @@ sub _validate_type_object_names {
   my @errors;
   for my $name (keys %$data) {
     next unless my @e = $self->_validate($name, $self->_state($state, schema => $state->{schema}{propertyNames}));
-    push @errors, prefix_errors propertyName => map [$name, $_], @e;
+    push @errors, [$state->{path}, propertyName => \@e];
   }
 
   return @errors;

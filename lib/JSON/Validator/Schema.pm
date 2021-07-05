@@ -3,7 +3,7 @@ use Mojo::Base 'JSON::Validator';    # TODO: Change this to "use Mojo::Base -bas
 
 use Carp qw(carp confess);
 use JSON::Validator::Formats;
-use JSON::Validator::Util qw(E data_checksum data_type json_pointer prefix_errors schema_type);
+use JSON::Validator::Util qw(data_checksum data_type json_pointer schema_type);
 use JSON::Validator::Util qw(is_bool is_num is_type);
 use List::Util qw(uniq);
 use Mojo::JSON qw(false true);
@@ -84,9 +84,12 @@ sub resolve {
 
 sub validate {
   my ($self, $data, $schema) = @_;
-  my %state  = (path => '', root => $self->data, schema => $schema // $self->data, seen => {});
-  my @errors = sort { $a->path cmp $b->path } $self->_validate($_[1], $self->_state(\%state));
-  return @errors;
+  my %state = (path => [''], root => $self->data, schema => $schema // $self->data, seen => {});
+
+  my @e = sort { $a->path cmp $b->path }
+    map { JSON::Validator::Error->expand($_) } $self->_validate($_[1], $self->_state(\%state));
+
+  return @e;
 }
 
 sub schema { $_[0]->can('data') ? $_[0] : $_[0]->SUPER::schema }
@@ -187,7 +190,7 @@ sub _state {
 sub _validate {
   my ($self, $data, $state) = @_;
   my $schema = $state->{schema};
-  return $schema ? () : E $state->{path}, [not => 'not'] if is_bool $schema;
+  return $schema ? () : [$state->{path}, not => 'not'] if is_bool $schema;
 
   my @errors;
   if ($self->recursive_data_protection) {
@@ -200,7 +203,7 @@ sub _validate {
 
   if ($schema->{not}) {
     my @e = $self->_validate($_[1], $self->_state($state, schema => $schema->{not}));
-    push @errors, E $state->{path}, [not => 'not'] unless @e;
+    push @errors, [$state->{path}, not => 'not'] unless @e;
   }
   if (my $rules = $schema->{allOf}) {
     push @errors, $self->_validate_all_of($_[1], $self->_state($state, schema => $rules));
@@ -241,28 +244,18 @@ sub _validate {
 
 sub _validate_all_of {
   my ($self, $data, $state) = @_;
-  my (@errors, @errors_with_prefix);
+  my @errors;
 
   my $i = 0;
   for my $rule (@{$state->{schema}}) {
     next unless my @e = $self->_validate($_[1], $self->_state($state, schema => $rule));
-    push @errors,             @e;
-    push @errors_with_prefix, [$i, @e];
+    push @errors, [$i, @e];
   }
   continue {
     $i++;
   }
 
-  return if not @errors;
-
-  return prefix_errors(allOf => @errors_with_prefix)
-    if @errors == 1
-    or (grep { $_->details->[1] ne 'type' or $_->path ne ($state->{path} || '/') } @errors);
-
-  # combine all 'type' errors at the base path together
-  my @details    = map $_->details, @errors;
-  my $want_types = join '/', uniq map $_->[0], @details;
-  return E $state->{path}, [allOf => type => $want_types, $details[-1][2]];
+  return @errors ? [$state->{path}, allOf => \@errors] : ();
 }
 
 sub _validate_any_of_types {
@@ -274,69 +267,40 @@ sub _validate_any_of_types {
     push @errors, @e;
   }
 
-  # favor a non-type error from one of the rules
-  if (my @e = grep { $_->details->[1] ne 'type' or $_->path ne ($state->{path} || '/') } @errors) {
-    return @e;
-  }
-
-  # the type didn't match any of the rules: combine the errors together
-  my @details    = map $_->details, @errors;
-  my $want_types = join '/', uniq map $_->[0], @details;
-  return E $state->{path}, [$want_types => 'type', $details[-1][2]];
+  return [$state->{path}, types => \@errors];
 }
 
 sub _validate_any_of {
   my ($self, $data, $state) = @_;
-  my (@errors, @errors_with_prefix);
+  my @errors;
 
   my $i = 0;
   for my $rule (@{$state->{schema}}) {
     return unless my @e = $self->_validate($_[1], $self->_state($state, schema => $rule));
-    push @errors,             @e;
-    push @errors_with_prefix, [$i, @e];
+    push @errors, [$i, @e];
   }
   continue {
     $i++;
   }
 
-  return prefix_errors(anyOf => @errors_with_prefix)
-    if @errors == 1
-    or (grep { $_->details->[1] ne 'type' or $_->path ne ($state->{path} || '/') } @errors);
-
-  # combine all 'type' errors at the base path together
-  my @details    = map $_->details, @errors;
-  my $want_types = join '/', uniq map $_->[0], @details;
-  return E $state->{path}, [anyOf => type => $want_types, $details[-1][2]];
+  return [$state->{path}, anyOf => \@errors];
 }
 
 sub _validate_one_of {
-  my ($self,   $data, $state) = @_;
-  my ($path,   $schema) = @$state{qw(path schema)};
-  my (@errors, @errors_with_prefix);
+  my ($self, $data, $state) = @_;
+  my @errors;
 
   my ($i, @passed) = (0);
   for my $rule (@{$state->{schema}}) {
     my @e = $self->_validate($_[1], $self->_state($state, schema => $rule));
-    push @passed,             $i and next unless @e;
-    push @errors_with_prefix, [$i, @e];
-    push @errors,             @e;
+    push @passed, $i and next unless @e;
+    push @errors, [$i, @e];
   }
   continue {
     $i++;
   }
 
-  return if @passed == 1;
-  return E $path, [oneOf => 'all_rules_match'] unless @errors;
-  return E $path, [oneOf => 'n_rules_match', join(', ', @passed)] if @passed;
-
-  return prefix_errors(oneOf => @errors_with_prefix)
-    if @errors == 1
-    or (grep { $_->details->[1] ne 'type' or $_->path ne ($path || '/') } @errors);
-
-  # the type didn't match any of the rules: combine the errors together
-  my @details    = map $_->details, @errors;
-  my $want_types = join '/', uniq map $_->[0], @details;
-  return E $path, [oneOf => type => $want_types, $details[-1][2]];
+  return @passed == 1 ? () : [$state->{path}, oneOf => \@errors];
 }
 
 sub _validate_number_max {
@@ -346,15 +310,15 @@ sub _validate_number_max {
 
   my $cmp_with = $schema->{exclusiveMaximum} // '';
   if (is_bool $cmp_with) {
-    push @errors, E $path, [$expected => ex_maximum => $value, $schema->{maximum}] unless $value < $schema->{maximum};
+    push @errors, [$path, $expected => ex_maximum => $value, $schema->{maximum}] unless $value < $schema->{maximum};
   }
   elsif (is_num $cmp_with) {
-    push @errors, E $path, [$expected => ex_maximum => $value, $cmp_with] unless $value < $cmp_with;
+    push @errors, [$path, $expected => ex_maximum => $value, $cmp_with] unless $value < $cmp_with;
   }
 
   if (exists $schema->{maximum}) {
     my $cmp_with = $schema->{maximum};
-    push @errors, E $path, [$expected => maximum => $value, $cmp_with] unless $value <= $cmp_with;
+    push @errors, [$path, $expected => maximum => $value, $cmp_with] unless $value <= $cmp_with;
   }
 
   return @errors;
@@ -367,15 +331,15 @@ sub _validate_number_min {
 
   my $cmp_with = $schema->{exclusiveMinimum} // '';
   if (is_bool $cmp_with) {
-    push @errors, E $path, [$expected => ex_minimum => $value, $schema->{minimum}] unless $value > $schema->{minimum};
+    push @errors, [$path, $expected => ex_minimum => $value, $schema->{minimum}] unless $value > $schema->{minimum};
   }
   elsif (is_num $cmp_with) {
-    push @errors, E $path, [$expected => ex_minimum => $value, $cmp_with] unless $value > $cmp_with;
+    push @errors, [$path, $expected => ex_minimum => $value, $cmp_with] unless $value > $cmp_with;
   }
 
   if (exists $schema->{minimum}) {
     my $cmp_with = $schema->{minimum};
-    push @errors, E $path, [$expected => minimum => $value, $cmp_with] unless $value >= $cmp_with;
+    push @errors, [$path, $expected => minimum => $value, $cmp_with] unless $value >= $cmp_with;
   }
 
   return @errors;
@@ -391,7 +355,7 @@ sub _validate_type_enum {
   }
 
   $enum = join ', ', map { (!defined or ref) ? Mojo::JSON::encode_json($_) : $_ } @$enum;
-  return E $state->{path}, [enum => enum => $enum];
+  return [$state->{path}, enum => enum => $enum];
 }
 
 sub _validate_type_const {
@@ -399,7 +363,7 @@ sub _validate_type_const {
   my $const = $state->{schema}{const};
 
   return if data_checksum($data) eq data_checksum($const);
-  return E $state->{path}, [const => const => Mojo::JSON::encode_json($const)];
+  return [$state->{path}, const => const => Mojo::JSON::encode_json($const)];
 }
 
 sub _validate_format {
@@ -408,7 +372,7 @@ sub _validate_format {
   my $code   = $self->formats->{$format};
   return do { warn "Format rule for '$format' is missing"; return } unless $code;
   return unless my $err = $code->($value);
-  return E $state->{path}, [format => $format, $err];
+  return [$state->{path}, format => $format, $err];
 }
 
 sub _validate_type_any { }
@@ -419,19 +383,19 @@ sub _validate_type_array {
   my @errors;
 
   if (ref $data ne 'ARRAY') {
-    return E $path, [array => type => data_type $data];
+    return [$path, array => type => data_type $data];
   }
   if (defined $schema->{minItems} and $schema->{minItems} > @$data) {
-    push @errors, E $path, [array => minItems => int(@$data), $schema->{minItems}];
+    push @errors, [$path, array => minItems => int(@$data), $schema->{minItems}];
   }
   if (defined $schema->{maxItems} and $schema->{maxItems} < @$data) {
-    push @errors, E $path, [array => maxItems => int(@$data), $schema->{maxItems}];
+    push @errors, [$path, array => maxItems => int(@$data), $schema->{maxItems}];
   }
   if ($schema->{uniqueItems}) {
     my %uniq;
     for (@$data) {
       next if !$uniq{data_checksum($_)}++;
-      push @errors, E $path, [array => 'uniqueItems'];
+      push @errors, [$path, array => 'uniqueItems'];
       last;
     }
   }
@@ -439,11 +403,12 @@ sub _validate_type_array {
   if (exists $schema->{contains}) {
     my @e;
     for my $i (0 .. @$data - 1) {
-      my @tmp = $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $schema->{contains}));
+      my @tmp
+        = $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $schema->{contains}));
       push @e, \@tmp if @tmp;
     }
-    push @errors, map {@$_} @e if @e >= @$data;
-    push @errors, E $path, [array => 'contains'] if not @$data;
+    push @errors, map {@$_} @e                 if @e >= @$data;
+    push @errors, [$path, array => 'contains'] if not @$data;
   }
 
   if (ref $schema->{items} eq 'ARRAY') {
@@ -456,17 +421,17 @@ sub _validate_type_array {
 
     if (@rules >= @$data) {
       for my $i (0 .. @$data - 1) {
-        push @errors, $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $rules[$i]));
+        push @errors, $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $rules[$i]));
       }
     }
     elsif (!$additional_items) {
-      push @errors, E $path, [array => additionalItems => int(@$data), int(@rules)];
+      push @errors, [$path, array => additionalItems => int(@$data), int(@rules)];
     }
   }
   elsif (exists $schema->{items}) {
     for my $i (0 .. @$data - 1) {
       push @errors,
-        $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $schema->{items}));
+        $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $schema->{items}));
     }
   }
 
@@ -483,7 +448,7 @@ sub _validate_type_boolean {
   }
 
   return if is_bool $_[1];
-  return E $state->{path}, [boolean => type => data_type $value];
+  return [$state->{path}, boolean => type => data_type $value];
 }
 
 sub _validate_type_integer {
@@ -492,14 +457,14 @@ sub _validate_type_integer {
 
   return @errors if @errors;
   return         if $value =~ /^-?\d+$/;
-  return E $state->{path}, [integer => type => data_type $value];
+  return [$state->{path}, integer => type => data_type $value];
 }
 
 sub _validate_type_null {
   my ($self, $value, $state) = @_;
 
   return unless defined $value;
-  return E $state->{path}, [null => type => data_type $value];
+  return [$state->{path}, null => type => data_type $value];
 }
 
 sub _validate_type_number {
@@ -509,10 +474,10 @@ sub _validate_type_number {
   $expected ||= 'number';
 
   if (!defined $value or ref $value) {
-    return E $state->{path}, [$expected => type => data_type $value];
+    return [$state->{path}, $expected => type => data_type $value];
   }
   unless (is_num $value) {
-    return E $state->{path}, [$expected => type => data_type $value]
+    return [$state->{path}, $expected => type => data_type $value]
       if !$self->{coerce}{numbers} or $value !~ /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
     $_[1] = 0 + $value;    # coerce input value
   }
@@ -522,7 +487,7 @@ sub _validate_type_number {
   push @errors, $self->_validate_number_min($value, $state, $expected);
 
   my $d = $state->{schema}{multipleOf};
-  push @errors, E $state->{path}, [$expected => multipleOf => $d] if $d and ($value / $d) =~ /\.[^0]+$/;
+  push @errors, [$state->{path}, $expected => multipleOf => $d] if $d and ($value / $d) =~ /\.[^0]+$/;
 
   return @errors;
 }
@@ -531,20 +496,20 @@ sub _validate_type_object {
   my ($self, $data, $state) = @_;
   my ($path, $schema) = @$state{qw(path schema)};
 
-  return E $path, [object => type => data_type $data] unless ref $data eq 'HASH';
+  return [$path, object => type => data_type $data] unless ref $data eq 'HASH';
 
   my @errors;
   my @dkeys = keys %$data;
   if (defined $schema->{maxProperties} and $schema->{maxProperties} < @dkeys) {
-    push @errors, E $path, [object => maxProperties => int(@dkeys), $schema->{maxProperties}];
+    push @errors, [$path, object => maxProperties => int(@dkeys), $schema->{maxProperties}];
   }
   if (defined $schema->{minProperties} and $schema->{minProperties} > @dkeys) {
-    push @errors, E $path, [object => minProperties => int(@dkeys), $schema->{minProperties}];
+    push @errors, [$path, object => minProperties => int(@dkeys), $schema->{minProperties}];
   }
   if (exists $schema->{propertyNames}) {
     for my $name (keys %$data) {
       next unless my @e = $self->_validate($name, $self->_state($state, schema => $schema->{propertyNames}));
-      push @errors, prefix_errors propertyName => map [$name, $_], @e;
+      push @errors, [$path, propertyName => @e];
     }
   }
 
@@ -569,12 +534,12 @@ sub _validate_type_object {
   }
   elsif (my @k = grep { !$rules{$_} } @dkeys) {
     local $" = ', ';
-    return E $path, [object => additionalProperties => join ', ', sort @k];
+    return [$path, object => additionalProperties => join ', ', sort @k];
   }
 
   for my $k (uniq @{$schema->{required} || []}) {
     next if exists $data->{$k};
-    push @errors, E json_pointer($path, $k), [object => 'required'];
+    push @errors, [[@$path, $k], [object => 'required']];
     delete $rules{$k};
   }
 
@@ -583,8 +548,7 @@ sub _validate_type_object {
     next if not exists $data->{$k};
     if (ref $dependencies->{$k} eq 'ARRAY') {
       push @errors,
-        map { E json_pointer($path, $_), [object => dependencies => $k] }
-        grep { !exists $data->{$_} } @{$dependencies->{$k}};
+        map { [[@$path, $_], [object => dependencies => $k]] } grep { !exists $data->{$_} } @{$dependencies->{$k}};
     }
     elsif (ref $dependencies->{$k} eq 'HASH') {
       push @errors, $self->_validate_type_object($data, $self->_state($state, schema => $schema->{dependencies}{$k}));
@@ -594,7 +558,7 @@ sub _validate_type_object {
   for my $k (keys %rules) {
     for my $r (@{$rules{$k}}) {
       next unless exists $data->{$k};
-      my $s2 = $self->_state($state, path => json_pointer($path, $k), schema => $r);
+      my $s2 = $self->_state($state, path => [@$path, $k], schema => $r);
       my @e  = $self->_validate($data->{$k}, $s2);
       push @errors, @e;
       next if @e or !is_type $r, 'HASH';
@@ -615,10 +579,10 @@ sub _validate_type_string {
     return;
   }
   if (!defined $value or ref $value) {
-    return E $path, [string => type => data_type $value];
+    return [$path, string => type => data_type $value];
   }
   if (B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK) and 0 + $value eq $value and $value * 0 == 0) {
-    return E $path, [string => type => data_type $value] unless $self->{coerce}{strings};
+    return [$path, string => type => data_type $value] unless $self->{coerce}{strings};
     $_[1] = "$value";    # coerce input value
   }
   if ($schema->{format}) {
@@ -626,17 +590,17 @@ sub _validate_type_string {
   }
   if (defined $schema->{maxLength}) {
     if (length($value) > $schema->{maxLength}) {
-      push @errors, E $path, [string => maxLength => length($value), $schema->{maxLength}];
+      push @errors, [$path, string => maxLength => length($value), $schema->{maxLength}];
     }
   }
   if (defined $schema->{minLength}) {
     if (length($value) < $schema->{minLength}) {
-      push @errors, E $path, [string => minLength => length($value), $schema->{minLength}];
+      push @errors, [$path, string => minLength => length($value), $schema->{minLength}];
     }
   }
   if (defined $schema->{pattern}) {
     my $p = $schema->{pattern};
-    push @errors, E $path, [string => pattern => $p] unless $value =~ /$p/;
+    push @errors, [$path, string => pattern => $p] unless $value =~ /$p/;
   }
 
   return @errors;
