@@ -28,7 +28,7 @@ my %WriteMakefileArgs = (
         url  => 'https://github.com/mojolicious/json-validator.git',
         web  => 'https://github.com/mojolicious/json-validator',
       },
-      x_IRC => 'irc://irc.freenode.net/#perl-openapi',
+      x_IRC => 'ircs://irc.libera.chat:6697/#perl-openapi',
     },
   },
   PREREQ_PM     => {'List::Util' => '1.45', 'Mojolicious' => '7.28', @PREREQ_YAML},
