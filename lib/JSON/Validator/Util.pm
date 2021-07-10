@@ -91,7 +91,7 @@ sub negotiate_content_type {
   return '' unless $header;
 
   my %header_map = map {
-        /^\s*([^,; ]+)(?:\s*\;\s*q\s*=\s*(\d+(?:\.\d+)?))?\s*$/i ? (lc $1, $2)
+        /^\s*([^,; ]+)(?:\s*\;\s*q\s*=\s*(\d+(?:\.\d+)?))?\s*$/i ? (lc $1, $2 // -3)
       : /^\s*([^,; ]+)(?:\s*\;\s*\w+\s*=\S+)?\s*$/i              ? (lc $1, -1)
       :                                                            (lc $_, -2);
   } split /,/, $header;

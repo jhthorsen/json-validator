@@ -1,5 +1,10 @@
 Revision history for perl distribution JSON-Validator
 
+4.21 Not Released
+ - Fix no warnings when negotiating */* #252
+ - Depends on perl v5.16.0 #250
+ - Updated x_IRC to irc.libera.chat
+
 4.20 2021-06-18T11:27:02+0900
  - Fix compiling array items #249
  - Fix coerce() will be passed on to schema() objects

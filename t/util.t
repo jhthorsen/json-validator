@@ -53,6 +53,7 @@ is negotiate_content_type(
   'text/html;text/plain;q=0.2,application/xml;q=0.9,*/*;q=0.8'
   ),
   'application/xml', 'exact match with weight';
+is negotiate_content_type(['application/xml'], 'application/json, text/plain, */*'), 'application/xml', 'star/star';
 
 is schema_type({type => 'integer'}), 'integer', 'schema_type integer';
 is schema_type({additionalProperties => {}}), 'object', 'schema_type object';
