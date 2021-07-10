@@ -31,7 +31,7 @@ my %WriteMakefileArgs = (
       x_IRC => 'ircs://irc.libera.chat:6697/#perl-openapi',
     },
   },
-  PREREQ_PM     => {'List::Util' => '1.45', 'Mojolicious' => '7.28', @PREREQ_YAML},
+  PREREQ_PM     => {'List::Util' => '1.45', 'Mojolicious' => '7.28', 'perl' => 'v5.16.0', @PREREQ_YAML},
   TEST_REQUIRES => {'Test::More' => '1.30', 'Test::Deep'  => '0'},
   test          => {TESTS        => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );
