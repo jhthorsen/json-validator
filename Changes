@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-4.21 Not Released
+4.21 2021-07-10T15:58:47+0900
  - Fix no warnings when negotiating */* #252
  - Depends on perl v5.16.0 #250
  - Updated x_IRC to irc.libera.chat

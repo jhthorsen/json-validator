@@ -12,7 +12,7 @@ use Scalar::Util qw(blessed refaddr);
 
 use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 100;
 
-our $VERSION = '4.20';
+our $VERSION = '4.21';
 
 our %SCHEMAS = (
   'http://json-schema.org/draft-04/schema#'             => '+Draft4',
