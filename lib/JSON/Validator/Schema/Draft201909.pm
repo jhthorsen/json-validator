@@ -5,7 +5,7 @@ use JSON::Validator::Schema::Draft4;
 use JSON::Validator::Schema::Draft6;
 use JSON::Validator::Schema::Draft7;
 use JSON::Validator::URI qw(uri);
-use JSON::Validator::Util qw(E is_bool is_type json_pointer);
+use JSON::Validator::Util qw(E is_bool is_type);
 
 has moniker       => 'draft2019';
 has specification => 'https://json-schema.org/draft/2019-09/schema';
@@ -82,7 +82,7 @@ sub _validate_type_array_contains {
 
   my ($n_valid, @e, @errors) = (0);
   for my $i (0 .. @$data - 1) {
-    my @tmp = $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $schema->{contains}));
+    my @tmp = $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $schema->{contains}));
     @tmp ? push @e, \@tmp : $n_valid++;
   }
 
@@ -104,7 +104,7 @@ sub _validate_type_object_dependencies {
     next if not exists $data->{$k};
     if (ref $dependencies->{$k} eq 'ARRAY') {
       push @errors,
-        map { E json_pointer($state->{path}, $_), [object => dependencies => $k] }
+        map { E [@{$state->{path}}, $_], [object => dependencies => $k] }
         grep { !exists $data->{$_} } @{$dependencies->{$k}};
     }
     else {
@@ -116,7 +116,7 @@ sub _validate_type_object_dependencies {
   for my $k (keys %$dependencies) {
     next if not exists $data->{$k};
     push @errors,
-      map { E json_pointer($state->{path}, $_), [object => dependencies => $k] }
+      map { E [@{$state->{path}}, $_], [object => dependencies => $k] }
       grep { !exists $data->{$_} } @{$dependencies->{$k}};
   }
 

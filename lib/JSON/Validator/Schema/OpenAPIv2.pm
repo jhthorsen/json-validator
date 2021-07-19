@@ -342,7 +342,7 @@ sub _validate_request_or_response {
 sub _validate_type_file {
   my ($self, $data, $state) = @_;
   return unless $state->{schema}{required} and (not defined $data or not length $data);
-  return E $state->{path} => 'Missing property.';
+  return E $state->{path}, 'Missing property.';
 }
 
 sub _validate_type_object {
@@ -354,7 +354,7 @@ sub _validate_type_object {
   my (@errors, %ro);
   for my $name (keys %{$schema->{properties} || {}}) {
     next unless $schema->{properties}{$name}{readOnly};
-    push @errors, E "$path/$name", "Read-only." if exists $data->{$name};
+    push @errors, E [@$path, $name], "Read-only." if exists $data->{$name};
     $ro{$name} = 1;
   }
 

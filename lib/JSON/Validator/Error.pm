@@ -79,21 +79,19 @@ has path => '/';
 
 sub new {
   my $class = shift;
+  return $class->SUPER::new unless @_;
 
   # Constructed with attributes
   return $class->SUPER::new($_[0]) if ref $_[0] eq 'HASH';
 
   # Constructed with ($path, ...)
   my $self = $class->SUPER::new;
-  $self->{path} = shift || '/';
 
-  # Constructed with ($path, $message)
-  $self->message(shift) unless ref $_[0];
+  my $path = ref $_[0] ? join '/', '', map { s!~!~0!g; s!/!~1!g; $_ } @{shift(@_)} : shift || '/';
+  $self->{path} = $path || '/';
 
-  # Constructed with ($path, \@details)
-  $self->details(shift) if ref $_[0];
-
-  return $self;
+  # Constructed with ($path, $message) or ($path, \@details)
+  return !@_ ? $self : ref $_[0] ? $self->details(shift) : $self->message(shift);
 }
 
 sub to_string { sprintf '%s: %s', $_[0]->path, $_[0]->message }

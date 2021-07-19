@@ -340,7 +340,7 @@ sub _validate_type_object_request {
   my (@errors, %ro);
   for my $name (keys %{$schema->{properties} || {}}) {
     next unless $schema->{properties}{$name}{readOnly};
-    push @errors, E "$path/$name", "Read-only." if exists $data->{$name};
+    push @errors, E [@$path, $name], "Read-only." if exists $data->{$name};
     $ro{$name} = 1;
   }
 
@@ -361,7 +361,7 @@ sub _validate_type_object_response {
   my (@errors, %rw);
   for my $name (keys %{$schema->{properties} || {}}) {
     next unless $schema->{properties}{$name}{writeOnly};
-    push @errors, E "$path/$name", "Write-only." if exists $data->{$name};
+    push @errors, E [@$path, $name], "Write-only." if exists $data->{$name};
     $rw{$name} = 1;
   }
 

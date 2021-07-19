@@ -87,7 +87,7 @@ sub _validate_type_array_contains {
   my (@e, @errors);
   for my $i (0 .. @$data - 1) {
     my @tmp = $self->_validate($data->[$i],
-      $self->_state($state, path => "$state->{path}/$i", schema => $state->{schema}{contains}));
+      $self->_state($state, path => [@{$state->{path}}, $i], schema => $state->{schema}{contains}));
     push @e, \@tmp if @tmp;
   }
 
