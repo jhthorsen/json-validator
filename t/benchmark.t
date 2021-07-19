@@ -54,16 +54,16 @@ sub time_schema {
 }
 
 __DATA__
-# Mon Jul 19 10:39:39 2021
+# Mon Jul 19 10:58:39 2021
 # n_times=200
 
 ok 1 - valid schema
-ok 2 - defaults - resolve 0.547s
-ok 3 - defaults - validate 1.298s
-ok 4 - defaults - total 1.844s
+ok 2 - defaults - resolve 0.556s
+ok 3 - defaults - validate 1.008s
+ok 4 - defaults - total 1.564s
 ok 5 - valid schema
-ok 6 - resolve_before - validate 1.319s
-ok 7 - resolve_before - total 1.320s
+ok 6 - resolve_before - validate 1.014s
+ok 7 - resolve_before - total 1.014s
                s/iter       defaults resolve_before
-defaults         1.84             --           -29%
-resolve_before   1.31            40%             --
+defaults         1.57             --           -36%
+resolve_before   1.01            55%             --

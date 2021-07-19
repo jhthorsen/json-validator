@@ -161,15 +161,21 @@ sub _validate_type_object_dependencies {
 sub _validate_type_object_properties {
   my ($self, $data, $state) = @_;
   my ($path, $schema, @errors, %rules) = @$state{qw(path schema)};
-  my @dkeys = keys %$data;
+  my $defaults = $self->{coerce}{defaults};
+  my @dkeys    = keys %$data;
 
-  for my $k (keys %{$schema->{properties} || {}}) {
-    push @{$rules{$k}}, $schema->{properties}{$k};
+  if (my $properties = $schema->{properties}) {
+    if ($defaults) {
+      push @{$rules{$_}}, $properties->{$_} for keys %$properties;
+    }
+    else {
+      defined $properties->{$_} && push @{$rules{$_}}, $properties->{$_} for @dkeys;
+    }
   }
 
   for my $p (keys %{$schema->{patternProperties} || {}}) {
     my $r = $schema->{patternProperties}{$p};
-    push @{$rules{$_}}, $r for grep { $_ =~ /$p/ } @dkeys;
+    push @{$rules{$_}}, $r for grep /$p/, @dkeys;
   }
 
   my $additional = exists $schema->{additionalProperties} ? $schema->{additionalProperties} : {};
@@ -188,7 +194,6 @@ sub _validate_type_object_properties {
     delete $rules{$k};
   }
 
-  my $defaults = $self->{coerce}{defaults};
   for my $k (keys %rules) {
     for my $r (@{$rules{$k}}) {
       next if !exists $data->{$k} and !$defaults;
