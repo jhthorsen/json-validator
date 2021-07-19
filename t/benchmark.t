@@ -31,7 +31,7 @@ sub time_schema {
 
       my $t0 = time;
       delete $schema->{errors};
-      $schema->data('http://json-schema.org/draft-07/schema#')->resolve unless $resolve_before;
+      $schema->resolve('http://json-schema.org/draft-07/schema#') unless $resolve_before;
       push @resolve_t, (my $t1 = time) - $t0;
 
       push @errors, @{$schema->errors};
@@ -54,16 +54,16 @@ sub time_schema {
 }
 
 __DATA__
-# Mon Jul 19 10:58:39 2021
+# Tue Jul 20 07:25:46 2021
 # n_times=200
 
 ok 1 - valid schema
-ok 2 - defaults - resolve 0.556s
-ok 3 - defaults - validate 1.008s
-ok 4 - defaults - total 1.564s
+ok 2 - defaults - resolve 0.560s
+ok 3 - defaults - validate 1.053s
+ok 4 - defaults - total 1.613s
 ok 5 - valid schema
-ok 6 - resolve_before - validate 1.014s
-ok 7 - resolve_before - total 1.014s
+ok 6 - resolve_before - validate 1.030s
+ok 7 - resolve_before - total 1.030s
                s/iter       defaults resolve_before
-defaults         1.57             --           -36%
-resolve_before   1.01            55%             --
+defaults         1.61             --           -37%
+resolve_before   1.02            58%             --
