@@ -2,7 +2,7 @@ use Mojo::Base -strict;
 use Mojo::JSON 'false';
 use Mojo::Util 'md5_sum';
 use JSON::Validator;
-use JSON::Validator::Util qw(E data_checksum data_type negotiate_content_type schema_type prefix_errors json_pointer);
+use JSON::Validator::Util qw(E data_checksum data_type negotiate_content_type schema_type prefix_errors);
 use JSON::Validator::Util qw(is_bool is_num is_type);
 use Test::More;
 
@@ -31,10 +31,6 @@ ok !is_num('2'), 'is_num 2';
 
 ok is_bool(false), 'is_bool';
 ok !is_bool(0), 'is_bool';
-
-is json_pointer(qw(foo bar)),    'foo/bar',      'json_pointer foo bar';
-is json_pointer(qw(f/oo bar)),   'f/oo/bar',     'json_pointer f/oo bar';
-is json_pointer(qw(f/oo ~b/ar)), 'f/oo/~0b~1ar', 'json_pointer f/oo ~b/ar';
 
 my $yikes = E {path => '/path/100/y', message => 'yikes'};
 is_deeply(

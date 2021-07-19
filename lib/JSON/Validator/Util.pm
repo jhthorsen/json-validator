@@ -16,7 +16,7 @@ use constant SEREAL_SUPPORT => !$ENV{JSON_VALIDATOR_NO_SEREAL} && eval 'use Sere
 
 our @EXPORT_OK = (
   qw(E data_checksum data_section data_type is_bool is_num is_type),
-  qw(negotiate_content_type json_pointer prefix_errors schema_type),
+  qw(negotiate_content_type prefix_errors schema_type),
 );
 
 sub E { JSON::Validator::Error->new(@_) }
@@ -104,13 +104,6 @@ sub negotiate_content_type {
 
   # Could not find any valid content type
   return '';
-}
-
-sub json_pointer {
-  local $_ = $_[1];
-  s!~!~0!g;
-  s!/!~1!g;
-  "$_[0]/$_";
 }
 
 sub prefix_errors {
@@ -242,13 +235,6 @@ Checks if C<$any> looks like a number.
   $bool = is_type $any, $type;
 
 Checks if C<$any> is a, or inherits from, C<$class> or C<$type>.
-
-=head2 json_pointer
-
-  $str = json_pointer $path, $append;
-
-Will concat C<$append> on to C<$path>, but will also escape the two special
-characters "~" and "/" in C<$append>.
 
 =head2 negotiate_content_type
 

@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::Draft4;
 use Mojo::Base 'JSON::Validator::Schema';
 
-use JSON::Validator::Util qw(E data_checksum data_type is_type json_pointer);
+use JSON::Validator::Util qw(E data_checksum data_type is_type);
 use List::Util 'uniq';
 
 has id => sub {
@@ -67,7 +67,7 @@ sub _validate_type_array_items {
 
     if (@rules >= @$data) {
       for my $i (0 .. @$data - 1) {
-        push @errors, $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $rules[$i]));
+        push @errors, $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $rules[$i]));
       }
     }
     elsif (!$additional_items) {
@@ -77,7 +77,7 @@ sub _validate_type_array_items {
   elsif (exists $schema->{items}) {
     for my $i (0 .. @$data - 1) {
       push @errors,
-        $self->_validate($data->[$i], $self->_state($state, path => "$path/$i", schema => $schema->{items}));
+        $self->_validate($data->[$i], $self->_state($state, path => [@$path, $i], schema => $schema->{items}));
     }
   }
 
@@ -147,7 +147,7 @@ sub _validate_type_object_dependencies {
     next if not exists $data->{$k};
     if (ref $dependencies->{$k} eq 'ARRAY') {
       push @errors,
-        map { E json_pointer($state->{path}, $_), [object => dependencies => $k] }
+        map { E [@{$state->{path}}, $_], [object => dependencies => $k] }
         grep { !exists $data->{$_} } @{$dependencies->{$k}};
     }
     else {
@@ -184,19 +184,20 @@ sub _validate_type_object_properties {
 
   for my $k (uniq @{$schema->{required} || []}) {
     next if exists $data->{$k};
-    push @errors, E json_pointer($path, $k), [object => 'required'];
+    push @errors, E [@$path, $k], [object => 'required'];
     delete $rules{$k};
   }
 
   my $defaults = $self->{coerce}{defaults};
   for my $k (keys %rules) {
     for my $r (@{$rules{$k}}) {
-      my $s2 = $self->_state($state, path => json_pointer($path, $k), schema => $r);
+      next if !exists $data->{$k} and !$defaults;
+      my $s2 = $self->_state($state, path => [@$path, $k], schema => $r);
       if ($defaults and ref $s2->{schema} eq 'HASH' and exists $s2->{schema}{default} and !exists $data->{$k}) {
         $data->{$k} = $s2->{schema}{default};
       }
 
-      next unless exists $data->{$k};
+      next if !exists $data->{$k};
 
       my @e = $self->_validate($data->{$k}, $s2);
       push @errors, @e;
