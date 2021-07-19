@@ -13,7 +13,7 @@ use Scalar::Util qw(blessed);
 has errors => sub {
   my $self      = shift;
   my $uri       = $self->specification || 'http://json-schema.org/draft-04/schema#';
-  my $validator = $self->new(coerce => {}, store => $self->store, _refs => {})->data($uri)->resolve;
+  my $validator = $self->new(coerce => {}, store => $self->store, _refs => {})->resolve($uri);
   return [$self->_validate_id($self->id), $validator->validate($self->data)];
 };
 
@@ -90,13 +90,15 @@ sub load_and_validate_schema { Carp::confess('load_and_validate_schema(...) is u
 sub new {
   my $class = shift;
   return $class->SUPER::new(@_) unless @_ % 2;
-  return $class->SUPER::new(data => shift, @_)->resolve;
+
+  my $data = shift;
+  return $class->SUPER::new(@_)->resolve($data);
 }
 
 sub resolve {
   my $self = shift;
+  my $data = shift // $self->data;    # $self->data will get deprecated
 
-  my $data = $self->data;
   my $state
     = !ref $data                              ? $self->store->resolve($data)
     : (blessed $data && $data->can('to_abs')) ? $self->store->resolve($data->to_abs)
@@ -836,7 +838,7 @@ JSON::Validator::Schema - Base class for JSON::Validator schemas
 
   # Will not fetch the fike from web, if the $store has already retrived
   # the schema
-  $schema->data('https://api.example.com/cool/beans.json')->resolve;
+  $schema->resolve('https://api.example.com/cool/beans.json');
 
 =head2 Make a new validation class
 
@@ -947,7 +949,6 @@ See L<Mojo::JSON::Pointer/contains>.
   my $hash_ref = $schema->data;
   my $schema   = $schema->data($bool);
   my $schema   = $schema->data($hash_ref);
-  my $schema   = $schema->data($uri);
 
 Will set a structure representing the schema. In most cases you want to
 use L</resolve> instead of L</data>.
@@ -994,10 +995,11 @@ might throw an exception if the schema could not be successfully resolved.
 
 =head2 resolve
 
-  $schema = $schema->resolve;
+  $schema = $schema->resolve($uri);
+  $schema = $schema->resolve($data);
 
-Used to resolve L</data> and store the resolved schema in L</data>.  If
-C<$data> is an C<$uri> or contains "$ref", then these schemas will be
+Used to resolve L<$uri> or L<$data> and store the resolved schema in L</data>.
+If C<$data> or C<$uri> contains any $ref's, then these schemas will be
 downloaded and resolved as well.
 
 If L</data> does not contain an "id" or "$id", then L</id> will be assigned a

@@ -68,7 +68,7 @@ sub schema_validate_ok {
   my ($data, $schema, @expected) = @_;
   my $description = @expected ? "errors: @expected" : "valid: " . encode_json($data);
 
-  my @errors = t::Helper->schema->data($schema)->resolve->validate($data);
+  my @errors = t::Helper->schema->resolve($schema)->validate($data);
   local $Test::Builder::Level = $Test::Builder::Level + 1;
   Test::More::is_deeply([map { $_->TO_JSON } sort { $a->path cmp $b->path } @errors],
     [map { $_->TO_JSON } sort { $a->path cmp $b->path } @expected], $description)

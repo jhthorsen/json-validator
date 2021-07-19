@@ -18,7 +18,7 @@ t::Helper->test(object => qw(additional_properties pattern_properties min_max na
 t::Helper->test(object => qw(dependent_required dependent_schemas unevaluated_properties));
 
 subtest 'anchor' => sub {
-  $schema->data({'$ref' => '#foo', '$defs' => {'A' => {'$anchor' => 'foo', 'type' => 'integer'}}})->resolve;
+  $schema->resolve({'$ref' => '#foo', '$defs' => {'A' => {'$anchor' => 'foo', 'type' => 'integer'}}});
   is $schema->get('/type'), 'integer', 'foo anchor type';
 };
 
