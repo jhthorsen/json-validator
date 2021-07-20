@@ -10,6 +10,9 @@ use Mojo::JSON qw(false true);
 use Mojo::JSON::Pointer;
 use Scalar::Util qw(blessed);
 
+# This might change
+use constant RECURSION_LIMIT => $ENV{JSON_VALIDATOR_RECURSION_LIMIT} || 200;
+
 has errors => sub {
   my $self      = shift;
   my $uri       = $self->specification || 'http://json-schema.org/draft-04/schema#';
@@ -29,8 +32,6 @@ has moniker => sub {
   return "draft$1" if $self->specification =~ m!draft-(\d+)!;
   return '';
 };
-
-has recursive_data_protection => 1;
 
 has specification => sub {
   my $data = shift->data;
@@ -300,15 +301,16 @@ sub _validate {
   my $schema = $state->{schema};
   return $schema ? () : E $state->{path}, [not => 'not'] if is_bool $schema;
 
-  my @errors;
-  if ($self->recursive_data_protection and 2 == grep { ref $_ && !is_bool($_) } $data, $schema) {
-    my $seen_addr = "$schema:$data";
-    return @{$self->{seen}{$seen_addr}} if $self->{seen}{$seen_addr};    # Avoid recursion
-    $self->{seen}{$seen_addr} = \@errors;
-  }
-
   local $_[1] = $data->TO_JSON if blessed $data and $data->can('TO_JSON');
 
+  if (@{$state->{path}} >= RECURSION_LIMIT) {
+    my $message = Carp::longmess('Please open a PR if you want support for recursive data structures.');
+    my $package = __PACKAGE__;
+    $message =~ s!^\s+$package\::_.*\n!!gm;
+    die $message;
+  }
+
+  my @errors;
   if ($schema->{not}) {
     my @e = $self->_validate($_[1], $self->_state($state, schema => $schema->{not}));
     push @errors, E $state->{path}, [not => 'not'] unless @e;
