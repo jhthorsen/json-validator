@@ -143,7 +143,7 @@ subtest 'validate_response - content_type' => sub {
 };
 
 subtest add_default_response => sub {
-  $schema = JSON::Validator->new->schema($cwd->child(qw(spec v3-petstore.json)))->schema->resolve;
+  $schema = JSON::Validator->new->schema($cwd->child(qw(spec v3-petstore.json)))->schema;
   ok !$schema->get('/components/schemas/DefaultResponse'), 'default response missing';
   ok !$schema->get([paths => '/petss', 'get', 'responses', '400']), 'default response missing for 400';
   $schema->add_default_response;

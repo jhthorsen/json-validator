@@ -19,16 +19,16 @@ monkey_patch __PACKAGE__,
 sub add_default_response {
   my ($self, $params) = ($_[0], shift->_params_for_add_default_response(@_));
 
-  my $responses = $self->data->{components}{schemas} ||= {};
-  my $ref       = $responses->{$params->{name}}      ||= $params->{schema};
-  my %schema    = ('$ref' => "#/components/schemas/$params->{name}");
-  tie %schema, 'JSON::Validator::Ref', $ref, $schema{'$ref'}, $schema{'$ref'};
+  my $schemas = $self->data->{components}{schemas} ||= {};
+  $schemas->{$params->{name}} ||= $params->{schema};
 
+  my %ref = ('$ref' => "#/components/schemas/$params->{name}");
   for my $route ($self->routes->each) {
     my $op = $self->get([paths => @$route{qw(path method)}]);
-    $op->{responses}{$_}
-      ||= {description => $params->{description}, content => {'application/json' => {schema => \%schema}}}
-      for @{$params->{status}};
+    for my $status (@{$params->{status}}) {
+      $op->{responses}{$status}{description} //= $params->{description};
+      $op->{responses}{$status}{content}{'application/json'} //= {schema => \%ref};
+    }
   }
 
   return $self;
@@ -137,6 +137,12 @@ sub _build_formats {
   };
 }
 
+sub _bundle_ref_path {
+  my ($self, $ref, @args) = @_;
+  my $base = $ref =~ m!^.*#/(components/.+)$! ? $1 : 'definitions';
+  return ($base, $self->_flatten_ref($ref, @args));
+}
+
 sub _coerce_parameter_format {
   my ($self, $val, $param) = @_;
   return unless $val->{exists};
@@ -234,12 +240,6 @@ sub _coerce_parameter_style_object_deep {
   return $val->{exists} = 0;
 }
 
-sub _definitions_path_for_ref {
-  my ($self, $ref) = @_;
-  my $path = Mojo::Path->new($ref->fqn =~ m!^.*#/(components/.+)$!)->to_dir->parts;
-  return $path->[0] ? $path : ['definitions'];
-}
-
 sub _get_parameter_value {
   my ($self, $param, $get) = @_;
   my $schema_type = schema_type $param;
@@ -288,28 +288,31 @@ sub _validate_body {
   return;
 }
 
+sub _validate_id { }
+
 sub _validate_type_array {
   my $self = shift;
-  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_array(@_);
+  return $_[1]->{schema}{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_array(@_);
 }
 
 sub _validate_type_boolean {
   my $self = shift;
-  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_boolean(@_);
+  return $_[1]->{schema}{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_boolean(@_);
 }
 
 sub _validate_type_integer {
   my $self = shift;
-  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_integer(@_);
+  return $_[1]->{schema}{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_integer(@_);
 }
 
 sub _validate_type_number {
   my $self = shift;
-  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_number(@_);
+  return $_[1]->{schema}{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_number(@_);
 }
 
 sub _validate_type_object {
-  my ($self, $data, $path, $schema) = @_;
+  my ($self, $data, $state) = @_;
+  my ($path, $schema) = @$state{qw(path schema)};
   return if $schema->{nullable} && !defined $data;
   return E $path, [object => type => data_type $data] if ref $data ne 'HASH';
   return shift->SUPER::_validate_type_object(@_) unless $self->{validate_request} or $self->{validate_response};
@@ -321,22 +324,23 @@ sub _validate_type_object {
     return E $path, "Discriminator $name has no value."          unless my $map_name = $data->{$name};
     return E $path, "No definition for discriminator $map_name." unless my $url      = $mapping->{$map_name};
     return E $path, "TODO: Not yet supported: $url"              unless $url =~ s!^#!!;
-    local $self->{inside_discriminator} = 1;    # prevent recursion
-    return $self->_validate($data, $path, $self->get($url));
+    local $self->{inside_discriminator} = 1;
+    return $self->_validate($data, $self->_state($state, schema => $self->get($url)));
   }
 
   return $self->{validate_request}
-    ? $self->_validate_type_object_request($_[1], $path, $schema)
-    : $self->_validate_type_object_response($_[1], $path, $schema);
+    ? $self->_validate_type_object_request($_[1], $state)
+    : $self->_validate_type_object_response($_[1], $state);
 }
 
 sub _validate_type_object_request {
-  my ($self, $data, $path, $schema) = @_;
+  my ($self, $data, $state) = @_;
+  my ($path, $schema) = @$state{qw(path schema)};
 
   my (@errors, %ro);
   for my $name (keys %{$schema->{properties} || {}}) {
     next unless $schema->{properties}{$name}{readOnly};
-    push @errors, E "$path/$name", "Read-only." if exists $data->{$name};
+    push @errors, E [@$path, $name], "Read-only." if exists $data->{$name};
     $ro{$name} = 1;
   }
 
@@ -344,19 +348,20 @@ sub _validate_type_object_request {
 
   return (
     @errors,
-    $self->_validate_type_object_min_max($_[1], $path, $schema),
-    $self->_validate_type_object_dependencies($_[1], $path, $schema),
-    $self->_validate_type_object_properties($_[1], $path, $schema),
+    $self->_validate_type_object_min_max($_[1], $state),
+    $self->_validate_type_object_dependencies($_[1], $state),
+    $self->_validate_type_object_properties($_[1], $state),
   );
 }
 
 sub _validate_type_object_response {
-  my ($self, $data, $path, $schema) = @_;
+  my ($self, $data, $state) = @_;
+  my ($path, $schema) = @$state{qw(path schema)};
 
   my (@errors, %rw);
   for my $name (keys %{$schema->{properties} || {}}) {
     next unless $schema->{properties}{$name}{writeOnly};
-    push @errors, E "$path/$name", "Write-only." if exists $data->{$name};
+    push @errors, E [@$path, $name], "Write-only." if exists $data->{$name};
     $rw{$name} = 1;
   }
 
@@ -364,15 +369,15 @@ sub _validate_type_object_response {
 
   return (
     @errors,
-    $self->_validate_type_object_min_max($_[1], $path, $schema),
-    $self->_validate_type_object_dependencies($_[1], $path, $schema),
-    $self->_validate_type_object_properties($_[1], $path, $schema),
+    $self->_validate_type_object_min_max($_[1], $state),
+    $self->_validate_type_object_dependencies($_[1], $state),
+    $self->_validate_type_object_properties($_[1], $state),
   );
 }
 
 sub _validate_type_string {
   my $self = shift;
-  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_string(@_);
+  return $_[1]->{schema}{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_string(@_);
 }
 
 1;

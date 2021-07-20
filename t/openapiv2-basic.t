@@ -12,14 +12,15 @@ subtest 'basic' => sub {
   is_deeply $schema->coerce, {booleans => 1, numbers => 1, strings => 1}, 'default coercion';
 
   eval {
-    my $s = JSON::Validator->new->schema('data://main/spec-resolve-refs.json')->schema->resolve;
+    my $s = JSON::Validator->new->schema('data://main/spec-resolve-refs.json')->schema;
     is $s->get([qw(paths /user get responses 200 schema type)]), 'object', 'resolved "User"';
+    1;
   } or do {
     diag $@;
     ok 0, 'Could not resolve "User"';
   };
 
-  $schema = JSON::Validator->new->schema($cwd->child(qw(spec v2-petstore.json)))->schema->resolve;
+  $schema = JSON::Validator->new->schema($cwd->child(qw(spec v2-petstore.json)))->schema;
   isa_ok $schema, 'JSON::Validator::Schema::OpenAPIv2';
 
   is_deeply(
@@ -50,7 +51,7 @@ subtest base_url => sub {
   is $schema->base_url(Mojo::URL->new('/v1')), $schema, 'set path';
   is $schema->base_url->to_string, 'https://api2.example.com/v1', 'get';
 
-  my $schema_with_port = JSON::Validator->new->schema($cwd->child(qw(spec bundlecheck.json)))->schema->resolve;
+  my $schema_with_port = JSON::Validator->new->schema($cwd->child(qw(spec bundlecheck.json)))->schema;
   is $schema_with_port->base_url->host, 'localhost', 'host';
   is $schema_with_port->base_url->port, 3000,        'port';
 };
@@ -154,7 +155,7 @@ subtest 'validate_response - content_type' => sub {
 };
 
 subtest add_default_response => sub {
-  $schema = JSON::Validator->new->schema($cwd->child(qw(spec v2-petstore.json)))->schema->resolve;
+  $schema = JSON::Validator->new->schema($cwd->child(qw(spec v2-petstore.json)))->schema;
   ok !$schema->get('/definitions/DefaultResponse'), 'default response missing';
   ok !$schema->get([paths => '/petss', 'get', 'responses', '400']), 'default response missing for 400';
   $schema->add_default_response;
