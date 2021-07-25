@@ -46,6 +46,10 @@ subtest 'urn to_abs' => sub {
   $urn = JSON::Validator::URI->new('#foo');
   $abs = $urn->to_abs(JSON::Validator::URI->new('urn:jv:draft4-4242#bar'));
   is $abs->to_string, 'urn:jv:draft4-4242#foo', 'to_abs';
+
+  # TODO: I don't think it's valid for a URN to have a path, so this might get reverted
+  my $rel = JSON::Validator::URI->new('b.json');
+  is $rel->to_abs($abs)->to_string, 'urn:jv:draft4-4242/b.json#foo', 'b.json to_abs';
 };
 
 done_testing;

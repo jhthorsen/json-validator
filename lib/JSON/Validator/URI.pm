@@ -44,17 +44,44 @@ sub parse {
 
 sub to_abs {
   my $self = shift;
-  my $abs  = $self->clone;
+
+  my $abs = $self->clone;
   return $abs if $abs->is_abs;
 
-  my $base   = shift || $abs->base;
-  my $scheme = $base->scheme // $abs->scheme // '';
+  # Scheme
+  my $base = shift || $abs->base;
+  $abs->base($base)->scheme($base->scheme);
 
-  # URL
-  return $self->SUPER::to_abs($base) unless 'urn' eq ($scheme // '');
+  my $scheme = lc($base->scheme // $abs->scheme // '');
 
-  # URN
-  return $abs->nid($base->nid)->nss($base->nss)->scheme('urn');
+  if ($scheme eq 'urn') {
+    return $abs->scheme('urn') if $abs->nid and $abs->nss;
+    $abs->nid($base->nid)->nss($base->nss);
+  }
+  else {
+    return $abs if $abs->host;
+    $abs->host($base->host)->port($base->port);
+  }
+
+  $abs->fragment($base->fragment) unless $abs->fragment;
+  $abs->userinfo($base->userinfo) unless $abs->userinfo;
+
+  # Absolute path
+  my $path = $abs->path;
+  return $abs if $path->leading_slash;
+
+  # Inherit path
+  if (!@{$path->parts}) {
+    $abs->path($base->path->clone->canonicalize);
+
+    # Query
+    $abs->query($base->query->clone) unless length $abs->query->to_string;
+  }
+
+  # Merge paths
+  else { $abs->path($base->path->clone->merge($path)->canonicalize) }
+
+  return $abs;
 }
 
 sub to_string {
@@ -65,8 +92,10 @@ sub to_string {
 
   # URN
   my $urn = sprintf 'urn:%s:%s', $self->nid, $self->nss;
-  return $urn unless defined(my $fragment = $self->fragment);
-  return "$urn#$fragment";
+  my $p   = $self->path_query;
+  $urn .= $p =~ m!^/! ? $p : "/$p" if length $p;
+  $urn .= "#$p"                    if defined($p = $self->fragment);
+  return $urn;
 }
 
 sub to_unsafe_string {
