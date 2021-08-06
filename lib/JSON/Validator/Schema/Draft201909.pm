@@ -124,7 +124,6 @@ sub _validate_type_object_dependencies {
   return @errors;
 }
 
-*_bundle_ref_path                 = \&JSON::Validator::Schema::Draft7::_bundle_ref_path;
 *_validate_number_max             = \&JSON::Validator::Schema::Draft6::_validate_number_max;
 *_validate_number_min             = \&JSON::Validator::Schema::Draft6::_validate_number_min;
 *_validate_type_array             = \&JSON::Validator::Schema::Draft6::_validate_type_array;

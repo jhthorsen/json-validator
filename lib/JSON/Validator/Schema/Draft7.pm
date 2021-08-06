@@ -34,8 +34,6 @@ sub _build_formats {
   };
 }
 
-sub _bundle_ref_path { ('$defs', shift->_flat_ref_name(@_)) }
-
 *_resolve_object                    = \&JSON::Validator::Schema::Draft6::_resolve_object;
 *_validate_number_max               = \&JSON::Validator::Schema::Draft6::_validate_number_max;
 *_validate_number_min               = \&JSON::Validator::Schema::Draft6::_validate_number_min;
