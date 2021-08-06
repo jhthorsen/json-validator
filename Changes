@@ -1,5 +1,26 @@
 Revision history for perl distribution JSON-Validator
 
+5.00 Not Released
+ - Validation is much faster
+ - Fix "$defs" in draft7 is "definitions"
+ - Add benchmark.t to track validation speed
+   * Runtime v4.21: 2.62s (n=200)
+   * Runtime v5.00: 1.52s (n=200)
+ - Add JSON::Validator::Store::resolve()
+ - Add JSON::Validator::URI
+ - Fix incorrect validation error paths when validating references to same object #244
+ - Changed JSON::Validator::Util::is_type()
+   * Add JSON::Validator::Util::is_bool()
+   * Add JSON::Validator::Util::is_num()
+ - Changed bundled definitions/$defs names
+ - Changed invalid schema id/$id will not croak
+ - Changed internal _validation_xxx() methods to take $state
+ - Removed support for bundle({replace => 1}) #194
+ - Removed JSON::Validator::OpenAPIv2::allow_invalid_ref()
+ - Removed JSON::Validator::Ref
+ - Removed JSON::Validator::Util::json_pointer()
+ - Removed JSON::Validator::Util::schema_extract()
+
 4.25 2021-09-26T08:41:51+0900
  - Fix checking OpenAPI schema for errors if coerce(defaults) is on #254
  - YAML::XS is preferred instead of YAML::PP #259
