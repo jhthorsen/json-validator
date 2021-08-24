@@ -32,6 +32,11 @@ $body   = {exists => 1, value => {name => undef}};
 @errors = $schema->validate_response([get => '/test'], {body => \&body});
 is "@errors", "", "nullable inside oneOf";
 
+$schema = JSON::Validator->new->schema('data://main/nullable-with-enum.json')->schema;
+$body   = {exists => 1, value => {name => undef}};
+@errors = $schema->validate_response([get => '/test'], {body => \&body});
+is "@errors", "", "nullable string with enum";
+
 done_testing;
 
 sub body {$body}
@@ -116,5 +121,37 @@ __DATA__
     "schemas": {
       "name1": { "type": "string", "nullable": "true" },
       "name2": { "type": "integer" } }
+  }
+}
+@@ nullable-with-enum.json
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Nullable", "version": "" },
+  "paths": {
+    "/test": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "$ref": "#/components/schemas/name"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "name": { "type": "string", "nullable": "true", "enum": ["foo", "bar"] }
+    }
   }
 }

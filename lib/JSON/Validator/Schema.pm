@@ -319,6 +319,7 @@ sub _validate_number_min {
 
 sub _validate_type_enum {
   my ($self, $data, $path, $schema) = @_;
+  return if $schema->{nullable} && !defined $data;
   my $enum = $schema->{enum};
   my $m    = data_checksum $data;
 
