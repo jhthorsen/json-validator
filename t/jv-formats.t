@@ -79,7 +79,9 @@ subtest 'email' => sub {
   local $schema->{properties}{v}{format} = 'email';
   validate_ok {v => 'jhthorsen@cpan.org'}, $schema;
   validate_ok {v => 'foo'},                $schema, E('/v', 'Does not match email format.');
-  validate_ok {v => '用户@例子.广告'},           $schema, E('/v', 'Does not match email format.');
+  validate_ok {v => '用户@例子.广告'},             $schema, E('/v', 'Does not match email format.');
+  validate_ok {v => 'wrong@jhthorsen@cpan.org'}, $schema, E('/v', 'Does not match email format.');
+  validate_ok {v => 'wrong jhthorsen@cpan.org'}, $schema, E('/v', 'Does not match email format.');
 };
 
 subtest 'float' => sub {
