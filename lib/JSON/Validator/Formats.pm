@@ -74,7 +74,7 @@ sub check_email {
     my $local_part     = qr/(?:$dot_atom|$quoted_string)/o;
     my $domain         = qr/(?:$dot_atom|$domain_literal)/o;
 
-    qr/$local_part\@$domain/o;
+    qr/^$local_part\@$domain$/o;
   };
 
   return $_[0] =~ $email_rfc5322_re ? undef : 'Does not match email format.';
