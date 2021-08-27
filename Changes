@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+4.22 2021-08-27T13:12:56+0200
+ - Fix email checking #258
+   Contributor: Stephan Hradek
+
 4.21 2021-07-10T15:58:47+0900
  - Fix no warnings when negotiating */* #252
  - Depends on perl v5.16.0 #250
