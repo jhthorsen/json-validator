@@ -298,6 +298,11 @@ sub _validate_type_boolean {
   return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_boolean(@_);
 }
 
+sub _validate_type_enum {
+  my $self = shift;
+  return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_enum(@_);
+}
+
 sub _validate_type_integer {
   my $self = shift;
   return $_[2]->{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_integer(@_);
