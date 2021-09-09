@@ -57,7 +57,8 @@ sub extend {
     $clone->{items} = dclone($by->{items}) if $by->{items};
   }
   elsif ($self->type eq 'object') {
-    $clone->{required} = [uniq @{$clone->{required}}, @{$by->{required}}] if ref $by->{required} eq 'ARRAY';
+    $clone->{required_props} = [uniq @{$clone->{required_props}}, @{$by->{required_props}}]
+      if defined $by->{required_props};
     $clone->{properties}{$_} = dclone($by->{properties}{$_}) for keys %{$by->{properties} || {}};
   }
 
@@ -82,7 +83,7 @@ sub props {
   my %properties = ref $_[0] ? %{$_[0]} : @_;
 
   while (my ($name, $property) = each %properties) {
-    push @{$self->{required}}, $name if $property->{required};
+    push @{$self->{required_props}}, $name if $property->{required};
     $self->{properties}{$name} = $property->compile;
   }
 
@@ -140,12 +141,12 @@ sub _compile_object {
   my $self = shift;
   my $json = {type => $self->type};
 
-  $json->{additionalProperties} = false               if $self->{strict};
-  $json->{maxProperties}        = $self->{max}        if defined $self->{max};
-  $json->{minProperties}        = $self->{min}        if defined $self->{min};
-  $json->{patternProperties}    = $self->{regex}      if $self->{regex};
-  $json->{properties}           = $self->{properties} if ref $self->{properties} eq 'HASH';
-  $json->{required}             = $self->{required}   if ref $self->{required} eq 'ARRAY';
+  $json->{additionalProperties} = false                   if $self->{strict};
+  $json->{maxProperties}        = $self->{max}            if defined $self->{max};
+  $json->{minProperties}        = $self->{min}            if defined $self->{min};
+  $json->{patternProperties}    = $self->{regex}          if $self->{regex};
+  $json->{properties}           = $self->{properties}     if ref $self->{properties} eq 'HASH';
+  $json->{required}             = $self->{required_props} if defined $self->{required_props};
 
   return $json;
 }

@@ -87,6 +87,16 @@ for my $item ($strict_obj->compile, $strict_obj) {
   );
 }
 
+note "can omit non-required objects containing required properties";
+joi_ok({}, joi->object->props(a => joi->object->props(b => joi->integer->required)));
+
+note "must include required objects containing required properties";
+joi_ok(
+  {},
+  joi->object->props(a => joi->object->required->props(b => joi->integer->required)),
+  E('/a', 'Missing property.'),
+);
+
 eval { joi->number->extend(joi->integer) };
 like $@, qr{Cannot extend joi 'number' by 'integer'}, 'need to extend same type';
 
