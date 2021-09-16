@@ -21,6 +21,7 @@ our %SCHEMAS = (
   'https://json-schema.org/draft/2019-09/schema'        => '+Draft201909',
   'http://swagger.io/v2/schema.json'                    => '+OpenAPIv2',
   'https://spec.openapis.org/oas/3.0/schema/2019-04-02' => '+OpenAPIv3',
+  'https://spec.openapis.org/oas/3.1/schema/2021-05-20' => '+OpenAPIv3',
 );
 
 has formats                   => sub { require JSON::Validator::Schema; JSON::Validator::Schema->_build_formats };
@@ -272,6 +273,10 @@ sub _new_schema {
   if (ref $spec eq 'HASH' and $spec->{paths}) {
     if ($spec->{swagger} and $spec->{swagger} eq '2.0') {
       $spec = 'http://swagger.io/v2/schema.json';
+    }
+    elsif ($spec->{openapi} and $spec->{openapi} =~ m!^3\.1\.\d+$!) {
+      $spec = 'https://spec.openapis.org/oas/3.1/schema/2021-05-20';
+      $attrs{specification} ||= $spec;
     }
     elsif ($spec->{openapi} and $spec->{openapi} =~ m!^3\.0\.\d+$!) {
       $spec = 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';

@@ -157,6 +157,12 @@ subtest add_default_response => sub {
   is_deeply $schema->errors, [], 'errors';
 };
 
+subtest 'v3.1.x' => sub {
+  my $schema = JSON::Validator->new->schema({openapi => '3.1.0', paths => {}})->schema;
+  is $schema->specification, 'https://spec.openapis.org/oas/3.1/schema/2021-05-20', 'specification';
+  is join(', ', @{$schema->errors}), '/info: Missing property.', 'errors';
+};
+
 done_testing;
 
 sub body {$body}

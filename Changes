@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+4.24 Not Released
+ - Add OpenAPI v3.1.x support
+
 4.23 2021-08-28T16:44:05+0200
  - Fix mishandling of nullable combined witn enum in OpenAPIv3 #256 #257
 
