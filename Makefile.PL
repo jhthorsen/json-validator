@@ -6,7 +6,8 @@ use utf8;
 
 use ExtUtils::MakeMaker;
 
-my @PREREQ_YAML = eval 'use YAML::XS 0.67;1' ? ('YAML::XS' => '0.67') : ('YAML::PP' => '0.020');
+my @PREREQ_YAML = !$ENV{JSON_VALIDATOR_PREFER_YAML_PP}
+  || eval 'use YAML::XS 0.67;1' ? ('YAML::XS' => '0.67') : ('YAML::PP' => '0.020');
 
 my %WriteMakefileArgs = (
   NAME          => 'JSON::Validator',
