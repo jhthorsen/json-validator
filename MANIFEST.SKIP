@@ -74,3 +74,9 @@
 ^README\.pod
 ^test.sh
 ^run-all-tests.sh
+
+^.build
+^.pls_cache
+^.proverc
+^README.md
+^cover_db
