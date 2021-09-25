@@ -1,20 +1,25 @@
 package JSON::Validator::Schema::OpenAPIv3;
 use Mojo::Base 'JSON::Validator::Schema::Draft201909';
 
-use JSON::Validator::Schema::OpenAPIv2;
 use JSON::Validator::Util qw(E data_type negotiate_content_type schema_type);
 use Mojo::JSON qw(false true);
 use Mojo::Path;
-use Mojo::Util qw(monkey_patch);
 
 has moniker       => 'openapiv3';
 has specification => 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
 
-# some methods are shared with OpenAPIv2
-monkey_patch __PACKAGE__,
-  $_ => JSON::Validator::Schema::OpenAPIv2->can($_)
-  for qw(coerce routes validate_request validate_response),
-  qw(_coerce_arrays _coerce_default_value _find_all_nodes _params_for_add_default_response _prefix_error_path _validate_request_or_response);
+require JSON::Validator::Schema::OpenAPIv2;
+*coerce                           = \&JSON::Validator::Schema::OpenAPIv2::coerce;
+*errors                           = \&JSON::Validator::Schema::OpenAPIv2::errors;
+*routes                           = \&JSON::Validator::Schema::OpenAPIv2::routes;
+*validate_request                 = \&JSON::Validator::Schema::OpenAPIv2::validate_request;
+*validate_response                = \&JSON::Validator::Schema::OpenAPIv2::validate_response;
+*_coerce_arrays                   = \&JSON::Validator::Schema::OpenAPIv2::_coerce_arrays;
+*_coerce_default_value            = \&JSON::Validator::Schema::OpenAPIv2::_coerce_default_value;
+*_find_all_nodes                  = \&JSON::Validator::Schema::OpenAPIv2::_find_all_nodes;
+*_params_for_add_default_response = \&JSON::Validator::Schema::OpenAPIv2::_params_for_add_default_response;
+*_prefix_error_path               = \&JSON::Validator::Schema::OpenAPIv2::_prefix_error_path;
+*_validate_request_or_response    = \&JSON::Validator::Schema::OpenAPIv2::_validate_request_or_response;
 
 sub add_default_response {
   my ($self, $params) = ($_[0], shift->_params_for_add_default_response(@_));
@@ -397,6 +402,12 @@ See L<JSON::Validator::Schema::OpenAPIv2/SYNOPSIS>.
 This class represents L<https://spec.openapis.org/oas/3.0/schema/2019-04-02>.
 
 =head1 ATTRIBUTES
+
+=head2 errors
+
+  my $array_ref = $schema->errors;
+
+See L<JSON::Validator::Schema/errors>.
 
 =head2 moniker
 

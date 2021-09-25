@@ -163,6 +163,11 @@ subtest 'v3.1.x' => sub {
   is join(', ', @{$schema->errors}), '/info: Missing property.', 'errors';
 };
 
+subtest 'coerce defaults' => sub {
+  my $schema = JSON::Validator->new->coerce('defaults')->schema($cwd->child(qw(spec v3-petstore.json)))->schema;
+  is_deeply $schema->errors, [], 'defaults turned off when validating the schema';
+};
+
 done_testing;
 
 sub body {$body}

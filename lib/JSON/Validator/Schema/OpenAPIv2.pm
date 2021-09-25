@@ -13,7 +13,7 @@ my %SKIP_KEYWORDS_IN_PATH = map { ($_, 1) } qw(description parameters servers su
 has errors => sub {
   my $self      = shift;
   my $validator = $self->new(%$self, allow_invalid_ref => 0)->resolve($self->specification);
-  return [$validator->validate($self->resolve->data)];
+  return [$validator->coerce({})->validate($self->resolve->data)];
 };
 
 has moniker       => 'openapiv2';
@@ -443,6 +443,12 @@ JSON::Validator::Schema::OpenAPIv2 - OpenAPI version 2 / Swagger
 This class represents L<http://swagger.io/v2/schema.json>.
 
 =head1 ATTRIBUTES
+
+=head2 errors
+
+  my $array_ref = $schema->errors;
+
+See L<JSON::Validator::Schema/errors>.
 
 =head2 moniker
 

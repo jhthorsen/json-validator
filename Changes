@@ -1,5 +1,10 @@
 Revision history for perl distribution JSON-Validator
 
+4.25 Not Released
+ - Fix checking OpenAPI schema for errors if coerce(defaults) is on #254
+ - YAML::XS is preferred instead of YAML::PP #259
+ - Cleaned up CPAN distribution files #260
+
 4.24 2021-09-16T08:02:26+0200
  - Add OpenAPI v3.1.x support
 
