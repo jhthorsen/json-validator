@@ -3,11 +3,13 @@ use Mojo::Base -base;
 
 use Mojo::Exception;
 use Mojo::File qw(path);
+use Mojo::JSON;
+use Mojo::JSON::Pointer;
 use Mojo::UserAgent;
 use Mojo::Util qw(url_unescape);
 use JSON::Validator::Schema;
 use JSON::Validator::URI qw(uri);
-use JSON::Validator::Util qw(data_section);
+use JSON::Validator::Util qw(data_section str2data);
 
 use constant DEBUG         => $ENV{JSON_VALIDATOR_DEBUG} && 1;
 use constant BUNDLED_PATH  => path(path(__FILE__)->dirname, 'cache')->to_string;
@@ -122,7 +124,7 @@ sub _load_from_app {
   my $err = $tx->error && $tx->error->{message};
   _raise("GET $url: $err")                      if $err;
   warn "[JSON::Validator] Load from app $url\n" if DEBUG;
-  return $self->_add($url => _parse($tx->res->body));
+  return $self->_add($url => str2data $tx->res->body);
 }
 
 sub _load_from_data {
@@ -136,7 +138,7 @@ sub _load_from_data {
   my $text = data_section $class, $file, {encoding => 'UTF-8'};
   _raise("Could not find $url") unless $text;
   warn "[JSON::Validator] Load from data $file in $class\n" if DEBUG;
-  return $self->_add($url => _parse($text));
+  return $self->_add($url => str2data $text);
 }
 
 sub _load_from_file {
@@ -150,7 +152,7 @@ sub _load_from_file {
   $file = $file->realpath;
   my $id = uri()->new->scheme('file')->host('')->path(CASE_TOLERANT ? lc $file : "$file");
   warn "[JSON::Validator] Load from file $file\n" if DEBUG;
-  return $self->exists($id) || $self->_add($id => _parse($file->slurp));
+  return $self->exists($id) || $self->_add($id => str2data $file->slurp);
 }
 
 sub _load_from_text {
@@ -160,7 +162,7 @@ sub _load_from_text {
 
   my $id = uri->from_data($is_scalar_ref ? $$text : $text);
   warn "[JSON::Validator] Load from text $id\n" if DEBUG;
-  return $self->exists($id) || $self->_add($id => _parse($is_scalar_ref ? $$text : $text));
+  return $self->exists($id) || $self->_add($id => str2data $is_scalar_ref ? $$text : $text);
 }
 
 sub _load_from_url {
@@ -177,8 +179,8 @@ sub _load_from_url {
   my $cache_file = Mojo::Util::md5_sum("$url");
   for (@{$self->cache_paths}) {
     my $path = path $_, $cache_file;
-    warn "[JSON::Validator] Load from cache $path\n" if DEBUG and -r $path;
-    return $self->_add($url => _parse($path->slurp)) if -r $path;
+    warn "[JSON::Validator] Load from cache $path\n"  if DEBUG and -r $path;
+    return $self->_add($url => str2data $path->slurp) if -r $path;
   }
 
   my $tx  = $self->ua->get($url);
@@ -191,12 +193,7 @@ sub _load_from_url {
   }
 
   warn "[JSON::Validator] Load from URL $url\n" if DEBUG;
-  return $self->_add($url => _parse($tx->res->body));
-}
-
-sub _parse {
-  return Mojo::JSON::decode_json($_[0]) if $_[0] =~ m!^\s*\{!s;
-  return JSON::Validator::Util::_yaml_load($_[0]);
+  return $self->_add($url => str2data $tx->res->body);
 }
 
 sub _raise { die JSON::Validator::Exception->new(@_)->trace }

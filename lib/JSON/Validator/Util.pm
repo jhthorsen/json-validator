@@ -16,7 +16,7 @@ use constant SEREAL_SUPPORT => !$ENV{JSON_VALIDATOR_NO_SEREAL} && eval 'use Sere
 
 our @EXPORT_OK = (
   qw(E data_checksum data_section data_type is_bool is_num is_type),
-  qw(negotiate_content_type prefix_errors schema_type),
+  qw(negotiate_content_type prefix_errors schema_type str2data),
 );
 
 sub E { JSON::Validator::Error->new(@_) }
@@ -153,6 +153,12 @@ sub schema_type {
   return '';
 }
 
+sub str2data {
+  my $data;
+  eval { $data = $_[0] =~ m!^\s*\{!s ? Mojo::JSON::decode_json($_[0]) : _yaml_load($_[0]); 1 } // Carp::confess($@);
+  return $data;
+}
+
 # _guessed_right($type, $data);
 sub _guessed_right {
   return $_[0] if !defined $_[1];
@@ -276,6 +282,12 @@ faster if you specify "type". Both of the two below is valid, but the one with
 
   {"type": "object", "properties": {}} # Faster
   {"properties": {}}                   # Slower
+
+=head2 str2data
+
+  $any = str2data $str;
+
+Will try to parse C<$str> as JSON or YAML, and return a data structure.
 
 =head1 SEE ALSO
 

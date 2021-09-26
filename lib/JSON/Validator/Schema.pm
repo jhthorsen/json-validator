@@ -4,7 +4,7 @@ use Mojo::Base 'JSON::Validator';    # TODO: Change this to "use Mojo::Base -bas
 use Carp qw(carp);
 use JSON::Validator::Formats;
 use JSON::Validator::URI qw(uri);
-use JSON::Validator::Util qw(E data_checksum data_type is_bool is_num is_type prefix_errors schema_type);
+use JSON::Validator::Util qw(E data_checksum data_type is_bool is_num is_type prefix_errors schema_type str2data);
 use List::Util qw(uniq);
 use Mojo::JSON qw(false true);
 use Mojo::JSON::Pointer;
@@ -92,6 +92,7 @@ sub new {
   return $class->SUPER::new(@_) unless @_ % 2;
 
   my $data = shift;
+  $data = str2data $data if !ref $data and $data =~ m!^\{|^---|\n!s;
   return $class->SUPER::new(@_)->resolve($data);
 }
 
