@@ -10,6 +10,7 @@ use Mojo::Util qw(url_unescape);
 use JSON::Validator::Schema;
 use JSON::Validator::URI qw(uri);
 use JSON::Validator::Util qw(data_section str2data);
+use Scalar::Util qw(blessed);
 
 use constant DEBUG         => $ENV{JSON_VALIDATOR_DEBUG} && 1;
 use constant BUNDLED_PATH  => path(path(__FILE__)->dirname, 'cache')->to_string;
@@ -118,6 +119,7 @@ sub _load_from_app {
   my ($self, $url) = @_;
   my $id;
   return undef unless $self->ua->server->app;
+  return undef if blessed $url and !$url->can('scheme');
   return $id if $id = $self->exists($url);
 
   my $tx  = $self->ua->get($url);
