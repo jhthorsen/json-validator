@@ -345,6 +345,7 @@ sub _validate {
   local $_[1] = $data->TO_JSON if blessed $data and $data->can('TO_JSON');
 
   if ($schema->{not}) {
+    local $self->{seen} = {};
     my @e = $self->_validate($_[1], $self->_state($state, schema => $schema->{not}));
     push @errors, E $state->{path}, [not => 'not'] unless @e;
   }
@@ -358,6 +359,7 @@ sub _validate {
     push @errors, $self->_validate_one_of($_[1], {%$state, schema => $rules});
   }
   if (exists $schema->{if}) {
+    local $self->{seen} = {};
     my $rules = !$schema->{if}
       || $self->_validate($_[1], $self->_state($state, schema => $schema->{if})) ? $schema->{else} : $schema->{then};
     push @errors, $self->_validate($_[1], $self->_state($state, schema => $rules // {}));
@@ -390,6 +392,7 @@ sub _validate_all_of {
 
   my $i = 0;
   for my $rule (@{$state->{schema}}) {
+    local $self->{seen} = {};
     next unless my @e = $self->_validate($_[1], $self->_state($state, schema => $rule));
     push @errors,             @e;
     push @errors_with_prefix, [$i, @e];
@@ -416,6 +419,7 @@ sub _validate_any_of_types {
   my @errors;
 
   for my $rule (@{$state->{schema}}) {
+    local $self->{seen} = {};
     return unless my @e = $self->_validate($_[1], $self->_state($state, schema => $rule));
     push @errors, @e;
   }
@@ -438,6 +442,7 @@ sub _validate_any_of {
 
   my $i = 0;
   for my $rule (@{$state->{schema}}) {
+    local $self->{seen} = {};
     return unless my @e = $self->_validate($_[1], $self->_state($state, schema => $rule));
     push @errors,             @e;
     push @errors_with_prefix, [$i, @e];
@@ -472,6 +477,7 @@ sub _validate_one_of {
 
   my ($i, @passed) = (0);
   for my $rule (@{$state->{schema}}) {
+    local $self->{seen} = {};
     my @e = $self->_validate($_[1], $self->_state($state, schema => $rule));
     push @passed,             $i and next unless @e;
     push @errors_with_prefix, [$i, @e];
