@@ -67,10 +67,6 @@ sub parameters_for_request {
   return undef unless $self->get([paths => $path, $method]);
 
   my @parameters = map {@$_} $self->_find_all_nodes([paths => $path, $method], 'parameters');
-  for my $param (@parameters) {
-    $param->{type} ||= schema_type($param->{schema});
-  }
-
   if (my $request_body = $self->get([paths => $path, $method, 'requestBody'])) {
     my @accepts = sort keys %{$request_body->{content} || {}};
     push @parameters,
@@ -156,7 +152,7 @@ sub _coerce_parameter_format {
   $param->{style} = $in_style->{$param->{in}} unless $param->{style};
   return $self->_coerce_parameter_style_object_deep($val, $param) if $param->{style} eq 'deepObject';
 
-  my $schema_type = schema_type $param;
+  my $schema_type = schema_type $param->{schema};
   return $self->_coerce_parameter_style_array($val, $param)  if $schema_type eq 'array';
   return $self->_coerce_parameter_style_object($val, $param) if $schema_type eq 'object';
 }
@@ -247,7 +243,7 @@ sub _coerce_parameter_style_object_deep {
 
 sub _get_parameter_value {
   my ($self, $param, $get) = @_;
-  my $schema_type = schema_type $param;
+  my $schema_type = schema_type $param->{schema};
   my $name        = $param->{name};
   $name = undef if $schema_type eq 'object' && $param->{explode} && ($param->{style} || '') =~ m!^(form|deepObject)$!;
 

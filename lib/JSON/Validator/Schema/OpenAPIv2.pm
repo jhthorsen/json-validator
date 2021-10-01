@@ -199,7 +199,7 @@ sub _bundle_ref_path_expand {
 sub _coerce_arrays {
   my ($self, $val, $param) = @_;
   my $data_type   = data_type $val->{value};
-  my $schema_type = schema_type $param;
+  my $schema_type = schema_type $param->{schema} || $param;    # $param->{schema} is for OpenAPIv3
   return $val->{value} = [$val->{value}] if $schema_type eq 'array' and $data_type ne 'array';
   return $val->{value} = @{$val->{value}} ? $val->{value}[-1] : undef
     if $schema_type ne 'array' and $data_type eq 'array';
