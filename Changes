@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+5.01 Not Released
+ - Deprecated $schema->contains()
+ - Deprecated $schema->schema()
+
 5.00 2021-10-02T10:15:16+0900
  - Validation is much faster
  - Fix "$defs" in draft7 is "definitions"

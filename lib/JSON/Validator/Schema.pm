@@ -8,6 +8,7 @@ use JSON::Validator::Util qw(E data_checksum data_type is_bool is_num is_type pr
 use List::Util qw(uniq);
 use Mojo::JSON qw(false true);
 use Mojo::JSON::Pointer;
+use Mojo::Util qw(deprecated);
 use Scalar::Util qw(blessed);
 
 has errors => sub {
@@ -63,6 +64,7 @@ sub bundle {
 }
 
 sub contains {
+  deprecated 'contains() is deprecated';
   state $p = Mojo::JSON::Pointer->new;
   return $p->data(shift->{data})->contains(@_);
 }
@@ -153,7 +155,10 @@ sub validate {
   return @errors;
 }
 
-sub schema { $_[0]->can('data') ? $_[0] : $_[0]->SUPER::schema }
+sub schema {
+  deprecated 'schema() is deprecated';
+  return $_[0]->can('data') ? $_[0] : $_[0]->SUPER::schema;
+}
 
 sub _build_formats {
   return {
@@ -943,7 +948,7 @@ data-structure of the validated data: Example:
 
 =head2 contains
 
-See L<Mojo::JSON::Pointer/contains>.
+This method will be removed in a future release.
 
 =head2 data
 
@@ -982,7 +987,7 @@ L</errors> which will validate L</data> agains L</specification>.
 
 =head2 load_and_validate_schema
 
-This method will be removed in a future release.
+This method is unsupported. Use L</is_invalid> or L</errors> instead.
 
 =head2 new
 
