@@ -5,7 +5,7 @@ use Carp qw(carp);
 use JSON::Validator::Formats;
 use JSON::Validator::URI qw(uri);
 use JSON::Validator::Util qw(E data_checksum data_type is_bool is_num is_type prefix_errors schema_type str2data);
-use List::Util qw(uniq);
+use List::Util qw(first uniq);
 use Mojo::JSON qw(false true);
 use Mojo::JSON::Pointer;
 use Mojo::Util qw(deprecated);
@@ -38,7 +38,8 @@ has specification => sub {
   is_type($data, 'HASH') ? $data->{'$schema'} || $data->{schema} || '' : '';
 };
 
-has _refs => sub { +{} };
+has _ref_keys => sub { [qw($ref)] };
+has _refs     => sub { +{} };
 
 sub bundle {
   my ($self, $args) = @_;
@@ -79,7 +80,7 @@ sub data {
 
 sub get {
   my ($self, $pointer, $cb) = @_;
-  my %state = (root => $self->data, schema => $self->data, pos => []);
+  my %state = (path => [], root => $self->data, schema => $self->data);
   return $self->_get([@$pointer], \%state, $cb) if is_type $pointer, 'ARRAY';
   return $self->_get([split '/', $pointer], \%state, $cb) if $pointer =~ s!^/!!;
   return length $pointer ? undef : $self->data;
@@ -211,7 +212,7 @@ sub _bundle_from {
           $def_target = $def_target->{$_} //= {} for @path;
           my $source_state = $self->store->resolve($source->{'$ref'}, $state);
           push @topics, [$source_state, $source_state->{schema}, $def_target];
-          $self->_refs->{$def_target} = $source_state;
+          $self->_refs->{$target} = $source_state;
         }
         else {
           my $type = ref $source->{$k};
@@ -254,17 +255,44 @@ sub _extract_ref_from_schema { $_[1]->{'$ref'} }
 
 sub _get {
   my ($self, $pointer, $state, $cb) = @_;
-  my $schema;
 
-  $state  = $self->_state_for_get($state->{schema}, $state) if $pointer->[0] and $pointer->[0] ne '$ref';
-  $schema = $state->{schema};
+  my $path       = $state->{path};
+  my $schema     = $state->{schema};
+  my $follow_ref = sub {
+    return if $pointer->[0] and $pointer->[0] eq '$ref';
+
+    my $ref_keys      = $self->_ref_keys;    # ($ref, $recursiveRef ...)
+    my $schema_lookup = $schema;
+    while (ref $schema eq 'HASH') {
+      last unless my $ref_key = first { $schema->{$_} && !ref $schema->{$_} } @$ref_keys;
+
+      $state = $self->_refs->{$schema_lookup}
+        // Carp::confess(qq(resolve() must be called before validate() to lookup "$schema_lookup->{$ref_key}".));
+      if (is_type $state->{schema}, 'HASH') {
+        $schema_lookup = $state->{schema};
+        $schema        = {%{$state->{schema}}, %$schema};
+        $state->{schema}{'$ref'} ? ($schema->{'$ref'} = $state->{schema}{'$ref'}) : delete $schema->{'$ref'};
+        $state->{schema}{'$recursiveRef'}
+          ? ($schema->{'$recursiveRef'} = $state->{schema}{'$recursiveRef'})
+          : delete $schema->{'$recursiveRef'};
+      }
+      else {
+        $schema = $schema_lookup = $state->{schema};
+      }
+
+      $state = {%$state, path => $path, schema => $schema};
+    }
+  };
+
+  $follow_ref->();
+
   while (@$pointer) {
     my $p = shift @$pointer;
 
     unless (defined $p) {
       my $i = 0;
       return Mojo::Collection->new(
-        map { $self->_get([@$pointer], {%$state, schema => $_->[0], pos => [@{$state->{pos}}, $_->[1]]}, $cb) }
+        map { $self->_get([@$pointer], {%$state, path => [@$path, $_->[1]], schema => $_->[0]}, $cb) }
           ref $schema eq 'ARRAY' ? (map { [$_, $i++] } @$schema)
         : ref $schema eq 'HASH' ? (map { [$schema->{$_}, $_] } sort keys %$schema)
         :                         ([$schema, '']));
@@ -272,25 +300,24 @@ sub _get {
 
     $p =~ s!~1!/!g;
     $p =~ s/~0/~/g;
-    push @{$state->{pos}}, $p;
+    push @$path, $p;
 
-    if (ref $schema eq 'HASH' and exists $schema->{$p}) {
+    if (ref $schema eq 'HASH') {
+      return undef unless exists $schema->{$p};
       $schema = $schema->{$p};
     }
-    elsif (ref $schema eq 'ARRAY' and $p =~ /^\d+$/ and @$schema > $p) {
+    elsif (ref $schema eq 'ARRAY') {
+      return undef unless $p =~ /^\d+$/ and @$schema > $p;
       $schema = $schema->[$p];
     }
     else {
       return undef;
     }
 
-    if ($pointer->[0] and $pointer->[0] ne '$ref') {
-      $state  = $self->_state_for_get($schema, $state);
-      $schema = $state->{schema};
-    }
+    $follow_ref->();
   }
 
-  return $cb->($schema, E($state->{pos})->path) if $cb;
+  return $cb->($schema, E($path)->path) if $cb;
   return $schema;
 }
 
@@ -330,12 +357,6 @@ sub _state {
   }
 
   return {%$curr, %override, schema => $schema};
-}
-
-sub _state_for_get {
-  my ($self, $schema, $state) = @_;
-  return $self->_refs->{$schema} if ref $schema eq 'HASH' and $schema->{'$ref'} and !ref $schema->{'$ref'};
-  return {%$state, schema => $schema};
 }
 
 sub _validate {

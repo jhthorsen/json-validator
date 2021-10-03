@@ -34,7 +34,7 @@ is $schema->get('/definitions/C/definitions/X/id'), 'urn:uuid:ee564b8a-7a87-4125
 is $schema->get('/definitions/C/definitions/Y/id'), '#cy', 'id /definitions/C/definitions/Y/id';
 
 my $r1 = $schema->get('/definitions/R1');
-is encode_json($r1), '{"$ref":"b.json#bx"}', 'R1 encode_json';
+is encode_json($r1), '{"id":"#bx"}', 'R1 encode_json';
 
 eval { $jv->load_and_validate_schema("${base_url}invalid-fragment.json") };
 like $@, qr{Fragment not allowed}, 'Root id cannot have a fragment' or diag $@;

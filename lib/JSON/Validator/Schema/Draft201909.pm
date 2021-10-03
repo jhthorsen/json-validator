@@ -9,6 +9,7 @@ use JSON::Validator::Util qw(E is_bool is_type);
 
 has moniker       => 'draft2019';
 has specification => 'https://json-schema.org/draft/2019-09/schema';
+has _ref_keys     => sub { [qw($ref $recursiveRef)] };
 
 sub _build_formats {
   my $formats = shift->JSON::Validator::Schema::Draft7::_build_formats;
@@ -64,15 +65,6 @@ sub _state {
 
   delete $alongside{$_} for qw($anchor $id $recursiveAnchor $recursiveRef $ref);
   return {%$curr, %override, schema => {%alongside, %$schema}};
-}
-
-sub _state_for_get {
-  my ($self, $schema, $state) = @_;
-  return $self->_refs->{$schema}
-    if ref $schema eq 'HASH'
-    and (($schema->{'$ref'} and !ref $schema->{'$ref'})
-    or ($schema->{'$recursiveRef'} and !ref $schema->{'$recursiveRef'}));
-  return {%$state, schema => $schema};
 }
 
 sub _validate_type_array_contains {
