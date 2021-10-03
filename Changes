@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.01 Not Released
+5.01 2021-10-04T07:13:32+0900
  - Fix registering the correct $ref when bundling
  - Changed get() to resolve $ref
  - Deprecated $schema->contains()
