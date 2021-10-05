@@ -71,7 +71,7 @@ sub new {
 
 sub schema {
   my $self = shift;
-  return $self->{schema} unless @_;
+  return $self->{schema} //= $self->_new_schema({}) unless @_;
   $self->{schema} = $self->_new_schema(shift);
   return $self;
 }
@@ -284,11 +284,6 @@ to do validation of specific "format", such as "hostname", "ipv4" and others.
 
 =back
 
-=head1 ERROR OBJECT
-
-The method L</validate> returns a list of L<JSON::Validator::Error> objects
-when the input data violates the L</schema>.
-
 =head1 ATTRIBUTES
 
 =head2 cache_paths
@@ -297,40 +292,28 @@ Proxy attribute for L<JSON::Validator::Store/cache_paths>.
 
 =head2 formats
 
-  my $hash_ref = $jv->formats;
-  my $jv = $jv->formats(\%hash);
+This attribute will be used as default value for
+L<JSON::Validator::Schema/formats>. It is highly recommended to change this
+directly on the L</schema> instead:
 
-Holds a hash-ref, where the keys are supported JSON type "formats", and
-the values holds a code block which can validate a given format. A code
-block should return C<undef> on success and an error string on error:
-
-  sub { return defined $_[0] && $_[0] eq "42" ? undef : "Not the answer." };
-
-See L<JSON::Validator::Formats> for a list of supported formats.
+  $jv->formats(...);         # Legacy
+  $jv->schema->formats(...); # Recommended way
 
 =head2 recursive_data_protection
 
-  my $jv = $jv->recursive_data_protection($bool);
-  my $bool = $jv->recursive_data_protection;
+This attribute will be used as default value for
+L<JSON::Validator::Schema/recursive_data_protection>. It is highly recommended
+to change this directly on the L</schema> instead:
 
-Recursive data protection is active by default, however it can be deactivated
-by assigning a false value to the L</recursive_data_protection> attribute.
-
-Recursive data protection can have a noticeable impact on memory usage when
-validating large data structures. If you are encountering issues with memory
-and you can guarantee that you do not have any loops in your data structure
-then deactivating the recursive data protection may help.
-
-This attribute is EXPERIMENTAL and may change in a future release.
-
-B<Disclaimer: Use at your own risk, if you have any doubt then don't use it>
+  $jv->recursive_data_protection(...);         # Legacy
+  $jv->schema->recursive_data_protection(...); # Recommended way
 
 =head2 store
 
   $store = $jv->store;
 
 Holds a L<JSON::Validator::Store> object that caches the retrieved schemas.
-This object can be shared amongst different schema objects to prevent
+This object will be shared amongst different L</schema> objects to prevent
 a schema from having to be downloaded again.
 
 =head2 ua
@@ -341,70 +324,29 @@ Proxy attribute for L<JSON::Validator::Store/ua>.
 
 =head2 bundle
 
+This method can be used to get a bundled version of L</schema>. It will however
+return a data-structure instead of a new object. See
+L<JSON::Validator::Schema/bundle> for an alternative.
+
   # These two lines does the same
-  my $schema = $jv->bundle({schema => $jv->schema->data});
-  my $schema = $jv->bundle;
+  $data = $jv->bundle;
+  $data = $jv->schema->bundle->data;
 
-  # Will only bundle a section of the schema
-  my $schema = $jv->bundle({schema => $jv->schema->get("/properties/person/age")});
-
-Used to create a new schema, where there are no "$ref" pointing to external
-resources. This means that all the "$ref" that are found, will be moved into
-the "definitions" key, in the returned C<$schema>.
+  # Recommended way
+  $schema = $jv->schema->bundle;
 
 =head2 coerce
 
-  my $jv       = $jv->coerce('bool,def,num,str');
-  my $jv       = $jv->coerce('booleans,defaults,numbers,strings');
-  my $hash_ref = $jv->coerce;
+This attribute will be used as default value for
+L<JSON::Validator::Schema/coerce>. It is highly recommended to change this
+directly on the L</schema> instead:
 
-Set the given type to coerce. Before enabling coercion this module is very
-strict when it comes to validating types. Example: The string C<"1"> is not
-the same as the number C<1>, unless you have "numbers" coercion enabled.
-
-=over 2
-
-=item * booleans
-
-Will convert what looks can be interpreted as a boolean (that is, an actual
-numeric C<1> or C<0>, and the strings "true" and "false") to a
-L<JSON::PP::Boolean> object. Note that "foo" is not considered a true value and
-will fail the validation.
-
-=item * defaults
-
-Will copy the default value defined in the schema, into the input structure,
-if the input value is non-existing.
-
-Note that support for "default" is currently EXPERIMENTAL, and enabling this
-might be changed in future versions.
-
-=item * numbers
-
-Will convert strings that looks like numbers, into true numbers. This works for
-both the "integer" and "number" types.
-
-=item * strings
-
-Will convert a number into a string. This works for the "string" type.
-
-=back
+  $jv->coerce(...);         # Legacy
+  $jv->schema->coerce(...); # Recommended way
 
 =head2 get
 
-  my $sub_schema = $jv->get("/x/y");
-  my $sub_schema = $jv->get(["x", "y"]);
-
-Extract value from L</schema> identified by the given JSON Pointer. Will at the
-same time resolve C<$ref> if found. Example:
-
-  $jv->schema({x => {'$ref' => '#/y'}, y => {'type' => 'string'}});
-  $jv->schema->get('/x')           == {'$ref' => '#/y'}
-  $jv->schema->get('/x')->{'$ref'} == '#/y'
-  $jv->get('/x')                   == {type => 'string'}
-
-The argument can also be an array-ref with the different parts of the pointer
-as each elements.
+Proxy method for L<JSON::Validator::Schema/get>.
 
 =head2 new
 
@@ -415,38 +357,25 @@ Creates a new L<JSON::Validate> object.
 
 =head2 load_and_validate_schema
 
-  my $jv = $jv->load_and_validate_schema($schema, \%args);
-
-Will load and validate C<$schema> against the OpenAPI specification. C<$schema>
-can be anything L<JSON::Validator/schema> accepts. The expanded specification
-will be stored in L<JSON::Validator/schema> on success. See
-L<JSON::Validator/schema> for the different version of C<$url> that can be
-accepted.
-
-C<%args> can be used to further instruct the validation process:
-
-=over 2
-
-=item * schema
-
-Defaults to "http://json-schema.org/draft-04/schema#", but can be any
-structured that can be used to validate C<$schema>.
-
-=back
+This method will be deprecated in the future. See
+L<JSON::Validator::Schema/errors> and L<JSON::Validator::Schema/is_invalid>
+instead.
 
 =head2 schema
 
-  my $jv     = $jv->schema($json_or_yaml_string);
-  my $jv     = $jv->schema($url);
-  my $jv     = $jv->schema(\%schema);
-  my $jv     = $jv->schema(JSON::Validator::Joi->new);
-  my $jv     = $jv->schema(JSON::Validator::Schema->new);
-  my $schema = $jv->schema;
+  $jv     = $jv->schema($json_or_yaml_string);
+  $jv     = $jv->schema($url);
+  $jv     = $jv->schema(\%schema);
+  $jv     = $jv->schema(JSON::Validator::Joi->new);
+  $jv     = $jv->schema(JSON::Validator::Schema->new);
+  $schema = $jv->schema;
 
 Used to set a schema from either a data structure or a URL.
 
-C<$schema> will be a L<JSON::Validator::Schema> object when loaded,
-and C<undef> by default.
+C<$schema> will be an instance of L<JSON::Validator::Schema::Draft4>,
+L<JSON::Validator::Schema::Draft6> L<JSON::Validator::Schema::Draft7>,
+L<JSON::Validator::Schema::Draft201909>, L<JSON::Validator::Schema::OpenAPIv2>,
+L<JSON::Validator::Schema::OpenAPIv3> or L<JSON::Validator::Schema>.
 
 The C<$url> can take many forms, but needs to point to a text file in the
 JSON or YAML format.
@@ -485,13 +414,7 @@ the will be loaded from the app defined in L</ua>. Something like this:
 
 =head2 validate
 
-  my @errors = $jv->validate($data);
-
-Validates C<$data> against L</schema>. C<@errors> will contain validation error
-objects, in a predictable order (specifically, alphanumerically sorted by the
-error objects' C<path>) or be an empty list on success.
-
-See L</ERROR OBJECT> for details.
+Proxy method for L<JSON::Validator::Schema/validate>.
 
 =head1 SEE ALSO
 

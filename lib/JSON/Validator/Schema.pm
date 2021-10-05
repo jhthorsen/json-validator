@@ -887,11 +887,43 @@ L<JSON::Validator::Schema::OpenAPIv3>.
 Any of the classes above can be used instead of L<JSON::Validator> if you know
 which draft/version you are working with up front.
 
+=head2 Validation
+
+L<JSON::Validator::Schema> can both validate user input and the schema itself.
+
+=over 2
+
+=item *
+
+A L<JSON::Validator::Schema> represents a set of validation rules stored in
+L</data>. The rules stored in the L</data> attribute will be used when calling
+the L</validate> method.
+
+=item *
+
+The input to C<validate()> could be some data from a web request or some other
+user input. C<validate()> returns a list of L<JSON::Validator::Error> objects,
+if the user input (input to C<validate()>) contains invalid data.
+
+=item *
+
+The L</errors> and L</is_invalid> attributes has nothing to do with user input,
+meaning it is I<not> relevant for L</validate>. These two accessors are used to
+check if the rules/schema stored in L</data> is correct. The validation is
+performed against the L</specification>. This is pretty much the same as:
+
+  my $jv = JSON::Validator->new;
+  my $draft7 = $jv->schema('http://json-schema.org/draft-07/schema#')->schema;
+  my $schema = $jv->schema({name => {type => 'string'}})->schema;
+  my @errors = $draft7->validate($schema->data);
+
+=back
+
 =head1 ATTRIBUTES
 
 =head2 errors
 
-  my $array_ref = $schema->errors;
+  $array_ref = $schema->errors;
 
 Holds the errors after checking L</data> against L</specification>.
 C<$array_ref> containing no elements means L</data> is valid. Each element in
@@ -900,10 +932,28 @@ the array-ref is a L<JSON::Validator::Error> object.
 This attribute is I<not> changed by L</validate>. It only reflects if the
 C<$schema> is valid.
 
+=head2 formats
+
+  $hash_ref = $schema->formats;
+  $schema   = $schema->formats(\%hash);
+
+Holds a hash-ref, where the keys are supported JSON type "formats", and
+the values holds a code block which can validate a given format. A code
+block should return C<undef> on success and an error string on error:
+
+  sub { return defined $_[0] && $_[0] eq "42" ? undef : "Not the answer." };
+
+See L<JSON::Validator::Formats> for a list of supported formats.
+
+=head2 recursive_data_protection
+
+The value of this attribute will be copied into the created L</schema>.  See
+L<JSON::Validator::Schema/recursive_data_protection> for more details.
+
 =head2 id
 
-  my $str    = $schema->id;
-  my $schema = $schema->id($str);
+  $str    = $schema->id;
+  $schema = $schema->id($str);
 
 Holds the ID for this schema. Usually extracted from C<"$id"> or C<"id"> in
 L</data>.
@@ -911,7 +961,7 @@ L</data>.
 =head2 moniker
 
   $str    = $schema->moniker;
-  $schema = $self->moniker("some_name");
+  $schema = $schema->moniker("some_name");
 
 Used to get/set the moniker for the given schema. Will be "draft04" if
 L</specification> points to a JSON Schema draft URL, and fallback to
@@ -920,17 +970,34 @@ empty string if unable to guess a moniker name.
 This attribute will (probably) detect more monikers from a given
 L</specification> or C</id> in the future.
 
+=head2 recursive_data_protection
+
+  $schema = $schema->recursive_data_protection($bool);
+  $bool   = $schema->recursive_data_protection;
+
+Recursive data protection is active by default, however it can be deactivated
+by assigning a false value to the L</recursive_data_protection> attribute.
+
+Recursive data protection can have a noticeable impact on memory usage when
+validating large data structures. If you are encountering issues with memory
+and you can guarantee that you do not have any loops in your data structure
+then deactivating the recursive data protection may help.
+
+This attribute is EXPERIMENTAL and may change in a future release.
+
+B<Disclaimer: Use at your own risk, if you have any doubt then don't use it>
+
 =head2 specification
 
-  my $str    = $schema->specification;
-  my $schema = $schema->specification($str);
+  $str    = $schema->specification;
+  $schema = $schema->specification($str);
 
 The URL to the specification used when checking for L</errors>. Usually
 extracted from C<"$schema"> or C<"schema"> in L</data>.
 
 =head2 store
 
-  $store = $jv->store;
+  $store = $schema->store;
 
 Holds a L<JSON::Validator::Store> object that caches the retrieved schemas.
 This object can be shared amongst different schema objects to prevent
@@ -940,7 +1007,7 @@ a schema from having to be downloaded again.
 
 =head2 bundle
 
-  my $bundled = $schema->bundle;
+  $bundled = $schema->bundle;
 
 C<$bundled> is a new L<JSON::Validator::Schema> object where none of the "$ref"
 will point to external resources. This can be useful, if you want to have a
@@ -951,21 +1018,41 @@ bunch of files locally, but hand over a single file to a client.
 
 =head2 coerce
 
-  my $schema   = $schema->coerce("booleans,defaults,numbers,strings");
-  my $schema   = $schema->coerce({booleans => 1});
-  my $hash_ref = $schema->coerce;
+  $schema   = $schema->coerce('bool,def,num,str');
+  $schema   = $schema->coerce('booleans,defaults,numbers,strings');
+  $hash_ref = $schema->coerce;
 
 Set the given type to coerce. Before enabling coercion this module is very
-strict when it comes to validating types. Example: The string C<"1"> is not
-the same as the number C<1>. Note that it will also change the internal
-data-structure of the validated data: Example:
+strict when it comes to validating types. Example: The string C<"1"> is not the
+same as the number C<1>, unless you have "numbers" coercion enabled.
 
-  $schema->coerce({numbers => 1});
-  $schema->data({properties => {age => {type => "integer"}}});
+=over 2
 
-  my $input = {age => "42"};
-  $schema->validate($input);
-  # $input->{age} is now an integer 42 and not the string "42"
+=item * booleans
+
+Will convert what looks can be interpreted as a boolean (that is, an actual
+numeric C<1> or C<0>, and the strings "true" and "false") to a
+L<JSON::PP::Boolean> object. Note that "foo" is not considered a true value and
+will fail the validation.
+
+=item * defaults
+
+Will copy the default value defined in the schema, into the input structure,
+if the input value is non-existing.
+
+Note that support for "default" is currently EXPERIMENTAL, and enabling this
+might be changed in future versions.
+
+=item * numbers
+
+Will convert strings that looks like numbers, into true numbers. This works for
+both the "integer" and "number" types.
+
+=item * strings
+
+Will convert a number into a string. This works for the "string" type.
+
+=back
 
 =head2 contains
 
@@ -1039,10 +1126,10 @@ This method will be removed in a future release.
 
 =head2 validate
 
-  my @errors = $schema->validate($any);
+  @errors = $schema->validate($any);
 
 Will validate C<$any> against the schema defined in L</data>. Each element in
-C<@errors> is a L<JSON::Validator::Error> object.
+C<@errors> is an L<JSON::Validator::Error> object.
 
 =head1 SEE ALSO
 
