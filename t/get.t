@@ -18,9 +18,6 @@ subtest 'setup' => sub {
 };
 
 subtest 'get($string)' => sub {
-  ok $jv->contains('/$defs/z2/type'), 'contains';
-  ok !$jv->contains('/$defs/baz'), 'contains';
-
   is $jv->get('/properties/foo/items/0/properties/y/type'), 'string',  'get /properties/foo/items/0/properties/y/type';
   is $jv->get('/$defs/baz'),                                undef,     'get /$defs/baz';
   is $jv->get('/properties/baz'),                           undef,     'get /properties/baz';
