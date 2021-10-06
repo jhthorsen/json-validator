@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.02 Not Released
+5.02 2021-10-06T09:58:55+0900
  - Fix defaults for arrays with collectionFormat #263
    Contributor: Ilya Rassadin
  - Improved documentation for JSON::Validator and JSON::Validator::Schema #230
