@@ -150,7 +150,7 @@ sub _coerce_parameter_format {
 
   state $in_style = {cookie => 'form', header => 'simple', path => 'simple', query => 'form'};
   $param->{style} = $in_style->{$param->{in}} unless $param->{style};
-  return $self->_coerce_parameter_style_object_deep($val, $param) if $param->{style} eq 'deepObject';
+  return $self->_coerce_parameter_style_object_deep($val, $param) if +($param->{style} // '') eq 'deepObject';
 
   my $schema_type = schema_type $param->{schema};
   return $self->_coerce_parameter_style_array($val, $param)  if $schema_type eq 'array';
