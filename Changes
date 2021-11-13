@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+5.03 Not Released
+ - Fix joi required() with nested objects
+   Contributor: Tim Stallard
+
 5.02 2021-10-06T09:58:55+0900
  - Fix defaults for arrays with collectionFormat #263
    Contributor: Ilya Rassadin
