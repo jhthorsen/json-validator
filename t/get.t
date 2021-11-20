@@ -6,7 +6,7 @@ my $jv;
 
 subtest 'setup' => sub {
   $jv = JSON::Validator::Schema::Draft201909->new({
-    '$defs'    => {z1 => {'$ref' => '#/$defs/z2'}, z2 => {type => 'string'}},
+    '$defs'    => {z1 => {'$ref' => '#/$defs/z2', minLength => 1}, z2 => {type => 'string'}},
     properties => {
       bar    => {items => [{properties => {y => {'$ref' => '#/$defs/z1'}, x => {type => 'integer'}}}]},
       foo    => {items => [{properties => {y => {type   => 'string'}}}]},
@@ -34,7 +34,8 @@ subtest 'get(\@array)' => sub {
 };
 
 subtest '$ref' => sub {
-  is_deeply $jv->get('/properties/bar/items/0/properties/y'), {type => 'string'}, 'get /bar/items/0/properties/y';
+  is_deeply $jv->get('/properties/bar/items/0/properties/y'), {minLength => 1, type => 'string'},
+    'get /bar/items/0/properties/y';
   is $jv->get('/properties/bar/items/0/properties/y/$ref'), '#/$defs/z1', 'get /bar/items/0/properties/y/$ref';
   is_deeply $jv->get('/properties/bar/items/0/properties'), {y => {'$ref' => '#/$defs/z1'}, x => {type => 'integer'}},
     'get /bar/items/0/properties';
