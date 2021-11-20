@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 5.03 Not Released
+ - Fix finding "readOnly" and "writeOnly" inside nested $ref #225
  - Fix joi required() with nested objects
    Contributor: Tim Stallard
 

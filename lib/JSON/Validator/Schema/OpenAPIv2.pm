@@ -373,7 +373,7 @@ sub _validate_type_object {
 
   my (@errors, %ro);
   for my $name (keys %{$schema->{properties} || {}}) {
-    next unless $schema->{properties}{$name}{readOnly};
+    next unless $self->_get(['readOnly'], {path => [], schema => $schema->{properties}{$name}});
     push @errors, E [@$path, $name], "Read-only." if exists $data->{$name};
     $ro{$name} = 1;
   }

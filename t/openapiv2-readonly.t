@@ -31,20 +31,24 @@ __DATA__
     "/user": {
       "post": {
         "parameters": [
-          {"name":"body", "in":"body", "schema": { "$ref": "#/definitions/User" }}
+          {"name":"body", "in":"body", "schema": {"$ref": "#/definitions/User"}}
         ],
         "responses": {
-          "200": { "description": "ok", "schema": { "$ref": "#/definitions/User" } }
+          "200": { "description": "ok", "schema": {"$ref": "#/definitions/User"}}
         }
       }
     }
   },
   "definitions": {
+    "age": {
+      "type": "integer",
+      "readOnly": true
+    },
     "User": {
       "type": "object",
       "required": ["age"],
       "properties": {
-        "age": {"type": "integer", "readOnly": true}
+        "age": {"$ref": "#/definitions/age"}
       }
     }
   }
