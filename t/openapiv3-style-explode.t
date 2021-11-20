@@ -56,12 +56,12 @@ test('get /object/matrix/explode{id}',
 test(
   'get /object/query',
   [{}, {}, ''],
-  [{query => {ff => ''}},                 {all => {ff => ''},                 ff => {}}],
-  [{query => {pf => ''}},                 {all => {pf => ''},                 pf => {}}],
-  [{query => {sf => ''}},                 {all => {sf => ''},                 sf => {}}],
-  [{query => {ff => 'name,birdy,age,1'}}, {all => {ff => 'name,birdy,age,1'}, ff => {age => 1, name => 'birdy'}}],
-  [{query => {pf => 'name|birdy|age|2'}}, {all => {pf => 'name|birdy|age|2'}, pf => {age => 2, name => 'birdy'}}],
-  [{query => {sf => 'name birdy age 3'}}, {all => {sf => 'name birdy age 3'}, sf => {age => 3, name => 'birdy'}}],
+  [{query => {ff => ''}},                 {all => {ff => ['']},                 ff => {}}],
+  [{query => {pf => ''}},                 {all => {pf => ''},                   pf => {}}],
+  [{query => {sf => ''}},                 {all => {sf => ''},                   sf => {}}],
+  [{query => {ff => 'name,birdy,age,1'}}, {all => {ff => ['name,birdy,age,1']}, ff => {age => 1, name => 'birdy'}}],
+  [{query => {pf => 'name|birdy|age|2'}}, {all => {pf => 'name|birdy|age|2'},   pf => {age => 2, name => 'birdy'}}],
+  [{query => {sf => 'name birdy age 3'}}, {all => {sf => 'name birdy age 3'},   sf => {age => 3, name => 'birdy'}}],
 );
 
 test(
@@ -308,7 +308,12 @@ __DATA__
             "in": "query",
             "style": "form",
             "explode": true,
-            "schema": { "type": "object" }
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ff": {"type": "array", "items": {"type": "string"}}
+              }
+            }
           },
           {
             "name": "sf",

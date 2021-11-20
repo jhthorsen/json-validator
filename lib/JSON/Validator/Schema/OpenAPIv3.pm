@@ -186,7 +186,7 @@ sub _coerce_parameter_style_object {
   my $explode = $param->{explode} // (grep { $style eq $_ } qw(cookie query)) ? 1 : 0;
 
   if ($explode) {
-    return if $style eq 'form';
+    return $self->_coerce_parameter_style_object_form($val, $param) if $style eq 'form';
     state $style_re = {label => qr{\.}, matrix => qr{;}, simple => qr{,}};
     return unless my $re = $style_re->{$style};
     return if $style eq 'matrix' && $val->{value} !~ s/^;//;
@@ -240,6 +240,16 @@ sub _coerce_parameter_style_object_deep {
 
   return $val->{value}  = \%res if %res;
   return $val->{exists} = 0;
+}
+
+sub _coerce_parameter_style_object_form {
+  my ($self, $val, $param) = @_;
+  return unless my $properties = $param->{schema} && $param->{schema}{properties};
+
+  for my $k (keys %{$val->{value}}) {
+    next unless my $type = $properties->{$k} && $properties->{$k}{type};
+    $val->{value}{$k} = [$val->{value}{$k}] if $type eq 'array' and ref $val->{value}{$k} ne 'ARRAY';
+  }
 }
 
 sub _get_parameter_value {

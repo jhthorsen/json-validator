@@ -1,6 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 5.03 Not Released
+ - Fix OpenAPIv3::add_default_response() will not overwrite nested $ref
  - Fix finding "readOnly" and "writeOnly" inside nested $ref
  - Fix joi required() with nested objects
    Contributor: Tim Stallard
