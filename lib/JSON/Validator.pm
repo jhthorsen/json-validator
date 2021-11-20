@@ -7,7 +7,7 @@ use JSON::Validator::Util qw(E data_checksum is_type);
 use Mojo::Util qw(sha1_sum);
 use Scalar::Util qw(blessed);
 
-our $VERSION = '5.02';
+our $VERSION = '5.03';
 
 our %SCHEMAS = (
   'http://json-schema.org/draft-04/schema#'             => '+Draft4',
