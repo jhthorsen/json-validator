@@ -20,7 +20,6 @@ jobs:
         run: |
           cpanm -n Test::Pod Test::Pod::Coverage YAML::LibYAML
           cpanm -n Net::IDN::Encode Data::Validate::Domain Data::Validate::IP
-          cpanm -n https://github.com/mojolicious/json-validator/archive/master.tar.gz
           cpanm -n Test::JSON::Schema::Acceptance
           cpanm -n --installdeps .
       - name: Run tests
