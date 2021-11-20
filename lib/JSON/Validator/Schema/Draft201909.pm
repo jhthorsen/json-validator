@@ -71,7 +71,8 @@ sub _validate_type_array_contains {
   my ($self, $data, $state) = @_;
   my ($path, $schema) = @$state{qw(path schema)};
   return unless exists $schema->{contains};
-  return if defined $schema->{minContains} and $schema->{minContains} == 0;
+  return if defined $schema->{minContains} and $schema->{minContains} == 0 and !$schema->{maxContains};
+  return if defined $schema->{minContains} and $schema->{minContains} == 0 and !@$data;
 
   my ($n_valid, @e, @errors) = (0);
   for my $i (0 .. @$data - 1) {

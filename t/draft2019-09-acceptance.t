@@ -11,6 +11,7 @@ push @todo_tests, ['',               'float and integers are equal up to 64-bit 
 push @todo_tests, ['defs.json',      'invalid definition'];
 push @todo_tests, ['defs.json',      'validate definition against metaschema'];
 push @todo_tests, ['id.json',        '$id inside an enum is not a real identifier'];
+push @todo_tests, ['ref.json',       '$ref prevents a sibling $id from changing the base uri'];
 push @todo_tests, ['ref.json',       'ref creates new scope when adjacent to keywords'];
 push @todo_tests, ['ref.json',       'remote ref, containing refs itself', 'remote ref invalid'];
 push @todo_tests, ['ref.json',       'refs with relative uris and defs'];
