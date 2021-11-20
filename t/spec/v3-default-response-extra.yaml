@@ -1,0 +1,50 @@
+openapi: 3.0.0
+info:
+  title: v3-default-response-extra
+  version: 0.0.1
+components:
+  schemas:
+    base:
+      type: object
+      required: [status, reason]
+      properties:
+        status:
+          type: integer
+        reason:
+          type: string
+    not_found:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/base'
+    exception:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/base'
+  responses:
+    '404':
+      description: Custom 404
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/not_found'
+paths:
+  /item/{id}:
+    get:
+      summary: get a single item
+      description: get a single item from the database
+      x-mojo-name: item
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/base'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          description: Custom 500
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/exception'

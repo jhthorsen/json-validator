@@ -32,8 +32,9 @@ sub add_default_response {
   for my $route ($self->routes->each) {
     my $op = $self->get([paths => @$route{qw(path method)}]);
     for my $status (@{$params->{status}}) {
-      $op->{responses}{$status}{description} //= $params->{description};
+      next if $self->get(['paths', @$route{qw(path method)}, 'responses', $status]);
       $op->{responses}{$status}{content}{'application/json'} //= {schema => $ref};
+      $op->{responses}{$status}{description} //= $params->{description};
     }
   }
 

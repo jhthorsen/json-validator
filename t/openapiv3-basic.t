@@ -30,15 +30,15 @@ subtest 'basic' => sub {
 };
 
 subtest base_url => sub {
-  is $schema->base_url, 'http://petstore.swagger.io/v1', 'get';
-  is $schema->base_url('https://api.example.com:8080/api'), $schema, 'set url';
-  is $schema->get('/servers/0/url'), 'https://api.example.com:8080/api', 'servers changed';
+  is $schema->base_url,                                     'http://petstore.swagger.io/v1',    'get';
+  is $schema->base_url('https://api.example.com:8080/api'), $schema,                            'set url';
+  is $schema->get('/servers/0/url'),                        'https://api.example.com:8080/api', 'servers changed';
 
-  is $schema->base_url(Mojo::URL->new('//api2.example.com')), $schema, 'set without scheme';
-  is $schema->get('/servers/0/url'), 'https://api2.example.com', 'servers changed';
+  is $schema->base_url(Mojo::URL->new('//api2.example.com')), $schema,                    'set without scheme';
+  is $schema->get('/servers/0/url'),                          'https://api2.example.com', 'servers changed';
 
-  is $schema->base_url(Mojo::URL->new('/v1')), $schema, 'set path';
-  is $schema->base_url->to_string, 'https://api2.example.com/v1', 'get';
+  is $schema->base_url(Mojo::URL->new('/v1')), $schema,                       'set path';
+  is $schema->base_url->to_string,             'https://api2.example.com/v1', 'get';
 };
 
 subtest 'parameters_for_request' => sub {
@@ -143,8 +143,8 @@ subtest 'validate_response - content_type' => sub {
 };
 
 subtest add_default_response => sub {
-  $schema = JSON::Validator->new->schema($cwd->child(qw(spec v3-petstore.json)))->schema;
-  ok !$schema->get('/components/schemas/DefaultResponse'), 'default response missing';
+  my $schema = JSON::Validator->new->schema($cwd->child(qw(spec v3-petstore.json)))->schema;
+  ok !$schema->get('/components/schemas/DefaultResponse'),          'default response missing';
   ok !$schema->get([paths => '/petss', 'get', 'responses', '400']), 'default response missing for 400';
   $schema->add_default_response;
   ok $schema->get('/components/schemas/DefaultResponse'), 'default response added';
@@ -157,10 +157,20 @@ subtest add_default_response => sub {
   is_deeply $schema->errors, [], 'errors';
 };
 
+subtest 'add_default_response do not overwrite $ref' => sub {
+  my $schema = JSON::Validator->new->schema($cwd->child(qw(spec v3-default-response-extra.yaml)))->schema;
+  $schema->add_default_response;
+  is $schema->get([qw(paths /item/{id} get summary)]), 'get a single item', 'summary';
+  is $schema->get([qw(paths /item/{id} get responses 200 content application/json schema type)]), 'object',
+    'responses 200';
+  is $schema->get([qw(paths /item/{id} get responses 404 description)]), 'Custom 404', 'responses 404';
+  is $schema->get([qw(paths /item/{id} get responses 500 description)]), 'Custom 500', 'responses 500';
+};
+
 subtest 'v3.1.x' => sub {
   my $schema = JSON::Validator->new->schema({openapi => '3.1.0', paths => {}})->schema;
-  is $schema->specification, 'https://spec.openapis.org/oas/3.1/schema/2021-05-20', 'specification';
-  is join(', ', @{$schema->errors}), '/info: Missing property.', 'errors';
+  is $schema->specification,         'https://spec.openapis.org/oas/3.1/schema/2021-05-20', 'specification';
+  is join(', ', @{$schema->errors}), '/info: Missing property.',                            'errors';
 };
 
 subtest 'coerce defaults' => sub {
