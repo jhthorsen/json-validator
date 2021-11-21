@@ -341,7 +341,6 @@ sub _validate_request_or_response {
       next;
     }
 
-
     if ($val->{exists}) {
       $self->_coerce_arrays($val, $param);
       local $self->{"validate_$direction"} = 1;
