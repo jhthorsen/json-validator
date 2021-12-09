@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+5.04 Not Released
+ - Fix coercing strings and numbers in schema specification #266
+
 5.03 2021-11-20T13:32:42+0900
  - Fix OpenAPIv3::add_default_response() will not overwrite nested $ref
  - Fix finding "readOnly" and "writeOnly" inside nested $ref

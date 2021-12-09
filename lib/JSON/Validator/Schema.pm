@@ -12,9 +12,9 @@ use Mojo::Util qw(deprecated);
 use Scalar::Util qw(blessed);
 
 has errors => sub {
-  my $self      = shift;
-  my $uri       = $self->specification || 'http://json-schema.org/draft-04/schema#';
-  my $validator = $self->new(coerce => {}, store => $self->store, _refs => {})->resolve($uri);
+  my $self          = shift;
+  my $specification = $self->specification || 'http://json-schema.org/draft-04/schema#';
+  my $validator = $self->new(store => $self->store, _refs => {})->coerce('numbers,strings')->resolve($specification);
   return [$self->_validate_id($self->id), $validator->validate($self->data)];
 };
 
