@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.04 Not Released
+5.04 2021-12-10T07:54:09+0900
  - Fix coercing strings and numbers in schema specification #266
 
 5.03 2021-11-20T13:32:42+0900
