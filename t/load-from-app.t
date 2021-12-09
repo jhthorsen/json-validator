@@ -16,11 +16,11 @@ $jv->ua->server->app->routes->get(
 
 # Some CPAN testers says "Service Unavailable"
 eval { $jv->schema('/spec') };
-plan skip_all => $@ if $@ =~ /\sGET\s/i;
+plan skip_all => $@ if $@ =~ /\bGET\b/i;
 
-is $jv->store->ua, $jv->ua, 'shared ua';
-is $@, '', 'loaded schema from app';
-is $jv->get('/properties/swagger/enum/0'), '2.0', 'loaded schema structure';
+is $jv->store->ua,                         $jv->ua, 'shared ua';
+is $@,                                     '',      'loaded schema from app';
+is $jv->get('/properties/swagger/enum/0'), '2.0',   'loaded schema structure';
 
 is_deeply [sort keys %{$jv->store->schemas}],
   ['/spec', 'http://json-schema.org/draft-04/schema', 'http://swagger.io/v2/schema.json'], 'schemas in store';
