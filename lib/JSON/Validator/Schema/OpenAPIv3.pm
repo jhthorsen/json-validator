@@ -289,8 +289,10 @@ sub _validate_body {
     return E "/$param->{name}", [qw(object required)];
   }
   if ($val->{exists}) {
-    local $self->{"validate_$direction"} = 1;
     $val->{content_type} //= $param->{accepts}[0];
+    local $self->{coerce}{arrays} = 1
+      if $val->{content_type} =~ m!^(application/x-www-form-urlencoded|multipart/form-data)$!;
+    local $self->{"validate_$direction"} = 1;
     my @errors = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
       $self->validate($val->{value}, $param->{content}{$val->{content_type}}{schema});
     $val->{valid} = @errors ? 0 : 1;
@@ -304,6 +306,7 @@ sub _validate_id { }
 
 sub _validate_type_array {
   my $self = shift;
+  $_[0] = [$_[0]] if ref $_[0] ne 'ARRAY' and $self->{coerce}{arrays};
   return $_[1]->{schema}{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_array(@_);
 }
 

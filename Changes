@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+5.05 Not Released
+ - Add EXPERIMETNAL support for coercing to array when posting form data
+
 5.04 2021-12-10T07:54:09+0900
  - Fix coercing strings and numbers in schema specification #266
 
