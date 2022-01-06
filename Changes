@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.05 Not Released
+5.05 2022-01-06T09:33:30+0900
  - Add EXPERIMETNAL support for coercing to array when posting form data
 
 5.04 2021-12-10T07:54:09+0900
