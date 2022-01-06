@@ -1,7 +1,7 @@
 Revision history for perl distribution JSON-Validator
 
 5.05 2022-01-06T09:33:30+0900
- - Add EXPERIMETNAL support for coercing to array when posting form data
+ - Add EXPERIMENTAL support for coercing to array when posting form data
 
 5.04 2021-12-10T07:54:09+0900
  - Fix coercing strings and numbers in schema specification #266
@@ -354,7 +354,7 @@ Revision history for perl distribution JSON-Validator
  - Removed JSON::Validator::OpenAPI::Dancer2
 
 2.18  2018-11-15
- - Add EXPERIMETNAL support for data:// without a package
+ - Add EXPERIMENTAL support for data:// without a package
 
 2.17  2018-11-14
  - Add basic support for OpenAPI v3
