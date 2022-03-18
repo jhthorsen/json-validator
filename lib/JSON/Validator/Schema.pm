@@ -195,29 +195,21 @@ sub _build_formats {
 sub _bundle_from {
   my ($self, $root_state) = @_;
 
-  my @topics = ([$root_state, $root_state->{schema}, $self->data]);
+  my @topics = ([$root_state, $root_state->{schema}, $self->data, []]);
   while (my $topic = shift @topics) {
-    my ($state, $source, $target) = @$topic;
+    my ($state, $source, $target, $path) = @$topic;
     next if $state->{seen_schema}{$target}++;    # Avoid recursion
 
     if (ref $source eq 'HASH') {
       for my $k (keys %$source) {
         if ($k eq '$ref') {
-          my $uri = $state->{base_url} eq $root_state->{base_url} ? uri $source->{'$ref'} : uri $source->{'$ref'},
-            $state->{base_url};
-          my @path = $self->_bundle_ref_path($state, $uri);
-          $target->{'$ref'} = join '/', '#', @path;
-
-          my $def_target = $self->data;
-          $def_target = $def_target->{$_} //= {} for @path;
-          my $source_state = $self->store->resolve($source->{'$ref'}, $state);
-          push @topics, [$source_state, $source_state->{schema}, $def_target];
-          $self->_refs->{$target} = $source_state;
+          local @$state{qw(root_state schema_path)} = ($root_state, $path);
+          push @topics, $self->_bundle_ref($state, $source, $target);
         }
         else {
           my $type = ref $source->{$k};
           $target->{$k} //= $type eq 'HASH' ? {} : $type eq 'ARRAY' ? [] : $source->{$k};
-          push @topics, [$state, $source->{$k}, $target->{$k}] if $type eq 'HASH' or $type eq 'ARRAY';
+          push @topics, [$state, $source->{$k}, $target->{$k}, [@$path, $k]] if $type eq 'HASH' or $type eq 'ARRAY';
         }
       }
     }
@@ -225,7 +217,7 @@ sub _bundle_from {
       for my $i (0 .. @$source - 1) {
         my $type = ref $source->[$i];
         $target->[$i] //= $type eq 'HASH' ? {} : $type eq 'ARRAY' ? [] : $source->[$i];
-        push @topics, [$state, $source->[$i], $target->[$i]] if $type eq 'HASH' or $type eq 'ARRAY';
+        push @topics, [$state, $source->[$i], $target->[$i], [@$path, $i]] if $type eq 'HASH' or $type eq 'ARRAY';
       }
     }
     else {
@@ -234,23 +226,35 @@ sub _bundle_from {
   }
 }
 
-sub _bundle_ref_path {
-  my ($self, $state, $uri) = @_;
-  my $prefix = join '-', map { s!^/+!!; $_ } grep { length $_ } pop @{$uri->path}, $uri->fragment;
-  my $suffix = data_checksum $state->{schema};
+sub _bundle_ref {
+  my ($self, $state, $source, $target) = @_;
 
-  my $i = -1;
-  while (++$i <= 30) {
-    my @path = $self->_bundle_ref_path_expand($i ? join '-', $prefix, substr $suffix, 0, $i * 4 : $prefix);
+  my $uri
+    = $state->{base_url} eq $state->{root_state}{base_url}
+    ? uri($source->{'$ref'})
+    : uri($source->{'$ref'}, $state->{base_url});
+
+  my $source_state = $self->store->resolve($source->{'$ref'}, $state);
+  my $prefix       = join '-', map { s!^/+!!; $_ } grep { length $_ } pop @{$uri->path}, $uri->fragment;
+  my ($i, $suffix, @path) = (-1);
+
+  while (++$i <= 3) {
+    $suffix ||= data_checksum $source_state->{schema} if $i;
+    @path = $self->_bundle_ref_path_expand($source_state, $i ? join '-', $prefix, substr $suffix, 0, $i * 4 : $prefix);
     $path[-1] =~ s!^\W+!!;
     $path[-1] =~ s![^\w-]!_!g;    # Make a pretty path
-    return @path unless $self->{seen_bundle_ref}{@path};
+    last unless $self->{seen_bundle_ref}{@path};
   }
 
-  Carp::confess("Unable to create bundle ref from $uri.");
+  my $def_target = $self->data;
+  $target->{'$ref'}       = join '/', '#', @path;
+  $def_target             = $def_target->{$_} //= {} for @path;
+  $self->_refs->{$target} = $source_state;
+
+  return [$source_state, $source_state->{schema}, $def_target, $state->{schema_path}];
 }
 
-sub _bundle_ref_path_expand  { local $_ = $_[1]; s!^definitions/!!; return 'definitions', $_; }
+sub _bundle_ref_path_expand  { local $_ = $_[2]; s!^definitions/!!; return 'definitions', $_; }
 sub _extract_ref_from_schema { $_[1]->{'$ref'} }
 
 sub _get {

@@ -1,0 +1,25 @@
+---
+user:
+  get:
+    parameters:
+      - $ref: "#/parameters/id_ref"
+    responses:
+      200:
+        description: A user
+        schema:
+          $ref: "#/x-def/User"
+
+parameters:
+  id_ref:
+    $ref: "#/parameters/id"
+  id:
+    in: path
+    name: id
+    required: true
+    type: string
+
+x-def:
+  User:
+    properties:
+      name:
+        type: string

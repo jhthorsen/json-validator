@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+5.06 Not Released
+ - Fix placing OpenAPIv2 bundled path $ref's inside "paths"
+
 5.05 2022-01-06T09:33:30+0900
  - Add EXPERIMENTAL support for coercing to array when posting form data
 
