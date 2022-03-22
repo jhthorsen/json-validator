@@ -37,10 +37,10 @@ paths:
         200:
           description: A user
           schema:
-            $ref: "#/definitions/paths_yaml-x-def_User"
+            $ref: "#/x-def/User"
 
-definitions:
-  paths_yaml-x-def_User:
+x-def:
+  User:
     properties:
       name:
         type: string

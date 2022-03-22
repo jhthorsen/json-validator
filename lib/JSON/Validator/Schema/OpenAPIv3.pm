@@ -141,7 +141,7 @@ sub _build_formats {
 }
 
 sub _bundle_ref_path_expand {
-  my ($self, $ref) = @_;
+  my ($self, $schema, $ref) = @_;
   return $ref =~ m!\bcomponents/([^/]+)/(.+)! ? ('components', $1, $2) : ('components', 'schemas', $ref);
 }
 

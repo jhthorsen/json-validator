@@ -209,13 +209,10 @@ sub _bundle_ref {
 
 sub _bundle_ref_path_expand {
   my ($self, $state, $ref) = @_;
-  return parameters  => $ref if $state->{schema}{in};
-  return definitions => $ref if $state->{schema}{properties};
+  return (parameters => $ref) if $state->{schema}{in};
+  return ($1 => $2) if $ref =~ m!\b(definitions|parameters|responses)\b\.*(?:json|yaml)?(.+)$!;
   return ($1, $2 ? ($2) : ()) if $ref =~ m!\b(x-[^/]+)/?\b(.*)!;
-  return (definitions => $ref) unless $ref =~ m!\b(definitions|parameters|responses)\b(.+)$!;
-  my ($section, $path) = ($1, $2);
-  $path =~ s!^\.?\b(json|yaml)\W*!!;
-  return ($section => $path);
+  return (definitions => $ref);
 }
 
 sub _coerce_arrays {
