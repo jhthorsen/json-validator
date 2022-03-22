@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.06 Not Released
+5.06 2022-03-23T07:29:23+0900
  - Fix placing OpenAPIv2 bundled path $ref's inside "paths"
 
 5.05 2022-01-06T09:33:30+0900
