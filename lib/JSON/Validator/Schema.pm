@@ -867,7 +867,7 @@ JSON::Validator::Schema - Base class for JSON::Validator schemas
   my $store = JSON::Validator::Store->new;
   my $schema = JSON::Validator::Schema::Draft7->new(store => $store);
 
-  # Will not fetch the fike from web, if the $store has already retrived
+  # Will not fetch the fike from web, if the $store has already retrieved
   # the schema
   $schema->resolve('https://api.example.com/cool/beans.json');
 
@@ -1095,7 +1095,7 @@ will be followed into any given sub schema.
   my $bool = $schema->is_invalid;
 
 Returns true if the schema in L</data> is invalid. Internally this method calls
-L</errors> which will validate L</data> agains L</specification>.
+L</errors> which will validate L</data> against L</specification>.
 
 =head2 load_and_validate_schema
 
