@@ -240,6 +240,8 @@ sub _coerce_parameter_format {
   return unless $val->{exists};
   return unless my $format = $param->{collectionFormat};
   return $val->{value} = ref $val->{value} eq 'ARRAY' ? $val->{value} : [$val->{value}] if $format eq 'multi';
+
+  $val->{value} = $val->{value}[0] // '' if ref $val->{value} eq 'ARRAY';
   return $val->{value} = [split /\|/,  $val->{value}] if $format eq 'pipes';
   return $val->{value} = [split /[ ]/, $val->{value}] if $format eq 'ssv';
   return $val->{value} = [split /\t/,  $val->{value}] if $format eq 'tsv';
