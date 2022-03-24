@@ -166,7 +166,7 @@ See L</unevaluatedProperties>
 =item * unevaluatedProperties
 
 L</unevaluatedItems> and L</unevaluatedProperties> needs to track what has been
-valdated or not using annotations. This is not yet supported.
+validated or not using annotations. This is not yet supported.
 
 =item * $recursiveAnchor
 
