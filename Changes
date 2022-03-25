@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.08 Not Released
+5.08 2022-03-25T10:00:18+0900
  - Fix handling OpenAPIv2 headers with collectionFormat
 
 5.07 2022-03-23T07:58:02+0900
