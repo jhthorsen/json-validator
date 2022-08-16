@@ -15,6 +15,7 @@ push @todo_tests, ['ref.json',       'refs with relative uris and defs'];
 push @todo_tests, ['ref.json',       'relative refs with absolute uris and defs'];
 push @todo_tests, ['anchor.json',    '$anchor inside an enum is not a real identifier'];
 push @todo_tests, ['anchor.json',    'Location-independent identifier with base URI change in subschema'];
+push @todo_tests, ['refRemote.json', 'Location-independent identifier in remote ref'];
 push @todo_tests, ['refRemote.json', 'remote ref with ref to defs'];
 push @todo_tests, ['recursiveRef.json'];
 push @todo_tests, ['unevaluatedItems.json'];
