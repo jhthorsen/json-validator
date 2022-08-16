@@ -609,8 +609,9 @@ key/value pairs representing the request parameters. Example:
 
   %req = (
     body => sub {
-      my ($param_name, $param_for_request) = shift;
-      return {exists => 1, value => \%all_params} unless defined $param_name;
+      my ($name, $param) = shift;
+      # $param = {name => $name, in => ..., schema => ..., ...}
+      return {exists => 1, value => \%all_params} unless defined $name;
       return {exists => 1, value => "..."};
     },
     formData => {email => "..."},
@@ -648,8 +649,9 @@ key/value pairs representing the response parameters. Example:
 
   %res = (
     body => sub {
-      my ($param_name, $param_for_response) = shift;
-      return {exists => 1, value => \%all_params} unless defined $param_name;
+      my ($name, $param) = shift;
+      # $param = {name => $name, in => ..., ...}
+      return {exists => 1, value => \%all_params} unless defined $name;
       return {accept => "application/json", exists => 1, value => "..."};
     },
     header => {"Location" => "..."},
