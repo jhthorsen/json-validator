@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+5.09 Not Released
+ - Add support for default collectionFormat when "type" is "array"
+
 5.08 2022-03-25T10:00:18+0900
  - Fix handling OpenAPIv2 headers with collectionFormat
 

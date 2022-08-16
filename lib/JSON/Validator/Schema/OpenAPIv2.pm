@@ -238,7 +238,7 @@ sub _coerce_default_value {
 sub _coerce_parameter_format {
   my ($self, $val, $param) = @_;
   return unless $val->{exists};
-  return unless my $format = $param->{collectionFormat};
+  return unless my $format = $param->{collectionFormat} || ($param->{type} eq 'array' ? 'csv' : '');
   return $val->{value} = ref $val->{value} eq 'ARRAY' ? $val->{value} : [$val->{value}] if $format eq 'multi';
 
   $val->{value} = $val->{value}[0] // '' if ref $val->{value} eq 'ARRAY';
