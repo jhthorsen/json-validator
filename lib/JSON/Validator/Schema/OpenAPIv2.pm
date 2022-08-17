@@ -23,7 +23,7 @@ sub add_default_response {
 
   my $definitions = $self->data->{definitions} ||= {};
   $definitions->{$params->{name}} ||= $params->{schema};
-  my $ref = {'$ref' => "#/definitions/$params->{name}"};
+  my $ref = {'$ref' => sprintf '%s#/definitions/%s', $self->id, $params->{name}};
   $self->_register_ref($ref, schema => $definitions->{$params->{name}});
 
   for my $route ($self->routes->each) {

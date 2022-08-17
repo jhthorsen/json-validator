@@ -37,19 +37,19 @@ subtest 'basic' => sub {
 };
 
 subtest base_url => sub {
-  is $schema->base_url, 'http://petstore.swagger.io/v1', 'get';
-  is $schema->base_url('https://api.example.com:8080/api'), $schema, 'set url';
+  is $schema->base_url,                                     'http://petstore.swagger.io/v1', 'get';
+  is $schema->base_url('https://api.example.com:8080/api'), $schema,                         'set url';
   is_deeply $schema->get('/schemes'), ['https'], 'schemes changed';
-  is $schema->get('/host'),           'api.example.com:8080', 'host changed';
-  is $schema->get('/basePath'),       '/api',                 'basePath changed';
+  is $schema->get('/host'),     'api.example.com:8080', 'host changed';
+  is $schema->get('/basePath'), '/api',                 'basePath changed';
 
   is $schema->base_url(Mojo::URL->new('//api2.example.com')), $schema, 'set without scheme';
   is_deeply $schema->get('/schemes'), ['https'], 'schemes unchanged';
-  is $schema->get('/host'),           'api2.example.com', 'host changed';
-  is $schema->get('/basePath'),       '/',                'basePath changed';
+  is $schema->get('/host'),     'api2.example.com', 'host changed';
+  is $schema->get('/basePath'), '/',                'basePath changed';
 
-  is $schema->base_url(Mojo::URL->new('/v1')), $schema, 'set path';
-  is $schema->base_url->to_string, 'https://api2.example.com/v1', 'get';
+  is $schema->base_url(Mojo::URL->new('/v1')), $schema,                       'set path';
+  is $schema->base_url->to_string,             'https://api2.example.com/v1', 'get';
 
   my $schema_with_port = JSON::Validator->new->schema($cwd->child(qw(spec bundlecheck.json)))->schema;
   is $schema_with_port->base_url->host, 'localhost', 'host';
@@ -156,10 +156,14 @@ subtest 'validate_response - content_type' => sub {
 
 subtest add_default_response => sub {
   $schema = JSON::Validator->new->schema($cwd->child(qw(spec v2-petstore.json)))->schema;
-  ok !$schema->get('/definitions/DefaultResponse'), 'default response missing';
+  ok !$schema->get('/definitions/DefaultResponse'),                 'default response missing';
   ok !$schema->get([paths => '/petss', 'get', 'responses', '400']), 'default response missing for 400';
   $schema->add_default_response;
   ok $schema->get('/definitions/DefaultResponse'), 'default response added';
+
+  my $bad_request = $schema->data->{paths}{'/pets'}{get}{responses}{400};
+  is $bad_request->{description}, 'Default response.', 'bad_request description';
+  like $bad_request->{schema}{'$ref'}, qr{^file://.*v2-petstore.json\#/definitions/DefaultResponse$}, 'bad_request ref';
 
   for my $status (400, 401, 404, 500, 501) {
     ok $schema->get([paths => '/pets', 'get', 'responses', $status]), "default response for $status";
