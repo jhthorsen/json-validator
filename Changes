@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.10 Not Released
+5.10 2022-08-18T07:39:15+0900
  - Add root schema id to "DefaultResponse" to allow external $ref
 
 5.09 2022-08-17T09:13:55+0900
