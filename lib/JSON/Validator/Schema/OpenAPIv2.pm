@@ -119,13 +119,17 @@ sub parameters_for_response {
 sub routes {
   my $self = shift;
 
-  my @sorted_paths
-    = map { $_->[0] }
-    sort  { $a->[1] <=> $b->[1] || length $a->[0] <=> length $b->[0] }
-    map   { [$_, /\{/ ? 1 : 0] } grep { $_ !~ $X_RE } keys %{$self->get('/paths') || {}};
+  my @paths_with_weight;
+  for my $path (keys %{$self->get('/paths') || {}}) {
+    next if $path =~ $X_RE;
+    my $weight = '1';
+    $weight .= /^\{/ ? 0 : 1 for split '/', $path;
+    push @paths_with_weight, [int $weight, $path];
+  }
 
   my @operations;
-  for my $path (@sorted_paths) {
+  for (sort { $b->[0] <=> $a->[0] || $a->[1] cmp $b->[1] } @paths_with_weight) {
+    my $path = $_->[1];
     next unless my $path_item = $self->get([paths => $path]);
     $path_item = $self->get($path_item->{'$ref'} =~ s!^#!!r) if $path_item->{'$ref'};
 

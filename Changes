@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+5.11 Not Released
+ - Fix sorting routes with placeholders on different positions
+
 5.10 2022-08-18T07:39:15+0900
  - Add root schema id to "DefaultResponse" to allow external $ref
 

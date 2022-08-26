@@ -21,9 +21,9 @@ subtest 'basic' => sub {
   is_deeply(
     $schema->routes->to_array,
     [
+      {method => 'get',  operation_id => 'showPetById', path => '/pets/{petId}'},
       {method => 'get',  operation_id => 'listPets',    path => '/pets'},
       {method => 'post', operation_id => 'createPets',  path => '/pets'},
-      {method => 'get',  operation_id => 'showPetById', path => '/pets/{petId}'},
     ],
     'routes'
   );
