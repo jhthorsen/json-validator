@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
     branches:
-      - '**'
+      - "**"
 jobs:
   perl:
     name: "Perl ${{matrix.perl}} on ${{matrix.os}}"
@@ -22,8 +22,8 @@ jobs:
         run: cpanm -n App::cpanminus ExtUtils::MakeMaker
       - name: Install dependencies
         run: |
-          cpanm -n Test::Pod Test::Pod::Coverage YAML::LibYAML
-          cpanm -n Net::IDN::Encode Data::Validate::Domain Data::Validate::IP
+          cpanm -n Test::CPAN::Changes Test::Pod::Coverage Test::Pod Test::Spelling
+          cpanm -n Net::IDN::Encode Data::Validate::Domain Data::Validate::IP YAML::LibYAML
           cpanm -n Test::JSON::Schema::Acceptance
           cpanm -n --installdeps .
       - name: Run tests

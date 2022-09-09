@@ -452,18 +452,80 @@ Copyright (C) 2014-2021, Jan Henning Thorsen
 This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.
 
-=head1 AUTHOR
+=head1 AUTHORS
+
+=head2 Project Founder
 
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
-Daniel Böhmer - C<post@daniel-boehmer.de>
+=head2 Contributors
 
-Ed J - C<mohawk2@users.noreply.github.com>
+=over 2
 
-Karen Etheridge - C<ether@cpan.org>
+=item * Aleksandr Orlenko
 
-Kevin Goess - C<cpan@goess.org>
+=item * Alexander Hartmaier
 
-Martin Renvoize - C<martin.renvoize@gmail.com>
+=item * Alexander Karelas
+
+=item * Bernhard Graf
+
+=item * Dagfinn Ilmari Mannsåker
+
+=item * Daniel Böhmer
+
+=item * David Cantrell
+
+=item * Ed J
+
+=item * Ere Maijala
+
+=item * Fabrizio Gennari
+
+=item * Ilya Rassadin
+
+=item * Jason Cooper
+
+=item * Karen Etheridge
+
+=item * Kenichi Ishigaki
+
+=item * Kevin M. Goess
+
+=item * Kirill Matusov
+
+=item * Krasimir Berov
+
+=item * Lari Taskula
+
+=item * Lee Johnson
+
+=item * Martin Renvoize
+
+=item * Mattias Päivärinta
+
+=item * Michael Jemmeson
+
+=item * Michael Schout
+
+=item * Mohammad S Anwar
+
+=item * Nick Morrott
+
+=item * Pierre-Aymeric Masse
+
+=item * Roy Storey
+
+=item * Russell Jenkins
+
+=item * Sebastian Riedel
+
+=item * Stephan Hradek
+
+=item * Tim Stallard
+
+=item * Zoffix Znet
+
+=back
 
 =cut

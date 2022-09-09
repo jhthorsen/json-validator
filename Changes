@@ -1,5 +1,10 @@
 Revision history for perl distribution JSON-Validator
 
+5.12 Not Released
+ - Specified Perl version
+ - Updated basic repository files
+ - Updated contributors list
+
 5.11 2022-08-30T15:41:16+0900
  - Fix sorting routes with placeholders on different positions
 
