@@ -1,0 +1,6 @@
+---
+properties:
+  foo:
+    enum:
+    - foo–bar
+type: object
