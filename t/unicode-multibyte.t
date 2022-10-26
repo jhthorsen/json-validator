@@ -4,11 +4,6 @@ use Mojo::File qw(path);
 use Mojo::Util qw(encode);
 use Test::More;
 
-my $builder = Test::More->builder;
-binmode($builder->output, ':encoding(UTF-8)');
-binmode($builder->failure_output, ':encoding(UTF-8)');
-binmode($builder->todo_output, ':encoding(UTF-8)');
-
 my $json_file = path(__FILE__)->dirname->child('spec')->child('with-unicode-multibyte.json');
 my $yaml_file = path(__FILE__)->dirname->child('spec')->child('with-unicode-multibyte.yml');
 
