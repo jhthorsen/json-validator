@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "bar": {
+      "enum": ["replacement�char"]
+    },
+    "foo": {
+      "enum": ["foo♫bar"]
+    }
+  }
+}

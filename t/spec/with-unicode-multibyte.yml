@@ -1,0 +1,10 @@
+---
+properties:
+  foo:
+    enum:
+    - foo♫bar
+  bar:
+    enum:
+    - replacement�char
+
+type: object
