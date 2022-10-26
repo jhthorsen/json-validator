@@ -31,6 +31,7 @@ my %WriteMakefileArgs = (
       'Alexander Hartmaier <alexander.hartmaier@t-systems.at>',
       'Alexander Karelas <karjala@cpan.org>',
       'Bernhard Graf <augensalat@gmail.com>',
+      'Brad Barden <brad+github@13os.net>',
       'Dagfinn Ilmari Mannsåker <ilmari@ilmari.org>',
       'Daniel Böhmer <boehmer@strato.de>',
       'David Cantrell <david@cantrell.org.uk>',

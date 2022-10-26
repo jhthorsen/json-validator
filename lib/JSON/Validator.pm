@@ -4,8 +4,8 @@ use Mojo::Base -base;
 use Carp qw(confess);
 use JSON::Validator::Store;
 use JSON::Validator::Util qw(E data_checksum is_type);
-use Mojo::Util qw(sha1_sum);
-use Scalar::Util qw(blessed);
+use Mojo::Util            qw(sha1_sum);
+use Scalar::Util          qw(blessed);
 
 our $VERSION = '5.11';
 
@@ -469,6 +469,8 @@ Jan Henning Thorsen - C<jhthorsen@cpan.org>
 =item * Alexander Karelas
 
 =item * Bernhard Graf
+
+=item * Brad Barden
 
 =item * Dagfinn Ilmari Mannsåker
 
