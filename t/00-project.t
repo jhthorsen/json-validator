@@ -2,6 +2,7 @@ use strict;
 use Test::More;
 use File::Find;
 
+plan skip_all => 'No such directory: .git' unless $ENV{TEST_ALL} or -d '.git';
 plan skip_all => 'HARNESS_PERL_SWITCHES =~ /Devel::Cover/' if +($ENV{HARNESS_PERL_SWITCHES} || '') =~ /Devel::Cover/;
 
 for (qw(
