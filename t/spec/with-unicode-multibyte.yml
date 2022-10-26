@@ -2,5 +2,5 @@
 properties:
   foo:
     enum:
-    - foo–bar
+    - foo♫bar
 type: object

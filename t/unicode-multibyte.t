@@ -9,7 +9,7 @@ binmode($builder->output, ':encoding(UTF-8)');
 binmode($builder->failure_output, ':encoding(UTF-8)');
 binmode($builder->todo_output, ':encoding(UTF-8)');
 
-my $perl_utf8_str = "foo\x{2013}bar";
+my $perl_utf8_str = "foo\x{266b}bar";
 my $encoded_bytes = encode('UTF-8', $perl_utf8_str);
 my $json_file = path(__FILE__)->dirname->child('spec')->child('with-unicode-multibyte.json');
 my $yaml_file = path(__FILE__)->dirname->child('spec')->child('with-unicode-multibyte.yml');
