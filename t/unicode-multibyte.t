@@ -1,7 +1,7 @@
 use lib '.';
 use t::Helper;
-use Mojo::File 'path';
-use Mojo::Util 'encode';
+use Mojo::File qw(path);
+use Mojo::Util qw(encode);
 use Test::More;
 
 my $builder = Test::More->builder;
