@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.13 Not Released
+5.13 2022-12-09T09:55:24
  - Fix not coercing body parameter for OpenAPIv2
 
 5.12 2022-10-26T20:14:57
