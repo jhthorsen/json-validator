@@ -358,7 +358,7 @@ sub _validate_request_or_response {
   my @errors;
   for my $param (@$parameters) {
     my $val = $self->_get_parameter_value($param, $get);
-    $self->_coerce_parameter_format($val, $param) if $direction eq 'request';
+    $self->_coerce_parameter_format($val, $param) if $direction eq 'request' and $param->{in} ne 'body';
     $self->_coerce_default_value($val, $param) unless $val->{exists};
 
     if ($param->{in} eq 'body') {
