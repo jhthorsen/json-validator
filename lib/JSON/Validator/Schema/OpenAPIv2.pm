@@ -81,11 +81,12 @@ sub parameters_for_request {
   return $self->{cache}{$cache_key} if $self->{cache}{$cache_key};
   return undef unless $self->get([paths => $path, $method]);
 
-  my @accepts    = map {@$_} $self->_find_all_nodes([paths => $path, $method], 'consumes');
-  my @parameters = map {@$_} $self->_find_all_nodes([paths => $path, $method], 'parameters');
-  for my $param (@parameters) {
-    $param->{type} ||= schema_type($param->{schema} || $param);
-    $param->{accepts} = \@accepts if $param->{in} eq 'body';
+  my @accepts = map {@$_} $self->_find_all_nodes([paths => $path, $method], 'consumes');
+  my @parameters;
+  for my $param (map {@$_} $self->_find_all_nodes([paths => $path, $method], 'parameters')) {
+    push @parameters, {%$param};
+    $parameters[-1]{type} ||= schema_type($param->{schema} || $param);
+    $parameters[-1]{accepts} = \@accepts if $param->{in} eq 'body';
   }
 
   return $self->{cache}{$cache_key} = \@parameters;

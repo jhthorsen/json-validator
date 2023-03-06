@@ -1,5 +1,6 @@
 use Mojo::Base -strict;
 use JSON::Validator::Schema::OpenAPIv2;
+use Mojo::JSON qw(false true);
 use Test::Deep;
 use Test::More;
 
@@ -63,12 +64,40 @@ subtest 'validate schema' => sub {
 
 subtest 'parameters_for_request' => sub {
   is $schema->parameters_for_request([GET => '/pets/nope']), undef, 'no such path';
-  cmp_deeply $schema->parameters_for_request([GET => '/pets']), [superhashof({in => 'query', name => 'limit'})],
-    'parameters_for_request inside path';
-  cmp_deeply $schema->parameters_for_request([post => '/pets']),
-    [superhashof({in => 'body', name => 'body', accepts => ['application/json']})], 'parameters_for_request for body';
-  cmp_deeply $schema->parameters_for_request([get => '/pets/{petId}']), [superhashof({in => 'path', name => 'petId'})],
-    'parameters_for_request inside method';
+  cmp_deeply(
+    $schema->parameters_for_request([GET => '/pets']),
+    [{
+      default     => 20,
+      description => 'How many items to return at one time (max 100)',
+      format      => 'int32',
+      in          => 'query',
+      name        => 'limit',
+      required    => false,
+      type        => 'integer',
+    }],
+    'parameters_for_request inside path'
+  );
+  cmp_deeply(
+    $schema->parameters_for_request([post => '/pets']),
+    [{in => 'body', name => 'body', accepts => ['application/json'], required => true, schema => ignore, type => ''}],
+    'parameters_for_request for body'
+  );
+  cmp_deeply(
+    $schema->parameters_for_request([get => '/pets/{petId}']),
+    [{
+      description => 'The id of the pet to retrieve',
+      in          => 'path',
+      name        => 'petId',
+      required    => true,
+      type        => 'string',
+    }],
+    'parameters_for_request inside method'
+  );
+
+  is $schema->get([qw(paths /pets post parameters 0 accepts)]), undef,
+    'accepts was not added to schema by parameters_for_request()';
+  is $schema->get([qw(paths /pets post parameters 0 type)]), undef,
+    'type was not added to schema by parameters_for_request()';
 };
 
 subtest 'parameters_for_response' => sub {
