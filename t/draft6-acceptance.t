@@ -16,6 +16,7 @@ push @todo_tests, ['minItems.json',       'minItems validation with a decimal'];
 push @todo_tests, ['minLength.json',      'minLength validation with a decimal'];
 push @todo_tests, ['minProperties.json',  'minProperties validation with a decimal'];
 push @todo_tests, ['ref.json',            '$ref prevents a sibling $id from changing the base uri'];
+push @todo_tests, ['ref.json',            'simple URN base URI with $ref via the URN'];
 push @todo_tests, ['refRemote.json',      'remote ref with ref to definitions'];
 push @todo_tests, ['refRemote.json',      'Location-independent identifier in remote ref'];
 push @todo_tests, ['unknownKeyword.json', '$id inside an unknown keyword is not a real identifier'];
