@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.14 Not Released
+5.14 2023-03-06T13:45:33
  - Avoid mutating OpenAPIv2 schema "parameters" when validating
 
 5.13 2022-12-09T09:55:24
