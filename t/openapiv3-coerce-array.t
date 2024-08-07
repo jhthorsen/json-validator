@@ -31,7 +31,7 @@ subtest 'parameter array schema is $ref' => sub {
 
 done_testing;
 
-sub body {$body}
+sub body  {$body}
 sub query {$query}
 
 __DATA__
