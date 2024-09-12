@@ -13,6 +13,7 @@ use Mojo::Util;
 use Scalar::Util 'blessed';
 
 use constant SEREAL_SUPPORT => !$ENV{JSON_VALIDATOR_NO_SEREAL} && eval 'use Sereal::Encoder 4.00;1';
+use constant CORE_BOOL      => defined &builtin::is_bool;
 
 our @EXPORT_OK = (
   qw(E data_checksum data_section data_type is_bool is_num is_type),
@@ -70,7 +71,13 @@ sub data_type {
   return $blessed || 'string';
 }
 
-sub is_bool { blessed $_[0] && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]) }
+sub is_bool {
+  if (CORE_BOOL) {
+    BEGIN { warnings->unimport('experimental::builtin') if CORE_BOOL }
+    return !!1 if builtin::is_bool $_[0];
+  }
+  blessed $_[0] && ($_[0]->isa('JSON::PP::Boolean') || "$_[0]" eq "1" || !$_[0]);
+}
 sub is_num  { B::svref_2object(\$_[0])->FLAGS & (B::SVp_IOK | B::SVp_NOK) && 0 + $_[0] eq $_[0] && $_[0] * 0 == 0 }
 sub is_type { blessed $_[0] ? $_[0]->isa($_[1]) : ref $_[0] eq $_[1] }
 
