@@ -3,7 +3,7 @@ use JSON::Validator;
 use Test::More;
 
 my $schema = JSON::Validator->new->schema('data://main/openapi.yaml')->schema;
-my ($body, @errors);
+my ($body, $query, @errors);
 
 subtest 'number to array' => sub {
   $body   = {exists => 1, value => {id => 42}};
@@ -23,9 +23,16 @@ subtest 'already an array' => sub {
   is "@errors", "", "valid";
 };
 
+subtest 'parameter array schema is $ref' => sub {
+  $query  = {exists => 1, value => [42, 43]};
+  @errors = $schema->validate_request([get => '/test'], {query => \&query});
+  is "@errors", "", "valid";
+};
+
 done_testing;
 
-sub body {$body}
+sub body  {$body}
+sub query {$query}
 
 __DATA__
 @@ openapi.yaml
@@ -53,3 +60,19 @@ paths:
       responses:
         200:
           description: OK
+    get:
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/IntArray'
+      responses:
+        200:
+          description: OK
+components:
+  schemas:
+    IntArray:
+      type: array
+      items:
+        type: integer
