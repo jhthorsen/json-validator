@@ -2,7 +2,7 @@ package JSON::Validator::Schema::OpenAPIv3;
 use Mojo::Base 'JSON::Validator::Schema::Draft201909';
 
 use JSON::Validator::Util qw(E data_type negotiate_content_type schema_type);
-use Mojo::JSON qw(false true);
+use Mojo::JSON            qw(false true);
 use Mojo::Path;
 
 has moniker       => 'openapiv3';
@@ -91,8 +91,8 @@ sub parameters_for_response {
   my $cache_key = "parameters_for_response:$method:$path:$status";
   return $self->{cache}{$cache_key} if $self->{cache}{$cache_key};
 
-  my $responses = $self->get([paths => $path, $method, 'responses']);
-  my $response  = $responses->{$status} || $responses->{default};
+  my $response = $self->get([paths => $path, $method, 'responses', $status])
+    || $self->get([paths => $path, $method, 'responses', 'default']);
   return undef unless $response;
 
   my @parameters;

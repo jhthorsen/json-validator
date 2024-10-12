@@ -57,6 +57,9 @@
               "application/xml": { "schema": { "$ref": "#/components/schemas/Pets" } }
             }
           },
+          "201": {
+            "$ref": "#/components/responses/Pets"
+          },
           "default": {
             "description": "unexpected error",
             "content": {
@@ -119,6 +122,15 @@
           "message": { "type": "string" }
         }
       }
+    },
+    "responses": {
+        "Pets": {
+            "description": "Reusable Pets response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Pets" } },
+              "application/xml": { "schema": { "$ref": "#/components/schemas/Pets" } }
+            }
+        }
     }
   }
 }
