@@ -44,7 +44,6 @@ sub coerce {
   $what                                 = {map { ($_ => 1) } split /,/, $what} unless ref $what;
   $self->{coerce}                       = {};
   $self->{coerce}{($short->{$_} || $_)} = $what->{$_} for keys %$what;
-
   return $self;
 }
 
