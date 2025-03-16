@@ -127,6 +127,15 @@ subtest 'validate_response - accept' => sub {
     'negotiated content type';
 };
 
+subtest 'validate_response - resusable response' => sub {
+  $body   = {accept => 'application/*'};
+  @errors = $schema->validate_response([get => '/pets', 201], {body => \&body});
+  is "@errors", '', 'valid accept';
+  is_deeply $body,
+    {accept => 'application/*', content_type => 'application/json', in => 'body', name => 'body', valid => 1},
+    'negotiated content type';
+};
+
 subtest 'validate_response - content_type' => sub {
   $body   = {content_type => 'text/plain'};
   @errors = $schema->validate_response([get => '/pets'], {body => \&body});
