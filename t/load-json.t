@@ -18,7 +18,7 @@ is_deeply [sort keys %{$jv->store->schemas}], [$jv->schema->id], 'schemas in sto
 
 my $spec = path($file)->slurp;
 $spec =~ s!"#!"person.json#! or die "Invalid spec: $spec";
-path("$file.2")->spurt($spec);
+path("$file.2")->spew($spec);
 ok eval { JSON::Validator->new->schema("$file.2") }, 'test issue #1 where $ref could not point to a file' or diag $@;
 unlink "$file.2";
 
