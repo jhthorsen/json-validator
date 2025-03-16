@@ -32,4 +32,3 @@ jobs:
           AUTHOR_TESTING: 1
           HARNESS_OPTIONS: j6
           MOJO_LOG_LEVEL: info
-          TEST_ACCEPTANCE: 1
