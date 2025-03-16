@@ -1,6 +1,6 @@
 Revision history for perl distribution JSON-Validator
 
-5.15 Not Released
+5.15 2025-03-16T18:47:47
  - Make JSON::Validator::Util::is_bool return true when passed perl v5.36+ builtin booleans #275
  - Fix wrong resolving of responses component using $ref #277
  - Fix array coercion for array parameters with a $ref schema #274
