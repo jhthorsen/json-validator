@@ -407,8 +407,19 @@ sub _validate_type_object_response {
 }
 
 sub _validate_type_string {
-  my $self = shift;
-  return $_[1]->{schema}{nullable} && !defined $_[0] ? () : $self->SUPER::_validate_type_string(@_);
+  my ($self, $val, $state) = @_;
+
+  return () if $state->{schema}{nullable} && !defined $val;
+
+  if (ref $val eq 'Mojo::Upload') {
+    return () if
+      defined $state->{schema}{format} &&
+      $state->{schema}{format} eq 'binary';
+
+    return E $state->{path}, [string => type => data_type $val];
+  }
+
+  return $self->SUPER::_validate_type_string($val, $state);
 }
 
 1;
