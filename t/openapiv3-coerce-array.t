@@ -23,6 +23,12 @@ subtest 'already an array' => sub {
   is "@errors", "", "valid";
 };
 
+subtest 'array coercion with multipart/form-data boundary' => sub {
+  $body   = {exists => 1, value => {id => 42}, content_type => 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW'};
+  @errors = $schema->validate_request([post => '/test'], {body => \&body});
+  is "@errors", "", "valid with boundary parameter";
+};
+
 subtest 'parameter array schema is $ref' => sub {
   $query  = {exists => 1, value => [42, 43]};
   @errors = $schema->validate_request([get => '/test'], {query => \&query});
@@ -51,6 +57,13 @@ paths:
         required: true
         content:
           application/x-www-form-urlencoded:
+            schema:
+              properties:
+                id:
+                  type: array
+                  items:
+                    type: integer
+          multipart/form-data:
             schema:
               properties:
                 id:
