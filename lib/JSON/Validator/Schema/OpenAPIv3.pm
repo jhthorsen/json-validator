@@ -279,22 +279,33 @@ sub _validate_body {
     $val->{valid}        = $val->{content_type} ? 1 : 0;
     return E "/header/Accept", [join(', ', @{$param->{accepts}}), type => $val->{accept}] unless $val->{valid};
   }
+  my $negotiated_content_type;
   if (@{$param->{accepts}} and $val->{content_type}) {
-    my $negotiated = negotiate_content_type($param->{accepts}, $val->{content_type});
-    $val->{valid} = $negotiated ? 1 : 0;
-    return E "/$param->{name}", [join(', ', @{$param->{accepts}}) => type => $val->{content_type}] unless $negotiated;
+    $negotiated_content_type = negotiate_content_type($param->{accepts}, $val->{content_type});
+    $val->{valid} = $negotiated_content_type ? 1 : 0;
+    return E "/$param->{name}", [join(', ', @{$param->{accepts}}) => type => $val->{content_type}] unless $negotiated_content_type;
   }
   if ($param->{required} and !$val->{exists}) {
     $val->{valid} = 0;
     return E "/$param->{name}", [qw(object required)];
   }
   if ($val->{exists}) {
-    $val->{content_type} //= $param->{accepts}[0];
+    # Ensures we have a valid content-type so we can select a schema
+    # This can happen if the negotiation fails (e.g. content-type is empty)
+    $negotiated_content_type //= $param->{accepts}[0];
+
+    # Mutate request content-type if one was not set
+    $val->{content_type} //= $negotiated_content_type;
+
     local $self->{coerce}{arrays} = 1
       if $val->{content_type} =~ m!^(application/x-www-form-urlencoded|multipart/form-data)$!;
+
     local $self->{"validate_$direction"} = 1;
+
+    my $body_params = $param->{content}{$negotiated_content_type};
     my @errors = map { $_->path(_prefix_error_path($param->{name}, $_->path)); $_ }
-      $self->validate($val->{value}, $param->{content}{$val->{content_type}}{schema});
+      $self->validate($val->{value}, $body_params->{schema});
+
     $val->{valid} = @errors ? 0 : 1;
     return @errors;
   }
