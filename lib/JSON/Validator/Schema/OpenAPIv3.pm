@@ -298,7 +298,7 @@ sub _validate_body {
     $val->{content_type} //= $negotiated_content_type;
 
     local $self->{coerce}{arrays} = 1
-      if $val->{content_type} =~ m!^(application/x-www-form-urlencoded|multipart/form-data)$!;
+      if $val->{content_type} =~ m!^(application/x-www-form-urlencoded|multipart/form-data)\s*(;|$)!;
 
     local $self->{"validate_$direction"} = 1;
 
