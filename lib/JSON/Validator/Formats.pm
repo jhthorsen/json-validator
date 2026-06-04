@@ -93,15 +93,19 @@ sub check_idn_email {
 
   local $@;
   my $err = eval {
-    my @email = split /@/, $_[0], 2;
+    my ($local_part, $domain) = split /@/, $_[0], 2;
+    $local_part = join '.', map {
+      Net::IDN::Encode::to_ascii($_)
+    } split( /\./, $local_part // '');
+
     check_email(
       join '@',
-      Net::IDN::Encode::to_ascii($email[0]        // ''),
-      Net::IDN::Encode::domain_to_ascii($email[1] // ''),
+      $local_part,
+      Net::IDN::Encode::domain_to_ascii($domain // ''),
     );
   };
 
-  return $err ? 'Does not match idn-email format.' : $@ || undef;
+  return $err || $@ ? 'Does not match idn-email format.' : undef;
 }
 
 sub check_idn_hostname {

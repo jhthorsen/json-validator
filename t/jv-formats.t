@@ -117,6 +117,43 @@ subtest 'idn-email' => sub {
   local $TODO = eval 'require Net::IDN::Encode;1' ? undef : 'Missing module';
   local $schema->{properties}{v}{format} = 'idn-email';
   validate_ok {v => decode('UTF-8', '用户@')}, $schema, E('/v', 'Does not match idn-email format.');
+
+  # --- Valid IDN Email Addresses (Domain Variations) ---
+  validate_ok {v => decode('UTF-8', 'user@bücher.example')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user@xn--bcher-kva.example')}, $schema;
+  validate_ok {v => decode('UTF-8', 'test.user@δοκιμή.example')}, $schema;
+  validate_ok {v => decode('UTF-8', 'info@例.jp')}, $schema;
+  validate_ok {v => decode('UTF-8', 'john.doe@例子.com')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user@müller.com')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user@test-bücher.com')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user@xn--test-bcher-kvb.com')}, $schema;
+
+  # --- Valid IDN Email Addresses (Local-Part Variations) ---
+  validate_ok {v => decode('UTF-8', 'simple@bücher.example')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user.name@bücher.example')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user_name@bücher.example')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user-name@bücher.example')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user+alias@bücher.example')}, $schema;
+  validate_ok {v => decode('UTF-8', '!#$%&\'*+-/=?^_{}|~@bücher.example')}, $schema;
+  validate_ok {v => decode('UTF-8', '佐藤@例.jp')}, $schema;
+  validate_ok {v => decode('UTF-8', 'пользователь@пример.рф')}, $schema;
+  validate_ok {v => decode('UTF-8', 'user.佐藤@bücher.example')}, $schema;
+
+
+  # --- Invalid IDN Email Addresses (Domain Variations) ---
+  validate_ok {v => decode('UTF-8', 'user@bücher-.example')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', 'user@-bücher.example')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', 'user@bücher..example')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', 'user@bücher_example.com')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', 'user@bücher.com.')}, $schema, E('/v', 'Does not match idn-email format.');
+
+  # --- Invalid IDN Email Addresses (Local-Part Variations) ---
+  validate_ok {v => decode('UTF-8', '.user@bücher.example')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', 'user..name@bücher.example')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', 'user name@bücher.example')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', 'user,@bücher.example')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', 'user(comment)@bücher.example')}, $schema, E('/v', 'Does not match idn-email format.');
+  validate_ok {v => decode('UTF-8', '"user.name@bücher.example')}, $schema, E('/v', 'Does not match idn-email format.');
 };
 
 subtest 'idn-hostname' => sub {
