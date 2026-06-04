@@ -59,6 +59,7 @@ sub data_type {
   my $ref     = ref $_[0];
   my $blessed = blessed $_[0];
   return 'object'  if $ref eq 'HASH';
+  return 'file'    if $ref eq 'Mojo::Upload';
   return lc $ref   if $ref and !$blessed;
   return 'null'    if !defined $_[0];
   return 'boolean' if $blessed and ("$_[0]" eq "1" or !"$_[0]");
