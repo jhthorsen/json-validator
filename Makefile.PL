@@ -14,7 +14,17 @@ my %WriteMakefileArgs = (
   AUTHOR        => 'Jan Henning Thorsen <jhthorsen@cpan.org>',
   LICENSE       => 'artistic_2',
   VERSION_FROM  => 'lib/JSON/Validator.pm',
-  META_MERGE    => {
+  PREREQ_PM   => {
+    'perl'                   => 'v5.16.0',
+    'Data::Validate::Domain' => '0.11',
+    'Data::Validate::IP'     => '0.27',
+    'List::Util'             => '1.45',
+    'Mojolicious'            => '9.34',
+    'Net::IDN::Encode'       => '2.500',
+    @PREREQ_YAML
+  },
+  TEST_REQUIRES => {'Test::More' => '1.30', 'Test::Deep' => '0'},
+  META_MERGE      => {
     'dynamic_config' => 0,
     'meta-spec'      => {version   => 2},
     'no_index'       => {directory => [qw(examples t)]},
@@ -63,9 +73,7 @@ my %WriteMakefileArgs = (
       'Zoffix Znet <cpan@zoffix.com>',
     ],
   },
-  PREREQ_PM     => {'List::Util' => '1.45', 'Mojolicious' => '7.28', 'perl' => 'v5.16.0', @PREREQ_YAML},
-  TEST_REQUIRES => {'Test::More' => '1.30', 'Test::Deep'  => '0'},
-  test          => {TESTS        => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
+  test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );
 
 unless (eval { ExtUtils::MakeMaker->VERSION('6.63_03') }) {
