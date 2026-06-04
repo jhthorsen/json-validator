@@ -1,5 +1,15 @@
 Revision history for perl distribution JSON-Validator
 
+5.16 2026-06-04T10:06:00
+ - Use Mojo::File::spew instead of Mojo::File::spurt #281
+   Contributor: Emmanuel Seyman
+ - Updated dependency list #283
+ - Use negotiated content-type to select schema #289
+   Contributor: Archey Barrell
+ - Updated idn-email format verification to allow periods in local part #290
+   Contributor: Keith Carangelo
+ - Add string as valid format #293
+
 5.15 2025-03-16T18:47:47
  - Make JSON::Validator::Util::is_bool return true when passed perl v5.36+ builtin booleans #275
  - Fix wrong resolving of responses component using $ref #277
