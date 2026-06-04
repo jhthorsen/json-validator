@@ -182,6 +182,7 @@ sub _build_formats {
     'json-pointer'          => JSON::Validator::Formats->can('check_json_pointer'),
     'regex'                 => JSON::Validator::Formats->can('check_regex'),
     'relative-json-pointer' => JSON::Validator::Formats->can('check_relative_json_pointer'),
+    'string'                => sub { undef },
     'time'                  => JSON::Validator::Formats->can('check_time'),
     'uri'                   => JSON::Validator::Formats->can('check_uri'),
     'uri-reference'         => JSON::Validator::Formats->can('check_uri_reference'),
