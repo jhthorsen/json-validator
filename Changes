@@ -1,5 +1,9 @@
 Revision history for perl distribution JSON-Validator
 
+5.17 2026-06-04T22:32:00
+ - Add validate Mojo::Upload as binary string in OpenAPIv3 #288
+   Contributor: Archey Barrell
+
 5.16 2026-06-04T10:06:00
  - Use Mojo::File::spew instead of Mojo::File::spurt #281
    Contributor: Emmanuel Seyman
