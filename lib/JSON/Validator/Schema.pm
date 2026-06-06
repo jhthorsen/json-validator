@@ -372,8 +372,13 @@ sub _validate {
   my @errors;
   if ($self->recursive_data_protection and 2 == grep { ref $_ && !is_bool($_) } $data, $schema) {
     my $seen_addr = "$schema:$data";
-    return @{$self->{seen}{$seen_addr}} if $self->{seen}{$seen_addr};    # Avoid recursion
-    $self->{seen}{$seen_addr} = \@errors;
+    my $seen      = $self->{seen}{$seen_addr};
+    return @{$seen->[0]} if $seen;    # Avoid recursion
+    # Keep $schema and $data referenced for the rest of this validation run, so
+    # their memory addresses cannot be reused by transient (merged) schemas built
+    # later while following $ref/$dynamicRef. Otherwise this address-based cache
+    # key collides with a freed entry and returns stale errors (GH #272).
+    $self->{seen}{$seen_addr} = [\@errors, $schema, $data];
   }
 
   local $_[1] = $data->TO_JSON if blessed $data and $data->can('TO_JSON');
