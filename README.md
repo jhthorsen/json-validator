@@ -116,7 +116,7 @@ Here is the list of the bundled specifications:
 
     Web page: [https://openapis.org](https://openapis.org)
 
-    `$ref`: [https://spec.openapis.org/oas/3.0/schema/2019-04-02](https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json)
+    `$ref`: [https://spec.openapis.org/oas/3.0/schema/2021-09-28](https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json)
 
     This specification is still EXPERIMENTAL.
 

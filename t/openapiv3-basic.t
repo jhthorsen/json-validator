@@ -9,7 +9,7 @@ my $schema = JSON::Validator::Schema::OpenAPIv3->new;
 my ($body, $p, @errors);
 
 subtest 'basic' => sub {
-  is $schema->specification, 'https://spec.openapis.org/oas/3.0/schema/2019-04-02', 'specification';
+  is $schema->specification, 'https://spec.openapis.org/oas/3.0/schema/2021-09-28', 'specification';
   is_deeply $schema->coerce, {booleans => 1, numbers => 1, strings => 1}, 'default coercion';
 
   $schema = JSON::Validator->new->schema($cwd->child(qw(spec v3-petstore.json)))->schema;

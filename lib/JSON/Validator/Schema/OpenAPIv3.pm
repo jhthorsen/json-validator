@@ -6,7 +6,7 @@ use Mojo::JSON            qw(false true);
 use Mojo::Path;
 
 has moniker       => 'openapiv3';
-has specification => 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
+has specification => 'https://spec.openapis.org/oas/3.0/schema/2021-09-28';
 
 require JSON::Validator::Schema::OpenAPIv2;
 *coerce                           = \&JSON::Validator::Schema::OpenAPIv2::coerce;
@@ -436,7 +436,7 @@ See L<JSON::Validator::Schema::OpenAPIv2/SYNOPSIS>.
 
 =head1 DESCRIPTION
 
-This class represents L<https://spec.openapis.org/oas/3.0/schema/2019-04-02>.
+This class represents L<https://spec.openapis.org/oas/3.0/schema/2021-09-28>.
 
 =head1 ATTRIBUTES
 
@@ -458,7 +458,7 @@ Used to get/set the moniker for the given schema. Default value is "openapiv3".
   my $str    = $schema->specification;
   my $schema = $schema->specification($str);
 
-Defaults to "L<https://spec.openapis.org/oas/3.0/schema/2019-04-02>".
+Defaults to "L<https://spec.openapis.org/oas/3.0/schema/2021-09-28>".
 
 =head1 METHODS
 

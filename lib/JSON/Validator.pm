@@ -15,7 +15,7 @@ our %SCHEMAS = (
   'http://json-schema.org/draft-07/schema#'             => '+Draft7',
   'https://json-schema.org/draft/2019-09/schema'        => '+Draft201909',
   'http://swagger.io/v2/schema.json'                    => '+OpenAPIv2',
-  'https://spec.openapis.org/oas/3.0/schema/2019-04-02' => '+OpenAPIv3',
+  'https://spec.openapis.org/oas/3.0/schema/2021-09-28' => '+OpenAPIv3',
   'https://spec.openapis.org/oas/3.1/schema/2021-05-20' => '+OpenAPIv3',
 );
 
@@ -117,7 +117,7 @@ sub _new_schema {
       $attrs{specification} ||= $spec;
     }
     elsif ($spec->{openapi} and $spec->{openapi} =~ m!^3\.0\.\d+$!) {
-      $spec = 'https://spec.openapis.org/oas/3.0/schema/2019-04-02';
+      $spec = 'https://spec.openapis.org/oas/3.0/schema/2021-09-28';
     }
   }
 
@@ -257,7 +257,7 @@ C<$ref>: L<http://swagger.io/v2/schema.json#>
 
 Web page: L<https://openapis.org>
 
-C<$ref>: L<https://spec.openapis.org/oas/3.0/schema/2019-04-02|https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json>
+C<$ref>: L<https://spec.openapis.org/oas/3.0/schema/2021-09-28|https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v3.0/schema.json>
 
 This specification is still EXPERIMENTAL.
 
