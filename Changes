@@ -1,5 +1,11 @@
 Revision history for perl distribution JSON-Validator
 
+5.18 2026-06-08T09:53:00
+ - Bundle OpenAPI v3.0 schema 2021-09-28 as default #295, #286
+   Contributor: Henrik Andersen
+ - Fix nondeterministic false errors from the recursive_data_protection cache #272, #294
+   Contributor: Henrik Andersen
+
 5.17 2026-06-04T22:32:00
  - Add validate Mojo::Upload as binary string in OpenAPIv3 #288
    Contributor: Archey Barrell
