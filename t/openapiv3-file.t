@@ -1,6 +1,7 @@
 use Mojo::Base -strict;
 use JSON::Validator::Schema::OpenAPIv3;
 use Mojo::File;
+use Mojo::JSON qw(encode_json);
 use Mojo::Upload;
 use Test::Deep;
 use Test::More;
@@ -91,6 +92,13 @@ subtest 'file placehodler in non-file string' => sub {
   $body = {exists => 1,value => {name => $file } };
   @errors = $schema->validate_request([post => '/submit'], {body => \&body});
   is "@errors", "/body/name: Expected string - got file.", 'valid file';
+};
+
+subtest 'integer is coerced to string' => sub {
+  $body = {exists => 1, value => {name => 42}};
+  @errors = $schema->validate_request([post => '/submit'], {body => \&body});
+  is "@errors", "", 'valid';
+  is encode_json($body->{value}), '{"name":"42"}', 'value is coerced to string';
 };
 
 done_testing;
