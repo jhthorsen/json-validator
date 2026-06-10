@@ -15,12 +15,9 @@ my %WriteMakefileArgs = (
   LICENSE       => 'artistic_2',
   VERSION_FROM  => 'lib/JSON/Validator.pm',
   PREREQ_PM   => {
-    'perl'                   => 'v5.16.0',
-    'Data::Validate::Domain' => '0.11',
-    'Data::Validate::IP'     => '0.27',
-    'List::Util'             => '1.45',
-    'Mojolicious'            => '9.34',
-    'Net::IDN::Encode'       => '2.500',
+    'perl'        => 'v5.16.0',
+    'List::Util'  => '1.45',
+    'Mojolicious' => '9.34',
     @PREREQ_YAML
   },
   TEST_REQUIRES => {'Test::More' => '1.30', 'Test::Deep' => '0'},
@@ -28,7 +25,16 @@ my %WriteMakefileArgs = (
     'dynamic_config' => 0,
     'meta-spec'      => {version   => 2},
     'no_index'       => {directory => [qw(examples t)]},
-    'prereqs'        => {runtime   => {requires => {perl => '5.016'}}},
+    'prereqs'        => {
+      runtime => {
+        requires   => {perl => '5.016'},
+        recommends => {
+          'Data::Validate::Domain' => '0.11',
+          'Data::Validate::IP'     => '0.27',
+          'Net::IDN::Encode'       => '2.500',
+        },
+      },
+    },
     'resources'      => {
       bugtracker => {web => "$GITHUB_URL/issues"},
       homepage   => $GITHUB_URL,

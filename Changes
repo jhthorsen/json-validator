@@ -1,5 +1,8 @@
 Revision history for perl distribution JSON-Validator
 
+5.19 Not Released
+ - Make Net::IDN::Encode, Data::Validate::Domain and Data::Validate::IP optional so installation works on Perl 5.38+ #296
+
 5.18 2026-06-08T09:53:00
  - Bundle OpenAPI v3.0 schema 2021-09-28 as default #295, #286
    Contributor: Henrik Andersen
