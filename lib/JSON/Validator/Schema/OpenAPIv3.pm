@@ -407,7 +407,8 @@ sub _validate_type_object_response {
 }
 
 sub _validate_type_string {
-  my ($self, $val, $state) = @_;
+  my $self = shift;
+  my ($val, $state) = @_;
 
   return () if $state->{schema}{nullable} && !defined $val;
 
@@ -419,7 +420,9 @@ sub _validate_type_string {
     return E $state->{path}, [string => type => data_type $val];
   }
 
-  return $self->SUPER::_validate_type_string($val, $state);
+  # Pass @_ (not the lexical copies) so SUPER's in-place coercion of $_[1]
+  # propagates back to the caller's aliased value.
+  return $self->SUPER::_validate_type_string(@_);
 }
 
 1;
