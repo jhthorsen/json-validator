@@ -297,6 +297,10 @@ Copyright (C) 2014-2021, Jan Henning Thorsen
 This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.
 
+This distribution bundles cached copies of JSON Schema and OpenAPI schema
+files published by third parties. See `lib/JSON/Validator/cache/LICENSE`
+for their copyright and license information.
+
 # AUTHORS
 
 ## Project Founder
