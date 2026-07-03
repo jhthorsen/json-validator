@@ -1,7 +1,7 @@
 package JSON::Validator::Schema::OpenAPIv3;
 use Mojo::Base 'JSON::Validator::Schema::Draft201909';
 
-use JSON::Validator::Util qw(E data_type negotiate_content_type schema_type);
+use JSON::Validator::Util qw(E data_type is_num negotiate_content_type schema_type);
 use Mojo::JSON            qw(false true);
 use Mojo::Path;
 
@@ -314,6 +314,22 @@ sub _validate_body {
 }
 
 sub _validate_id { }
+
+# OpenAPI v3.0 uses draft4 semantics, where exclusiveMinimum/exclusiveMaximum
+# are booleans modifying minimum/maximum, while OpenAPI v3.1 uses numbers
+sub _validate_number_max {
+  my $exclusive = $_[2]->{schema}{exclusiveMaximum} // '';
+  return is_num($exclusive)
+    ? JSON::Validator::Schema::Draft6::_validate_number_max(@_)
+    : JSON::Validator::Schema::Draft4::_validate_number_max(@_);
+}
+
+sub _validate_number_min {
+  my $exclusive = $_[2]->{schema}{exclusiveMinimum} // '';
+  return is_num($exclusive)
+    ? JSON::Validator::Schema::Draft6::_validate_number_min(@_)
+    : JSON::Validator::Schema::Draft4::_validate_number_min(@_);
+}
 
 sub _validate_type_array {
   my $self = shift;
