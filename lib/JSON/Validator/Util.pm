@@ -25,6 +25,10 @@ sub E { JSON::Validator::Error->new(@_) }
 my $serializer = SEREAL_SUPPORT ? \&_sereal_encode : \&_yaml_dump;
 
 sub data_checksum {
+  if (CORE_BOOL) {
+    BEGIN { warnings->unimport('experimental::builtin') if CORE_BOOL }
+    return data_checksum($_[0] ? Mojo::JSON::true : Mojo::JSON::false) if builtin::is_bool $_[0];
+  }
   return Mojo::Util::md5_sum(ref $_[0] ? $serializer->($_[0]) : defined $_[0] ? do { utf8::encode(my $x = shift); qq('$x') } : 'undef');
 }
 
